@@ -1,0 +1,83 @@
+/**
+ * API Client Module
+ * Handles all communication with the backend server
+ */
+const API = (() => {
+  const BASE = '/api';
+
+  function getToken() { return localStorage.getItem('qft_token'); }
+  function setToken(t) { localStorage.setItem('qft_token', t); }
+  function clearToken() { localStorage.removeItem('qft_token'); }
+  function getUser() { const u = localStorage.getItem('qft_user'); return u ? JSON.parse(u) : null; }
+  function setUser(u) { localStorage.setItem('qft_user', JSON.stringify(u)); }
+  function clearUser() { localStorage.removeItem('qft_user'); }
+  function isLoggedIn() { return !!getToken(); }
+
+  async function request(method, path, body = null) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    const token = getToken();
+    if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+    if (body && method !== 'GET') opts.body = JSON.stringify(body);
+
+    const res = await fetch(BASE + path, opts);
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 401) {
+      clearToken();
+      clearUser();
+      window.dispatchEvent(new CustomEvent('auth:expired'));
+    }
+    if (!res.ok) throw { status: res.status, ...data };
+    return data;
+  }
+
+  async function upload(path, formData) {
+    const opts = { method: 'POST', headers: {} };
+    const token = getToken();
+    if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+    opts.body = formData;
+    const res = await fetch(BASE + path, opts);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw { status: res.status, ...data };
+    return data;
+  }
+
+  return {
+    getToken, setToken, clearToken, getUser, setUser, clearUser, isLoggedIn,
+    login: (username, password) => request('POST', '/auth/login', { username, password }),
+    getProfile: () => request('GET', '/auth/profile'),
+    changePassword: (data) => request('PUT', '/auth/change-password', data),
+    getDashboard: () => request('GET', '/dashboard'),
+    getSchools: () => request('GET', '/schools'),
+    getSchool: (id) => request('GET', `/schools/${id}`),
+    createSchool: (data) => request('POST', '/schools', data),
+    updateSchool: (id, data) => request('PUT', `/schools/${id}`, data),
+    reassignSchoolAdmin: (id, adminId) => request('PATCH', `/schools/${id}/assign`, { admin_id: adminId }),
+    getErrors: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/errors' + (qs ? '?' + qs : '')); },
+    getError: (id) => request('GET', `/errors/${id}`),
+    getErrorStats: () => request('GET', '/errors/stats'),
+    createError: (data) => request('POST', '/errors', data),
+    updateErrorStatus: (id, status) => request('PATCH', `/errors/${id}/status`, { status }),
+    addErrorUpdate: (id, data) => request('POST', `/errors/${id}/updates`, data),
+    getTeam: () => request('GET', '/team'),
+    getTeamMember: (id) => request('GET', `/team/${id}`),
+    createTeamMember: (data) => request('POST', '/team', data),
+    updateTeamMember: (id, data) => request('PUT', `/team/${id}`, data),
+    removeTeamMember: (id, reassignTo) => request('DELETE', `/team/${id}`, { reassign_to: reassignTo }),
+    getCheckins: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/checkins' + (qs ? '?' + qs : '')); },
+    getSchoolCheckins: (schoolId) => request('GET', `/checkins/school/${schoolId}`),
+    createCheckin: (data) => request('POST', '/checkins', data),
+    getGuides: () => request('GET', '/guides'),
+    createGuide: (data) => request('POST', '/guides', data),
+    updateGuide: (id, data) => request('PUT', `/guides/${id}`, data),
+    deleteGuide: (id) => request('DELETE', `/guides/${id}`),
+    getManuals: () => request('GET', '/manuals'),
+    uploadManual: (formData) => upload('/manuals', formData),
+    downloadManualUrl: (id) => `${BASE}/manuals/${id}/download`,
+    deleteManual: (id) => request('DELETE', `/manuals/${id}`),
+    getCommunications: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/communications' + (qs ? '?' + qs : '')); },
+    createCommunication: (data) => request('POST', '/communications', data),
+    getSettings: () => request('GET', '/settings'),
+    updateSettings: (data) => request('PUT', '/settings', data),
+  };
+})();

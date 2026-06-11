@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quest Forward Tanzania — Technical Support System</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.14.0/tabler-icons.min.css">
+  <link rel="stylesheet" href="https://unicons.iconscout.com/release/v4.0.8/css/line.css">
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div class="login-container" id="login-page" style="display:none">
+  <div class="login-box">
+    <div style="text-align:center;margin-bottom:24px">
+      <div class="brand-dot" style="width:48px;height:48px;font-size:18px;margin:0 auto 16px">QF</div>
+      <div class="login-title">Quest Forward Tanzania</div>
+      <div class="login-sub">Technical Support System — Sign in to continue</div>
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <form id="login-form">
+      <div class="form-group" style="margin-bottom:14px">
+        <label>Username or Email</label>
+        <input type="text" id="login-username" placeholder="e.g. admin" autocomplete="username">
+      </div>
+      <div class="form-group" style="margin-bottom:20px">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" id="login-btn">
+        <i class="ti ti-login"></i> Sign In
+      </button>
+    </form>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3)">
+      Default: admin / admin123
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="app-container" style="display:none">
+
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="menu-toggle" onclick="Router.toggleSidebar()"><i class="ti ti-menu-2"></i></div>
+    <div class="brand">
+      <div class="brand-dot">QF</div>
+      <span>Quest Forward Tanzania</span>
+    </div>
+    <span style="color:var(--text3);font-size:12px">/ Technical Support</span>
+    <div class="topbar-right">
+      <div class="topbar-profile" id="topbar-profile" onclick="Auth.toggleProfileMenu()">
+        <div class="topbar-avatar" id="topbar-avatar">KM</div>
+        <div class="topbar-user-info">
+          <div class="topbar-username" id="user-display">System Administrator</div>
+          <div class="topbar-role" id="user-role-display">Admin</div>
+        </div>
+        <i class="ti ti-chevron-down" style="font-size:14px;color:var(--text3)"></i>
+      </div>
+      <div class="profile-dropdown" id="profile-dropdown">
+        <div class="profile-dropdown-header" id="profile-dd-header">
+          <div class="topbar-avatar" style="width:40px;height:40px;font-size:14px" id="dd-avatar">KM</div>
+          <div><div style="font-weight:600;font-size:13px" id="dd-name">—</div><div style="font-size:11px;color:var(--text3)" id="dd-email">—</div></div>
+        </div>
+        <div class="profile-dropdown-items">
+          <div class="profile-dropdown-item" onclick="Auth.showProfile()"><i class="ti ti-user"></i> My Profile</div>
+          <div class="profile-dropdown-item" onclick="Auth.showChangePassword()"><i class="ti ti-key"></i> Change Password</div>
+          <div class="profile-dropdown-divider"></div>
+          <div class="profile-dropdown-item danger" onclick="Auth.logout()"><i class="ti ti-logout"></i> Sign Out</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sb-backdrop" onclick="Router.toggleSidebar()"></div>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" data-page="dashboard"><i class="ti ti-layout-dashboard"></i>Dashboard</div>
+    <div class="nav-item" data-page="report"><i class="ti ti-bug"></i>Report Error</div>
+    <div class="nav-item" data-page="tracker"><i class="ti ti-list-check"></i>Error Tracker</div>
+
+    <div class="nav-section">Support</div>
+    <div class="nav-item" data-page="schools"><i class="ti ti-school"></i>School Profiles</div>
+    <div class="nav-item" data-page="troubleshoot"><i class="ti ti-tools"></i>Troubleshooting</div>
+
+    <div class="nav-section" data-role="admin">Admin</div>
+    <div class="nav-item" data-page="team" data-role="admin"><i class="ti ti-users-group"></i>Sub-Admins</div>
+    <div class="nav-item" data-page="branding" data-role="admin"><i class="ti ti-palette"></i>Branding</div>
+
+    <div class="sidebar-footer">
+      <div style="padding:12px;background:var(--bg3);border-radius:8px;margin-bottom:10px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">Logged in as</div>
+        <div style="font-size:13px;font-weight:600" id="sidebar-user">—</div>
+      </div>
+      <div class="nav-item" onclick="Auth.logout()"><i class="ti ti-logout"></i>Sign Out</div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main" id="main" style="animation: fadeUp .4s ease"></main>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal" id="modal-box">
+    <div class="modal-header">
+      <div style="font-weight:600" id="modal-title">Modal</div>
+      <i class="ti ti-x" style="cursor:pointer;font-size:18px;color:var(--text2)" onclick="Modal.close()"></i>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg">Action completed</span></div>
+
+<!-- JavaScript Modules -->
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/components/modal.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/router.js"></script>
+<script src="js/pages/dashboard.js"></script>
+<script src="js/pages/report.js"></script>
+<script src="js/pages/tracker.js"></script>
+<script src="js/pages/schools.js"></script>
+<script src="js/pages/team.js"></script>
+<script src="js/pages/guides.js"></script>
+<script src="js/pages/branding.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

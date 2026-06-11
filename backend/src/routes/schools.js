@@ -1,0 +1,35 @@
+const express = require('express');
+const { body } = require('express-validator');
+const validate = require('../middleware/validate');
+const { authenticate, authorize } = require('../middleware/auth');
+const schoolController = require('../controllers/schoolController');
+
+const router = express.Router();
+
+router.use(authenticate);
+
+router.get('/', schoolController.getAll);
+router.get('/:id', schoolController.getById);
+
+router.post('/', [
+  authorize('admin'),
+  body('code').notEmpty().withMessage('School code is required'),
+  body('name').notEmpty().withMessage('School name is required'),
+  validate
+], schoolController.create);
+
+router.put('/:id', [
+  authorize('admin'),
+  body('name').notEmpty().withMessage('School name is required'),
+  validate
+], schoolController.update);
+
+router.patch('/:id/assign', [
+  authorize('admin'),
+  body('admin_id').optional(),
+  validate
+], schoolController.reassignAdmin);
+
+router.delete('/:id', authorize('admin'), schoolController.remove);
+
+module.exports = router;

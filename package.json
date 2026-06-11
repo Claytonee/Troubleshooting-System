@@ -1,0 +1,12 @@
+{
+  "name": "qft-troubleshooting-system",
+  "version": "1.0.0",
+  "description": "Quest Forward Tanzania - Technical Support & Troubleshooting System",
+  "private": true,
+  "scripts": {
+    "start": "cd backend && node src/server.js",
+    "install:backend": "cd backend && npm install",
+    "migrate": "cd backend && node src/config/migrate.js",
+    "seed": "cd backend && node src/config/seed.js"
+  }
+}
