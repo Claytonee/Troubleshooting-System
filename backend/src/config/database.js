@@ -20,7 +20,7 @@ if (process.env.NODE_ENV === 'production') {
   const caPath = path.join(__dirname, 'ca.pem');
   poolConfig.ssl = {
     ca: fs.readFileSync(caPath, 'utf8'),
-    rejectUnauthorized: true
+    rejectUnauthorized: false
   };
 }
 

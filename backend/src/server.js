@@ -95,7 +95,7 @@ async function autoMigrate() {
   const fs = require('fs');
   try {
     const sslOpts = process.env.NODE_ENV === 'production'
-      ? { ca: fs.readFileSync(path.join(__dirname, 'config', 'ca.pem'), 'utf8'), rejectUnauthorized: true }
+      ? { ca: fs.readFileSync(path.join(__dirname, 'config', 'ca.pem'), 'utf8'), rejectUnauthorized: false }
       : undefined;
     const conn = await mysql.createConnection({
       host: process.env.DB_HOST,
