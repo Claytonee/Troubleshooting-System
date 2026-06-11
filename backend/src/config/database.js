@@ -14,7 +14,7 @@ const poolConfig = {
 };
 
 if (process.env.NODE_ENV === 'production') {
-  poolConfig.ssl = { rejectUnauthorized: true };
+  poolConfig.ssl = { rejectUnauthorized: false };
 }
 
 const pool = mysql.createPool(poolConfig);
