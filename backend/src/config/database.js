@@ -1,5 +1,7 @@
-const mysql = require('mysql2/promise');
 require('dotenv').config();
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+const mysql = require('mysql2/promise');
 
 const poolConfig = {
   host: process.env.DB_HOST || 'localhost',
@@ -14,7 +16,7 @@ const poolConfig = {
 };
 
 if (process.env.NODE_ENV === 'production') {
-  poolConfig.ssl = { rejectUnauthorized: false };
+  poolConfig.ssl = {};
 }
 
 const pool = mysql.createPool(poolConfig);
