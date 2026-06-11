@@ -1,7 +1,8 @@
 require('dotenv').config();
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
 
 const poolConfig = {
   host: process.env.DB_HOST || 'localhost',
@@ -16,7 +17,11 @@ const poolConfig = {
 };
 
 if (process.env.NODE_ENV === 'production') {
-  poolConfig.ssl = {};
+  const caPath = path.join(__dirname, 'ca.pem');
+  poolConfig.ssl = {
+    ca: fs.readFileSync(caPath, 'utf8'),
+    rejectUnauthorized: true
+  };
 }
 
 const pool = mysql.createPool(poolConfig);

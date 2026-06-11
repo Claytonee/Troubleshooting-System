@@ -1,7 +1,4 @@
 require('dotenv').config();
-if (process.env.NODE_ENV === 'production') {
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-}
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -95,14 +92,18 @@ app.use(errorHandler);
 async function autoMigrate() {
   const mysql = require('mysql2/promise');
   const bcrypt = require('bcryptjs');
+  const fs = require('fs');
   try {
+    const sslOpts = process.env.NODE_ENV === 'production'
+      ? { ca: fs.readFileSync(path.join(__dirname, 'config', 'ca.pem'), 'utf8'), rejectUnauthorized: true }
+      : undefined;
     const conn = await mysql.createConnection({
       host: process.env.DB_HOST,
       port: parseInt(process.env.DB_PORT) || 3306,
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      ssl: process.env.NODE_ENV === 'production' ? {} : undefined,
+      ssl: sslOpts,
       multipleStatements: true
     });
 
