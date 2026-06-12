@@ -1,6 +1,3 @@
-/**
- * Dashboard Page — Premium Design
- */
 const DashboardPage = (() => {
   let data = null;
 
@@ -21,143 +18,92 @@ const DashboardPage = (() => {
     const crit = parseInt(errors.critical_open) || 0;
     const inProg = parseInt(errors.in_progress) || 0;
     const resolved24 = parseInt(errors.resolved_24h) || 0;
-    const total = parseInt(errors.total) || 0;
-    const resolveRate = total > 0 ? Math.round((total - open) / total * 100) : 100;
-    const healthPct = schools_total > 0 ? Math.round(schools_healthy / schools_total * 100) : 100;
-    const checkinPct = checkins.total > 0 ? Math.round((checkins.done || 0) / checkins.total * 100) : 0;
-
     const slaBreaches = (recent_errors || []).filter(e => slaState(e) === 'breach').length;
+    const checkinDone = checkins.done || 0;
+    const checkinTotal = checkins.total || 0;
+    const checkinDue = checkinTotal - checkinDone;
+    const checkinPct = checkinTotal > 0 ? Math.round(checkinDone / checkinTotal * 100) : 0;
 
-    const h = new Date().getHours();
-    const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-    const name = user ? user.full_name : '';
+    const roleLabel = user ? (user.role === 'admin' ? 'System Admin — all schools' : user.role === 'subadmin' ? 'Field Engineer' : 'School') : '';
+    const critSchools = [...new Set((recent_errors || []).filter(e => e.priority === 'critical' && e.status !== 'resolved').map(e => esc(e.school_name)))];
 
-    const catItems = (category_breakdown || []).slice(0, 5).map((c, i) => {
+    const catRows = (category_breakdown || []).map(c => {
       const m = CAT_META[c.category] || CAT_META.Other;
       const pct = Math.round(c.count / Math.max(1, open) * 100);
-      return `<div class="dcat-row" style="animation-delay:${i * 60}ms">
-        <div class="dcat-dot" style="background:${m.color}"></div>
-        <span class="dcat-label">${c.category}</span>
-        <div class="dcat-track"><div class="dcat-bar" style="width:${pct}%;background:linear-gradient(90deg, ${m.color}, ${m.color}88)"></div></div>
-        <span class="dcat-val">${c.count}</span>
-      </div>`;
-    }).join('') || '<div class="empty" style="padding:24px 0;font-size:12px"><i class="ti ti-circle-check"></i>No open issues</div>';
+      return `<div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span><i class="ti ${m.ic}" style="font-size:13px;vertical-align:-2px;margin-right:5px;color:${m.color}"></i>${c.category}</span>
+        <span style="color:var(--text2)">${c.count} open</span></div>
+        <div class="progress"><div class="progress-fill" style="width:${pct}%;background:${m.color}"></div></div></div>`;
+    }).join('') || '<div class="empty" style="padding:20px 0"><i class="ti ti-circle-check"></i>No open issues</div>';
 
-    const errorRows = (recent_errors || []).slice(0, 5).map((e, i) => {
+    const errorRows = (recent_errors || []).slice(0, 6).map(e => {
       const pri = PRI[e.priority] || PRI.medium;
       const stat = STAT[e.status] || STAT.open;
       const breach = slaState(e) === 'breach';
-      return `<div class="derr-item" onclick="ErrorDetailModal.open(${e.id})" style="animation-delay:${i * 50}ms">
-        <span class="dot ${pri.dot}"></span>
-        <div class="derr-body">
-          <div class="derr-title">${esc(e.title)}</div>
-          <div class="derr-sub">${e.error_code} · ${esc(e.school_name)} · <span class="${breach ? 'derr-breach' : ''}">${ageStr(e.hours_open)}</span></div>
-        </div>
-        <span class="badge ${stat.badge}">${stat.label}</span>
-      </div>`;
-    }).join('') || '<div class="empty" style="padding:30px 0"><i class="ti ti-circle-check"></i>All clear</div>';
+      return `<tr style="cursor:pointer" onclick="ErrorDetailModal.open(${e.id})">
+        <td><span class="dot ${pri.dot}"></span></td>
+        <td><span style="font-size:12px;font-weight:500">${esc(e.title)}</span><br><span class="error-id">${e.error_code}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${esc(e.school_name)}</td>
+        <td><span class="badge ${stat.badge}">${stat.label}</span></td>
+        <td style="font-size:12px;color:${breach ? 'var(--red)' : 'var(--text3)'}">${ageStr(e.hours_open)}</td></tr>`;
+    }).join('') || '<tr><td colspan="5"><div class="empty" style="padding:20px 0"><i class="ti ti-circle-check"></i>No active errors</div></td></tr>';
 
     return `
-    <div class="dh-sticky-top">
-      <div class="dh-welcome">
-        <div>
-          <div class="dh-greeting">System Overview</div>
-          <div class="dh-sub">System Admin — all schools · Term 2 · 2026</div>
-        </div>
-        <div class="dh-actions">
-          <button class="btn btn-secondary btn-sm" onclick="Router.navigate('report');App.loadAndRender()"><i class="uil uil-plus"></i> New Report</button>
-          <button class="btn btn-danger btn-sm" onclick="Router.navigate('tracker');App.loadAndRender()"><i class="uil uil-list-ul"></i> Support Queue</button>
-        </div>
-      </div>
-      ${crit > 0 ? `<div class="dh-alert">
-        <div class="dh-alert-body"><strong>${crit} Critical Error${crit > 1 ? 's' : ''}</strong> need immediate attention — ${(recent_errors||[]).filter(e=>e.priority==='critical'&&e.status!=='resolved').map(e=>esc(e.school_name)).join(', ')}</div>
-        <button class="btn btn-danger btn-sm" onclick="Router.navigate('tracker');App.loadAndRender()">View</button>
-      </div>` : ''}
+  <div class="section-header">
+    <div>
+      <div class="section-title">System Overview</div>
+      <div class="section-sub">${esc(roleLabel)} · Term 2 · 2026</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary btn-sm" onclick="Router.navigate('report');App.loadAndRender()"><i class="ti ti-plus"></i> New Report</button>
+      <button class="btn btn-primary btn-sm" onclick="Router.navigate('followup');App.loadAndRender()"><i class="ti ti-headset"></i> Support Queue</button>
+    </div>
+  </div>
+
+  ${crit > 0 ? `<div class="alert-banner">
+    <i class="ti ti-alert-triangle"></i>
+    <div class="alert-banner-text"><strong>${crit} Critical Error${crit > 1 ? 's' : ''}</strong> need immediate attention — ${critSchools.slice(0, 3).join(', ')}${critSchools.length > 3 ? ' +' + (critSchools.length - 3) : ''}.</div>
+    <button class="btn btn-danger btn-sm" onclick="Router.navigate('tracker');App.loadAndRender()">View</button>
+  </div>` : ''}
+
+  <div class="stats-grid">
+    <div class="stat-card r"><div class="stat-label">Open Errors</div><div class="stat-val" style="color:var(--red)">${open}</div><div class="stat-sub">${crit} critical · ${slaBreaches} SLA breach</div></div>
+    <div class="stat-card a"><div class="stat-label">In Progress</div><div class="stat-val" style="color:var(--amber)">${inProg}</div><div class="stat-sub">being worked on now</div></div>
+    <div class="stat-card g"><div class="stat-label">Resolved (24h)</div><div class="stat-val" style="color:var(--green)">${resolved24}</div><div class="stat-sub"><span class="stat-trend trend-up"><i class="ti ti-check" style="font-size:10px"></i>recently closed</span></div></div>
+    <div class="stat-card t"><div class="stat-label">Schools Healthy</div><div class="stat-val" style="color:var(--teal)">${schools_healthy}<span style="font-size:16px;color:var(--text3)">/${schools_total}</span></div><div class="stat-sub">${schools_total - schools_healthy} need attention</div></div>
+    <div class="stat-card"><div class="stat-label">Week ${checkins.current_week || 4} Check-Ins</div><div class="stat-val">${checkinDone}<span style="font-size:16px;color:var(--text3)">/${checkinTotal}</span></div><div class="stat-sub" style="cursor:pointer;color:var(--accent)" onclick="Router.navigate('weekly');App.loadAndRender()">${checkinDue} still due →</div></div>
+  </div>
+
+  <div class="two-col" style="align-items:start">
+    <div class="card">
+      <div class="card-title">Active Priorities <a style="font-size:11px;color:var(--accent);cursor:pointer;text-transform:none;letter-spacing:0" onclick="Router.navigate('tracker');App.loadAndRender()">View all</a></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th></th><th>Error</th><th>School</th><th>Status</th><th>Age</th></tr></thead>
+        <tbody>${errorRows}</tbody>
+      </table></div>
     </div>
 
-    <div class="dh-kpis">
-      <div class="dh-kpi kpi-red">
-        <div class="kpi-top">
-          <div class="kpi-icon"><i class="uil uil-exclamation-triangle"></i></div>
-          <div class="kpi-badge">${crit} critical${open > 0 && slaBreaches > 0 ? ' · ' + slaBreaches + ' SLA breach' : ''}</div>
+    <div class="card">
+      <div class="card-title">Open Errors by Category</div>
+      <div style="display:flex;flex-direction:column;gap:12px">${catRows}</div>
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <div class="card-title" style="margin-bottom:12px"><i class="ti ti-clipboard-check" style="font-size:15px;color:var(--purple);margin-right:6px"></i> Weekly Check-ins</div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="position:relative;width:60px;height:60px;flex-shrink:0">
+            <svg viewBox="0 0 80 80" style="width:100%;height:100%;transform:rotate(-90deg)">
+              <circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg4)" stroke-width="6"/>
+              <circle cx="40" cy="40" r="34" fill="none" stroke="var(--purple)" stroke-width="6" stroke-dasharray="${checkinPct * 2.136} 213.6" stroke-linecap="round"/>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--purple)">${checkinPct}%</div>
+          </div>
+          <div>
+            <div style="font-size:16px;font-weight:700">${checkinDone} <span style="font-size:12px;font-weight:400;color:var(--text3)">of ${checkinTotal}</span></div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">${checkinDue} schools due</div>
+          </div>
         </div>
-        <div class="kpi-val">${open}</div>
-        <div class="kpi-label">Open Errors</div>
-        <div class="kpi-glow"></div>
-      </div>
-      <div class="dh-kpi kpi-amber">
-        <div class="kpi-top">
-          <div class="kpi-icon"><i class="uil uil-sync"></i></div>
-          <div class="kpi-badge">being worked on now</div>
-        </div>
-        <div class="kpi-val">${inProg}</div>
-        <div class="kpi-label">In Progress</div>
-        <div class="kpi-glow"></div>
-      </div>
-      <div class="dh-kpi kpi-green">
-        <div class="kpi-top">
-          <div class="kpi-icon"><i class="uil uil-check-circle"></i></div>
-          <div class="kpi-badge">recently closed</div>
-        </div>
-        <div class="kpi-val">${resolved24}</div>
-        <div class="kpi-label">Resolved (24h)</div>
-        <div class="kpi-glow"></div>
-      </div>
-      <div class="dh-kpi kpi-teal">
-        <div class="kpi-top">
-          <div class="kpi-icon"><i class="uil uil-building"></i></div>
-          <div class="kpi-badge">${schools_total - schools_healthy} need attention</div>
-        </div>
-        <div class="kpi-val">${schools_healthy}<span class="kpi-of">/${schools_total}</span></div>
-        <div class="kpi-label">Schools Healthy</div>
-        <div class="kpi-glow"></div>
-      </div>
-      <div class="dh-kpi kpi-purple">
-        <div class="kpi-top">
-          <div class="kpi-icon"><i class="uil uil-clipboard-notes"></i></div>
-          <div class="kpi-badge">${(checkins.total || 0) - (checkins.done || 0)} still due →</div>
-        </div>
-        <div class="kpi-val">${checkins.done || 0}<span class="kpi-of">/${checkins.total || 0}</span></div>
-        <div class="kpi-label">Week ${checkins.current_week || 4} Check-Ins</div>
-        <div class="kpi-glow"></div>
       </div>
     </div>
-
-    <div class="dh-panels">
-      <div class="dh-panel dh-panel-main">
-        <div class="dp-head">
-          <div class="dp-title"><i class="uil uil-fire" style="color:var(--red)"></i> Active Priorities</div>
-          <a class="dp-link" onclick="Router.navigate('tracker');App.loadAndRender()">View all →</a>
-        </div>
-        <div class="derr-list">${errorRows}</div>
-      </div>
-      <div class="dh-panel-side">
-        <div class="dh-panel">
-          <div class="dp-head">
-            <div class="dp-title"><i class="uil uil-chart-pie" style="color:var(--accent)"></i> Categories</div>
-          </div>
-          <div class="dcat-list">${catItems}</div>
-        </div>
-        <div class="dh-panel dh-checkin-card">
-          <div class="dp-head">
-            <div class="dp-title"><i class="uil uil-clipboard-notes" style="color:var(--purple)"></i> Weekly Check-ins</div>
-          </div>
-          <div class="dck-body">
-            <div class="dck-ring">
-              <svg viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg4)" stroke-width="6"/>
-                <circle cx="40" cy="40" r="34" fill="none" stroke="var(--purple)" stroke-width="6" stroke-dasharray="${checkinPct * 2.136} 213.6" stroke-dashoffset="0" stroke-linecap="round" class="dck-progress"/>
-              </svg>
-              <div class="dck-ring-text">${checkinPct}%</div>
-            </div>
-            <div class="dck-info">
-              <div class="dck-done">${checkins.done || 0} <span>of ${checkins.total || 0}</span></div>
-              <div class="dck-due">${(checkins.total || 0) - (checkins.done || 0)} schools due</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>`;
+  </div>`;
   }
 
   return { load, render };

@@ -31,9 +31,11 @@ const App = (() => {
       const navCrit = document.getElementById('nav-crit');
       const navTrack = document.getElementById('nav-track');
       const navFu = document.getElementById('nav-fu');
-      if (navCrit) navCrit.textContent = crit > 0 ? crit : '';
-      if (navTrack) navTrack.textContent = open > 0 ? open : '';
-      if (navFu) navFu.textContent = fuCount > 0 ? fuCount : '';
+      const notifDot = document.getElementById('notif-dot');
+      if (navCrit) { navCrit.textContent = crit > 0 ? crit : ''; navCrit.style.display = crit > 0 ? 'inline-block' : 'none'; }
+      if (navTrack) { navTrack.textContent = open > 0 ? open : ''; navTrack.style.display = open > 0 ? 'inline-block' : 'none'; }
+      if (navFu) { navFu.textContent = fuCount > 0 ? fuCount : ''; navFu.style.display = fuCount > 0 ? 'inline-block' : 'none'; }
+      if (notifDot) notifDot.style.display = fuCount > 0 ? 'block' : 'none';
     } catch (e) {}
   }
 
@@ -59,15 +61,7 @@ const App = (() => {
     initScrollReveal();
   }
 
-  function initScrollReveal() {
-    const main = document.getElementById('main') || document.querySelector('.main');
-    if (!main) return;
-    const header = main.querySelector('.section-header');
-    if (!header) return;
-    main.onscroll = () => {
-      header.classList.toggle('elevated', main.scrollTop > 20);
-    };
-  }
+  function initScrollReveal() {}
 
   return { init, render, loadAndRender };
 })();

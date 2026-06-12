@@ -14,7 +14,7 @@ const BrandingPage = (() => {
       : `<div class="brand-dot" style="width:60px;height:60px;font-size:22px;background:${esc(settings.brand_color || '#FFAE00')}">${esc(settings.brand_short || 'QF')}</div>`;
 
     return `
-    <div class="section-header" style="position:static;background:none;backdrop-filter:none;margin:0 0 24px;padding:0">
+    <div class="section-header">
       <div><div class="section-title">Branding & Appearance</div><div class="section-sub">Customize how the system looks for all users</div></div>
     </div>
 
@@ -51,12 +51,12 @@ const BrandingPage = (() => {
           </div>
         </div>
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px">
-          <button class="btn btn-primary" onclick="BrandingPage.save()"><i class="uil uil-check"></i> Save Changes</button>
-          <button class="btn btn-secondary" onclick="BrandingPage.reset()"><i class="uil uil-redo"></i> Reset to Default</button>
+          <button class="btn btn-primary" onclick="BrandingPage.save()"><i class="ti ti-check"></i> Save Changes</button>
+          <button class="btn btn-secondary" onclick="BrandingPage.reset()"><i class="ti ti-refresh"></i> Reset to Default</button>
         </div>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:16px;position:sticky;top:20px">
+      <div style="display:flex;flex-direction:column;gap:16px">
         <div class="card">
           <div class="card-title">Live Preview</div>
           <div style="background:var(--bg);border-radius:12px;padding:16px;border:1px solid var(--border)">
@@ -72,9 +72,9 @@ const BrandingPage = (() => {
         </div>
         <div class="card" style="font-size:12px;color:var(--text3);line-height:1.8">
           <div class="card-title">Tips</div>
-          <div><i class="uil uil-info-circle" style="margin-right:4px;color:var(--accent)"></i> Logo URL should be a direct link to an image (PNG/SVG)</div>
-          <div><i class="uil uil-info-circle" style="margin-right:4px;color:var(--accent)"></i> Brand color affects the topbar logo background</div>
-          <div><i class="uil uil-info-circle" style="margin-right:4px;color:var(--accent)"></i> Changes apply immediately for all users</div>
+          <div><i class="ti ti-info-circle" style="margin-right:4px;color:var(--accent)"></i> Logo URL should be a direct link to an image (PNG/SVG)</div>
+          <div><i class="ti ti-info-circle" style="margin-right:4px;color:var(--accent)"></i> Brand color affects the topbar logo background</div>
+          <div><i class="ti ti-info-circle" style="margin-right:4px;color:var(--accent)"></i> Changes apply immediately for all users</div>
         </div>
       </div>
     </div>`;

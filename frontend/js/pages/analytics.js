@@ -17,51 +17,47 @@ const AnalyticsPage = (() => {
     const total = parseInt(errStats.total) || 0;
     const resolved = total - open;
     const resolveRate = total > 0 ? Math.round(resolved / total * 100) : 100;
-    const avgAge = errors.length ? Math.round(errors.reduce((a, e) => a + parseFloat(e.hours_open || 0), 0) / errors.length) : 0;
     const checkinRate = checkins.total > 0 ? Math.round((checkins.done || 0) / checkins.total * 100) : 0;
     const slaBreaches = errors.filter(e => slaState(e) === 'breach').length;
-    const critCount = parseInt(errStats.critical_open) || 0;
+    const slaMet = resolved > 0 ? Math.round((resolved - slaBreaches) / resolved * 100) : 0;
 
     const catBars = (category_breakdown || []).map(c => {
       const m = CAT_META[c.category] || CAT_META.Other;
       const pct = total > 0 ? Math.round(c.count / total * 100) : 0;
-      return `<div style="margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>${c.category}</span><span style="color:var(--text3)">${c.count} (${pct}%)</span></div>
-        <div style="height:6px;background:var(--bg4);border-radius:3px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${m.color};border-radius:3px"></div></div>
-      </div>`;
+      return `<div style="display:flex;justify-content:space-between;align-items:center"><span><i class="ti ${m.ic}" style="color:${m.color};margin-right:6px;font-size:13px"></i>${c.category}</span><div style="display:flex;align-items:center;gap:8px"><div class="progress" style="width:120px"><div class="progress-fill" style="width:${pct}%;background:${m.color}"></div></div><span style="color:var(--text2);width:54px;text-align:right">${c.count} (${pct}%)</span></div></div>`;
     }).join('');
 
-    const statusDist = [
-      { label: 'Open', count: errors.filter(e => e.status === 'open').length, color: 'var(--red)' },
-      { label: 'In Progress', count: errors.filter(e => e.status === 'progress').length, color: 'var(--amber)' },
-      { label: 'Escalated', count: errors.filter(e => e.status === 'escalated').length, color: 'var(--purple)' },
-      { label: 'Resolved', count: errors.filter(e => e.status === 'resolved').length, color: 'var(--green)' }
-    ];
-    const statusBars = statusDist.map(s => `<div style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>${s.label}</span><span style="color:var(--text3)">${s.count}</span></div>
-      <div style="height:6px;background:var(--bg4);border-radius:3px;overflow:hidden"><div style="height:100%;width:${total > 0 ? Math.round(s.count / total * 100) : 0}%;background:${s.color};border-radius:3px"></div></div>
-    </div>`).join('');
+    const bySchool = {};
+    errors.forEach(e => { const name = e.school_name || 'Unknown'; bySchool[name] = (bySchool[name] || 0) + 1; });
+    const ranked = Object.keys(bySchool).map(name => ({ name, n: bySchool[name] })).sort((a, b) => b.n - a.n);
+    const maxN = Math.max(1, ...ranked.map(r => r.n));
+    const schoolBars = ranked.map(r => {
+      const pct = Math.round(r.n / maxN * 100);
+      const col = r.n >= 8 ? 'var(--red)' : r.n >= 5 ? 'var(--amber)' : 'var(--accent)';
+      return `<div style="display:flex;align-items:center;gap:10px"><span style="width:120px;color:var(--text2);flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.name)}</span><div class="progress" style="flex:1"><div class="progress-fill" style="width:${pct}%;background:${col}"></div></div><span style="color:var(--text2);width:24px;text-align:right">${r.n}</span></div>`;
+    }).join('');
 
     return `
     <div class="section-header"><div><div class="section-title">Analytics</div><div class="section-sub">Term 2 · 2026 — performance metrics</div></div></div>
 
-    <div class="stats-grid" style="margin-bottom:24px">
-      <div class="stat-card"><div class="stat-label">Total Errors Logged</div><div class="stat-val">${total}</div><div class="stat-sub">${resolved} resolved</div></div>
-      <div class="stat-card r"><div class="stat-label">Open / Critical</div><div class="stat-val" style="color:var(--red)">${open} <span style="font-size:16px">/ ${critCount}</span></div><div class="stat-sub">${slaBreaches} SLA breaches</div></div>
-      <div class="stat-card g"><div class="stat-label">Resolution Rate</div><div class="stat-val" style="color:var(--green)">${resolveRate}<span style="font-size:18px">%</span></div><div class="stat-sub">target: 90%+</div></div>
-      <div class="stat-card a"><div class="stat-label">Avg Age (hours)</div><div class="stat-val" style="color:var(--amber)">${avgAge}<span style="font-size:14px">h</span></div><div class="stat-sub">all open errors</div></div>
+    <div class="three-col" style="margin-bottom:20px">
+      <div class="stat-card"><div class="stat-label">Total Errors Logged</div><div class="stat-val" style="color:var(--accent)">${total}</div><div class="stat-sub">${resolved} resolved</div></div>
+      <div class="stat-card g"><div class="stat-label">SLA Compliance</div><div class="stat-val" style="color:var(--green)">${slaMet}<span style="font-size:18px">%</span></div><div class="stat-sub">resolved within target</div></div>
       <div class="stat-card t"><div class="stat-label">Weekly Check-In Rate</div><div class="stat-val" style="color:var(--teal)">${checkinRate}<span style="font-size:18px">%</span></div><div class="stat-sub">${checkins.done || 0}/${checkins.total || 0} expected</div></div>
-      <div class="stat-card"><div class="stat-label">School Health</div><div class="stat-val">${schools_healthy}<span style="font-size:18px">/${schools_total}</span></div><div class="stat-sub">${schools_total - schools_healthy} need attention</div></div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div class="two-col" style="align-items:start">
       <div class="card">
-        <div class="card-title">Errors by Category</div>
-        ${catBars || '<div class="empty">No data</div>'}
+        <div class="card-title">Errors by School</div>
+        <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+          ${schoolBars || '<div class="empty">No data</div>'}
+        </div>
       </div>
       <div class="card">
-        <div class="card-title">Status Distribution</div>
-        ${statusBars}
+        <div class="card-title">Error Type Distribution</div>
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:12px">
+          ${catBars || '<div class="empty">No data</div>'}
+        </div>
       </div>
     </div>`;
   }

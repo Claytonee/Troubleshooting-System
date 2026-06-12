@@ -68,7 +68,7 @@ const FollowUpPage = (() => {
           ${errorCards}
         </div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:16px;position:sticky;top:20px">
+      <div style="display:flex;flex-direction:column;gap:16px">
         <div class="card">
           <div class="card-title">Field Team / Sub-Admins</div>
           ${teamCards}
