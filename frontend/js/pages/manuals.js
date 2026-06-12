@@ -71,10 +71,10 @@ const ManualsPage = (() => {
             <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.title)}</div>
             <div style="font-size:11px;color:var(--text3);margin-top:2px">${type} · ${formatSize(m.file_size)} · ${esc(m.category)} · by ${esc(m.uploaded_by)}</div>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0">
-            ${isMedia ? `<button class="btn btn-secondary btn-sm btn-icon" title="Preview" onclick="ManualsPage.preview(${m.id})"><i class="ti ti-eye"></i></button>` : ''}
-            <button class="btn btn-primary btn-sm btn-icon" title="Download" onclick="ManualsPage.download(${m.id})"><i class="ti ti-download"></i></button>
-            ${isAdmin ? `<button class="btn btn-danger btn-sm btn-icon" title="Delete" onclick="ManualsPage.remove(${m.id})"><i class="ti ti-trash"></i></button>` : ''}
+          <div style="display:flex;gap:8px;flex-shrink:0;align-items:center">
+            ${isMedia ? `<button onclick="ManualsPage.preview(${m.id})" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font)" onmouseover="this.style.background='var(--bg4)';this.style.color='var(--text)'" onmouseout="this.style.background='var(--bg3)';this.style.color='var(--text2)'"><i class="ti ti-eye" style="font-size:14px"></i> Preview</button>` : ''}
+            <button onclick="ManualsPage.download(${m.id})" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font)" onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'"><i class="ti ti-download" style="font-size:14px"></i> Download</button>
+            ${isAdmin ? `<button onclick="ManualsPage.remove(${m.id})" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,82,99,0.3);background:rgba(255,82,99,0.08);color:var(--red);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font)" onmouseover="this.style.background='rgba(255,82,99,0.18)'" onmouseout="this.style.background='rgba(255,82,99,0.08)'"><i class="ti ti-trash" style="font-size:14px"></i> Delete</button>` : ''}
           </div>
         </div>
       </div>`;
