@@ -34,6 +34,37 @@ const Auth = (() => {
     if (ddAvatar) ddAvatar.textContent = ini;
     if (ddName) ddName.textContent = name;
     if (ddEmail) ddEmail.textContent = user.email || '—';
+
+    populateRoleSwitch();
+  }
+
+  async function populateRoleSwitch() {
+    const sel = document.getElementById('role-select');
+    if (!sel) return;
+    const user = API.getUser();
+    if (!user || user.role !== 'admin') {
+      const sw = document.getElementById('role-switch');
+      if (sw) sw.style.display = 'none';
+      return;
+    }
+    try {
+      const team = await API.getTeam();
+      let html = `<optgroup label="Admin"><option value="admin::">System Admin (all)</option></optgroup>`;
+      if (team && team.length) {
+        html += `<optgroup label="Sub-Admins">`;
+        team.forEach(t => { html += `<option value="subadmin::${t.id}">${t.full_name}</option>`; });
+        html += `</optgroup>`;
+      }
+      sel.innerHTML = html;
+    } catch (e) {
+      sel.innerHTML = `<option value="admin::">System Admin (all)</option>`;
+    }
+  }
+
+  function switchRole(val) {
+    // Role switch is view-only for admin to see from different perspectives
+    // For now just reload — future: filter by assigned_to
+    App.loadAndRender();
   }
 
   function toggleProfileMenu() {
@@ -193,5 +224,5 @@ const Auth = (() => {
     });
   }
 
-  return { init, showLogin, showApp, logout, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange };
+  return { init, showLogin, showApp, logout, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, switchRole };
 })();

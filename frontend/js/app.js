@@ -7,15 +7,34 @@ const App = (() => {
     dashboard: DashboardPage,
     report: ReportPage,
     tracker: TrackerPage,
+    followup: FollowUpPage,
+    weekly: WeeklyPage,
     schools: SchoolsPage,
-    team: TeamPage,
     troubleshoot: GuidesPage,
+    analytics: AnalyticsPage,
+    team: TeamPage,
     branding: BrandingPage,
   };
 
   async function init() {
     Router.applyRoleVisibility();
     await loadAndRender();
+    updateBadges();
+  }
+
+  async function updateBadges() {
+    try {
+      const d = await API.getDashboard();
+      const open = parseInt(d.errors.open_count) || 0;
+      const crit = parseInt(d.errors.critical_open) || 0;
+      const fuCount = open;
+      const navCrit = document.getElementById('nav-crit');
+      const navTrack = document.getElementById('nav-track');
+      const navFu = document.getElementById('nav-fu');
+      if (navCrit) navCrit.textContent = crit > 0 ? crit : '';
+      if (navTrack) navTrack.textContent = open > 0 ? open : '';
+      if (navFu) navFu.textContent = fuCount > 0 ? fuCount : '';
+    } catch (e) {}
   }
 
   async function loadAndRender() {

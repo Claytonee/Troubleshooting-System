@@ -122,7 +122,7 @@ select option { background: var(--bg3); }
 .dh-alert-body strong { color: var(--red); }
 
 /* KPI Cards — Glassmorphism + App Icons */
-.dh-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 26px; }
+.dh-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 26px; }
 .dh-kpi { background: rgba(255,255,255,0.03); backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 22px; position: relative; overflow: hidden; transition: transform .25s cubic-bezier(.4,0,.2,1), box-shadow .25s, border-color .25s; }
 .dh-kpi:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.15); }
 .kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
@@ -145,6 +145,9 @@ select option { background: var(--bg3); }
 .kpi-amber .kpi-glow { background: var(--amber); }
 .kpi-green .kpi-glow { background: var(--green); }
 .kpi-teal .kpi-glow { background: var(--teal); }
+.kpi-purple .kpi-icon { background: linear-gradient(135deg, #9b7dff, #7c5ce0); }
+.kpi-purple .kpi-val { color: var(--purple); }
+.kpi-purple .kpi-glow { background: var(--purple); }
 
 /* Panels Layout — Glass */
 .dh-panels { display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px; }
@@ -188,9 +191,12 @@ select option { background: var(--bg3); }
 .dck-done span { font-size: 13px; font-weight: 400; color: var(--text3); }
 .dck-due { font-size: 12px; color: var(--text3); margin-top: 4px; }
 
-@media (max-width: 1100px) {
-  .dh-kpis { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 1200px) {
+  .dh-kpis { grid-template-columns: repeat(3, 1fr); }
   .dh-panels { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .dh-kpis { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 600px) {
   .dh-kpis { grid-template-columns: 1fr; }

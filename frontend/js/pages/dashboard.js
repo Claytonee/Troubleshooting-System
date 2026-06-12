@@ -26,6 +26,8 @@ const DashboardPage = (() => {
     const healthPct = schools_total > 0 ? Math.round(schools_healthy / schools_total * 100) : 100;
     const checkinPct = checkins.total > 0 ? Math.round((checkins.done || 0) / checkins.total * 100) : 0;
 
+    const slaBreaches = (recent_errors || []).filter(e => slaState(e) === 'breach').length;
+
     const h = new Date().getHours();
     const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
     const name = user ? user.full_name : '';
@@ -59,18 +61,17 @@ const DashboardPage = (() => {
     <div class="dh-sticky-top">
       <div class="dh-welcome">
         <div>
-          <div class="dh-greeting">${greeting}, <strong>${esc(name)}</strong></div>
-          <div class="dh-sub">Here's your support system overview for today</div>
+          <div class="dh-greeting">System Overview</div>
+          <div class="dh-sub">System Admin — all schools · Term 2 · 2026</div>
         </div>
         <div class="dh-actions">
-          <button class="btn btn-secondary btn-sm" onclick="Router.navigate('tracker');App.loadAndRender()"><i class="uil uil-list-ul"></i> Tracker</button>
-          <button class="btn btn-primary btn-sm" onclick="Router.navigate('report');App.loadAndRender()"><i class="uil uil-plus"></i> New Report</button>
+          <button class="btn btn-secondary btn-sm" onclick="Router.navigate('report');App.loadAndRender()"><i class="uil uil-plus"></i> New Report</button>
+          <button class="btn btn-danger btn-sm" onclick="Router.navigate('tracker');App.loadAndRender()"><i class="uil uil-list-ul"></i> Support Queue</button>
         </div>
       </div>
       ${crit > 0 ? `<div class="dh-alert">
-        <div class="dh-alert-icon"><i class="uil uil-exclamation-octagon"></i></div>
-        <div class="dh-alert-body"><strong>${crit} Critical</strong> error${crit > 1 ? 's' : ''} need immediate attention</div>
-        <button class="btn btn-danger btn-sm" onclick="Router.navigate('tracker');App.loadAndRender()">View →</button>
+        <div class="dh-alert-body"><strong>${crit} Critical Error${crit > 1 ? 's' : ''}</strong> need immediate attention — ${(recent_errors||[]).filter(e=>e.priority==='critical'&&e.status!=='resolved').map(e=>esc(e.school_name)).join(', ')}</div>
+        <button class="btn btn-danger btn-sm" onclick="Router.navigate('tracker');App.loadAndRender()">View</button>
       </div>` : ''}
     </div>
 
@@ -78,7 +79,7 @@ const DashboardPage = (() => {
       <div class="dh-kpi kpi-red">
         <div class="kpi-top">
           <div class="kpi-icon"><i class="uil uil-exclamation-triangle"></i></div>
-          <div class="kpi-badge">${crit} critical</div>
+          <div class="kpi-badge">${crit} critical${open > 0 && slaBreaches > 0 ? ' · ' + slaBreaches + ' SLA breach' : ''}</div>
         </div>
         <div class="kpi-val">${open}</div>
         <div class="kpi-label">Open Errors</div>
@@ -87,7 +88,7 @@ const DashboardPage = (() => {
       <div class="dh-kpi kpi-amber">
         <div class="kpi-top">
           <div class="kpi-icon"><i class="uil uil-sync"></i></div>
-          <div class="kpi-badge">active</div>
+          <div class="kpi-badge">being worked on now</div>
         </div>
         <div class="kpi-val">${inProg}</div>
         <div class="kpi-label">In Progress</div>
@@ -96,19 +97,28 @@ const DashboardPage = (() => {
       <div class="dh-kpi kpi-green">
         <div class="kpi-top">
           <div class="kpi-icon"><i class="uil uil-check-circle"></i></div>
-          <div class="kpi-badge">${resolveRate}% rate</div>
+          <div class="kpi-badge">recently closed</div>
         </div>
         <div class="kpi-val">${resolved24}</div>
-        <div class="kpi-label">Resolved 24h</div>
+        <div class="kpi-label">Resolved (24h)</div>
         <div class="kpi-glow"></div>
       </div>
       <div class="dh-kpi kpi-teal">
         <div class="kpi-top">
           <div class="kpi-icon"><i class="uil uil-building"></i></div>
-          <div class="kpi-badge">${healthPct}% healthy</div>
+          <div class="kpi-badge">${schools_total - schools_healthy} need attention</div>
         </div>
         <div class="kpi-val">${schools_healthy}<span class="kpi-of">/${schools_total}</span></div>
-        <div class="kpi-label">Schools OK</div>
+        <div class="kpi-label">Schools Healthy</div>
+        <div class="kpi-glow"></div>
+      </div>
+      <div class="dh-kpi kpi-purple">
+        <div class="kpi-top">
+          <div class="kpi-icon"><i class="uil uil-clipboard-notes"></i></div>
+          <div class="kpi-badge">${(checkins.total || 0) - (checkins.done || 0)} still due →</div>
+        </div>
+        <div class="kpi-val">${checkins.done || 0}<span class="kpi-of">/${checkins.total || 0}</span></div>
+        <div class="kpi-label">Week ${checkins.current_week || 4} Check-Ins</div>
         <div class="kpi-glow"></div>
       </div>
     </div>

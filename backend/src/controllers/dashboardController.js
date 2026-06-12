@@ -59,7 +59,7 @@ async function getDashboard(req, res) {
       schools_healthy: healthySchools[0].count,
       errors: errorStats[0],
       recent_errors: recentErrors,
-      checkins: { done: checkinStats[0].count, total: schoolCount[0].count },
+      checkins: { done: checkinStats[0].count, total: schoolCount[0].count, current_week: 4 },
       category_breakdown: categoryBreakdown
     });
   } catch (err) {
