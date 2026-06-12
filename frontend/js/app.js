@@ -61,7 +61,32 @@ const App = (() => {
     initScrollReveal();
   }
 
-  function initScrollReveal() {}
+  function initScrollReveal() {
+    const main = document.querySelector('.main');
+    if (!main) return;
+
+    // Sticky header elevation on scroll
+    const header = main.querySelector('.section-header');
+    if (header) {
+      main.addEventListener('scroll', () => {
+        header.classList.toggle('elevated', main.scrollTop > 10);
+      }, { passive: true });
+    }
+
+    // Reveal cards/stat-cards on scroll into view
+    const els = main.querySelectorAll('.card, .stat-card, .alert-banner');
+    if (!els.length) return;
+    els.forEach(el => el.classList.add('reveal'));
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { root: main, threshold: 0.1 });
+    els.forEach(el => observer.observe(el));
+  }
 
   return { init, render, loadAndRender };
 })();
