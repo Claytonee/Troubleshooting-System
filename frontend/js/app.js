@@ -11,6 +11,7 @@ const App = (() => {
     weekly: WeeklyPage,
     schools: SchoolsPage,
     troubleshoot: GuidesPage,
+    manuals: ManualsPage,
     analytics: AnalyticsPage,
     team: TeamPage,
     branding: BrandingPage,

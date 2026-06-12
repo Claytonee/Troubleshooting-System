@@ -58,9 +58,6 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('short'));
 }
 
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '..', process.env.UPLOAD_DIR || 'uploads')));
-
 // Serve frontend (new modular structure)
 app.use(express.static(path.join(__dirname, '..', '..', 'frontend')));
 

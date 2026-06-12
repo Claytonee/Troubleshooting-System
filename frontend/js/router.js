@@ -3,7 +3,7 @@
  * Handles page navigation with hash-based routing for persistence
  */
 const Router = (() => {
-  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'analytics', 'team', 'branding'];
+  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'manuals', 'analytics', 'team', 'branding'];
 
   function getPageFromHash() {
     const hash = window.location.hash.replace('#', '');

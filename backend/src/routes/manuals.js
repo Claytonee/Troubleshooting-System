@@ -1,31 +1,27 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { authenticate, authorize } = require('../middleware/auth');
 const manualController = require('../controllers/manualController');
 
 const router = express.Router();
 
-const uploadDir = process.env.UPLOAD_DIR || './uploads';
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
 const upload = multer({
-  storage,
-  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE) || 5242880 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE) || 104857600 }, // 100MB default
   fileFilter: (req, file, cb) => {
-    const allowed = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.txt', '.html', '.png', '.jpg', '.jpeg'];
-    const ext = path.extname(file.originalname).toLowerCase();
+    const allowed = [
+      // Documents
+      '.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.txt', '.html',
+      // Images
+      '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg',
+      // Video
+      '.mp4', '.webm', '.mov', '.avi', '.mkv',
+      // Audio
+      '.mp3', '.wav', '.ogg', '.m4a', '.aac'
+    ];
+    const ext = '.' + file.originalname.split('.').pop().toLowerCase();
     if (allowed.includes(ext)) cb(null, true);
-    else cb(new Error('File type not allowed. Accepted: PDF, DOC, PPT, XLS, TXT, HTML, PNG, JPG'));
+    else cb(new Error('File type not allowed. Accepted: PDF, DOC, PPT, XLS, images, video, audio.'));
   }
 });
 
