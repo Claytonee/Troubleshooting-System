@@ -80,6 +80,7 @@ select option { background: var(--bg3); }
 .btn-danger { background: rgba(255,82,99,0.15); color: var(--red); border: 1px solid rgba(255,82,99,0.3); }
 .btn-success { background: rgba(45,217,138,0.15); color: var(--green); border: 1px solid rgba(45,217,138,0.3); }
 .btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-icon { width: 32px; height: 32px; padding: 0; justify-content: center; flex-shrink: 0; }
 
 /* Timeline */
 .timeline { display: flex; flex-direction: column; gap: 0; }

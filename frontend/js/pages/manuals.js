@@ -72,9 +72,9 @@ const ManualsPage = (() => {
             <div style="font-size:11px;color:var(--text3);margin-top:2px">${type} · ${formatSize(m.file_size)} · ${esc(m.category)} · by ${esc(m.uploaded_by)}</div>
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0">
-            ${isMedia ? `<button class="btn btn-secondary btn-sm" onclick="ManualsPage.preview(${m.id})"><i class="ti ti-eye"></i></button>` : ''}
-            <button class="btn btn-primary btn-sm" onclick="ManualsPage.download(${m.id})"><i class="ti ti-download"></i></button>
-            ${isAdmin ? `<button class="btn btn-danger btn-sm" onclick="ManualsPage.remove(${m.id})"><i class="ti ti-trash"></i></button>` : ''}
+            ${isMedia ? `<button class="btn btn-secondary btn-sm btn-icon" title="Preview" onclick="ManualsPage.preview(${m.id})"><i class="ti ti-eye"></i></button>` : ''}
+            <button class="btn btn-primary btn-sm btn-icon" title="Download" onclick="ManualsPage.download(${m.id})"><i class="ti ti-download"></i></button>
+            ${isAdmin ? `<button class="btn btn-danger btn-sm btn-icon" title="Delete" onclick="ManualsPage.remove(${m.id})"><i class="ti ti-trash"></i></button>` : ''}
           </div>
         </div>
       </div>`;
