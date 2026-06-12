@@ -3,6 +3,7 @@
 ## Stack
 - **Backend:** Node.js + Express, MySQL 8.4 (Aiven cloud), JWT auth
 - **Frontend:** Vanilla JS SPA, hash-based routing, no framework
+- **File Storage:** Cloudinary (cloud CDN — Render has no persistent disk)
 - **Hosting:** Render (auto-deploy from GitLab main), Aiven MySQL (free tier)
 - **Dual remotes:** `origin` = GitHub, `gitlab` = GitLab. Push to both: `git push origin main && git push gitlab main`
 
@@ -46,6 +47,7 @@ Do NOT use glassmorphism, backdrop-filter, glow effects, or fancy hover transfor
 ### Grid Layouts
 - **5 stat cards (dashboard):** `.stats-grid` with `repeat(auto-fit, minmax(160px, 1fr))`
 - **3 stat cards (analytics):** `.three-col`
+- **4 stat cards (resource library):** inline `grid-template-columns: repeat(4, 1fr)`
 - **2-panel content:** `.two-col` (equal halves) or inline `grid-template-columns: 1fr 340px` for main+sidebar
 - **Responsive:** Collapses to single column at 920px
 
@@ -126,10 +128,65 @@ return `
 - **Error items:** Bordered cards with `border-left: 3px solid` color-coded by severity
 - **Badges:** `.badge-{color}` for status labels
 - **Priority dots:** `.dot-{color}` (7px circles with optional box-shadow glow)
+- **File cards:** Icon box (42px, colored background) + title/meta + action buttons
 
 ## Backend Conventions
 - Auto-migration on startup (for Render free tier without shell)
 - Demo data seeding when schools table is empty
-- JWT in Authorization header, 24h expiry
+- JWT in Authorization header, 7-day expiry
 - Role-based access: admin > subadmin > school
-- API prefix: `/api/` (auth, errors, schools, checkins, team, settings, dashboard, communications, guides)
+- API prefix: `/api/` (auth, errors, schools, checkins, team, settings, dashboard, communications, guides, manuals)
+- File uploads go to Cloudinary (not local disk)
+- Rate limiting: 20 req/15min login, 200 req/15min general API
+
+## Environment Variables (Production)
+```
+DATABASE_URL=mysql://user:pass@host:port/db
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRES_IN=7d
+NODE_ENV=production
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+MAX_FILE_SIZE=104857600
+```
+
+## Pages & Features (Complete List)
+
+| # | Page | Route | Role | Description |
+|---|------|-------|------|-------------|
+| 1 | Dashboard | #dashboard | All | KPIs, alerts, priority table, categories, check-in ring |
+| 2 | Report Error | #report | All | Form to submit new error with auto-routing |
+| 3 | Error Tracker | #tracker | All | Filterable table of all errors with status chips |
+| 4 | Follow-Up Center | #followup | All | SLA breaches, escalations, team status, comms log |
+| 5 | Weekly Check-Ins | #weekly | All | Week selector, school checkin table, modal form |
+| 6 | School Profiles | #schools | All | Grid of school cards, detail view with history |
+| 7 | Troubleshooting | #troubleshoot | All | Step-by-step guides for common issues |
+| 8 | Resource Library | #manuals | All | Upload/preview/download manuals (admin uploads) |
+| 9 | Analytics | #analytics | Admin | SLA compliance, errors by school/category |
+| 10 | Sub-Admins | #team | Admin | Manage field engineers, assign schools |
+| 11 | Branding | #branding | Admin | Customize system name, logo, colors |
+
+## File Upload System (Cloudinary)
+
+### Supported File Types
+- **Documents:** PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, TXT, HTML
+- **Images:** PNG, JPG, JPEG, GIF, WEBP, SVG
+- **Video:** MP4, WEBM, MOV, AVI, MKV
+- **Audio:** MP3, WAV, OGG, M4A, AAC
+
+### Upload Flow
+```
+Client → multer(memoryStorage) → buffer → cloudinary.upload_stream → DB stores CDN URL → frontend fetches from Cloudinary CDN
+```
+
+### Resource Types (Cloudinary mapping)
+- `image/*` → resource_type: "image"
+- `video/*` or `audio/*` → resource_type: "video"
+- Everything else → resource_type: "raw"
+
+### Frontend Capabilities
+- All roles: browse, filter by category, download, preview (image/video/audio)
+- Admin only: upload new resources, delete resources
+- Preview uses native HTML5 `<img>`, `<video>`, `<audio>` elements
+- Max file size: 100MB (configurable via MAX_FILE_SIZE env var)

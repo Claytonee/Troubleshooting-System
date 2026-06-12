@@ -1,877 +1,561 @@
 # Quest Forward Tanzania — Technical Support System
-
-## Complete System Documentation
-
-**Version:** 1.0.0  
-**Last Updated:** June 2026  
-**Organization:** Quest Forward Tanzania  
-**Stack:** Node.js + Express · MySQL 8.4 · Vanilla JS Frontend  
-
----
-
-## Table of Contents
-
-1. [System Overview](#1-system-overview)
-2. [Architecture](#2-architecture)
-3. [Features](#3-features)
-4. [Database Schema](#4-database-schema)
-5. [API Reference](#5-api-reference)
-6. [Authentication & Authorization](#6-authentication--authorization)
-7. [Frontend Architecture](#7-frontend-architecture)
-8. [Error Lifecycle & SLA](#8-error-lifecycle--sla)
-9. [Deployment Guide](#9-deployment-guide)
-10. [Security](#10-security)
+## Complete System Documentation v1.0
 
 ---
 
 ## 1. System Overview
 
-### Purpose
+The QFT Technical Support System is a web-based platform that enables Quest Forward Tanzania to manage technical issues across multiple school sites. It provides real-time error tracking, team coordination, weekly health check-ins, a knowledge base, and a resource library for training materials.
 
-The Quest Forward Tanzania Technical Support System is a web-based platform for tracking, managing, and resolving technical issues across 13+ partner schools in Tanzania. It provides:
-
-- **Centralized error tracking** with priority-based SLA enforcement
-- **School health monitoring** via weekly check-ins
-- **Role-based dashboards** for admins, field engineers, and school staff
-- **Troubleshooting guides** for common issues
-- **Communication logging** between support staff and schools
-
-### Problem It Solves
-
-Quest Forward deploys tablets, routers, and LRS (Learning Record Store) servers in rural and peri-urban schools. Hardware failures, network outages, and platform issues need rapid response. This system replaces ad-hoc WhatsApp communication with structured issue tracking and SLA accountability.
-
-### Users & Roles
-
-| Role | Description | Access Level |
-|------|-------------|-------------|
-| **Admin** | Central IT manager | Full system access, team management |
-| **Sub-Admin** | Field engineer assigned to specific schools | Assigned schools only |
-| **School** | School contact person | Own school data only |
+### Key Capabilities
+- **Error Lifecycle Management** — Report, assign, track, escalate, and resolve technical issues
+- **SLA Enforcement** — Automated breach detection (Critical ≤2h, High ≤8h, Medium ≤24h, Low ≤72h)
+- **Team Coordination** — Assign field engineers to schools, track workload distribution
+- **Weekly Health Monitoring** — Structured weekly check-ins per school (connectivity, tablets, platform, power)
+- **Knowledge Base** — Step-by-step troubleshooting guides for common problems
+- **Resource Library** — Upload and share user manuals, training videos, documents
+- **Role-Based Access** — Three-tier permissions (Admin > Sub-Admin > School)
+- **Multi-View Dashboard** — Admin can switch perspective to view as any sub-admin or school
 
 ---
 
 ## 2. Architecture
 
-### High-Level Architecture
-
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    CLIENT BROWSER                        │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐  │
-│  │ Auth.js  │ │ Router   │ │ Pages/*  │ │ API Client│  │
-│  └──────────┘ └──────────┘ └──────────┘ └─────┬─────┘  │
-└───────────────────────────────────────────────┼─────────┘
-                                                │ REST/JSON
-┌───────────────────────────────────────────────┼─────────┐
-│                  EXPRESS SERVER                │         │
-│  ┌────────┐ ┌────────┐ ┌────────────┐ ┌──────┴──────┐  │
-│  │ Helmet │ │ CORS   │ │ Rate Limit │ │   Routes    │  │
-│  └────────┘ └────────┘ └────────────┘ └──────┬──────┘  │
-│                                               │         │
-│  ┌──────────────┐    ┌───────────────────┐    │         │
-│  │ JWT Auth MW  │────│   Controllers     │────┘         │
-│  └──────────────┘    └────────┬──────────┘              │
-│                               │                         │
-│                      ┌────────┴──────────┐              │
-│                      │   MySQL Pool      │              │
-│                      └────────┬──────────┘              │
-└───────────────────────────────┼─────────────────────────┘
-                                │
-                    ┌───────────┴───────────┐
-                    │     MySQL 8.4         │
-                    │  ┌──────┐ ┌────────┐  │
-                    │  │users │ │schools │  │
-                    │  │errors│ │checkins│  │
-                    │  │guides│ │manuals │  │
-                    │  └──────┘ └────────┘  │
-                    └───────────────────────┘
-```
-
-### Directory Structure
-
-```
-Troubleshooting System/
-├── backend/
-│   ├── package.json
-│   ├── .env
-│   └── src/
-│       ├── server.js              # Express entry point
-│       ├── config/
-│       │   ├── database.js        # MySQL connection pool
-│       │   ├── migrate.js         # Schema creation script
-│       │   └── seed.js            # Sample data seeder
-│       ├── controllers/
-│       │   ├── authController.js
-│       │   ├── dashboardController.js
-│       │   ├── errorController.js
-│       │   ├── schoolController.js
-│       │   ├── checkinController.js
-│       │   ├── teamController.js
-│       │   ├── guideController.js
-│       │   ├── manualController.js
-│       │   └── communicationController.js
-│       ├── middleware/
-│       │   ├── auth.js            # JWT verification + role guard
-│       │   ├── errorHandler.js    # Global error handler
-│       │   └── validate.js        # express-validator result checker
-│       ├── routes/
-│       │   ├── auth.js
-│       │   ├── dashboard.js
-│       │   ├── errors.js
-│       │   ├── schools.js
-│       │   ├── team.js
-│       │   ├── checkins.js
-│       │   ├── guides.js
-│       │   ├── manuals.js
-│       │   └── communications.js
-│       └── docs/
-│           ├── API.md
-│           ├── SETUP.md
-│           └── DATABASE.md
-├── frontend/
-│   ├── index.html                 # SPA shell
-│   ├── css/
-│   │   ├── variables.css          # Design tokens
-│   │   ├── base.css               # Layout, grid, responsive
-│   │   └── components.css         # All UI components
-│   └── js/
-│       ├── api.js                 # HTTP client + token management
-│       ├── utils.js               # Helpers, constants, formatters
-│       ├── auth.js                # Login/logout/session
-│       ├── router.js              # SPA navigation
-│       ├── app.js                 # Main controller
-│       ├── components/
-│       │   └── modal.js
-│       └── pages/
-│           ├── dashboard.js
-│           ├── report.js
-│           ├── tracker.js
-│           ├── schools.js
-│           ├── team.js
-│           └── guides.js
-└── docs/
-    └── SYSTEM_DOCUMENTATION.md    # This file
+┌─────────────────────────────────────────────────────────────────┐
+│                        FRONTEND (SPA)                            │
+│  Vanilla JS · Hash Routing · DM Sans · Tabler Icons            │
+│  Static files served by Express from /frontend                  │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ HTTP/JSON + JWT Bearer Token
+┌────────────────────────────┴────────────────────────────────────┐
+│                     BACKEND (Express.js)                         │
+│  Node.js · JWT Auth · Role Middleware · Rate Limiting           │
+│  morgan logging · helmet security · CORS                        │
+└──────┬──────────────────────────────────┬───────────────────────┘
+       │ mysql2/promise                   │ cloudinary SDK
+┌──────┴──────────┐             ┌─────────┴─────────────┐
+│  Aiven MySQL    │             │  Cloudinary CDN       │
+│  (Cloud DB)     │             │  (File Storage)       │
+│  SSL + CA cert  │             │  Images/Video/Audio   │
+└─────────────────┘             └───────────────────────┘
 ```
 
 ### Technology Stack
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| Runtime | Node.js 20+ | Server runtime |
-| Framework | Express 4.x | HTTP routing, middleware |
-| Database | MySQL 8.4 | Relational data storage |
-| Driver | mysql2/promise | Async MySQL connection pooling |
-| Auth | jsonwebtoken + bcryptjs | Stateless JWT authentication |
-| Security | helmet, cors, express-rate-limit | HTTP hardening |
-| Uploads | multer | File upload handling |
-| Validation | express-validator | Input validation |
-| Frontend | Vanilla JS (ES6+) | No framework dependency |
-| Styling | Custom CSS with CSS Variables | Dark theme, responsive |
-| Icons | Tabler Icons (webfont) | UI iconography |
-| Fonts | DM Sans + DM Mono | Typography |
+| Frontend | Vanilla JavaScript (ES6+) | SPA with module pattern |
+| Styling | CSS Custom Properties | Dark theme, responsive design |
+| Icons | Tabler Icons (CDN) | 4000+ icons via webfont |
+| Backend | Node.js 18+ / Express 4 | REST API server |
+| Database | MySQL 8.4 (Aiven) | Relational data storage |
+| Auth | JWT (jsonwebtoken) | Stateless authentication |
+| Passwords | bcryptjs | Secure password hashing |
+| Uploads | Multer + Cloudinary | Cloud file storage |
+| Hosting | Render (free tier) | Auto-deploy from GitLab |
+| Source | GitHub + GitLab | Dual remote, GitLab triggers deploy |
 
 ---
 
-## 3. Features
+## 3. Database Schema
 
-### 3.1 Dashboard
-
-The main overview page shows at a glance:
-
-- **Open error count** with critical alert prominence
-- **In-progress errors** being actively worked on
-- **Resolved in last 24h** — daily throughput metric
-- **School health ratio** — healthy vs. needing attention
-- **Weekly check-in progress** — done / total
-- **Category breakdown** — visual proportions of issue types
-- **Active priorities table** — top 6 open errors sorted by severity
-
-The dashboard is **role-scoped**: sub-admins see only their assigned schools' data.
-
-### 3.2 Error Reporting
-
-Users can submit new errors with:
-
-- **Title** — short description of the problem
-- **School** — dropdown of all schools (filtered by role)
-- **Category** — Network, Hardware, Software, Power, Platform, LRS, Other
-- **Subcategory** — dynamic based on category (e.g., Network → Router, Switch, Cabling)
-- **Priority** — Critical, High, Medium, Low
-- **Reporter details** — name, role, contact
-- **Location / affected devices** — specifics for field resolution
-
-Auto-generates a sequential error code (QFT-0243, QFT-0244, etc.) and auto-assigns to the school's designated sub-admin.
-
-### 3.3 Error Tracker
-
-Full filterable list of all errors with:
-
-- **Status filter** — All, Open, In Progress, Escalated, Resolved
-- **Search** — by title, error code, or school name
-- **Click-to-detail** — modal with full error info, updates timeline
-- **Resolve action** — mark errors as resolved directly
-
-### 3.4 School Profiles
-
-Card grid of all schools showing:
-
-- School name, code, zone
-- Assigned sub-admin
-- Open error count (color-coded)
-- Click into detail: infrastructure (tablets, routers, LRS IP), contact info, error history, communication log, check-in history
-
-### 3.5 Troubleshooting Guides
-
-Step-by-step resolution guides for common issues:
-
-- Split view: guide list (left) + steps (right)
-- Categorized by issue type (Network, Hardware, Software, etc.)
-- Custom guides can be created by admins
-- "Still broken? Report it" button for escalation
-
-### 3.6 Sub-Admin Management (Admin only)
-
-- Card view of all field engineers
-- Stats: assigned school count, open error count
-- Contact details, zone assignment
-- Create/edit/remove sub-admins
-- Assign/reassign schools to engineers
-
-### 3.7 Weekly Check-Ins
-
-Structured weekly monitoring of school health:
-
-- Status indicators: Connectivity, Tablets, Platform, Power
-- Per-school, per-week tracking
-- Stats: done this week, due, overdue
-- Historical trend per school
-
-### 3.8 Communications Log
-
-Timestamped notes for school interactions:
-
-- Logged per school
-- Supports: calls, visits, WhatsApp, emails
-- Visible in school detail view
-
-### 3.9 Manual Uploads
-
-Document management for procedures:
-
-- File upload with categories
-- Download by ID
-- Supports PDF, DOCX, images
-
----
-
-## 4. Database Schema
-
-### Entity-Relationship Diagram
+### Entity Relationship Diagram
 
 ```
-┌──────────┐       ┌───────────┐       ┌──────────────┐
-│  users   │───────│  schools  │───────│   errors     │
-│          │ 1   N │           │ 1   N │              │
-│ id       │       │ id        │       │ id           │
-│ username │       │ code      │       │ error_code   │
-│ email    │       │ name      │       │ title        │
-│ role     │       │ zone      │       │ status       │
-│ ...      │       │ ...       │       │ priority     │
-└────┬─────┘       └─────┬─────┘       │ school_id FK │
-     │                    │             │ assigned_to  │
-     │                    │             └──────┬───────┘
-     │                    │                    │
-     │              ┌─────┴──────┐      ┌──────┴───────┐
-     │              │weekly_     │      │error_updates │
-     │              │checkins    │      │              │
-     │              │            │      │ error_id FK  │
-     │              │ school_id  │      │ note         │
-     │              │ week_number│      │ recorded_by  │
-     │              └────────────┘      └──────────────┘
-     │
-     │         ┌────────────────┐    ┌──────────────────┐
-     └─────────│communications  │    │troubleshooting_  │
-               │                │    │guides            │
-               │ school_id FK   │    │                  │
-               │ recorded_by    │    │ title            │
-               │ note           │    │ category         │
-               └────────────────┘    │ steps (JSON)     │
-                                     └──────────────────┘
+users (1)──────(N) errors
+  │                   │
+  │                   └──(N) error_updates
+  │
+  └──(N) schools (1)──(N) errors
+              │
+              ├──(N) weekly_checkins
+              ├──(N) communications
+              └──(N) manuals (via uploaded_by)
+
+settings (key-value store)
+troubleshooting_guides (standalone)
+manuals (standalone, Cloudinary URLs)
 ```
 
 ### Table Definitions
 
 #### `users`
-
 | Column | Type | Description |
 |--------|------|-------------|
-| id | INT AUTO_INCREMENT | Primary key |
-| username | VARCHAR(50) UNIQUE | Login identifier |
-| email | VARCHAR(100) UNIQUE | Email address |
+| id | INT PK AUTO | Unique identifier |
+| username | VARCHAR(100) UNIQUE | Login name |
+| email | VARCHAR(200) | Contact email |
 | password_hash | VARCHAR(255) | bcrypt hash |
-| full_name | VARCHAR(100) | Display name |
-| role | ENUM('admin','subadmin','school') | Access role |
-| phone | VARCHAR(20) | Contact phone |
-| zone | VARCHAR(50) | Geographic zone |
-| color | VARCHAR(10) | UI avatar color |
+| full_name | VARCHAR(200) | Display name |
+| role | ENUM('admin','subadmin','school') | Access level |
+| phone | VARCHAR(50) | Phone number |
+| zone | VARCHAR(100) | Geographic zone |
+| color | VARCHAR(20) | UI avatar color |
 | title | VARCHAR(100) | Job title |
-| status | ENUM('active','inactive') | Account state |
-| school_id | INT | FK to schools (for school role) |
-| created_at | TIMESTAMP | Auto-set |
+| status | VARCHAR(50) DEFAULT 'active' | active/onsite/remote |
+| school_id | INT FK→schools | For school-role users |
 
 #### `schools`
-
 | Column | Type | Description |
 |--------|------|-------------|
-| id | INT AUTO_INCREMENT | Primary key |
-| code | VARCHAR(10) UNIQUE | School code (e.g., KBG) |
-| name | VARCHAR(100) | Full school name |
-| zone | VARCHAR(50) | Geographic zone |
-| students | INT | Student count |
-| tablets | INT | Tablet count |
-| routers | INT | Router count |
-| contact_name | VARCHAR(100) | School contact person |
-| contact_role | VARCHAR(50) | Contact's role |
-| contact_phone | VARCHAR(20) | Contact phone |
-| lrs_ip | VARCHAR(45) | LRS server IP address |
-| isp | VARCHAR(50) | Internet provider |
-| assigned_admin_id | INT | FK to users (sub-admin) |
-| created_at | TIMESTAMP | Auto-set |
+| id | INT PK AUTO | Unique identifier |
+| code | VARCHAR(20) UNIQUE | Short code (e.g., KLM) |
+| name | VARCHAR(200) | Full school name |
+| zone | VARCHAR(100) | Geographic zone |
+| students | INT DEFAULT 0 | Student count |
+| tablets | INT DEFAULT 0 | Tablet count |
+| routers | INT DEFAULT 0 | Router count |
+| contact_name | VARCHAR(200) | Primary contact |
+| contact_phone | VARCHAR(50) | Contact phone |
+| contact_email | VARCHAR(200) | Contact email |
+| lrs_ip | VARCHAR(50) | LRS server IP |
+| isp | VARCHAR(100) | Internet provider |
+| assigned_admin_id | INT FK→users | Assigned sub-admin |
+| created_at | TIMESTAMP | Creation date |
 
 #### `errors`
-
 | Column | Type | Description |
 |--------|------|-------------|
-| id | INT AUTO_INCREMENT | Primary key |
-| error_code | VARCHAR(20) UNIQUE | Sequential code (QFT-0XXX) |
-| title | VARCHAR(255) | Error summary |
-| description | TEXT | Detailed description |
-| school_id | INT | FK to schools |
-| category | VARCHAR(50) | Issue category |
-| subcategory | VARCHAR(50) | Issue subcategory |
-| priority | ENUM('critical','high','medium','low') | Severity |
-| status | ENUM('open','progress','escalated','resolved') | Lifecycle state |
-| assigned_to | INT | FK to users (handler) |
-| reporter_name | VARCHAR(100) | Who reported |
-| reporter_role | VARCHAR(50) | Reporter's role |
-| reporter_contact | VARCHAR(100) | Reporter phone/email |
-| location | VARCHAR(100) | Physical location detail |
-| affected_devices | VARCHAR(255) | Affected hardware |
-| hours_open | INT | Calculated open duration |
-| resolved_at | TIMESTAMP | When resolved |
-| created_at | TIMESTAMP | When reported |
+| id | INT PK AUTO | Unique identifier |
+| error_code | VARCHAR(20) UNIQUE | Auto-generated (QFT-0###) |
+| title | VARCHAR(300) | Short description |
+| description | TEXT | Full details |
+| school_id | INT FK→schools | Affected school |
+| category | VARCHAR(100) | Connectivity/Hardware/Platform/Power/Accounts/Other |
+| subcategory | VARCHAR(200) | Specific issue type |
+| priority | ENUM('critical','high','medium','low') | Urgency level |
+| status | ENUM('open','progress','escalated','resolved') | Current state |
+| assigned_to | INT FK→users | Responsible engineer |
+| reporter_name | VARCHAR(200) | Who reported it |
+| reporter_role | VARCHAR(100) | Reporter's role |
+| location | VARCHAR(300) | Physical location |
+| affected_devices | INT DEFAULT 1 | Number of devices |
+| hours_open | DECIMAL(10,2) DEFAULT 0 | Auto-calculated age |
+| resolved_at | TIMESTAMP NULL | Resolution timestamp |
+| created_at | TIMESTAMP | Report date |
 
 #### `error_updates`
-
 | Column | Type | Description |
 |--------|------|-------------|
-| id | INT AUTO_INCREMENT | Primary key |
-| error_id | INT | FK to errors |
-| update_type | VARCHAR(50) | Type of update |
+| id | INT PK AUTO | Unique identifier |
+| error_id | INT FK→errors | Parent error |
+| update_type | VARCHAR(50) | note/status_change/escalation |
 | note | TEXT | Update content |
-| recorded_by | VARCHAR(100) | Who posted |
-| created_at | TIMESTAMP | Auto-set |
+| recorded_by | VARCHAR(200) | Who added it |
+| created_at | TIMESTAMP | When added |
 
 #### `weekly_checkins`
-
 | Column | Type | Description |
 |--------|------|-------------|
-| id | INT AUTO_INCREMENT | Primary key |
-| school_id | INT | FK to schools |
-| week_number | INT | Week of term (1-12) |
-| term | VARCHAR(30) | Term identifier |
+| id | INT PK AUTO | Unique identifier |
+| school_id | INT FK→schools | Target school |
+| week_number | INT | Week 1-10 |
+| term | VARCHAR(50) | e.g., "Term 2 · 2026" |
 | status | ENUM('green','amber','red') | Overall health |
-| connectivity | VARCHAR(20) | Network status |
-| tablets | VARCHAR(20) | Tablet status |
-| platform | VARCHAR(20) | Platform status |
-| power | VARCHAR(20) | Power status |
-| note | TEXT | Additional notes |
-| checked_by | VARCHAR(100) | Who performed check |
-| created_at | TIMESTAMP | Auto-set |
-| UNIQUE | (school_id, week_number, term) | One entry per school per week |
+| connectivity | VARCHAR(20) | ok/issue/na |
+| tablets | VARCHAR(20) | ok/issue/na |
+| platform | VARCHAR(20) | ok/issue/na |
+| power | VARCHAR(20) | ok/issue/na |
+| note | TEXT | Observer notes |
+| checked_by | VARCHAR(200) | Who checked |
+| created_at | TIMESTAMP | Check date |
+| UNIQUE | (school_id, week_number, term) | One per school per week |
 
 #### `communications`
-
 | Column | Type | Description |
 |--------|------|-------------|
-| id | INT AUTO_INCREMENT | Primary key |
-| school_id | INT | FK to schools |
-| recorded_by | VARCHAR(100) | Staff name |
-| note | TEXT | Communication content |
-| created_at | TIMESTAMP | Auto-set |
-
-#### `troubleshooting_guides`
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INT AUTO_INCREMENT | Primary key |
-| title | VARCHAR(200) | Guide title |
-| category | VARCHAR(50) | Category |
-| icon | VARCHAR(50) | Tabler icon class |
-| steps | JSON | Array of step strings |
-| is_custom | BOOLEAN | User-created flag |
-| created_by | INT | FK to users |
-| created_at | TIMESTAMP | Auto-set |
+| id | INT PK AUTO | Unique identifier |
+| school_id | INT FK→schools | Related school |
+| recorded_by | VARCHAR(200) | Author |
+| note | TEXT | Message content |
+| created_at | TIMESTAMP | When recorded |
 
 #### `manuals`
-
 | Column | Type | Description |
 |--------|------|-------------|
-| id | INT AUTO_INCREMENT | Primary key |
-| title | VARCHAR(200) | Document title |
-| original_filename | VARCHAR(255) | Upload filename |
-| stored_filename | VARCHAR(255) | Server filename |
-| file_type | VARCHAR(50) | MIME type |
-| file_size | INT | Bytes |
-| category | VARCHAR(50) | Document category |
-| uploaded_by | VARCHAR(100) | Uploader name |
-| created_at | TIMESTAMP | Auto-set |
+| id | INT PK AUTO | Unique identifier |
+| title | VARCHAR(300) | Display title |
+| original_filename | VARCHAR(300) | Upload filename |
+| stored_filename | VARCHAR(500) | Cloudinary CDN URL |
+| file_type | VARCHAR(100) | MIME type |
+| file_size | INT DEFAULT 0 | Bytes |
+| category | VARCHAR(100) | General/User Guide/Training/Technical/Policy/Other |
+| uploaded_by | VARCHAR(200) | Who uploaded |
+| created_at | TIMESTAMP | Upload date |
+
+#### `troubleshooting_guides`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | INT PK AUTO | Unique identifier |
+| title | VARCHAR(300) | Guide title |
+| category | VARCHAR(100) | Issue category |
+| icon | VARCHAR(50) | Tabler icon name |
+| steps | JSON | Array of step strings |
+| is_custom | TINYINT DEFAULT 0 | Custom vs built-in |
+| created_by | VARCHAR(200) | Author |
+| created_at | TIMESTAMP | Creation date |
+| updated_at | TIMESTAMP | Last edit |
+
+#### `settings`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | INT PK AUTO | — |
+| setting_key | VARCHAR(100) UNIQUE | Key name |
+| setting_value | TEXT | Value |
 
 ---
 
-## 5. API Reference
-
-### Base URL
-
-```
-http://localhost:3000/api
-```
+## 4. API Reference
 
 ### Authentication
-
-All endpoints (except `/auth/login`) require a JWT token:
-
+All endpoints except `/api/auth/login`, `/api/settings`, and `/api/health` require:
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <jwt_token>
 ```
 
-### Endpoints Summary
+### Endpoints
 
+#### Auth (`/api/auth`)
+| Method | Path | Auth | Role | Description |
+|--------|------|------|------|-------------|
+| POST | /login | No | — | Login → token + user |
+| POST | /register | Yes | admin | Create user |
+| GET | /profile | Yes | any | Get current user |
+| PUT | /change-password | Yes | any | Update password |
+
+#### Dashboard (`/api/dashboard`)
+| Method | Path | Auth | Role | Description |
+|--------|------|------|------|-------------|
+| GET | / | Yes | any | Aggregated KPIs (role-filtered) |
+
+#### Schools (`/api/schools`)
+| Method | Path | Auth | Role | Description |
+|--------|------|------|------|-------------|
+| GET | / | Yes | any | List schools |
+| GET | /:id | Yes | any | School detail + history |
+| POST | / | Yes | admin | Create school |
+| PUT | /:id | Yes | admin | Update school |
+| PATCH | /:id/assign | Yes | admin | Reassign sub-admin |
+| DELETE | /:id | Yes | admin | Delete (cascading) |
+
+#### Errors (`/api/errors`)
+| Method | Path | Auth | Role | Description |
+|--------|------|------|------|-------------|
+| GET | / | Yes | any | List with filters (?status, ?priority, ?category, ?school_id, ?search) |
+| GET | /stats | Yes | any | Aggregated statistics |
+| GET | /:id | Yes | any | Detail + updates |
+| POST | / | Yes | any | Report new error |
+| PUT | /:id | Yes | subadmin+ | Update details |
+| PATCH | /:id/status | Yes | any | Change status |
+| POST | /:id/updates | Yes | any | Add progress note |
+| DELETE | /:id | Yes | admin | Delete error |
+
+#### Team (`/api/team`)
+| Method | Path | Auth | Role | Description |
+|--------|------|------|------|-------------|
+| GET | / | Yes | any | List sub-admins |
+| GET | /:id | Yes | any | Sub-admin detail |
+| POST | / | Yes | admin | Create sub-admin |
+| PUT | /:id | Yes | admin | Update profile |
+| PATCH | /:id/schools | Yes | admin | Assign schools |
+| DELETE | /:id | Yes | admin | Remove (reassign) |
+
+#### Check-Ins (`/api/checkins`)
+| Method | Path | Auth | Role | Description |
+|--------|------|------|------|-------------|
+| GET | / | Yes | any | List (?week, ?school_id, ?term) |
+| GET | /stats | Yes | any | Completion statistics |
+| GET | /school/:schoolId | Yes | any | All checkins for school |
+| POST | / | Yes | any | Create/upsert checkin |
+
+#### Guides (`/api/guides`)
+| Method | Path | Auth | Role | Description |
+|--------|------|------|------|-------------|
+| GET | / | Yes | any | List all guides |
+| GET | /:id | Yes | any | Guide detail |
+| POST | / | Yes | admin | Create guide |
+| PUT | /:id | Yes | admin | Update guide |
+| DELETE | /:id | Yes | admin | Delete guide |
+
+#### Manuals / Resource Library (`/api/manuals`)
+| Method | Path | Auth | Role | Description |
+|--------|------|------|------|-------------|
+| GET | / | Yes | any | List all files |
+| GET | /:id/download | Yes | any | Get Cloudinary URL |
+| POST | / | Yes | admin | Upload file (multipart/form-data) |
+| DELETE | /:id | Yes | admin | Delete file + CDN cleanup |
+
+#### Communications (`/api/communications`)
+| Method | Path | Auth | Role | Description |
+|--------|------|------|------|-------------|
+| GET | / | Yes | any | List notes |
+| POST | / | Yes | any | Add note |
+| DELETE | /:id | Yes | subadmin+ | Remove note |
+
+#### Settings (`/api/settings`)
+| Method | Path | Auth | Role | Description |
+|--------|------|------|------|-------------|
+| GET | / | No | — | Get all settings |
+| PUT | / | Yes | admin | Update settings |
+
+#### Health
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /auth/login | No | Authenticate user |
-| POST | /auth/register | Admin | Create new user |
-| GET | /auth/profile | Yes | Get current user profile |
-| PUT | /auth/change-password | Yes | Change password |
-| GET | /dashboard | Yes | Dashboard aggregated data |
-| GET | /errors | Yes | List errors (filterable) |
-| GET | /errors/:id | Yes | Error detail with updates |
-| GET | /errors/stats | Yes | Error statistics |
-| POST | /errors | Yes | Create new error |
-| PUT | /errors/:id | Yes | Update error |
-| PATCH | /errors/:id/status | Yes | Change error status |
-| POST | /errors/:id/updates | Yes | Add progress note |
-| DELETE | /errors/:id | Admin | Delete error |
-| GET | /schools | Yes | List schools |
-| GET | /schools/:id | Yes | School detail |
-| POST | /schools | Admin | Create school |
-| PUT | /schools/:id | Admin | Update school |
-| DELETE | /schools/:id | Admin | Delete school |
-| PATCH | /schools/:id/assign | Admin | Reassign sub-admin |
-| GET | /team | Yes | List sub-admins |
-| GET | /team/:id | Yes | Sub-admin detail |
-| POST | /team | Admin | Create sub-admin |
-| PUT | /team/:id | Admin | Update sub-admin |
-| DELETE | /team/:id | Admin | Remove sub-admin |
-| PATCH | /team/:id/schools | Admin | Assign schools |
-| GET | /checkins | Yes | List check-ins |
-| GET | /checkins/school/:id | Yes | School check-ins |
-| POST | /checkins | Yes | Create/update check-in |
-| GET | /checkins/stats | Yes | Check-in statistics |
-| GET | /guides | Yes | List guides |
-| GET | /guides/:id | Yes | Guide detail |
-| POST | /guides | Admin | Create guide |
-| PUT | /guides/:id | Admin | Update guide |
-| DELETE | /guides/:id | Admin | Delete guide |
-| GET | /manuals | Yes | List manuals |
-| POST | /manuals | Admin | Upload manual |
-| GET | /manuals/:id/download | Yes | Download file |
-| DELETE | /manuals/:id | Admin | Delete manual |
-| GET | /communications | Yes | List communications |
-| POST | /communications | Yes | Add note |
-| DELETE | /communications/:id | Admin | Delete note |
-| GET | /health | No | Server health check |
-
-### Example: Login
-
-```bash
-curl -X POST http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "admin123"}'
-```
-
-Response:
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIs...",
-  "user": {
-    "id": 1,
-    "username": "admin",
-    "email": "admin@questforward.tz",
-    "full_name": "Kelvin Mwangi",
-    "role": "admin",
-    "phone": "+255 712 345 678",
-    "zone": "All Zones",
-    "color": "#4f7cff",
-    "title": "Head of Technical Operations",
-    "status": "active",
-    "school_id": null
-  }
-}
-```
-
-### Example: Create Error
-
-```bash
-curl -X POST http://localhost:3000/api/errors \
-  -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Router offline at Kibeta",
-    "description": "Main router not responding to pings since morning",
-    "school_id": 1,
-    "category": "Network",
-    "subcategory": "Router",
-    "priority": "high",
-    "reporter_name": "John Mushi",
-    "location": "Server Room"
-  }'
-```
-
-Response:
-```json
-{
-  "id": 13,
-  "error_code": "QFT-0254",
-  "message": "Error reported successfully."
-}
-```
-
-### Query Parameters (GET /errors)
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| status | string | Filter: open, progress, escalated, resolved, all |
-| priority | string | Filter: critical, high, medium, low |
-| category | string | Filter by category |
-| school_id | int | Filter by school |
-| search | string | Search title, code, school name |
-| limit | int | Limit results |
+| GET | /api/health | No | System status check |
 
 ---
 
-## 6. Authentication & Authorization
+## 5. SLA System
 
-### How It Works
+### Targets
+| Priority | Max Resolution Time | Auto-Breach After |
+|----------|--------------------|--------------------|
+| Critical | 2 hours | 2h open without resolution |
+| High | 8 hours | 8h open without resolution |
+| Medium | 24 hours | 24h open without resolution |
+| Low | 72 hours | 72h open without resolution |
 
-1. User submits credentials to `POST /api/auth/login`
-2. Server verifies password against bcrypt hash
-3. Server issues a JWT token (7-day expiry)
-4. Client stores token in `localStorage`
-5. All subsequent requests include `Authorization: Bearer <token>`
-6. Server middleware decodes token, attaches `req.user`
-7. Route-level `authorize(['admin'])` restricts by role
+### Breach Detection
+The `hours_open` column is calculated at query time. When `hours_open > SLA[priority]`, the error is flagged as breached in the UI with:
+- Red dot + "SLA Breach" badge
+- Red border on follow-up cards
+- Alert banner on dashboard (for critical errors)
+- Notification dot on topbar bell icon
 
-### Token Structure
+---
 
-```json
-{
-  "id": 1,
-  "role": "admin",
-  "username": "admin",
-  "iat": 1718000000,
-  "exp": 1718604800
-}
+## 6. Role-Based Access Control
+
+### Role Hierarchy
+```
+┌─────────────────────────────────────────────────┐
+│ ADMIN (System Administrator)                     │
+│ ✓ All operations                                 │
+│ ✓ Manage team, schools, settings                │
+│ ✓ Upload manuals, create guides                 │
+│ ✓ View analytics                                │
+│ ✓ Switch view to any sub-admin or school        │
+├─────────────────────────────────────────────────┤
+│ SUBADMIN (Field Engineer)                        │
+│ ✓ View/update assigned schools only             │
+│ ✓ Report and resolve errors                     │
+│ ✓ Record weekly check-ins                       │
+│ ✓ Add communication notes                       │
+│ ✗ Cannot manage team or settings                │
+├─────────────────────────────────────────────────┤
+│ SCHOOL (School Staff)                            │
+│ ✓ View own school data only                     │
+│ ✓ Report errors                                 │
+│ ✓ View guides and manuals                       │
+│ ✗ Cannot escalate or reassign                   │
+│ ✗ Cannot see other schools                      │
+└─────────────────────────────────────────────────┘
 ```
 
-### Role-Based Access Control (RBAC)
+---
 
+## 7. File Upload System (Cloudinary)
+
+### Why Cloudinary
+Render's free tier has ephemeral filesystem — files are deleted on every deploy/restart. Cloudinary provides free cloud storage with global CDN delivery.
+
+### Supported File Types
+| Category | Extensions | Cloudinary resource_type |
+|----------|-----------|------------------------|
+| Documents | pdf, doc, docx, ppt, pptx, xls, xlsx, txt, html | raw |
+| Images | png, jpg, jpeg, gif, webp, svg | image |
+| Video | mp4, webm, mov, avi, mkv | video |
+| Audio | mp3, wav, ogg, m4a, aac | video |
+
+### Upload Flow
 ```
-Admin
-├── Full CRUD on all resources
-├── Team management
-├── School management
-├── Guide/manual management
-└── Delete operations
-
-Sub-Admin
-├── View/edit assigned schools only
-├── Create/resolve errors for assigned schools
-├── Weekly check-ins for assigned schools
-└── Communication logs for assigned schools
-
-School
-├── View own school profile
-├── Report errors
-├── View own errors
-└── View guides
+1. Admin selects file + title + category in modal
+2. Frontend sends multipart FormData to POST /api/manuals
+3. Multer captures file in memory buffer (memoryStorage)
+4. Controller determines Cloudinary resource_type from mimetype
+5. streamifier pipes buffer to cloudinary.uploader.upload_stream
+6. Cloudinary returns secure_url (CDN link)
+7. Database stores: title, original_filename, secure_url, mimetype, size, category
+8. Frontend displays file in Resource Library with icon + meta
 ```
 
-### Data Scoping
+### Preview Capabilities
+- **Images:** `<img>` tag with max-height constraint
+- **Video:** HTML5 `<video controls>` with browser-native player
+- **Audio:** HTML5 `<audio controls>` with playback bar
+- **Documents:** Download only (no in-app rendering)
 
-Controllers automatically filter data by role:
+### Limits
+- Max file size: 100MB (configurable via `MAX_FILE_SIZE` env var)
+- Cloudinary free tier: 25 credits/month (~25GB combined storage + bandwidth)
 
+---
+
+## 8. Frontend Architecture
+
+### Module Pattern
+Each page is an IIFE returning `{ load, render }`:
 ```javascript
-if (req.user.role === 'subadmin') {
-  conditions.push('s.assigned_admin_id = ?');
-  params.push(req.user.id);
-} else if (req.user.role === 'school') {
-  conditions.push('s.id = ?');
-  params.push(req.user.school_id);
-}
-// Admin: no filter — sees everything
+const PageName = (() => {
+  let data = null;
+
+  async function load() {
+    // Fetch data from API
+  }
+
+  function render() {
+    // Return HTML string
+  }
+
+  return { load, render };
+})();
 ```
-
----
-
-## 7. Frontend Architecture
-
-### Design Philosophy
-
-- **Single Page Application** without a framework — pure JavaScript modules
-- **Dark theme** with carefully tuned contrast ratios
-- **Fixed sidebar** with premium micro-interactions
-- **Sticky page headers** with scroll-reveal elevation
-- **Card-based UI** with consistent spacing (8px grid)
-- **Responsive** down to 360px mobile
-
-### Module Responsibilities
-
-| Module | Role |
-|--------|------|
-| `api.js` | All HTTP calls, token management, auth state |
-| `utils.js` | DOM helper (`$`), XSS escaping (`esc`), formatters, constants |
-| `auth.js` | Login form handling, session check, logout |
-| `router.js` | Page state, nav highlighting, role visibility |
-| `app.js` | Page rendering orchestrator, scroll effects |
-| `modal.js` | Generic modal open/close |
-| `pages/*.js` | Each page: `load()` → `render()` → `afterRender()` |
 
 ### Page Lifecycle
-
 ```
-User clicks nav → Router.navigate(page) → App.loadAndRender()
-                                            ├── handler.load()  [async — fetch data]
-                                            └── App.render()
-                                                 ├── handler.render()  [returns HTML]
-                                                 ├── handler.afterRender()  [bind events]
-                                                 └── initScrollReveal()
-```
-
-### Design Tokens (CSS Variables)
-
-```css
---bg: #0f1117       /* Page background */
---bg2: #161921      /* Card/sidebar background */
---bg3: #1d2130      /* Input/nested background */
---bg4: #252a3a      /* Hover/scrollbar */
---border: rgba(255,255,255,0.08)
---text: #e8eaf2     /* Primary text */
---text2: #9ba1b5    /* Secondary text */
---text3: #636a82    /* Tertiary/label text */
---accent: #4f7cff   /* Primary action color */
---green: #2dd98a    /* Success/healthy */
---amber: #f5a623    /* Warning/in-progress */
---red: #ff5263      /* Error/critical */
+User clicks nav item
+  → Router.navigate(page)
+  → window.location.hash = page
+  → App.loadAndRender()
+    → handler.load()   // async data fetch
+    → handler.render() // returns HTML string
+    → main.innerHTML = html
+    → initScrollReveal() // animate cards
 ```
 
----
-
-## 8. Error Lifecycle & SLA
-
-### Status Flow
-
+### File Structure
 ```
-┌──────────┐     ┌───────────┐     ┌──────────────┐     ┌──────────┐
-│   OPEN   │────▶│ PROGRESS  │────▶│  ESCALATED   │────▶│ RESOLVED │
-│          │     │           │     │              │     │          │
-│ Created  │     │ Being     │     │ Needs higher │     │ Fixed    │
-│ by user  │     │ worked on │     │ intervention │     │          │
-└──────────┘     └───────────┘     └──────────────┘     └──────────┘
-      │                                                       ▲
-      └───────────────────────────────────────────────────────┘
-                        (can resolve directly)
+frontend/
+├── index.html          # SPA shell (login + app container)
+├── css/
+│   ├── variables.css   # CSS custom properties (colors, fonts)
+│   ├── base.css        # Layout, scrollbar, responsive, animations
+│   └── components.css  # Cards, buttons, forms, tables, badges
+└── js/
+    ├── api.js          # HTTP client (fetch wrapper + JWT)
+    ├── utils.js        # Helpers (esc, ageStr, PRI, STAT, CAT_META)
+    ├── auth.js         # Login, logout, profile, role-switch
+    ├── router.js       # Hash-based routing
+    ├── app.js          # Main controller + ErrorDetailModal
+    ├── components/
+    │   └── modal.js    # Reusable modal (open, close, init)
+    └── pages/
+        ├── dashboard.js   # KPIs, alerts, priorities, categories
+        ├── report.js      # Error submission form
+        ├── tracker.js     # Error list with filters
+        ├── followup.js    # SLA breaches, team, comms
+        ├── weekly.js      # Week tabs, school check-in table
+        ├── schools.js     # School grid + detail view
+        ├── guides.js      # Troubleshooting knowledge base
+        ├── manuals.js     # Resource library (upload/preview/download)
+        ├── analytics.js   # Charts, trends, SLA compliance
+        ├── team.js        # Sub-admin management
+        └── branding.js    # System appearance settings
 ```
-
-### SLA Targets
-
-| Priority | Response Time | Resolution Target | Auto-Escalation |
-|----------|--------------|-------------------|-----------------|
-| Critical | Immediate | 2 hours | After 2h |
-| High | 1 hour | 8 hours | After 8h |
-| Medium | 4 hours | 24 hours | After 24h |
-| Low | 8 hours | 72 hours | After 72h |
-
-### SLA Breach Detection (Frontend)
-
-```javascript
-function slaState(error) {
-  const hoursOpen = error.hours_open || 0;
-  const limit = SLA[error.priority]; // { critical:2, high:8, medium:24, low:72 }
-  if (hoursOpen >= limit) return 'breach';
-  if (hoursOpen >= limit * 0.75) return 'warning';
-  return 'ok';
-}
-```
-
-### Error Categories
-
-| Category | Subcategories | Icon |
-|----------|--------------|------|
-| Network | Router, Switch, Cabling, ISP, Firewall | ti-wifi |
-| Hardware | Tablet, Charger, Screen, Battery, Storage | ti-device-tablet |
-| Software | OS, App, Update, Configuration | ti-apps |
-| Power | UPS, Solar, Grid, Wiring | ti-bolt |
-| Platform | LRS, Content, Sync, Assessment | ti-cloud |
-| LRS | Server, Database, Sync, API | ti-server |
-| Other | — | ti-help |
 
 ---
 
 ## 9. Deployment Guide
 
 ### Prerequisites
-
 - Node.js 18+
-- MySQL 8.0+
-- Git
-
-### Local Development
-
-```bash
-# 1. Clone repository
-git clone <repo-url>
-cd "Troubleshooting System"
-
-# 2. Install dependencies
-cd backend && npm install
-
-# 3. Configure environment
-cp .env.example .env
-# Edit .env with your MySQL credentials
-
-# 4. Initialize database
-node src/config/migrate.js
-node src/config/seed.js
-
-# 5. Start server
-npm start
-# Server runs at http://localhost:3000
-```
+- MySQL 8.x database
+- Cloudinary account (free)
+- Render account (free)
+- Git with GitHub + GitLab remotes
 
 ### Environment Variables
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| DATABASE_URL | Yes | — | MySQL connection string |
+| JWT_SECRET | Yes | — | Token signing key |
+| JWT_EXPIRES_IN | No | 7d | Token lifetime |
+| NODE_ENV | No | development | Environment mode |
+| PORT | No | 3000 | Server port |
+| CLOUDINARY_CLOUD_NAME | Yes (prod) | — | Cloudinary cloud name |
+| CLOUDINARY_API_KEY | Yes (prod) | — | Cloudinary API key |
+| CLOUDINARY_API_SECRET | Yes (prod) | — | Cloudinary API secret |
+| MAX_FILE_SIZE | No | 104857600 | Max upload bytes (100MB) |
 
-```env
-PORT=3000
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=qft_support
-JWT_SECRET=change_this_to_random_64_char_string
-JWT_EXPIRES_IN=7d
-UPLOAD_DIR=uploads
-NODE_ENV=development
+### Deploy Steps
+1. Push to GitLab: `git push gitlab main`
+2. Render auto-deploys from GitLab main branch
+3. On first start, auto-migration creates all tables + seeds demo data
+4. Default login: `admin` / `admin123`
+
+### SSL (Aiven MySQL)
+The `backend/src/config/ca.pem` file contains the Aiven CA certificate. In production:
+```javascript
+ssl: { ca: fs.readFileSync('ca.pem'), rejectUnauthorized: false }
 ```
-
-### Production Deployment (Render.com)
-
-**This system can be deployed for free on Render:**
-
-1. Push code to GitHub
-2. Create a **MySQL database** on [PlanetScale](https://planetscale.com) or [Railway](https://railway.app) (free tier)
-3. Create a **Web Service** on Render:
-   - Build Command: `cd backend && npm install`
-   - Start Command: `cd backend && node src/config/migrate.js && node src/server.js`
-   - Set environment variables (DB_HOST, DB_USER, etc.)
-4. The server serves both API and frontend (no separate frontend deploy needed)
-
-### Production Checklist
-
-- [ ] Change `JWT_SECRET` to a random 64+ character string
-- [ ] Set `NODE_ENV=production`
-- [ ] Set proper `DB_PASSWORD`
-- [ ] Enable HTTPS (Render does this automatically)
-- [ ] Set `FRONTEND_URL` for CORS in production
-- [ ] Remove default credentials from seed data
-- [ ] Set up automated database backups
 
 ---
 
-## 10. Security
-
-### Implemented Measures
+## 10. Security Measures
 
 | Measure | Implementation |
 |---------|---------------|
-| Password hashing | bcrypt with 10 rounds |
-| JWT authentication | Stateless tokens, 7-day expiry |
-| Rate limiting | 200 req/15min (general), 20 req/15min (login) |
-| HTTP headers | Helmet.js (X-Frame-Options, HSTS, etc.) |
-| CORS | Restricted to frontend URL in production |
-| SQL injection prevention | Parameterized queries (mysql2 prepared statements) |
-| XSS prevention | HTML escaping (`esc()` utility) on all dynamic content |
-| Input validation | express-validator on sensitive endpoints |
-| Role-based access | Middleware-enforced per route |
-| Error handling | Global handler — no stack traces leaked to client |
-
-### Security Best Practices Applied
-
-1. **No raw SQL concatenation** — all user input passed as `?` parameters
-2. **Passwords never stored or logged** — only bcrypt hashes
-3. **Token invalidation** — client clears on 401 response
-4. **File upload restrictions** — multer with file size limits
-5. **No eval/innerHTML with user data** — all output escaped
+| Password hashing | bcryptjs (10 salt rounds) |
+| Authentication | JWT in Authorization header |
+| Rate limiting | 20 login/15min, 200 API/15min |
+| CORS | Restricted origins |
+| HTTP headers | helmet middleware |
+| Input validation | express-validator schemas |
+| SQL injection | Parameterized queries (mysql2) |
+| XSS prevention | HTML escaping (frontend esc() helper) |
+| File validation | Extension whitelist + multer fileFilter |
+| SSL/TLS | Database connection encrypted with CA cert |
 
 ---
 
-## Appendix A: Default Seed Data
+## 11. Demo Data (Auto-Seeded)
+
+On first startup with empty tables, the system seeds:
 
 ### Users
+| Username | Password | Role | Zone |
+|----------|----------|------|------|
+| admin | admin123 | admin | System |
+| knjoro | changeme123 | subadmin | Moshi Urban |
+| famani | changeme123 | subadmin | Kilema |
+| thassan | changeme123 | subadmin | Hai |
+| cmbowe | changeme123 | subadmin | Rombo |
 
-| Username | Password | Role | Assigned Schools |
-|----------|----------|------|-----------------|
-| admin | admin123 | admin | All |
-| amani | admin123 | subadmin | Kibeta, Bagamoyo, Chalinze, Kilosa |
-| juma | admin123 | subadmin | Dodoma Central, Kondoa, Mpwapwa |
-| aisha | admin123 | subadmin | Singida, Manyoni, Iramba |
-| baraka | admin123 | subadmin | Tanga, Pangani, Lushoto |
+### Schools (9 total)
+Spread across Moshi Urban, Kilema, Hai, and Rombo zones with realistic student/tablet counts.
 
-### Schools (13 total)
+### Errors (9 total)
+Mix of priorities (critical to low), categories (Connectivity, Hardware, Platform, Power), and statuses (open, progress, resolved).
 
-Kibeta, Bagamoyo, Chalinze, Kilosa, Dodoma Central, Kondoa, Mpwapwa, Singida, Manyoni, Iramba, Tanga, Pangani, Lushoto
-
----
-
-## Appendix B: Error Code Format
-
-```
-QFT-0XXX
-│   │
-│   └── Sequential number (starts at 242)
-└────── Quest Forward Tanzania prefix
-```
-
-New errors increment from the highest existing code.
+### Guides (5 total)
+WiFi troubleshooting, Tablet charging, Platform login, Generator/power, Projector setup.
 
 ---
 
-## Appendix C: Category Metadata (Frontend)
+## 12. Known Limitations & Future Improvements
 
-Used for UI rendering (icons, colors, subcategory options):
+### Current Limitations
+- No real-time updates (data fetches on page load only)
+- No email/SMS notifications for SLA breaches
+- No data export (CSV/PDF)
+- No 2FA authentication
+- No audit trail (soft deletes)
+- English only (no i18n)
 
-```javascript
-const CAT_META = {
-  Network:  { ic: 'ti-wifi', color: '#4f7cff' },
-  Hardware: { ic: 'ti-device-tablet', color: '#f5a623' },
-  Software: { ic: 'ti-apps', color: '#9b7dff' },
-  Power:    { ic: 'ti-bolt', color: '#ff5263' },
-  Platform: { ic: 'ti-cloud', color: '#36d9cc' },
-  LRS:      { ic: 'ti-server', color: '#2dd98a' },
-  Other:    { ic: 'ti-help', color: '#636a82' }
-};
-```
+### Recommended Improvements
+1. **WebSocket or SSE** — Real-time error status updates
+2. **Email notifications** — SLA breach alerts via SendGrid/Mailgun
+3. **Data export** — CSV/PDF generation for reports
+4. **Error attachments** — Photos of physical damage/equipment
+5. **Calendar view** — Visual weekly check-in scheduling
+6. **Historical trends** — Charts comparing week-over-week performance
+7. **Mobile app** — React Native or PWA for field engineers
+8. **Bulk operations** — Mass error resolution, bulk school import
+9. **API versioning** — `/api/v1/` prefix for breaking changes
 
 ---
 
-*End of Documentation*
+*Document Version: 1.0*  
+*Last Updated: June 2026*  
+*System Version: QFT Support v1.0*
