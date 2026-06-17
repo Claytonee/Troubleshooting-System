@@ -25,7 +25,7 @@ async function getDashboard(req, res) {
         SUM(CASE WHEN e.status = 'progress' THEN 1 ELSE 0 END) as in_progress,
         SUM(CASE WHEN e.priority = 'critical' AND e.status != 'resolved' THEN 1 ELSE 0 END) as critical_open,
         SUM(CASE WHEN e.status != 'resolved' AND e.sla_due_at IS NOT NULL AND e.sla_due_at < NOW() THEN 1 ELSE 0 END) as sla_breached,
-        SUM(CASE WHEN e.status = 'resolved' AND e.resolved_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 ELSE 0 END) as resolved_24h
+        SUM(CASE WHEN e.status = 'resolved' AND e.resolved_at >= NOW() - INTERVAL '24 hours' THEN 1 ELSE 0 END) as resolved_24h
       FROM errors e WHERE 1=1 ${errorFilter}
     `, params);
 
@@ -40,7 +40,7 @@ async function getDashboard(req, res) {
       s.name as school_name
       FROM errors e JOIN schools s ON e.school_id = s.id
       WHERE e.status != 'resolved' ${errorFilter}
-      ORDER BY FIELD(e.priority, 'critical', 'high', 'medium', 'low'), e.created_at DESC
+      ORDER BY array_position(ARRAY['critical','high','medium','low'], e.priority), e.created_at DESC
       LIMIT 6
     `, params);
 

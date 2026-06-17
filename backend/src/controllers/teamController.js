@@ -105,7 +105,7 @@ async function assignSchools(req, res, next) {
     await pool.query('UPDATE schools SET assigned_admin_id = NULL WHERE assigned_admin_id = ?', [req.params.id]);
 
     if (school_ids && school_ids.length) {
-      await pool.query('UPDATE schools SET assigned_admin_id = ? WHERE id IN (?)', [req.params.id, school_ids]);
+      await pool.query('UPDATE schools SET assigned_admin_id = ? WHERE id = ANY(?)', [req.params.id, school_ids]);
     }
 
     res.json({ message: 'Schools assigned successfully.' });

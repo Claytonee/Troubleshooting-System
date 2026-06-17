@@ -54,8 +54,9 @@ async function createOrUpdate(req, res, next) {
     await pool.query(`
       INSERT INTO weekly_checkins (school_id, week_number, term, status, connectivity, tablets, platform, power, note, checked_by)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE status=VALUES(status), connectivity=VALUES(connectivity), tablets=VALUES(tablets),
-      platform=VALUES(platform), power=VALUES(power), note=VALUES(note), checked_by=VALUES(checked_by)
+      ON CONFLICT (school_id, week_number, term) DO UPDATE SET
+        status=EXCLUDED.status, connectivity=EXCLUDED.connectivity, tablets=EXCLUDED.tablets,
+        platform=EXCLUDED.platform, power=EXCLUDED.power, note=EXCLUDED.note, checked_by=EXCLUDED.checked_by
     `, [school_id, week_number, term || 'Term 2 · 2026', status || 'green', connectivity || 'ok', tablets || 'ok', platform || 'ok', power || 'ok', note || null, checked_by || req.user.full_name]);
 
     res.status(201).json({ message: 'Check-in recorded successfully.' });
