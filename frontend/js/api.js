@@ -64,6 +64,12 @@ const API = (() => {
     createTeamMember: (data) => request('POST', '/team', data),
     updateTeamMember: (id, data) => request('PUT', `/team/${id}`, data),
     removeTeamMember: (id, reassignTo) => request('DELETE', `/team/${id}`, { reassign_to: reassignTo }),
+    getSchoolAdmins: () => request('GET', '/school-admins'),
+    getSchoolAdmin: (id) => request('GET', `/school-admins/${id}`),
+    createSchoolAdmin: (data) => request('POST', '/school-admins', data),
+    updateSchoolAdmin: (id, data) => request('PUT', `/school-admins/${id}`, data),
+    resetSchoolAdminPassword: (id, newPassword) => request('PATCH', `/school-admins/${id}/password`, { new_password: newPassword }),
+    deleteSchoolAdmin: (id) => request('DELETE', `/school-admins/${id}`),
     getCheckins: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/checkins' + (qs ? '?' + qs : '')); },
     getSchoolCheckins: (schoolId) => request('GET', `/checkins/school/${schoolId}`),
     createCheckin: (data) => request('POST', '/checkins', data),
@@ -79,5 +85,14 @@ const API = (() => {
     createCommunication: (data) => request('POST', '/communications', data),
     getSettings: () => request('GET', '/settings'),
     updateSettings: (data) => request('PUT', '/settings', data),
+    getAuditLog: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/audit' + (qs ? '?' + qs : '')); },
+    search: (q) => request('GET', '/search?q=' + encodeURIComponent(q)),
+    submitCsat: (token, data) => request('POST', `/errors/csat/${token}`, data),
+    exportErrorsCsv: async (params = {}) => {
+      const qs = new URLSearchParams(params).toString();
+      const res = await fetch(BASE + '/errors/export' + (qs ? '?' + qs : ''), { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (!res.ok) throw { status: res.status };
+      return res.blob();
+    },
   };
 })();

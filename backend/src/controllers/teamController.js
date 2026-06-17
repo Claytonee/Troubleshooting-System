@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const pool = require('../config/database');
+const { logAudit } = require('../services/audit');
 
 async function getAll(req, res, next) {
   try {
@@ -49,6 +50,11 @@ async function create(req, res, next) {
       [username, email, passwordHash, full_name, 'subadmin', phone || null, zone || null, color || '#4f7cff', title || 'Field Engineer', status || 'active']
     );
 
+    await logAudit({
+      actor: req.user, ip: req.ip, action: 'sub_admin.created', entityType: 'sub_admin', entityId: result.insertId,
+      summary: `Created sub-admin "${full_name}" (@${username})`
+    });
+
     res.status(201).json({ id: result.insertId, message: 'Sub-admin created successfully.' });
   } catch (err) { next(err); }
 }
@@ -61,6 +67,11 @@ async function update(req, res, next) {
       'UPDATE users SET full_name=?, email=?, phone=?, zone=?, color=?, title=?, status=? WHERE id=? AND role=?',
       [full_name, email, phone, zone, color, title, status, req.params.id, 'subadmin']
     );
+
+    await logAudit({
+      actor: req.user, ip: req.ip, action: 'sub_admin.updated', entityType: 'sub_admin', entityId: req.params.id,
+      summary: `Updated sub-admin "${full_name}"`, meta: { status }
+    });
 
     res.json({ message: 'Sub-admin updated successfully.' });
   } catch (err) { next(err); }
@@ -79,6 +90,10 @@ async function remove(req, res, next) {
     }
 
     await pool.query('DELETE FROM users WHERE id = ? AND role = ?', [req.params.id, 'subadmin']);
+    await logAudit({
+      actor: req.user, ip: req.ip, action: 'sub_admin.deleted', entityType: 'sub_admin', entityId: req.params.id,
+      summary: `Removed sub-admin #${req.params.id}`, meta: { reassign_to: reassign_to || null }
+    });
     res.json({ message: 'Sub-admin removed successfully.' });
   } catch (err) { next(err); }
 }

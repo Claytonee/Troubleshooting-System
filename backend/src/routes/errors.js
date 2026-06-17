@@ -6,10 +6,17 @@ const errorController = require('../controllers/errorController');
 
 const router = express.Router();
 
+// Public CSAT submission via tokenised link (must be registered before authenticate).
+router.post('/csat/:token', [
+  body('rating').isInt({ min: 0, max: 5 }).withMessage('Rating must be 0-5'),
+  validate
+], errorController.submitCsat);
+
 router.use(authenticate);
 
 router.get('/', errorController.getAll);
 router.get('/stats', errorController.getStats);
+router.get('/export', authorize('admin', 'subadmin'), errorController.exportErrors);
 router.get('/:id', errorController.getById);
 
 router.post('/', [

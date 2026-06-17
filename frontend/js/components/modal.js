@@ -6,7 +6,9 @@ const Modal = (() => {
     $('modal-title').textContent = title;
     $('modal-body').innerHTML = bodyHtml;
     $('modal-footer').innerHTML = footerHtml;
-    $('modal-box').classList.toggle('wide', !!wide);
+    const box = $('modal-box');
+    box.classList.toggle('wide', !!wide);
+    box.classList.remove('preview');
     $('modal').classList.add('open');
     document.body.style.overflow = 'hidden';
   }

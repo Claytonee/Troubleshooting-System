@@ -14,7 +14,10 @@ const App = (() => {
     manuals: ManualsPage,
     analytics: AnalyticsPage,
     team: TeamPage,
+    schooladmins: SchoolAdminsPage,
     branding: BrandingPage,
+    audit: AuditPage,
+    search: SearchPage,
   };
 
   async function init() {
@@ -103,6 +106,17 @@ const ErrorDetailModal = (() => {
       const stat = STAT[e.status] || STAT.open;
       const breach = slaState(e) === 'breach';
 
+      const csatBlock = e.status === 'resolved' ? `
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px">SATISFACTION</div>
+          ${e.csat_rating != null
+            ? `<div style="font-size:13px;color:var(--text2)">Rated <strong style="color:var(--amber)">${e.csat_rating}/5</strong>${e.csat_comment ? ` — &ldquo;${esc(e.csat_comment)}&rdquo;` : ''}</div>`
+            : (e.csat_token
+                ? `<div style="font-size:12px;color:var(--text3);margin-bottom:6px">How well was this resolved?</div>
+                   <div style="display:flex;gap:6px">${[1, 2, 3, 4, 5].map(n => `<button class="btn btn-secondary btn-sm" style="padding:4px 10px" onclick="ErrorDetailModal.rate('${e.csat_token}', ${n})">${n}&#9733;</button>`).join('')}</div>`
+                : '<div style="font-size:12px;color:var(--text3)">No feedback recorded.</div>')}
+        </div>` : '';
+
       const body = `
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
           <span class="badge ${pri.badge}">${pri.label}</span>
@@ -120,7 +134,8 @@ const ErrorDetailModal = (() => {
         </div>
         ${(e.updates && e.updates.length) ? `<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:10px">UPDATES</div>
           ${e.updates.map(u => `<div style="background:var(--bg3);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:12px"><span style="color:var(--text)">${esc(u.recorded_by)}</span> <span style="color:var(--text3)">· ${relTime(u.created_at)}</span><div style="color:var(--text2);margin-top:4px">${esc(u.note)}</div></div>`).join('')}
-        </div>` : ''}`;
+        </div>` : ''}
+        ${csatBlock}`;
 
       const footer = e.status !== 'resolved'
         ? `<button class="btn btn-success" onclick="ErrorDetailModal.resolve(${e.id})"><i class="ti ti-check"></i> Mark Resolved</button>`
@@ -140,7 +155,16 @@ const ErrorDetailModal = (() => {
     } catch (e) { showToast('Failed to resolve'); }
   }
 
-  return { open, resolve };
+  async function rate(token, rating) {
+    try {
+      await API.submitCsat(token, { rating });
+      Modal.close();
+      showToast('Thank you for your feedback!');
+      await App.loadAndRender();
+    } catch (e) { showToast('Could not submit feedback'); }
+  }
+
+  return { open, resolve, rate };
 })();
 
 // Initialize on load

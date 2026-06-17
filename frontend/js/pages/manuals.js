@@ -43,6 +43,18 @@ const ManualsPage = (() => {
     return 'File';
   }
 
+  // Maps a mimetype to how we render its in-app preview.
+  function previewKind(mimetype) {
+    const ft = mimetype || '';
+    if (ft.startsWith('image/')) return 'image';
+    if (ft.startsWith('video/')) return 'video';
+    if (ft.startsWith('audio/')) return 'audio';
+    if (ft.includes('pdf')) return 'pdf';
+    if (/(powerpoint|presentation|msword|wordprocessing|officedocument|ms-excel|ms-word)/.test(ft)) return 'office';
+    if (ft.startsWith('text/') || ft === 'application/json' || ft === 'application/xml' || ft.includes('csv')) return 'text';
+    return 'none';
+  }
+
   async function load() {
     try {
       manuals = await API.getManuals();
@@ -61,7 +73,6 @@ const ManualsPage = (() => {
     const fileCards = filtered.length ? filtered.map(m => {
       const icon = getFileIcon(m.file_type);
       const type = getFileType(m.file_type);
-      const isMedia = m.file_type.startsWith('image/') || m.file_type.startsWith('video/') || m.file_type.startsWith('audio/');
       return `<div class="card" style="padding:16px;margin-bottom:12px">
         <div style="display:flex;align-items:center;gap:14px">
           <div style="width:42px;height:42px;border-radius:10px;background:${icon.color}15;display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -72,7 +83,7 @@ const ManualsPage = (() => {
             <div style="font-size:11px;color:var(--text3);margin-top:2px">${type} · ${formatSize(m.file_size)} · ${esc(m.category)} · by ${esc(m.uploaded_by)}</div>
           </div>
           <div style="display:flex;gap:8px;flex-shrink:0;align-items:center">
-            ${isMedia ? `<button onclick="ManualsPage.preview(${m.id})" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font)" onmouseover="this.style.background='var(--bg4)';this.style.color='var(--text)'" onmouseout="this.style.background='var(--bg3)';this.style.color='var(--text2)'"><i class="ti ti-eye" style="font-size:14px"></i> Preview</button>` : ''}
+            <button onclick="ManualsPage.preview(${m.id})" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font)" onmouseover="this.style.background='var(--bg4)';this.style.color='var(--text)'" onmouseout="this.style.background='var(--bg3)';this.style.color='var(--text2)'"><i class="ti ti-eye" style="font-size:14px"></i> Preview</button>
             <button onclick="ManualsPage.download(${m.id})" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font)" onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'"><i class="ti ti-download" style="font-size:14px"></i> Download</button>
             ${isAdmin ? `<button onclick="ManualsPage.remove(${m.id})" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:6px;border:1px solid rgba(255,82,99,0.3);background:rgba(255,82,99,0.08);color:var(--red);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font)" onmouseover="this.style.background='rgba(255,82,99,0.18)'" onmouseout="this.style.background='rgba(255,82,99,0.08)'"><i class="ti ti-trash" style="font-size:14px"></i> Delete</button>` : ''}
           </div>
@@ -191,24 +202,43 @@ const ManualsPage = (() => {
     const manual = manuals.find(m => m.id === id);
     if (!manual) return;
 
-    let content = '';
     const url = manual.stored_filename;
+    const kind = previewKind(manual.file_type);
+    let content = '';
 
-    if (manual.file_type.startsWith('image/')) {
-      content = `<div style="text-align:center"><img src="${esc(url)}" style="max-width:100%;max-height:60vh;border-radius:8px"></div>`;
-    } else if (manual.file_type.startsWith('video/')) {
-      content = `<video controls style="width:100%;max-height:60vh;border-radius:8px"><source src="${esc(url)}" type="${esc(manual.file_type)}">Your browser does not support video playback.</video>`;
-    } else if (manual.file_type.startsWith('audio/')) {
-      content = `<div style="padding:20px;text-align:center"><i class="ti ti-music" style="font-size:48px;color:var(--teal);display:block;margin-bottom:16px"></i><audio controls style="width:100%"><source src="${esc(url)}" type="${esc(manual.file_type)}">Your browser does not support audio playback.</audio></div>`;
+    if (kind === 'image') {
+      content = `<div style="text-align:center;background:var(--bg);border-radius:8px;padding:8px"><img src="${esc(url)}" alt="${esc(manual.title)}" style="max-width:100%;max-height:72vh;border-radius:6px"></div>`;
+    } else if (kind === 'video') {
+      content = `<video controls autoplay style="width:100%;max-height:72vh;border-radius:8px;background:#000"><source src="${esc(url)}" type="${esc(manual.file_type)}">Your browser does not support video playback.</video>`;
+    } else if (kind === 'audio') {
+      content = `<div style="padding:40px 20px;text-align:center"><i class="ti ti-music" style="font-size:56px;color:var(--teal);display:block;margin-bottom:20px"></i><audio controls autoplay style="width:100%"><source src="${esc(url)}" type="${esc(manual.file_type)}">Your browser does not support audio playback.</audio></div>`;
+    } else if (kind === 'pdf') {
+      content = `<iframe src="${esc(url)}#view=FitH" style="width:100%;height:74vh;border:none;border-radius:8px;background:#fff" title="${esc(manual.title)}"></iframe>`;
+    } else if (kind === 'office') {
+      // Microsoft Office web viewer renders PPT/DOC/XLS from a public https URL.
+      const viewerUrl = 'https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(url);
+      content = `<iframe src="${esc(viewerUrl)}" style="width:100%;height:74vh;border:none;border-radius:8px;background:#fff" title="${esc(manual.title)}"></iframe>`;
+    } else if (kind === 'text') {
+      content = `<iframe src="${esc(url)}" sandbox="" style="width:100%;height:74vh;border:1px solid var(--border);border-radius:8px;background:#fff" title="${esc(manual.title)}"></iframe>`;
+    } else {
+      const icon = getFileIcon(manual.file_type);
+      content = `<div style="padding:48px 24px;text-align:center;background:var(--bg);border-radius:8px">
+        <div style="width:72px;height:72px;border-radius:16px;background:${icon.color}15;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px"><i class="ti ${icon.ic}" style="font-size:36px;color:${icon.color}"></i></div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px">No in-app preview for this file type</div>
+        <div style="font-size:12px;color:var(--text3)">${getFileType(manual.file_type)} · ${formatSize(manual.file_size)} — download or open it to view.</div>
+      </div>`;
     }
 
-    const body = `
-      <div style="margin-bottom:12px;font-size:12px;color:var(--text3)">${esc(manual.original_filename)} · ${formatSize(manual.file_size)}</div>
-      ${content}`;
+    const meta = `<div style="margin-bottom:12px;font-size:12px;color:var(--text3);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span>${esc(manual.original_filename)}</span><span>·</span><span>${getFileType(manual.file_type)}</span><span>·</span><span>${formatSize(manual.file_size)}</span><span>·</span><span>${esc(manual.category)}</span>
+    </div>`;
     const footer = `
       <button class="btn btn-secondary" onclick="Modal.close()">Close</button>
+      <a class="btn btn-secondary" href="${esc(url)}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Open in new tab</a>
       <button class="btn btn-primary" onclick="ManualsPage.download(${id})"><i class="ti ti-download"></i> Download</button>`;
-    Modal.open(manual.title, body, footer);
+    Modal.open(manual.title, meta + content, footer, true);
+    const box = document.getElementById('modal-box');
+    if (box) box.classList.add('preview');
   }
 
   async function remove(id) {

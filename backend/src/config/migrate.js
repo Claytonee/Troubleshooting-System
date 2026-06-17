@@ -1,5 +1,6 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
+const { applyExtensions } = require('./schemaExtensions');
 
 async function migrate() {
   const connection = await mysql.createConnection({
@@ -178,6 +179,9 @@ async function migrate() {
     ('brand_color', '#FFAE00'),
     ('loader_text', 'Loading system...')
   `);
+
+  await applyExtensions(connection);
+  console.log('Schema extensions applied (audit log, SLA, CSAT).');
 
   console.log('All tables created successfully!');
   console.log('Migration complete.');

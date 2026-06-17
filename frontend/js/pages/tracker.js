@@ -37,6 +37,7 @@ const TrackerPage = (() => {
         <div><div class="section-title">Error Tracker</div><div class="section-sub">All reported issues</div></div>
         <div style="display:flex;gap:10px;align-items:center">
           <input type="text" placeholder="Search errors…" style="width:200px" id="search-input" value="${esc(search)}" oninput="TrackerPage.setSearch(this.value)">
+          <button class="btn btn-secondary btn-sm" onclick="TrackerPage.exportCsv()"><i class="ti ti-download"></i> Export</button>
           <button class="btn btn-primary btn-sm" onclick="Router.navigate('report');App.loadAndRender()"><i class="ti ti-plus"></i> New</button>
         </div>
       </div>
@@ -92,7 +93,18 @@ const TrackerPage = (() => {
     } catch (e) { showToast('Failed to resolve error'); }
   }
 
+  async function exportCsv() {
+    try {
+      const params = {};
+      if (filter !== 'all') params.status = filter;
+      if (search.trim()) params.search = search.trim();
+      const blob = await API.exportErrorsCsv(params);
+      downloadBlob(blob, 'errors-export.csv');
+      showToast('Export downloaded');
+    } catch (e) { showToast('Export failed'); }
+  }
+
   function afterRender() { refreshTable(); }
 
-  return { load, render, afterRender, setFilter, setSearch, resolve };
+  return { load, render, afterRender, setFilter, setSearch, resolve, exportCsv };
 })();

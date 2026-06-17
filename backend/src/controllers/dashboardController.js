@@ -24,6 +24,7 @@ async function getDashboard(req, res) {
         SUM(CASE WHEN e.status != 'resolved' THEN 1 ELSE 0 END) as open_count,
         SUM(CASE WHEN e.status = 'progress' THEN 1 ELSE 0 END) as in_progress,
         SUM(CASE WHEN e.priority = 'critical' AND e.status != 'resolved' THEN 1 ELSE 0 END) as critical_open,
+        SUM(CASE WHEN e.status != 'resolved' AND e.sla_due_at IS NOT NULL AND e.sla_due_at < NOW() THEN 1 ELSE 0 END) as sla_breached,
         SUM(CASE WHEN e.status = 'resolved' AND e.resolved_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 ELSE 0 END) as resolved_24h
       FROM errors e WHERE 1=1 ${errorFilter}
     `, params);
@@ -34,7 +35,8 @@ async function getDashboard(req, res) {
     const [healthySchools] = await pool.query(`SELECT COUNT(*) as count FROM schools s ${healthyFilter}`, params);
 
     const [recentErrors] = await pool.query(`
-      SELECT e.id, e.error_code, e.title, e.priority, e.status, e.hours_open, e.created_at,
+      SELECT e.id, e.error_code, e.title, e.priority, e.status, e.hours_open, e.created_at, e.sla_due_at,
+      CASE WHEN e.status != 'resolved' AND e.sla_due_at IS NOT NULL AND e.sla_due_at < NOW() THEN 1 ELSE 0 END AS sla_breached,
       s.name as school_name
       FROM errors e JOIN schools s ON e.school_id = s.id
       WHERE e.status != 'resolved' ${errorFilter}

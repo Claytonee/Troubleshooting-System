@@ -36,7 +36,8 @@ const STAT = {
   resolved: { label: 'Resolved', badge: 'badge-green' }
 };
 
-const SLA = { critical: 2, high: 8, medium: 24, low: 72 };
+// SLA response/resolution targets in HOURS — must match backend config/schemaExtensions.js
+const SLA = { critical: 4, high: 24, medium: 72, low: 168 };
 
 const CAT_META = {
   Connectivity: { ic: 'ti-wifi-off', color: 'var(--amber)' },
@@ -58,7 +59,10 @@ const SUBCATS = {
 
 function slaState(error) {
   if (error.status === 'resolved') return 'met';
-  return parseFloat(error.hours_open) > SLA[error.priority] ? 'breach' : 'ok';
+  // Prefer the authoritative breach flag computed by the backend (sla_due_at vs now).
+  if (error.sla_breached != null) return Number(error.sla_breached) ? 'breach' : 'ok';
+  // Fallback heuristic for payloads that don't include sla_breached.
+  return parseFloat(error.hours_open) > (SLA[error.priority] || 24) ? 'breach' : 'ok';
 }
 
 function showToast(msg) {
@@ -67,4 +71,15 @@ function showToast(msg) {
   t.classList.add('show');
   clearTimeout(t._t);
   t._t = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

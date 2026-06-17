@@ -13,6 +13,9 @@ const dashboardRoutes = require('./routes/dashboard');
 const schoolRoutes = require('./routes/schools');
 const errorRoutes = require('./routes/errors');
 const teamRoutes = require('./routes/team');
+const schoolAdminRoutes = require('./routes/schoolAdmins');
+const auditRoutes = require('./routes/audit');
+const searchRoutes = require('./routes/search');
 const checkinRoutes = require('./routes/checkins');
 const guideRoutes = require('./routes/guides');
 const manualRoutes = require('./routes/manuals');
@@ -67,6 +70,9 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/schools', schoolRoutes);
 app.use('/api/errors', errorRoutes);
 app.use('/api/team', teamRoutes);
+app.use('/api/school-admins', schoolAdminRoutes);
+app.use('/api/audit', auditRoutes);
+app.use('/api/search', searchRoutes);
 app.use('/api/checkins', checkinRoutes);
 app.use('/api/guides', guideRoutes);
 app.use('/api/manuals', manualRoutes);
@@ -90,6 +96,7 @@ async function autoMigrate() {
   const mysql = require('mysql2/promise');
   const bcrypt = require('bcryptjs');
   const fs = require('fs');
+  const { applyExtensions } = require('./config/schemaExtensions');
   try {
     const sslOpts = process.env.NODE_ENV === 'production'
       ? { ca: fs.readFileSync(path.join(__dirname, 'config', 'ca.pem'), 'utf8'), rejectUnauthorized: false }
@@ -243,6 +250,7 @@ async function autoMigrate() {
       console.log('  Check-ins seeded');
     }
 
+    await applyExtensions(conn);
     await conn.end();
     console.log('  Database: migrated OK');
   } catch (e) {
