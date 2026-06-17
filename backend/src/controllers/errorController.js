@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const pool = require('../config/database');
 const { logAudit } = require('../services/audit');
 const { notifyErrorEvent } = require('../services/notify');
+const { notifyErrorSms } = require('../services/sms');
 const { targetHours } = require('../services/sla');
 
 // Ensure a resolved error has a CSAT feedback token (for the rating link). Returns the token.
@@ -24,6 +25,16 @@ async function getRecipients(errorId) {
     SELECT u.email FROM errors e JOIN users u ON u.school_id = e.school_id AND u.role = 'school' WHERE e.id = ? AND u.email IS NOT NULL
   `, [errorId, errorId]);
   return rows.map(r => r.email).filter(Boolean);
+}
+
+// Phone numbers for SMS: assigned engineer + school contact.
+async function getPhoneRecipients(errorId) {
+  const [rows] = await pool.query(`
+    SELECT u.phone AS p FROM errors e JOIN users u ON e.assigned_to = u.id WHERE e.id = ? AND u.phone IS NOT NULL
+    UNION
+    SELECT s.contact_phone AS p FROM errors e JOIN schools s ON e.school_id = s.id WHERE e.id = ? AND s.contact_phone IS NOT NULL
+  `, [errorId, errorId]);
+  return rows.map(r => r.p).filter(Boolean);
 }
 
 // Full error row (with school name) for notification payloads.
@@ -167,6 +178,11 @@ async function create(req, res, next) {
     const row = await getErrorRow(result.insertId);
     const recipients = await getRecipients(result.insertId);
     notifyErrorEvent('created', row, { recipients, actorName: req.user.full_name });
+    // Critical issues also fire an SMS (most reliable channel in the field).
+    if (prio === 'critical') {
+      const phones = await getPhoneRecipients(result.insertId);
+      notifyErrorSms('created', row, { phones });
+    }
 
     res.status(201).json({ id: result.insertId, error_code: errorCode, message: 'Error reported successfully.' });
   } catch (err) { next(err); }
@@ -238,6 +254,11 @@ async function updateStatus(req, res, next) {
     const recipients = await getRecipients(req.params.id);
     const event = status === 'resolved' ? 'resolved' : status === 'escalated' ? 'escalated' : 'status_changed';
     notifyErrorEvent(event, row, { recipients, actorName: req.user.full_name, previousStatus: prev.status });
+    // Escalations also fire an SMS.
+    if (status === 'escalated') {
+      const phones = await getPhoneRecipients(req.params.id);
+      notifyErrorSms('escalated', row, { phones });
+    }
 
     res.json({ message: `Error status changed to ${status}.` });
   } catch (err) { next(err); }
