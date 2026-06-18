@@ -1,11 +1,19 @@
 # Project: QFT Technical Support System
 
+## Git Workflow (IMPORTANT — auto commit & push)
+- **After completing and verifying EACH feature/fix, automatically commit and push — do not wait to be asked.**
+- Steps every time: stage the relevant files → `git commit` with a clear, descriptive message (end with the `Co-Authored-By: Claude` trailer) → `git push`.
+- Push to the branch currently checked out. Pushing to `main` **auto-deploys to the live Render site**, so only commit code that has been verified/tested.
+- Always verify the feature works (syntax check + run/test) **before** committing. Never commit known-broken code.
+- One commit per feature/fix with a focused message; group only tightly-related changes.
+
 ## Stack
-- **Backend:** Node.js + Express, MySQL 8.4 (Aiven cloud), JWT auth
-- **Frontend:** Vanilla JS SPA, hash-based routing, no framework
+- **Backend:** Node.js + Express, **PostgreSQL** (migrated from MySQL June 2026), JWT auth
+- **Frontend:** Vanilla JS SPA, hash-based routing, no framework (served by the Express backend)
 - **File Storage:** Cloudinary (cloud CDN — Render has no persistent disk)
-- **Hosting:** Render (auto-deploy from GitLab main), Aiven MySQL (free tier)
-- **Dual remotes:** `origin` = GitHub, `gitlab` = GitLab. Push to both: `git push origin main && git push gitlab main`
+- **Hosting:** Render web service (auto-deploy from `main`) + **Render Managed PostgreSQL**
+- **DB access:** `backend/src/config/database.js` is a `pg` pool with a mysql2-compatible wrapper (`?`→`$n`, auto `RETURNING id`). Schema + seed in `backend/src/config/bootstrap.js`, run automatically on startup. Connection via `DATABASE_URL` (prod) or `DB_*` vars; `DB_SSL` toggles SSL.
+- **Remote:** `origin` = GitLab (`claytonecurth/Troubleshooting-System`). Push: `git push origin <branch>`
 
 ## UI Architecture Rules
 
