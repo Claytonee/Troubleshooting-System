@@ -31,7 +31,7 @@ services:
       - key: UPLOAD_DIR
         value: ./uploads
       - key: MAX_FILE_SIZE
-        value: "5242880"
+        value: "104857600"
       # Cloudinary (resource uploads) — fill in the Render dashboard
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
