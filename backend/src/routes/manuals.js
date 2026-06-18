@@ -31,6 +31,7 @@ router.get('/', manualController.getAll);
 router.get('/:id/download', manualController.download);
 
 router.post('/', authorize('admin'), upload.single('file'), manualController.upload);
+router.post('/link', authorize('admin'), manualController.addLink);
 router.delete('/:id', authorize('admin'), manualController.remove);
 
 module.exports = router;

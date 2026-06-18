@@ -1,6 +1,7 @@
 const ManualsPage = (() => {
   let manuals = [];
   let filterCategory = 'all';
+  let uploadMode = 'file'; // 'file' | 'url'
 
   const CATEGORIES = ['General', 'User Guide', 'Training', 'Technical', 'Policy', 'Other'];
 
@@ -17,6 +18,7 @@ const ManualsPage = (() => {
   };
 
   function getFileIcon(mimetype) {
+    if (mimetype === 'url' || mimetype === 'text/uri-list') return { ic: 'ti-world', color: 'var(--accent)' };
     if (FILE_ICONS[mimetype]) return FILE_ICONS[mimetype];
     if (mimetype.startsWith('image/')) return { ic: 'ti-photo', color: 'var(--purple)' };
     if (mimetype.startsWith('video/')) return { ic: 'ti-video', color: 'var(--red)' };
@@ -33,6 +35,8 @@ const ManualsPage = (() => {
   }
 
   function getFileType(mimetype) {
+    if (mimetype === 'url' || mimetype === 'text/uri-list') return 'Webpage';
+    if (mimetype === 'text/html') return 'HTML';
     if (mimetype.startsWith('image/')) return 'Image';
     if (mimetype.startsWith('video/')) return 'Video';
     if (mimetype.startsWith('audio/')) return 'Audio';
@@ -46,6 +50,7 @@ const ManualsPage = (() => {
   // Maps a mimetype to how we render its in-app preview.
   function previewKind(mimetype) {
     const ft = mimetype || '';
+    if (ft === 'url' || ft === 'text/uri-list') return 'url';
     if (ft.startsWith('image/')) return 'image';
     if (ft.startsWith('video/')) return 'video';
     if (ft.startsWith('audio/')) return 'audio';
@@ -127,16 +132,24 @@ const ManualsPage = (() => {
   }
 
   function openUpload() {
+    uploadMode = 'file';
     const catOptions = CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+    const tabBtn = (mode, label, icon) => `<button type="button" id="mu-tab-${mode}" onclick="ManualsPage.setUploadMode('${mode}')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border2);background:${mode === 'file' ? 'var(--accent)' : 'var(--bg3)'};color:${mode === 'file' ? '#fff' : 'var(--text2)'};font-weight:600;font-size:12.5px;cursor:pointer;font-family:var(--font);display:inline-flex;align-items:center;justify-content:center;gap:6px"><i class="ti ${icon}"></i> ${label}</button>`;
     const body = `
       <div style="display:flex;flex-direction:column;gap:16px">
-        <div class="form-group">
+        <div style="display:flex;gap:10px">${tabBtn('file', 'Upload File', 'ti-upload')}${tabBtn('url', 'Webpage / URL', 'ti-world')}</div>
+        <div class="form-group" id="mu-file-section">
           <label>File <span style="color:var(--red)">*</span></label>
-          <input type="file" id="mu-file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.html,.png,.jpg,.jpeg,.gif,.webp,.svg,.mp4,.webm,.mov,.avi,.mkv,.mp3,.wav,.ogg,.m4a,.aac" style="padding:8px">
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">Accepted: PDF, DOC, PPT, XLS, images, video, audio (max 100MB)</div>
+          <input type="file" id="mu-file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.html,.htm,.png,.jpg,.jpeg,.gif,.webp,.svg,.mp4,.webm,.mov,.avi,.mkv,.mp3,.wav,.ogg,.m4a,.aac" style="padding:8px">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">Accepted: PDF, DOC, PPT, XLS, images, video, audio, HTML (max 100MB)</div>
+        </div>
+        <div class="form-group" id="mu-url-section" style="display:none">
+          <label>Webpage URL <span style="color:var(--red)">*</span></label>
+          <input type="url" id="mu-url" placeholder="https://example.com/page">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">Link to an external webpage or online resource.</div>
         </div>
         <div class="form-group">
-          <label>Title (optional — defaults to filename)</label>
+          <label>Title (optional — defaults to filename / URL)</label>
           <input type="text" id="mu-title" placeholder="e.g. Tablet User Manual v2">
         </div>
         <div class="form-group">
@@ -144,23 +157,55 @@ const ManualsPage = (() => {
           <select id="mu-category">${catOptions}</select>
         </div>
         <div id="mu-progress" style="display:none">
-          <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Uploading...</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Saving...</div>
           <div class="progress"><div class="progress-fill" id="mu-bar" style="width:0%;background:var(--accent)"></div></div>
         </div>
       </div>`;
     const footer = `
       <button class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
-      <button class="btn btn-primary" id="mu-submit" onclick="ManualsPage.submitUpload()"><i class="ti ti-upload"></i> Upload</button>`;
-    Modal.open('Upload Resource', body, footer);
+      <button class="btn btn-primary" id="mu-submit" onclick="ManualsPage.submitUpload()"><i class="ti ti-upload"></i> Add Resource</button>`;
+    Modal.open('Add Resource', body, footer);
+  }
+
+  function setUploadMode(mode) {
+    uploadMode = mode;
+    const fileSec = document.getElementById('mu-file-section');
+    const urlSec = document.getElementById('mu-url-section');
+    if (fileSec) fileSec.style.display = mode === 'file' ? 'block' : 'none';
+    if (urlSec) urlSec.style.display = mode === 'url' ? 'block' : 'none';
+    ['file', 'url'].forEach(m => {
+      const b = document.getElementById('mu-tab-' + m);
+      if (b) { const active = m === mode; b.style.background = active ? 'var(--accent)' : 'var(--bg3)'; b.style.color = active ? '#fff' : 'var(--text2)'; }
+    });
+    const submit = document.getElementById('mu-submit');
+    if (submit) submit.innerHTML = mode === 'url' ? '<i class="ti ti-link"></i> Add Link' : '<i class="ti ti-upload"></i> Add Resource';
   }
 
   async function submitUpload() {
-    const fileInput = document.getElementById('mu-file');
     const title = document.getElementById('mu-title').value.trim();
     const category = document.getElementById('mu-category').value;
     const btn = document.getElementById('mu-submit');
-    const progress = document.getElementById('mu-progress');
 
+    // Webpage / URL mode — no file upload.
+    if (uploadMode === 'url') {
+      const url = document.getElementById('mu-url').value.trim();
+      if (!url) { showToast('Please enter a URL'); return; }
+      btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Saving...';
+      try {
+        await API.addManualLink({ title, url, category });
+        Modal.close();
+        showToast('Webpage added successfully');
+        await load(); App.render();
+      } catch (e) {
+        showToast(e.error || 'Could not add link');
+        btn.disabled = false; btn.innerHTML = '<i class="ti ti-link"></i> Add Link';
+      }
+      return;
+    }
+
+    // File upload mode.
+    const fileInput = document.getElementById('mu-file');
+    const progress = document.getElementById('mu-progress');
     if (!fileInput.files.length) { showToast('Please select a file'); return; }
 
     const file = fileInput.files[0];
@@ -168,7 +213,7 @@ const ManualsPage = (() => {
 
     btn.disabled = true;
     btn.innerHTML = '<i class="ti ti-loader"></i> Uploading...';
-    progress.style.display = 'block';
+    if (progress) progress.style.display = 'block';
 
     const formData = new FormData();
     formData.append('file', file);
@@ -184,8 +229,8 @@ const ManualsPage = (() => {
     } catch (e) {
       showToast(e.error || 'Upload failed');
       btn.disabled = false;
-      btn.innerHTML = '<i class="ti ti-upload"></i> Upload';
-      progress.style.display = 'none';
+      btn.innerHTML = '<i class="ti ti-upload"></i> Add Resource';
+      if (progress) progress.style.display = 'none';
     }
   }
 
@@ -220,6 +265,9 @@ const ManualsPage = (() => {
       content = `<iframe src="${esc(viewerUrl)}" style="width:100%;height:74vh;border:none;border-radius:8px;background:#fff" title="${esc(manual.title)}"></iframe>`;
     } else if (kind === 'text') {
       content = `<iframe src="${esc(url)}" sandbox="" style="width:100%;height:74vh;border:1px solid var(--border);border-radius:8px;background:#fff" title="${esc(manual.title)}"></iframe>`;
+    } else if (kind === 'url') {
+      content = `<div style="font-size:11px;color:var(--text3);margin-bottom:8px"><i class="ti ti-info-circle"></i> Some websites block embedding — if it stays blank, use "Open in new tab".</div>
+        <iframe src="${esc(url)}" style="width:100%;height:72vh;border:1px solid var(--border);border-radius:8px;background:#fff" title="${esc(manual.title)}"></iframe>`;
     } else {
       const icon = getFileIcon(manual.file_type);
       content = `<div style="padding:48px 24px;text-align:center;background:var(--bg);border-radius:8px">
@@ -251,5 +299,5 @@ const ManualsPage = (() => {
     } catch (e) { showToast('Delete failed'); }
   }
 
-  return { load, render, setFilter, openUpload, submitUpload, download, preview, remove };
+  return { load, render, setFilter, openUpload, setUploadMode, submitUpload, download, preview, remove };
 })();

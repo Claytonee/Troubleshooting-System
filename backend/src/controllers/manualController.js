@@ -57,6 +57,33 @@ async function upload(req, res, next) {
   } catch (err) { next(err); }
 }
 
+// Add a webpage/URL as a resource (no file upload).
+async function addLink(req, res, next) {
+  try {
+    const { title, url, category } = req.body;
+    if (!url) return res.status(400).json({ error: 'URL is required.' });
+
+    let normalized = url.trim();
+    if (!/^https?:\/\//i.test(normalized)) normalized = 'https://' + normalized;
+    try { new URL(normalized); } catch (e) { return res.status(400).json({ error: 'Invalid URL.' }); }
+
+    const [dbResult] = await pool.query(
+      'INSERT INTO manuals (title, original_filename, stored_filename, file_type, file_size, category, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [
+        title || normalized,
+        normalized,
+        normalized,
+        'url',
+        0,
+        category || 'General',
+        req.user.full_name
+      ]
+    );
+
+    res.status(201).json({ id: dbResult.insertId, url: normalized, message: 'Webpage link added successfully.' });
+  } catch (err) { next(err); }
+}
+
 async function download(req, res, next) {
   try {
     const [rows] = await pool.query('SELECT * FROM manuals WHERE id = ?', [req.params.id]);
@@ -73,7 +100,7 @@ async function remove(req, res, next) {
     if (!rows.length) return res.status(404).json({ error: 'Manual not found.' });
 
     const url = rows[0].stored_filename;
-    const publicId = extractPublicId(url);
+    const publicId = rows[0].file_type === 'url' ? null : extractPublicId(url);
     if (publicId) {
       const resourceType = getResourceType(rows[0].file_type);
       try { await cloudinary.uploader.destroy(publicId, { resource_type: resourceType }); } catch (e) {}
@@ -90,4 +117,4 @@ function extractPublicId(url) {
   return match ? match[1] : null;
 }
 
-module.exports = { getAll, upload, download, remove };
+module.exports = { getAll, upload, download, addLink, remove };

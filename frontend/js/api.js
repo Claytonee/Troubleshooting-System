@@ -80,6 +80,7 @@ const API = (() => {
     deleteGuide: (id) => request('DELETE', `/guides/${id}`),
     getManuals: () => request('GET', '/manuals'),
     uploadManual: (formData) => upload('/manuals', formData),
+    addManualLink: (data) => request('POST', '/manuals/link', data),
     getManualDownload: (id) => request('GET', `/manuals/${id}/download`),
     deleteManual: (id) => request('DELETE', `/manuals/${id}`),
     getCommunications: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/communications' + (qs ? '?' + qs : '')); },
