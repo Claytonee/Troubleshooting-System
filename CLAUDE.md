@@ -7,6 +7,21 @@
 - Always verify the feature works (syntax check + run/test) **before** committing. Never commit known-broken code.
 - One commit per feature/fix with a focused message; group only tightly-related changes.
 
+## Database Safety (additive · expand-and-contract — NEVER lose data)
+All schema changes MUST be **additive and backward-compatible** so a new deploy can never destroy existing data (the discipline Google/AWS use for zero-downtime migrations).
+
+**The 3 phases — follow in order, across SEPARATE deploys:**
+1. **EXPAND (safe, default):** only ADD new tables/columns. Never drop, rename, or narrow a type in the same change. New columns must be **nullable or have a DEFAULT** (never add `NOT NULL` without a default to a populated table). Add columns via `ADD COLUMN IF NOT EXISTS` in `backend/src/config/schemaExtensions.js`, and to the base table in `bootstrap.js`.
+2. **MIGRATE / BACKFILL:** backfill the new columns for existing rows; ship code that reads old **and** writes new (dual-write) so old and new code coexist safely during rollout.
+3. **CONTRACT (rare, dangerous):** only drop/rename old columns in a LATER, separate change — after all data is migrated, no code references the old schema, **a DB backup/snapshot exists, and the user has explicitly confirmed.**
+
+**Hard rules:**
+- Migrations are **idempotent** — safe to re-run on every startup (`bootstrap()` + `applyExtensions()`); guard with `IF NOT EXISTS` / `ON CONFLICT`.
+- **Renames are never in-place.** Rename = add new column → backfill → dual-write → (later) drop old.
+- **No destructive `DROP`/`TRUNCATE`/data-losing `ALTER`** without an explicit, separate, user-confirmed, backed-up "contract" step.
+- The production database must stay on a **paid plan with backups**; verify a backup before any contract step.
+- `bootstrap.js` only seeds when tables are **empty** — it must never overwrite or reset existing data.
+
 ## Stack
 - **Backend:** Node.js + Express, **PostgreSQL** (migrated from MySQL June 2026), JWT auth
 - **Frontend:** Vanilla JS SPA, hash-based routing, no framework (served by the Express backend)
