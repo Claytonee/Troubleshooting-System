@@ -13,8 +13,10 @@ router.get('/:id', schoolController.getById);
 
 router.post('/', [
   authorize('admin'),
-  body('code').notEmpty().withMessage('School code is required'),
   body('name').notEmpty().withMessage('School name is required'),
+  body('it_email').optional({ checkFalsy: true }).isEmail().withMessage('IT personnel email must be valid'),
+  body('coordinator_email').optional({ checkFalsy: true }).isEmail().withMessage('Coordinator email must be valid'),
+  body('contact_email').optional({ checkFalsy: true }).isEmail().withMessage('Contact email must be valid'),
   validate
 ], schoolController.create);
 

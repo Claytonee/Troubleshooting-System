@@ -42,6 +42,13 @@ async function applyExtensions(db) {
   await db.query('ALTER TABLE errors ADD COLUMN IF NOT EXISTS csat_rating SMALLINT');
   await db.query('ALTER TABLE errors ADD COLUMN IF NOT EXISTS csat_comment TEXT');
   await db.query('ALTER TABLE errors ADD COLUMN IF NOT EXISTS csat_token VARCHAR(64)');
+
+  // --- Extended school profile (contact email, IT personnel, coordinator) ---
+  await db.query('ALTER TABLE schools ADD COLUMN IF NOT EXISTS contact_email VARCHAR(255)');
+  await db.query('ALTER TABLE schools ADD COLUMN IF NOT EXISTS it_name VARCHAR(200)');
+  await db.query('ALTER TABLE schools ADD COLUMN IF NOT EXISTS it_email VARCHAR(255)');
+  await db.query('ALTER TABLE schools ADD COLUMN IF NOT EXISTS coordinator_name VARCHAR(200)');
+  await db.query('ALTER TABLE schools ADD COLUMN IF NOT EXISTS coordinator_email VARCHAR(255)');
 }
 
 module.exports = { applyExtensions, SLA_TARGET_HOURS };

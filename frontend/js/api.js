@@ -52,6 +52,7 @@ const API = (() => {
     getSchool: (id) => request('GET', `/schools/${id}`),
     createSchool: (data) => request('POST', '/schools', data),
     updateSchool: (id, data) => request('PUT', `/schools/${id}`, data),
+    deleteSchool: (id) => request('DELETE', `/schools/${id}`),
     reassignSchoolAdmin: (id, adminId) => request('PATCH', `/schools/${id}/assign`, { admin_id: adminId }),
     getErrors: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/errors' + (qs ? '?' + qs : '')); },
     getError: (id) => request('GET', `/errors/${id}`),

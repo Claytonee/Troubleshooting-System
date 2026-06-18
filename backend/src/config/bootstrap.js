@@ -20,7 +20,8 @@ async function bootstrap() {
   await pool.query(`CREATE TABLE IF NOT EXISTS schools (
     id SERIAL PRIMARY KEY, code VARCHAR(50) NOT NULL UNIQUE, name VARCHAR(200) NOT NULL,
     zone VARCHAR(100), students INTEGER DEFAULT 0, tablets INTEGER DEFAULT 0, routers INTEGER DEFAULT 0,
-    contact_name VARCHAR(200), contact_role VARCHAR(100), contact_phone VARCHAR(50),
+    contact_name VARCHAR(200), contact_role VARCHAR(100), contact_phone VARCHAR(50), contact_email VARCHAR(255),
+    it_name VARCHAR(200), it_email VARCHAR(255), coordinator_name VARCHAR(200), coordinator_email VARCHAR(255),
     lrs_ip VARCHAR(50) DEFAULT '192.168.0.10', isp VARCHAR(100), assigned_admin_id INTEGER,
     created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
   )`);
