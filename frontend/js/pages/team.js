@@ -4,11 +4,14 @@
 const TeamPage = (() => {
   let team = [];
 
+  function isAdmin() { const u = API.getUser(); return u && u.role === 'admin'; }
+
   async function load() {
     try { team = await API.getTeam(); } catch (e) { team = []; }
   }
 
   function render() {
+    const admin = isAdmin();
     return `
     <div class="section-header">
       <div><div class="section-title">Sub-Admins</div><div class="section-sub">Field engineers & their assigned schools</div></div>
@@ -31,10 +34,28 @@ const TeamPage = (() => {
             <div><i class="ti ti-phone" style="margin-right:6px;color:var(--accent)"></i>${esc(t.phone || '—')}</div>
             <div><i class="ti ti-map-pin" style="margin-right:6px;color:var(--text3)"></i>${esc(t.zone || '—')}</div>
           </div>
+          ${admin ? `<div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;display:flex;justify-content:flex-end">
+            <button class="btn btn-secondary btn-sm" style="color:var(--red);border-color:rgba(255,82,99,0.3)" onclick="TeamPage.remove(${t.id})"><i class="ti ti-trash"></i> Delete</button>
+          </div>` : ''}
         </div>`;
       }).join('')}
     </div>`;
   }
 
-  return { load, render };
+  async function remove(id) {
+    const t = team.find(x => x.id === id);
+    if (!t) return;
+    const warn = t.school_count > 0
+      ? `\n\nTheir ${t.school_count} assigned school(s) will become Unassigned.`
+      : '';
+    if (!confirm(`Delete sub-admin "${t.full_name}"?${warn}\n\nThis cannot be undone.`)) return;
+    try {
+      await API.removeTeamMember(id);
+      showToast('Sub-admin deleted');
+      await load();
+      App.render();
+    } catch (e) { showToast(e.error || 'Could not delete sub-admin'); }
+  }
+
+  return { load, render, remove };
 })();
