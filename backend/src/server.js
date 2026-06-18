@@ -61,8 +61,14 @@ if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('short'));
 }
 
-// Serve frontend (new modular structure)
-app.use(express.static(path.join(__dirname, '..', '..', 'frontend')));
+// Serve frontend (new modular structure).
+// no-cache on JS/CSS/HTML so browsers always revalidate and pick up new deploys
+// (the SPA has no build step / content hashing, so aggressive caching = stale UI).
+app.use(express.static(path.join(__dirname, '..', '..', 'frontend'), {
+  setHeaders: (res, filePath) => {
+    if (/\.(js|css|html)$/i.test(filePath)) res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  }
+}));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -86,6 +92,7 @@ app.get('/api/health', (req, res) => {
 
 // Serve frontend for non-API routes
 app.get('*', (req, res) => {
+  res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(path.join(__dirname, '..', '..', 'frontend', 'index.html'));
 });
 
