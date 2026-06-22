@@ -3,7 +3,7 @@ const pool = require('../config/database');
 
 const BEDROCK_TOKEN = process.env.AWS_BEARER_TOKEN_BEDROCK || '';
 const BEDROCK_HOST = process.env.AWS_BEDROCK_HOST || 'bedrock-runtime.us-east-1.amazonaws.com';
-const CHAT_MODEL = process.env.AI_MODEL || 'us.anthropic.claude-sonnet-4-20250514-v1:0';
+const CHAT_MODEL = process.env.AI_MODEL || 'us.anthropic.claude-opus-4-6-v1';
 
 const SYSTEM_PROMPT = `You are a technical support assistant for Quest Forward Tanzania (QFT), a school technology program. You help school administrators and teachers troubleshoot technical issues with tablets, WiFi/internet connectivity, the learning platform, power/UPS systems, and user accounts.
 
