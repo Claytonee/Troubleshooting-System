@@ -1,6 +1,6 @@
 /**
  * Help / User Guide — School Admin Documentation
- * Professional interactive documentation with visual feature cards
+ * Simple, clear explanations of each feature
  */
 const HelpPage = (() => {
   let activeSection = 'overview';
@@ -18,7 +18,6 @@ const HelpPage = (() => {
     { id: 'troubleshoot', icon: 'ti-tools', title: 'Troubleshooting', color: '#f5a623' },
     { id: 'manuals', icon: 'ti-books', title: 'Resource Library', color: '#9b7dff' },
     { id: 'account', icon: 'ti-user-circle', title: 'My Account', color: '#36d9cc' },
-    { id: 'faq', icon: 'ti-help-circle', title: 'FAQ', color: '#FFAE00' },
   ];
 
   function setSection(id) { activeSection = id; App.render(); }
@@ -35,10 +34,7 @@ const HelpPage = (() => {
     <div class="section-header">
       <div>
         <div class="section-title">User Guide</div>
-        <div class="section-sub">School Admin &mdash; System Documentation</div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-secondary btn-sm" onclick="HelpPage.setSection('faq')"><i class="ti ti-help-circle"></i> FAQ</button>
+        <div class="section-sub">Mwongozo wa Matumizi &mdash; School Admin</div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start">
@@ -56,399 +52,270 @@ const HelpPage = (() => {
     return c ? c() : '<div class="empty"><i class="ti ti-file-search"></i>Section not found</div>';
   }
 
-  function featureCard(icon, color, title, desc) {
-    return `<div class="card reveal" style="padding:16px;display:flex;align-items:flex-start;gap:14px">
-      <div style="width:38px;height:38px;background:${color}25;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-        <i class="ti ${icon}" style="color:${color};font-size:18px"></i>
-      </div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px">${title}</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.5">${desc}</div>
-      </div>
+  function title(icon, color, name, meaning) {
+    return `<div class="card reveal" style="padding:18px;margin-bottom:14px;border-left:3px solid ${color}">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="width:36px;height:36px;background:${color}25;border-radius:10px;display:flex;align-items:center;justify-content:center">
+          <i class="ti ${icon}" style="color:${color};font-size:18px"></i>
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:600;color:var(--text)">${name}</div>
+          <div style="font-size:12px;color:var(--text3)">${meaning}</div>
+        </div>
+      </div>`;
+  }
+
+  function section(heading, body) {
+    return `<div class="card reveal" style="padding:16px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">${heading}</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">${body}</div>
     </div>`;
   }
 
-  function stepCard(num, title, desc) {
-    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 0;${num > 1 ? 'border-top:1px solid var(--border)' : ''}">
-      <div style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${num}</div>
-      <div><div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px">${title}</div><div style="font-size:12px;color:var(--text3);line-height:1.5">${desc}</div></div>
-    </div>`;
+  function tip(text) {
+    return `<div style="background:rgba(79,124,255,0.06);border:1px solid rgba(79,124,255,0.15);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11px;line-height:1.6;display:flex;align-items:flex-start;gap:8px;color:var(--text2)">
+      <i class="ti ti-bulb" style="color:var(--accent);font-size:14px;flex-shrink:0;margin-top:1px"></i><div>${text}</div></div>`;
   }
-
-  function infoBox(text, type) {
-    const cfg = type === 'warn'
-      ? { bg: 'rgba(255,82,99,0.06)', border: 'rgba(255,82,99,0.2)', icon: 'ti-alert-triangle', color: 'var(--red)' }
-      : { bg: 'rgba(79,124,255,0.06)', border: 'rgba(79,124,255,0.2)', icon: 'ti-info-circle', color: 'var(--accent)' };
-    return `<div style="background:${cfg.bg};border:1px solid ${cfg.border};border-radius:8px;padding:12px 14px;margin:12px 0;font-size:12px;line-height:1.6;display:flex;align-items:flex-start;gap:10px;color:var(--text2)">
-      <i class="ti ${cfg.icon}" style="color:${cfg.color};font-size:16px;flex-shrink:0;margin-top:1px"></i><div>${text}</div></div>`;
-  }
-
-  function sectionTitle(text, sub) {
-    return `<div style="margin-bottom:16px"><div style="font-size:16px;font-weight:600;color:var(--text)">${text}</div>${sub ? `<div style="font-size:12px;color:var(--text3);margin-top:3px">${sub}</div>` : ''}</div>`;
-  }
-
-  function subTitle(text) { return `<div style="font-size:13px;font-weight:600;color:var(--text);margin:16px 0 8px">${text}</div>`; }
 
   const content = {
     overview: () => `
-      ${sectionTitle('Welcome to QFT Technical Support', 'Your complete guide to using the system effectively')}
-      <div class="card reveal" style="padding:20px;margin-bottom:16px;border-left:3px solid var(--accent)">
-        <div style="font-size:13px;color:var(--text2);line-height:1.7">
-          This system helps you <strong style="color:var(--text)">report</strong>, <strong style="color:var(--text)">track</strong>, and <strong style="color:var(--text)">resolve</strong> technical issues at your school.
-          Below are all the features available to you as a School Admin.
+      ${title('ti-home', '#4f7cff', 'Getting Started', 'Karibu kwenye mfumo wa QFT Technical Support')}
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">
+          Mfumo huu unakusaidia ku-report matatizo ya kiufundi shuleni kwako, kufuatilia hali yake, na kupata ufumbuzi wa haraka.
+          Kama School Admin, unaweza kufanya yafuatayo:
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:20px">
-        ${featureCard('ti-layout-dashboard', '#4f7cff', 'Dashboard', 'Real-time overview of your school\'s technical health and open issues')}
-        ${featureCard('ti-bug', '#ff5263', 'Report Error', 'Submit new technical issues for the support team to resolve')}
-        ${featureCard('ti-list-check', '#f5a623', 'Error Tracker', 'Monitor all reported issues, their status, and resolution progress')}
-        ${featureCard('ti-headset', '#9b7dff', 'Follow-Up Center', 'Track SLA compliance, escalations, and team communication')}
-        ${featureCard('ti-calendar-week', '#36d9cc', 'Weekly Check-Ins', 'Submit weekly device and connectivity status reports')}
-        ${featureCard('ti-school', '#2dd98a', 'School Profiles', 'View your school details, equipment inventory, and history')}
-        ${featureCard('ti-tools', '#f5a623', 'Troubleshooting', 'Step-by-step guides to fix common issues without waiting for support')}
-        ${featureCard('ti-books', '#9b7dff', 'Resource Library', 'Download manuals, training materials, and reference documents')}
+      <div class="card reveal" style="padding:16px;margin-bottom:12px">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Features Zako</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+          <div style="background:var(--bg3);border-radius:6px;padding:10px 12px"><strong>Dashboard</strong> — Hali ya shule kwa muhtasari</div>
+          <div style="background:var(--bg3);border-radius:6px;padding:10px 12px"><strong>Report Error</strong> — Tuma tatizo jipya</div>
+          <div style="background:var(--bg3);border-radius:6px;padding:10px 12px"><strong>Error Tracker</strong> — Fuatilia matatizo yote</div>
+          <div style="background:var(--bg3);border-radius:6px;padding:10px 12px"><strong>Follow-Up Center</strong> — Mawasiliano na timu</div>
+          <div style="background:var(--bg3);border-radius:6px;padding:10px 12px"><strong>Weekly Check-Ins</strong> — Ripoti ya kila wiki</div>
+          <div style="background:var(--bg3);border-radius:6px;padding:10px 12px"><strong>School Profiles</strong> — Taarifa za shule</div>
+          <div style="background:var(--bg3);border-radius:6px;padding:10px 12px"><strong>Troubleshooting</strong> — Tatua mwenyewe</div>
+          <div style="background:var(--bg3);border-radius:6px;padding:10px 12px"><strong>Resource Library</strong> — Nyaraka na miongozo</div>
+        </div>
       </div>
 
-      <div class="card reveal" style="padding:18px">
-        ${subTitle('Quick Start Guide')}
-        ${stepCard(1, 'Check your Dashboard', 'After logging in, review open issues and school health status')}
-        ${stepCard(2, 'Try Troubleshooting first', 'For common issues (no internet, tablet not charging), follow the step-by-step guides')}
-        ${stepCard(3, 'Report if unresolved', 'If troubleshooting didn\'t help, submit a detailed error report')}
-        ${stepCard(4, 'Track progress', 'Monitor your report in the Error Tracker until it\'s resolved')}
-        ${stepCard(5, 'Complete Weekly Check-Ins', 'Every week, submit your school\'s device and connectivity status')}
-      </div>
-
-      ${infoBox('The sidebar on the left is your main navigation. On mobile, tap the <strong>&#9776;</strong> menu icon to open it.')}
+      ${tip('Ukipata tatizo la kiufundi, jaribu kwanza <strong>Troubleshooting</strong> kabla ya ku-report. Matatizo mengi yanaweza kutatuliwa papo hapo!')}
     `,
 
     dashboard: () => `
-      ${sectionTitle('Dashboard', 'Your school\'s technical health at a glance')}
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        <div style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:12px">Stat Cards Explained</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div style="background:var(--bg3);border-radius:8px;padding:12px;border-left:3px solid var(--red)">
-            <div style="font-size:12px;font-weight:600;color:var(--text)">Open Errors</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">Total unresolved issues. Red number = critical priority</div>
-          </div>
-          <div style="background:var(--bg3);border-radius:8px;padding:12px;border-left:3px solid var(--amber)">
-            <div style="font-size:12px;font-weight:600;color:var(--text)">In Progress</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">Issues currently being worked on by the support team</div>
-          </div>
-          <div style="background:var(--bg3);border-radius:8px;padding:12px;border-left:3px solid var(--green)">
-            <div style="font-size:12px;font-weight:600;color:var(--text)">Resolved (24h)</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">Issues fixed in the last 24 hours</div>
-          </div>
-          <div style="background:var(--bg3);border-radius:8px;padding:12px;border-left:3px solid var(--teal)">
-            <div style="font-size:12px;font-weight:600;color:var(--text)">School Health</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">Whether your school has zero critical/high issues</div>
-          </div>
+      ${title('ti-layout-dashboard', '#4f7cff', 'Dashboard', 'Muhtasari wa hali ya kiufundi shuleni kwako')}
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">
+          Hii ni ukurasa wa kwanza unaouona baada ya kuingia. Inaonyesha hali ya sasa ya shule yako kwa mtazamo mmoja wa haraka.
         </div>
       </div>
 
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('Alert Banner')}
-        <div style="font-size:12px;color:var(--text2);line-height:1.6">If there are <strong style="color:var(--red)">critical errors</strong>, a red banner appears at the top of the dashboard. Click <strong>View</strong> to see them immediately.</div>
-      </div>
+      ${section('Maana ya Nambari', `
+        <strong style="color:var(--red)">Open Errors</strong> — Idadi ya matatizo ambayo bado hayajatatuliwa<br>
+        <strong style="color:var(--amber)">In Progress</strong> — Matatizo yanayofanyiwa kazi sasa hivi na timu ya msaada<br>
+        <strong style="color:var(--green)">Resolved (24h)</strong> — Matatizo yaliyotatuliwa katika masaa 24 yaliyopita<br>
+        <strong style="color:var(--teal)">Schools Healthy</strong> — Kama shule yako haina matatizo makubwa<br>
+        <strong>Week Check-Ins</strong> — Hali ya ripoti ya wiki hii
+      `)}
 
-      <div class="card reveal" style="padding:18px">
-        ${subTitle('Priority Table & Categories')}
-        <div style="font-size:12px;color:var(--text2);line-height:1.6">The table shows active issues sorted by urgency. Click any row to see full details. The category breakdown on the right helps you spot patterns (e.g., rising connectivity issues may mean network equipment needs checking).</div>
-      </div>
+      ${section('Alert Banner (Onyo Jekundu)', `
+        Ikiwa kuna tatizo la <strong style="color:var(--red)">Critical</strong> (dharura), banner nyekundu itaonekana juu ya ukurasa. Bonyeza <strong>View</strong> kuona tatizo hilo moja kwa moja.
+      `)}
 
-      ${infoBox('The dashboard refreshes automatically each time you navigate to it. For the latest data, simply click <strong>Dashboard</strong> in the sidebar.')}
+      ${tip('Dashboard inasasishwa kila unapofungua ukurasa. Bonyeza "Dashboard" kwenye sidebar kupata data mpya.')}
     `,
 
     report: () => `
-      ${sectionTitle('Report Error', 'Submit a new technical issue for resolution')}
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('Required Information')}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <div style="background:var(--bg3);border-radius:6px;padding:10px 12px;font-size:12px"><i class="ti ti-school" style="color:var(--accent);margin-right:6px"></i><strong>School</strong> — Auto-filled for you</div>
-          <div style="background:var(--bg3);border-radius:6px;padding:10px 12px;font-size:12px"><i class="ti ti-category" style="color:var(--accent);margin-right:6px"></i><strong>Category</strong> — Type of issue</div>
-          <div style="background:var(--bg3);border-radius:6px;padding:10px 12px;font-size:12px"><i class="ti ti-flag" style="color:var(--accent);margin-right:6px"></i><strong>Priority</strong> — How urgent</div>
-          <div style="background:var(--bg3);border-radius:6px;padding:10px 12px;font-size:12px"><i class="ti ti-pencil" style="color:var(--accent);margin-right:6px"></i><strong>Title + Description</strong></div>
-        </div>
-      </div>
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('Priority Levels & Response Times (SLA)')}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <div style="background:rgba(255,82,99,0.08);border-radius:8px;padding:12px;border-left:3px solid var(--red)">
-            <div style="font-size:12px;font-weight:600;color:var(--red)">Critical</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">School cannot operate</div>
-            <div style="font-size:13px;font-weight:700;color:var(--text);margin-top:4px">&le; 2 hours</div>
-          </div>
-          <div style="background:rgba(245,166,35,0.08);border-radius:8px;padding:12px;border-left:3px solid var(--amber)">
-            <div style="font-size:12px;font-weight:600;color:var(--amber)">High</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">Major disruption</div>
-            <div style="font-size:13px;font-weight:700;color:var(--text);margin-top:4px">&le; 8 hours</div>
-          </div>
-          <div style="background:rgba(79,124,255,0.08);border-radius:8px;padding:12px;border-left:3px solid var(--accent)">
-            <div style="font-size:12px;font-weight:600;color:var(--accent)">Medium</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">Partial disruption</div>
-            <div style="font-size:13px;font-weight:700;color:var(--text);margin-top:4px">&le; 24 hours</div>
-          </div>
-          <div style="background:rgba(45,217,138,0.08);border-radius:8px;padding:12px;border-left:3px solid var(--green)">
-            <div style="font-size:12px;font-weight:600;color:var(--green)">Low</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">Minor issue</div>
-            <div style="font-size:13px;font-weight:700;color:var(--text);margin-top:4px">&le; 72 hours</div>
-          </div>
-        </div>
-      </div>
-
-      ${infoBox('Only use <strong>Critical</strong> when the entire school or a whole class cannot work. Overusing critical priority may delay response to genuinely urgent issues.', 'warn')}
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('How to Submit a Report')}
-        ${stepCard(1, 'Go to Report Error', 'Click "Report Error" in the sidebar')}
-        ${stepCard(2, 'Fill required fields', 'Category, Priority, Title, and a detailed Description')}
-        ${stepCard(3, 'Add context', 'Include: when it started, error messages, what you tried already')}
-        ${stepCard(4, 'Submit', 'Click "Submit Report" — you\'ll get a tracking code (e.g., QFT-0042)')}
-      </div>
-
-      <div class="card reveal" style="padding:16px;background:var(--bg3);border-left:3px solid var(--accent)">
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px"><i class="ti ti-phone" style="margin-right:6px;color:var(--accent)"></i>Support Hotline</div>
+      ${title('ti-bug', '#ff5263', 'Report Error', 'Tuma tatizo jipya la kiufundi')}
         <div style="font-size:12px;color:var(--text2);line-height:1.8">
-          Phone: <strong>+255 658 066 983</strong><br>
-          Email: support@opportunityeducation.or.tz<br>
-          Hours: Mon&ndash;Fri, 7:30 AM &ndash; 5:00 PM
+          Ukurasa huu ni kwa kutuma ripoti ya tatizo lolote la kiufundi shuleni kwako. Timu ya msaada itapokea ripoti yako na kuanza kufanyia kazi.
         </div>
       </div>
+
+      ${section('Unajaza Nini', `
+        <strong>School</strong> — Shule yako (imejazwa tayari, huwezi kubadilisha)<br>
+        <strong>Category</strong> — Aina ya tatizo: Connectivity (mtandao), Hardware (vifaa), Platform (programu), Power (umeme), Accounts (akaunti)<br>
+        <strong>Priority</strong> — Kiwango cha dharura (angalia hapa chini)<br>
+        <strong>Title</strong> — Muhtasari mfupi wa tatizo<br>
+        <strong>Description</strong> — Maelezo kamili: lilianza lini, nini kinatokea, ujumbe wa kosa kama upo
+      `)}
+
+      ${section('Viwango vya Dharura (Priority)', `
+        <strong style="color:var(--red)">Critical</strong> — Shule haiwezi kufanya kazi kabisa. Msaada ndani ya <strong>masaa 2</strong><br>
+        <strong style="color:var(--amber)">High</strong> — Usumbufu mkubwa kwa wanafunzi wengi. Msaada ndani ya <strong>masaa 8</strong><br>
+        <strong style="color:var(--accent)">Medium</strong> — Usumbufu wa wastani, kazi inaendelea. Msaada ndani ya <strong>masaa 24</strong><br>
+        <strong style="color:var(--green)">Low</strong> — Tatizo dogo, haizuii kazi. Msaada ndani ya <strong>masaa 72</strong>
+      `)}
+
+      ${tip('Baada ya kutuma ripoti, utapata code ya kufuatilia (mfano: QFT-0042). Tumia code hii kuongea na timu ya msaada kuhusu tatizo lako.')}
     `,
 
     tracker: () => `
-      ${sectionTitle('Error Tracker', 'Monitor all reported issues and their resolution')}
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('Status Filters')}
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
-          <span style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;background:rgba(79,124,255,0.12);color:var(--accent)">All</span>
-          <span style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;background:rgba(255,82,99,0.12);color:var(--red)">Open</span>
-          <span style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;background:rgba(245,166,35,0.12);color:var(--amber)">In Progress</span>
-          <span style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;background:rgba(155,125,255,0.12);color:var(--purple)">Escalated</span>
-          <span style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;background:rgba(45,217,138,0.12);color:var(--green)">Resolved</span>
-        </div>
-        <div style="font-size:12px;color:var(--text3);margin-top:10px;line-height:1.5">Click any filter chip to narrow the list. Use the search box to find issues by title, code, or school name.</div>
-      </div>
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('What You Can Do')}
-        <div style="font-size:12px;color:var(--text2);line-height:1.7">
-          <div style="margin-bottom:6px"><i class="ti ti-eye" style="color:var(--accent);margin-right:6px"></i><strong>Click any row</strong> to see full error details, description, and updates</div>
-          <div style="margin-bottom:6px"><i class="ti ti-check" style="color:var(--green);margin-right:6px"></i><strong>Mark as resolved</strong> directly from the detail view when the issue is fixed</div>
-          <div style="margin-bottom:6px"><i class="ti ti-download" style="color:var(--text2);margin-right:6px"></i><strong>Export CSV</strong> to download the error list for school management reports</div>
+      ${title('ti-list-check', '#f5a623', 'Error Tracker', 'Fuatilia matatizo yote na hali yake')}
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">
+          Hapa unaona orodha ya matatizo yote uliyoyaripoti na hali yake ya sasa. Unaweza kuchuja kwa hali (status) na kutafuta kwa jina.
         </div>
       </div>
 
-      ${infoBox('Each error has a unique code (e.g., QFT-0042). Use this code when communicating with the support team about a specific issue.')}
+      ${section('Hali za Tatizo (Status)', `
+        <strong style="color:var(--red)">Open</strong> — Tatizo limepokelewa lakini bado hakuna aliyeanza kulifanyia kazi<br>
+        <strong style="color:var(--amber)">In Progress</strong> — Mhandisi analifanyia kazi sasa hivi<br>
+        <strong style="color:var(--purple)">Escalated</strong> — Limeongezwa kwa timu ya juu kwa kuwa ni gumu<br>
+        <strong style="color:var(--green)">Resolved</strong> — Tatizo limetatuliwa
+      `)}
+
+      ${section('Unaweza Kufanya Nini', `
+        <strong>Bonyeza mstari wowote</strong> — Kuona maelezo kamili ya tatizo<br>
+        <strong>Mark Resolved</strong> — Kama tatizo limeisha, weka kuwa limetatuliwa<br>
+        <strong>Export</strong> — Pakua orodha kama CSV kwa ajili ya ripoti za shule
+      `)}
+
+      ${tip('Kama tatizo liko "Open" kwa zaidi ya masaa 4 bila maendeleo, nenda Follow-Up Center na bonyeza Escalate.')}
     `,
 
     followup: () => `
-      ${sectionTitle('Follow-Up Center', 'Track SLA compliance, escalations, and team communication')}
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('Three Panels')}
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:8px">
-          <div style="background:rgba(255,82,99,0.06);border-radius:8px;padding:12px;text-align:center">
-            <i class="ti ti-clock-exclamation" style="font-size:22px;color:var(--red);display:block;margin-bottom:6px"></i>
-            <div style="font-size:11px;font-weight:600;color:var(--text)">SLA Breaches</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">Overdue issues needing attention</div>
-          </div>
-          <div style="background:rgba(79,124,255,0.06);border-radius:8px;padding:12px;text-align:center">
-            <i class="ti ti-users" style="font-size:22px;color:var(--accent);display:block;margin-bottom:6px"></i>
-            <div style="font-size:11px;font-weight:600;color:var(--text)">Team Status</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">Engineers and their workload</div>
-          </div>
-          <div style="background:rgba(155,125,255,0.06);border-radius:8px;padding:12px;text-align:center">
-            <i class="ti ti-messages" style="font-size:22px;color:var(--purple);display:block;margin-bottom:6px"></i>
-            <div style="font-size:11px;font-weight:600;color:var(--text)">Comms Log</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">All notes and updates</div>
-          </div>
+      ${title('ti-headset', '#9b7dff', 'Follow-Up Center', 'Mawasiliano na timu ya msaada')}
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">
+          Huu ni ukurasa wa kufuatilia matatizo yanayochelewa (SLA breach), kuona timu ya msaada inafanya nini, na kusoma maelezo (notes) kuhusu matatizo yako.
         </div>
       </div>
 
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('Actions You Can Take')}
-        <div style="font-size:12px;color:var(--text2);line-height:1.7">
-          <div style="margin-bottom:6px"><i class="ti ti-eye" style="color:var(--accent);margin-right:6px"></i><strong>View</strong> — See full details of any active issue</div>
-          <div style="margin-bottom:6px"><i class="ti ti-arrow-up" style="color:var(--red);margin-right:6px"></i><strong>Escalate</strong> — Raise to senior support if SLA is breaching</div>
-          <div style="margin-bottom:6px"><i class="ti ti-check" style="color:var(--green);margin-right:6px"></i><strong>Resolve</strong> — Mark as fixed if the problem is solved</div>
-        </div>
-      </div>
+      ${section('Sehemu Tatu', `
+        <strong style="color:var(--red)">SLA Breaches</strong> — Matatizo yaliyopitisha muda wa kutatuliwa. Yanahitaji msaada wa haraka.<br>
+        <strong>Team Status</strong> — Orodha ya wahandisi wa msaada na hali yao (active, onsite, remote)<br>
+        <strong>Communication Log</strong> — Maelezo na ujumbe kuhusu matatizo yako
+      `)}
 
-      ${infoBox('If an issue has been "Open" for more than 4 hours without any update, <strong>Escalate</strong> it or call the support hotline directly.', 'warn')}
+      ${section('Hatua Unazoweza Kuchukua', `
+        <strong>View</strong> — Ona maelezo kamili ya tatizo<br>
+        <strong>Escalate</strong> — Pandisha tatizo kwa timu ya juu kama linachelewa<br>
+        <strong>Resolve</strong> — Weka kuwa limetatuliwa kama tayari limekwisha
+      `)}
+
+      ${tip('SLA ni muda wa juu ambao timu ya msaada inapaswa kutatua tatizo. Ikipitisha muda huo, tatizo linaonyeshwa hapa kwa rangi nyekundu.')}
     `,
 
     weekly: () => `
-      ${sectionTitle('Weekly Check-Ins', 'Submit your school\'s weekly status report')}
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('How to Complete Your Check-In')}
-        ${stepCard(1, 'Select the week', 'Click the correct week tab (W1 to W10) at the top')}
-        ${stepCard(2, 'Find your school', 'Look for your school in the table')}
-        ${stepCard(3, 'Click Check-In', 'If it says "Due", click the Check-In button')}
-        ${stepCard(4, 'Rate each area', 'Set status for Connectivity, Tablets, Platform, and Power')}
-        ${stepCard(5, 'Set overall status', 'Green (OK), Amber (minor issues), or Red (critical)')}
-        ${stepCard(6, 'Submit', 'Add any notes and click Submit Check-In')}
-      </div>
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('Status Colors')}
-        <div style="display:flex;gap:10px;margin-top:8px">
-          <div style="flex:1;background:rgba(45,217,138,0.08);border-radius:8px;padding:12px;text-align:center;border-top:3px solid var(--green)">
-            <div style="font-size:12px;font-weight:700;color:var(--green)">Green</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:3px">All systems working normally</div>
-          </div>
-          <div style="flex:1;background:rgba(245,166,35,0.08);border-radius:8px;padding:12px;text-align:center;border-top:3px solid var(--amber)">
-            <div style="font-size:12px;font-weight:700;color:var(--amber)">Amber</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:3px">Minor issues, school operational</div>
-          </div>
-          <div style="flex:1;background:rgba(255,82,99,0.08);border-radius:8px;padding:12px;text-align:center;border-top:3px solid var(--red)">
-            <div style="font-size:12px;font-weight:700;color:var(--red)">Red</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:3px">Critical problems affecting learning</div>
-          </div>
+      ${title('ti-calendar-week', '#36d9cc', 'Weekly Check-Ins', 'Ripoti ya hali ya vifaa kila wiki')}
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">
+          Kila wiki, shule yako inatakiwa kutuma ripoti fupi kuhusu hali ya mtandao, tablets, programu, na umeme. Hii inasaidia timu ya msaada kujua hali kabla matatizo hayajawa makubwa.
         </div>
       </div>
 
-      ${infoBox('Complete your check-in early in the week (Monday or Tuesday). This gives the support team time to address any issues before they escalate.')}
-      ${infoBox('Missing check-ins appear as "Due" and may trigger follow-up from the support team.', 'warn')}
+      ${section('Jinsi ya Kujaza', `
+        1. Chagua wiki sahihi (W1 hadi W10) kwenye tabs za juu<br>
+        2. Tafuta shule yako kwenye jedwali<br>
+        3. Bonyeza <strong>Check-In</strong> kama imeandikwa "Due"<br>
+        4. Jaza hali ya kila eneo: Connectivity, Tablets, Platform, Power<br>
+        5. Chagua hali ya jumla: Green (sawa), Amber (matatizo madogo), Red (dharura)<br>
+        6. Ongeza maelezo kama yapo<br>
+        7. Bonyeza <strong>Submit Check-In</strong>
+      `)}
+
+      ${section('Maana ya Rangi', `
+        <strong style="color:var(--green)">Green</strong> — Kila kitu kinafanya kazi vizuri<br>
+        <strong style="color:var(--amber)">Amber</strong> — Kuna matatizo madogo lakini shule inaendelea<br>
+        <strong style="color:var(--red)">Red</strong> — Kuna matatizo makubwa yanayoathiri ufundishaji
+      `)}
+
+      ${tip('Jaza ripoti mapema mwanzoni mwa wiki (Jumatatu au Jumanne). Hii inatoa muda wa timu kutatua matatizo kabla hayajazidi.')}
     `,
 
     schools: () => `
-      ${sectionTitle('School Profiles', 'View your school details and equipment inventory')}
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('What You\'ll See')}
-        <div style="font-size:12px;color:var(--text2);line-height:1.7">
-          <div style="margin-bottom:6px"><i class="ti ti-info-circle" style="color:var(--accent);margin-right:6px"></i><strong>Overview</strong> — Contact info, student count, zone/district</div>
-          <div style="margin-bottom:6px"><i class="ti ti-device-tablet" style="color:var(--teal);margin-right:6px"></i><strong>Equipment</strong> — Tablets, routers, and other devices assigned</div>
-          <div style="margin-bottom:6px"><i class="ti ti-bug" style="color:var(--red);margin-right:6px"></i><strong>Error History</strong> — All past issues reported for your school</div>
-          <div style="margin-bottom:6px"><i class="ti ti-calendar-check" style="color:var(--green);margin-right:6px"></i><strong>Check-In History</strong> — Weekly check-in records</div>
+      ${title('ti-school', '#2dd98a', 'School Profiles', 'Taarifa za shule yako')}
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">
+          Hapa unaona taarifa za shule yako: mawasiliano, idadi ya wanafunzi, vifaa vilivyopo, na historia ya matatizo yaliyopita.
         </div>
       </div>
 
-      ${infoBox('If your school\'s information is incorrect (wrong contact, outdated tablet count, etc.), report it to the system administrator for correction.')}
+      ${section('Unaona Nini', `
+        <strong>Overview</strong> — Jina la shule, eneo, mawasiliano, idadi ya wanafunzi<br>
+        <strong>Equipment</strong> — Tablets, router, na vifaa vingine vilivyopewa shule<br>
+        <strong>Error History</strong> — Orodha ya matatizo yote yaliyowahi kuripotiwa<br>
+        <strong>Check-In History</strong> — Ripoti za wiki zilizopita
+      `)}
+
+      ${tip('Kama taarifa za shule yako si sahihi (namba ya simu, idadi ya tablets, nk), wasiliana na System Administrator kurekebisha.')}
     `,
 
     troubleshoot: () => `
-      ${sectionTitle('Troubleshooting Guides', 'Fix common issues without waiting for support')}
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px;border-left:3px solid var(--green)">
-        <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:6px"><i class="ti ti-bulb" style="margin-right:4px"></i>Pro Tip</div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.6">Always try the Troubleshooting guides <strong>before</strong> reporting an error. Many issues can be fixed on-site in minutes!</div>
-      </div>
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('How to Use')}
-        ${stepCard(1, 'Find the guide', 'Browse by category or search for keywords')}
-        ${stepCard(2, 'Follow each step', 'Complete steps in order, checking them off as you go')}
-        ${stepCard(3, 'Issue resolved?', 'Great! No need to report anything')}
-        ${stepCard(4, 'Still stuck?', 'Click "Escalate Issue" to submit an error report automatically')}
-      </div>
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('Categories')}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <div style="background:var(--bg3);border-radius:6px;padding:10px;font-size:12px;display:flex;align-items:center;gap:8px"><i class="ti ti-wifi" style="color:#4f7cff"></i>Connectivity</div>
-          <div style="background:var(--bg3);border-radius:6px;padding:10px;font-size:12px;display:flex;align-items:center;gap:8px"><i class="ti ti-cpu" style="color:#f5a623"></i>Hardware</div>
-          <div style="background:var(--bg3);border-radius:6px;padding:10px;font-size:12px;display:flex;align-items:center;gap:8px"><i class="ti ti-app-window" style="color:#9b7dff"></i>Platform</div>
-          <div style="background:var(--bg3);border-radius:6px;padding:10px;font-size:12px;display:flex;align-items:center;gap:8px"><i class="ti ti-bolt" style="color:#ff5263"></i>Power</div>
-          <div style="background:var(--bg3);border-radius:6px;padding:10px;font-size:12px;display:flex;align-items:center;gap:8px"><i class="ti ti-user-circle" style="color:#36d9cc"></i>Accounts</div>
+      ${title('ti-tools', '#f5a623', 'Troubleshooting', 'Tatua matatizo ya kawaida mwenyewe')}
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">
+          Kabla ya ku-report tatizo, angalia hapa kwanza. Kuna miongozo ya hatua kwa hatua ya kutatua matatizo ya kawaida kama mtandao kukatika, tablet isiyocharge, nk.
         </div>
       </div>
 
-      ${infoBox('Your progress is saved automatically. If you leave and come back, the system remembers which steps you completed.')}
+      ${section('Jinsi ya Kutumia', `
+        1. Tafuta mwongozo kwa aina (Connectivity, Hardware, nk) au andika kwenye search<br>
+        2. Bonyeza kadi ya mwongozo kufungua hatua zake<br>
+        3. Fuata kila hatua kwa mpangilio, ukitia alama ukimaliza<br>
+        4. Kama tatizo limeisha — huhitaji ku-report!<br>
+        5. Kama bado — bonyeza <strong>Escalate Issue</strong> kutuma ripoti
+      `)}
+
+      ${section('Aina za Matatizo (Categories)', `
+        <strong>Connectivity</strong> — WiFi imekatika, mtandao ni polepole, website haifunguki<br>
+        <strong>Hardware</strong> — Tablet haicharge, skrini imevunjika, projector haifanyi kazi<br>
+        <strong>Platform</strong> — App inacrash, haiwezi ku-login, content haipakui<br>
+        <strong>Power</strong> — Umeme umekatika, UPS haifanyi kazi<br>
+        <strong>Accounts</strong> — Nimesahau password, akaunti imefungwa
+      `)}
+
+      ${tip('Maendeleo yako yanahifadhiwa. Ukitoka na kurudi, mfumo unakumbuka hatua ulizokwisha maliza.')}
     `,
 
     manuals: () => `
-      ${sectionTitle('Resource Library', 'Download manuals, training materials, and references')}
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('What You Can Do')}
-        <div style="font-size:12px;color:var(--text2);line-height:1.7">
-          <div style="margin-bottom:6px"><i class="ti ti-eye" style="color:var(--accent);margin-right:6px"></i><strong>Preview</strong> — View images, videos, and documents in-browser</div>
-          <div style="margin-bottom:6px"><i class="ti ti-download" style="color:var(--green);margin-right:6px"></i><strong>Download</strong> — Save any file to your device</div>
-          <div style="margin-bottom:6px"><i class="ti ti-filter" style="color:var(--text2);margin-right:6px"></i><strong>Filter</strong> — Narrow by category (General, Training, Technical, etc.)</div>
+      ${title('ti-books', '#9b7dff', 'Resource Library', 'Nyaraka, miongozo, na vifaa vya mafunzo')}
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">
+          Hapa unapata manuals, nyaraka za mafunzo, na miongozo mingine muhimu. Unaweza kusoma ndani ya browser au kupakua kwenye simu/kompyuta yako.
         </div>
       </div>
 
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('Supported File Types')}
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;font-size:11px;color:var(--text2)">
-          <div style="background:var(--bg3);border-radius:6px;padding:8px 10px"><i class="ti ti-file-type-pdf" style="color:var(--red);margin-right:4px"></i>PDF, Word, PowerPoint, Excel</div>
-          <div style="background:var(--bg3);border-radius:6px;padding:8px 10px"><i class="ti ti-photo" style="color:var(--purple);margin-right:4px"></i>PNG, JPG, GIF, SVG</div>
-          <div style="background:var(--bg3);border-radius:6px;padding:8px 10px"><i class="ti ti-video" style="color:var(--red);margin-right:4px"></i>MP4, WebM, MOV</div>
-          <div style="background:var(--bg3);border-radius:6px;padding:8px 10px"><i class="ti ti-music" style="color:var(--teal);margin-right:4px"></i>MP3, WAV, OGG</div>
-        </div>
-      </div>
+      ${section('Unaweza Kufanya Nini', `
+        <strong>Browse</strong> — Angalia nyaraka zote zinazopatikana<br>
+        <strong>Filter</strong> — Chuja kwa aina (General, Training, Technical, Policy)<br>
+        <strong>Preview</strong> — Angalia picha, video, na PDF ndani ya browser<br>
+        <strong>Download</strong> — Pakua faili kwenye kifaa chako
+      `)}
 
-      ${infoBox('Only administrators can upload new resources. If you need a document that isn\'t available, ask the support team to add it.')}
+      ${section('Aina za Faili Zinazokubalika', `
+        <strong>Nyaraka:</strong> PDF, Word, PowerPoint, Excel<br>
+        <strong>Picha:</strong> PNG, JPG, GIF<br>
+        <strong>Video:</strong> MP4, WebM<br>
+        <strong>Sauti:</strong> MP3, WAV
+      `)}
+
+      ${tip('Ni Administrators pekee wanaoweza kupakia nyaraka mpya. Ukihitaji nyaraka ambayo haipo, omba timu ya msaada iiweke.')}
     `,
 
     account: () => `
-      ${sectionTitle('My Account', 'Manage your profile and security settings')}
-
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('Profile Menu')}
-        <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:10px">Click your avatar in the <strong>top-right corner</strong> to access:</div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.7">
-          <div style="margin-bottom:6px"><i class="ti ti-user" style="color:var(--accent);margin-right:6px"></i><strong>My Profile</strong> — View your name, email, role, and zone</div>
-          <div style="margin-bottom:6px"><i class="ti ti-key" style="color:var(--amber);margin-right:6px"></i><strong>Change Password</strong> — Update your login password</div>
-          <div style="margin-bottom:6px"><i class="ti ti-logout" style="color:var(--red);margin-right:6px"></i><strong>Sign Out</strong> — Log out securely</div>
+      ${title('ti-user-circle', '#36d9cc', 'My Account', 'Simamia akaunti yako na usalama')}
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">
+          Bonyeza picha yako ya profile (kona ya juu kulia) kupata chaguzi za akaunti.
         </div>
       </div>
 
-      <div class="card reveal" style="padding:18px;margin-bottom:14px">
-        ${subTitle('Changing Your Password')}
-        ${stepCard(1, 'Click your avatar', 'Top-right corner of the screen')}
-        ${stepCard(2, 'Select "Change Password"', 'From the dropdown menu')}
-        ${stepCard(3, 'Enter current password', 'For verification')}
-        ${stepCard(4, 'Set new password', 'At least 6 characters with letters + numbers')}
-        ${stepCard(5, 'Confirm and save', 'Click "Update Password"')}
-      </div>
+      ${section('Chaguzi za Profile', `
+        <strong>My Profile</strong> — Ona taarifa zako (jina, email, namba, eneo)<br>
+        <strong>Change Password</strong> — Badilisha nenosiri lako<br>
+        <strong>Sign Out</strong> — Toka kwenye mfumo kwa usalama
+      `)}
 
-      ${infoBox('Choose a strong password: at least 8 characters with a mix of letters, numbers, and symbols. <strong>Never share your password.</strong>', 'warn')}
+      ${section('Kubadilisha Nenosiri', `
+        1. Bonyeza picha yako ya profile (kona ya juu kulia)<br>
+        2. Chagua "Change Password"<br>
+        3. Andika nenosiri lako la sasa<br>
+        4. Andika nenosiri jipya (angalau herufi 6)<br>
+        5. Rudia nenosiri jipya<br>
+        6. Bonyeza "Update Password"
+      `)}
 
-      <div class="card reveal" style="padding:16px;background:var(--bg3);border-left:3px solid var(--teal)">
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px"><i class="ti ti-shield-lock" style="margin-right:6px;color:var(--teal)"></i>Session Security</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.6">You are automatically signed out after <strong>15 minutes of inactivity</strong>. Always sign out manually on shared computers.</div>
-      </div>
-    `,
-
-    faq: () => `
-      ${sectionTitle('Frequently Asked Questions', 'Quick answers to common questions')}
-
-      <div style="display:flex;flex-direction:column;gap:10px">
-        ${faqItem('I reported an error but nothing is happening. What do I do?', 'Check the <strong>Error Tracker</strong> for your issue\'s status. If it\'s still "Open" after 4 hours, go to the <strong>Follow-Up Center</strong> and click <strong>Escalate</strong>. You can also call <strong>+255 658 066 983</strong>.')}
-        ${faqItem('I can\'t log in. What should I do?', 'Make sure you\'re using the correct username and password. If you forgot your password, contact the system administrator to reset it. Check your internet connection.')}
-        ${faqItem('The internet is down. Can I still use this system?', 'No — the system requires internet. Try the <strong>Troubleshooting</strong> guide for connectivity issues first. If it can\'t be fixed, call the support hotline to report by phone.')}
-        ${faqItem('How do I know if my issue is Critical or Medium?', '<strong>Critical:</strong> School cannot teach (total outage, all tablets dead).<br><strong>High:</strong> Large group affected, school partially operational.<br><strong>Medium:</strong> Some users affected, work continues.<br><strong>Low:</strong> Minor inconvenience.')}
-        ${faqItem('What is the Weekly Check-In?', 'A quick status report you submit each week about your school\'s devices, connectivity, and overall health. Schools that check in consistently get faster support.')}
-        ${faqItem('Can I see who is fixing my issue?', 'Yes! In the <strong>Error Tracker</strong>, click your issue and look for the "Assigned To" field.')}
-        ${faqItem('The system looks different on my phone.', 'Yes — the system is responsive. On small screens, the sidebar becomes a slide-out menu (tap &#9776;). All features work the same way.')}
-      </div>
-
-      <div class="card reveal" style="padding:16px;margin-top:14px;background:var(--bg3);border-left:3px solid var(--accent)">
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px"><i class="ti ti-headset" style="margin-right:6px;color:var(--accent)"></i>Still need help?</div>
-        <div style="font-size:12px;color:var(--text3);line-height:1.8">
-          Phone: <strong style="color:var(--text)">+255 658 066 983</strong><br>
-          Email: support@opportunityeducation.or.tz<br>
-          Hours: Mon&ndash;Fri, 7:30 AM &ndash; 5:00 PM
-        </div>
-      </div>
+      ${section('Usalama', `
+        <strong>Session Timeout</strong> — Mfumo unakutoa nje baada ya <strong>dakika 15</strong> za kutofanya kitu chochote. Hii inazuia mtu mwingine kutumia akaunti yako.<br><br>
+        <strong>Ushauri:</strong> Tumia nenosiri gumu (herufi, nambari, na alama). Usimwambie mtu mwingine nenosiri lako. Bonyeza Sign Out ukimaliza, hasa kwenye kompyuta ya pamoja.
+      `)}
     `,
   };
-
-  function faqItem(q, a) {
-    return `<div class="card reveal" style="padding:14px 16px">
-      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;display:flex;align-items:flex-start;gap:8px">
-        <i class="ti ti-help-circle" style="color:var(--amber);font-size:16px;flex-shrink:0;margin-top:1px"></i>${q}
-      </div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.6;padding-left:24px">${a}</div>
-    </div>`;
-  }
 
   return { load, render, setSection };
 })();
