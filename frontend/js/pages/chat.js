@@ -1,6 +1,6 @@
 /**
  * AI Chat — Self-service Troubleshooting Assistant
- * Available to school and subadmin roles only
+ * Design inspired by Leora School Assistant
  */
 const ChatPage = (() => {
   let chats = [];
@@ -8,6 +8,7 @@ const ChatPage = (() => {
   let messages = [];
   let isStreaming = false;
   let streamBuffer = '';
+  let thinkingStep = 0;
 
   async function load() {
     try { chats = await API.getAiChats(); } catch (e) { chats = []; }
@@ -17,110 +18,133 @@ const ChatPage = (() => {
     return `
     <div class="section-header">
       <div>
-        <div class="section-title">AI Assistant</div>
+        <div class="section-title"><span class="chat-title-shimmer">AI Assistant</span></div>
         <div class="section-sub">Technical Support &mdash; Troubleshooting help for your school</div>
       </div>
       <div style="display:flex;gap:10px">
-        <button class="btn btn-primary btn-sm" onclick="ChatPage.newChat()"><i class="ti ti-plus"></i> New Chat</button>
+        <button class="btn btn-primary btn-sm" onclick="ChatPage.newChat()" style="gap:6px"><i class="ti ti-plus" style="font-size:14px"></i> New Chat</button>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:200px 1fr;gap:0;height:calc(100vh - 56px - 100px);border-radius:10px;overflow:hidden;border:1px solid var(--border);min-height:400px" class="chat-layout">
+    <div class="chat-container">
       ${renderSidebar()}
-      ${renderMain()}
+      <div class="chat-main">
+        ${activeChat || messages.length > 0 ? renderChatView() : renderWelcome()}
+      </div>
     </div>`;
   }
 
   function renderSidebar() {
-    return `<div style="background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden">
-      <div style="padding:12px;border-bottom:1px solid var(--border)">
-        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text3)">Chat History</div>
+    return `<div class="chat-sidebar">
+      <div class="chat-sidebar-header">
+        <div class="chat-ai-badge">
+          <div class="chat-ai-icon"><i class="ti ti-sparkles" style="font-size:14px;color:#fff"></i></div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--text)">QFT AI</div>
+            <div style="display:flex;align-items:center;gap:4px"><span class="chat-status-dot"></span><span style="font-size:10px;color:var(--text3)">Claude Opus</span></div>
+          </div>
+        </div>
       </div>
-      <div style="flex:1;overflow-y:auto;padding:6px">
+      <div class="chat-history-list">
         ${chats.length ? chats.map(c => {
           const isActive = activeChat && activeChat.id === c.id;
-          return `<div onclick="ChatPage.loadChat(${c.id})" style="display:flex;align-items:center;gap:7px;padding:8px 9px;border-radius:6px;cursor:pointer;margin-bottom:2px;font-size:11px;color:${isActive ? 'var(--accent)' : 'var(--text2)'};background:${isActive ? 'rgba(79,124,255,0.1)' : 'transparent'};transition:all .15s;border-left:2px solid ${isActive ? 'var(--accent)' : 'transparent'}" onmouseover="if(!${isActive})this.style.background='var(--bg3)'" onmouseout="if(!${isActive})this.style.background='${isActive ? 'rgba(79,124,255,0.1)' : 'transparent'}'">
-            <i class="ti ti-message" style="font-size:12px;flex-shrink:0;opacity:.5"></i>
-            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.title)}</span>
-            <i class="ti ti-x" style="font-size:10px;opacity:0;flex-shrink:0" onclick="event.stopPropagation();ChatPage.deleteChat(${c.id})" onmouseover="this.style.opacity='1';this.style.color='var(--red)'" onmouseout="this.style.opacity='0';this.style.color=''"></i>
+          return `<div class="chat-history-item ${isActive ? 'active' : ''}" onclick="ChatPage.loadChat(${c.id})">
+            <i class="ti ti-message" style="font-size:12px;opacity:.5;flex-shrink:0"></i>
+            <span class="chat-history-title">${esc(c.title)}</span>
+            <i class="ti ti-trash chat-delete-btn" onclick="event.stopPropagation();ChatPage.deleteChat(${c.id})"></i>
           </div>`;
-        }).join('') : `<div style="text-align:center;padding:24px 8px;font-size:11px;color:var(--text3)"><i class="ti ti-messages-off" style="font-size:18px;display:block;margin-bottom:6px;opacity:.4"></i>No history yet</div>`}
+        }).join('') : `<div class="chat-empty-history"><i class="ti ti-messages-off"></i><span>No conversations yet</span></div>`}
       </div>
     </div>`;
   }
 
-  function renderMain() {
-    if (!activeChat && messages.length === 0) return renderWelcome();
-    return `<div style="display:flex;flex-direction:column;background:var(--bg1);height:100%;overflow:hidden">
-      <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:14px">
+  function renderChatView() {
+    return `
+      <div class="chat-messages" id="chat-messages">
         ${messages.map(m => renderMessage(m)).join('')}
-        ${isStreaming ? renderStreamingBubble() : ''}
+        ${isStreaming ? renderThinking() : ''}
       </div>
-      ${renderInput()}
-    </div>`;
+      ${renderInput()}`;
   }
 
-  function renderStreamingBubble() {
-    return `<div style="display:flex;gap:10px;align-items:flex-start">
-      <div style="width:26px;height:26px;background:rgba(79,124,255,0.12);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">
-        <i class="ti ti-robot" style="font-size:13px;color:var(--accent)"></i>
-      </div>
-      <div id="stream-output" style="flex:1;max-width:75%;padding:10px 14px;border-radius:2px 10px 10px 10px;background:var(--bg2);border:1px solid var(--border);font-size:13px;line-height:1.7;color:var(--text);word-break:break-word">
-        ${streamBuffer ? formatMarkdown(streamBuffer) : '<div class="chat-streaming-indicator"><span></span><span></span><span></span></div>'}
+  function renderThinking() {
+    if (streamBuffer) {
+      return `<div class="chat-msg-row ai">
+        <div class="chat-avatar ai"><i class="ti ti-sparkles"></i></div>
+        <div class="chat-bubble-ai">
+          <div class="chat-bubble-bar"></div>
+          <div class="chat-bubble-content" id="stream-output">${formatMarkdown(streamBuffer)}</div>
+        </div>
+      </div>`;
+    }
+    return `<div class="chat-msg-row ai">
+      <div class="chat-avatar ai"><div class="chat-avatar-pulse"></div><i class="ti ti-sparkles"></i></div>
+      <div class="chat-thinking-card">
+        <div class="chat-thinking-bar"></div>
+        <div class="chat-thinking-body">
+          <div class="chat-wave-indicator">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="chat-thinking-label">Analyzing...</div>
+          <div class="chat-thinking-steps">
+            <div class="chat-step done"><i class="ti ti-check"></i> Understanding your question</div>
+            <div class="chat-step active"><div class="chat-step-pulse"></div> Searching knowledge base</div>
+            <div class="chat-step pending"><div class="chat-step-dot"></div> Generating response</div>
+          </div>
+        </div>
       </div>
     </div>`;
   }
 
   function renderWelcome() {
-    return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg1);padding:30px 20px;height:100%">
-      <div style="width:56px;height:56px;background:rgba(79,124,255,0.08);border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:16px">
-        <i class="ti ti-robot" style="font-size:28px;color:var(--accent)"></i>
+    return `
+      <div class="chat-welcome">
+        <div class="chat-welcome-icon">
+          <i class="ti ti-sparkles" style="font-size:28px;color:var(--accent)"></i>
+          <div class="chat-welcome-glow"></div>
+        </div>
+        <div class="chat-welcome-title">How can I help you today?</div>
+        <div class="chat-welcome-sub">Ask me anything about troubleshooting your school equipment. I'll guide you step by step.</div>
+        <div class="chat-suggestions">
+          ${renderSuggestion('ti-wifi', 'WiFi is not working', 'Network connectivity issues')}
+          ${renderSuggestion('ti-device-tablet', 'Tablet won\'t charge', 'Battery and charging problems')}
+          ${renderSuggestion('ti-app-window', 'App keeps crashing', 'Platform and software issues')}
+          ${renderSuggestion('ti-bolt', 'UPS is blinking red', 'Power and electrical faults')}
+        </div>
       </div>
-      <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px">Technical Support Assistant</div>
-      <div style="font-size:12px;color:var(--text3);max-width:380px;line-height:1.7;margin-bottom:24px;text-align:center">
-        Ask me anything about troubleshooting your school equipment. I can help with WiFi, tablets, platform issues, power, and accounts.
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:380px;width:100%;margin-bottom:24px">
-        ${renderSuggestion('ti-wifi', 'WiFi is not working', '#4f7cff')}
-        ${renderSuggestion('ti-device-tablet', 'Tablet won\'t charge', '#f5a623')}
-        ${renderSuggestion('ti-app-window', 'App keeps crashing', '#9b7dff')}
-        ${renderSuggestion('ti-bolt', 'UPS is blinking red', '#ff5263')}
-      </div>
-      <div style="width:100%;max-width:480px">
-        ${renderInput()}
-      </div>
-    </div>`;
+      ${renderInput()}`;
   }
 
-  function renderSuggestion(icon, text, color) {
-    return `<div onclick="ChatPage.sendFromSuggestion('${text.replace(/'/g, "\\'")}')" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s" onmouseover="this.style.borderColor='${color}';this.style.background='var(--bg3)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--bg2)'">
-      <i class="ti ${icon}" style="font-size:15px;color:${color}"></i>
-      <span style="font-size:11px;color:var(--text2)">${text}</span>
+  function renderSuggestion(icon, text, sub) {
+    return `<div class="chat-suggestion" onclick="ChatPage.sendFromSuggestion('${text.replace(/'/g, "\\'")}')">
+      <div class="chat-suggestion-icon"><i class="ti ${icon}"></i></div>
+      <div><div class="chat-suggestion-text">${text}</div><div class="chat-suggestion-sub">${sub}</div></div>
     </div>`;
   }
 
   function renderMessage(m) {
-    const isUser = m.role === 'user';
-    if (isUser) {
-      return `<div style="display:flex;justify-content:flex-end">
-        <div style="max-width:65%;padding:9px 14px;border-radius:10px 10px 2px 10px;background:var(--accent);color:#fff;font-size:13px;line-height:1.6;word-break:break-word">${esc(m.content)}</div>
+    if (m.role === 'user') {
+      return `<div class="chat-msg-row user">
+        <div class="chat-bubble-user">${esc(m.content)}</div>
+        <div class="chat-avatar user"><i class="ti ti-user"></i></div>
       </div>`;
     }
-    return `<div style="display:flex;gap:10px;align-items:flex-start">
-      <div style="width:26px;height:26px;background:rgba(79,124,255,0.12);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">
-        <i class="ti ti-robot" style="font-size:13px;color:var(--accent)"></i>
+    return `<div class="chat-msg-row ai">
+      <div class="chat-avatar ai"><i class="ti ti-sparkles"></i></div>
+      <div class="chat-bubble-ai">
+        <div class="chat-bubble-content">${formatMarkdown(m.content)}</div>
       </div>
-      <div style="flex:1;max-width:75%;padding:10px 14px;border-radius:2px 10px 10px 10px;background:var(--bg2);border:1px solid var(--border);font-size:13px;line-height:1.7;color:var(--text);word-break:break-word">${formatMarkdown(m.content)}</div>
     </div>`;
   }
 
   function renderInput() {
-    return `<div style="padding:10px 14px;border-top:1px solid var(--border);background:var(--bg2)">
-      <div style="display:flex;gap:8px;align-items:center">
-        <textarea id="chat-input" placeholder="Type your question here..." rows="1" style="flex:1;resize:none;padding:9px 12px;border-radius:8px;background:var(--bg1);border:1px solid var(--border);color:var(--text);font-size:13px;font-family:var(--font);max-height:100px;line-height:1.4" onkeydown="ChatPage.handleKey(event)" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
-        <button class="btn btn-primary" onclick="ChatPage.send()" style="padding:9px 14px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;gap:5px;font-size:12px" ${isStreaming ? 'disabled' : ''}>
-          ${isStreaming ? '<i class="ti ti-loader-2 spin" style="font-size:14px"></i>' : '<i class="ti ti-send" style="font-size:14px"></i> Send'}
+    return `<div class="chat-input-area">
+      <div class="chat-input-box ${isStreaming ? 'disabled' : ''}">
+        <textarea id="chat-input" placeholder="Ask a troubleshooting question..." rows="1" ${isStreaming ? 'disabled' : ''} onkeydown="ChatPage.handleKey(event)" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,140)+'px'"></textarea>
+        <button class="chat-send-btn ${isStreaming ? 'streaming' : ''}" onclick="ChatPage.send()" ${isStreaming ? 'disabled' : ''}>
+          ${isStreaming ? '<div class="chat-send-spinner"></div>' : '<i class="ti ti-arrow-up"></i>'}
         </button>
       </div>
+      <div class="chat-input-hint">Press Enter to send &middot; AI can make mistakes</div>
     </div>`;
   }
 
@@ -155,10 +179,7 @@ const ChatPage = (() => {
     try {
       await API.deleteAiChat(id);
       chats = chats.filter(c => c.id !== id);
-      if (activeChat && activeChat.id === id) {
-        activeChat = null;
-        messages = [];
-      }
+      if (activeChat && activeChat.id === id) { activeChat = null; messages = []; }
       App.render();
       showToast('Chat deleted');
     } catch (e) { showToast('Failed to delete'); }
@@ -185,21 +206,14 @@ const ChatPage = (() => {
       const token = API.getToken();
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          message: msg,
-          chat_id: activeChat ? activeChat.id : null
-        })
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ message: msg, chat_id: activeChat ? activeChat.id : null })
       });
 
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
         messages.push({ role: 'assistant', content: err.error || 'Service unavailable. Please try again later.' });
         isStreaming = false;
-        streamBuffer = '';
         App.render();
         scrollToBottom();
         return;
@@ -208,9 +222,8 @@ const ChatPage = (() => {
       const contentType = response.headers.get('content-type') || '';
       if (!contentType.includes('text/event-stream')) {
         const data = await response.json().catch(() => ({}));
-        messages.push({ role: 'assistant', content: data.error || 'Unexpected response from server.' });
+        messages.push({ role: 'assistant', content: data.error || 'Unexpected response.' });
         isStreaming = false;
-        streamBuffer = '';
         App.render();
         scrollToBottom();
         return;
@@ -223,40 +236,35 @@ const ChatPage = (() => {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop();
-
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.type === 'delta') {
-                streamBuffer += parsed.text;
-                updateStreamOutput();
-              } else if (parsed.type === 'done') {
-                if (!activeChat) {
-                  activeChat = { id: parsed.chat_id, title: msg.substring(0, 80) };
-                  chats.unshift({ id: parsed.chat_id, title: msg.substring(0, 80), updated_at: new Date().toISOString() });
-                }
-              } else if (parsed.type === 'error') {
-                streamBuffer += (parsed.error || 'An error occurred.');
-                updateStreamOutput();
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.type === 'delta') {
+              streamBuffer += parsed.text;
+              updateStreamOutput();
+            } else if (parsed.type === 'done') {
+              if (!activeChat) {
+                activeChat = { id: parsed.chat_id, title: msg.substring(0, 80) };
+                chats.unshift({ id: parsed.chat_id, title: msg.substring(0, 80) });
               }
-            } catch (e) {}
-          }
+            } else if (parsed.type === 'error') {
+              streamBuffer += (parsed.error || 'An error occurred.');
+              updateStreamOutput();
+            }
+          } catch (e) {}
         }
       }
     } catch (e) {
-      streamBuffer = 'Unable to reach AI service. Please check your connection and try again.';
+      streamBuffer = 'Unable to reach AI service. Please check your connection.';
     }
 
-    if (streamBuffer) {
-      messages.push({ role: 'assistant', content: streamBuffer });
-    }
+    if (streamBuffer) messages.push({ role: 'assistant', content: streamBuffer });
     isStreaming = false;
     streamBuffer = '';
     App.render();
@@ -273,8 +281,8 @@ const ChatPage = (() => {
 
   function scrollToBottom() {
     setTimeout(() => {
-      const container = document.getElementById('chat-messages');
-      if (container) container.scrollTop = container.scrollHeight;
+      const c = document.getElementById('chat-messages');
+      if (c) c.scrollTop = c.scrollHeight;
     }, 50);
   }
 
@@ -282,20 +290,20 @@ const ChatPage = (() => {
     if (!text) return '';
     return text
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/```(\w*)\n([\s\S]*?)```/g, '<div class="chat-code-block"><div class="chat-code-header"><span>$1</span></div><pre>$2</pre></div>')
+      .replace(/`([^`]+)`/g, '<code class="chat-inline-code">$1</code>')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/`([^`]+)`/g, '<code style="background:var(--bg3);padding:1px 4px;border-radius:3px;font-family:var(--mono);font-size:12px">$1</code>')
-      .replace(/^### (.+)$/gm, '<div style="font-weight:600;font-size:13px;margin:8px 0 3px">$1</div>')
-      .replace(/^## (.+)$/gm, '<div style="font-weight:600;font-size:14px;margin:10px 0 4px">$1</div>')
-      .replace(/^# (.+)$/gm, '<div style="font-weight:700;font-size:15px;margin:12px 0 5px">$1</div>')
-      .replace(/^\d+\.\s(.+)$/gm, '<div style="padding-left:16px;margin:2px 0">&#8226; $1</div>')
-      .replace(/^[-*]\s(.+)$/gm, '<div style="padding-left:16px;margin:2px 0">&#8226; $1</div>')
+      .replace(/^### (.+)$/gm, '<h4 class="chat-h">$1</h4>')
+      .replace(/^## (.+)$/gm, '<h3 class="chat-h">$1</h3>')
+      .replace(/^# (.+)$/gm, '<h2 class="chat-h">$1</h2>')
+      .replace(/^\d+\.\s(.+)$/gm, '<div class="chat-list-item"><span class="chat-bullet"></span>$1</div>')
+      .replace(/^[-*]\s(.+)$/gm, '<div class="chat-list-item"><span class="chat-bullet"></span>$1</div>')
+      .replace(/\n\n/g, '</p><p class="chat-p">')
       .replace(/\n/g, '<br>');
   }
 
-  function afterRender() {
-    scrollToBottom();
-  }
+  function afterRender() { scrollToBottom(); }
 
   return { load, render, afterRender, newChat, loadChat, deleteChat, send, sendFromSuggestion, handleKey };
 })();
