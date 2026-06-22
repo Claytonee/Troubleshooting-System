@@ -27,7 +27,7 @@ const ChatPage = (() => {
       <div class="chat-sidebar">
         <div class="chat-sidebar-top">
           <div class="chat-ai-badge">
-            <div class="chat-ai-icon"><i class="ti ti-sparkles"></i></div>
+            <div class="chat-ai-icon">${aiIcon}</div>
             <div><div style="font-size:11px;font-weight:600;color:var(--text)">QFT AI</div><div style="display:flex;align-items:center;gap:4px"><span class="chat-status-dot"></span><span style="font-size:9px;color:var(--text3)">Online</span></div></div>
           </div>
         </div>
@@ -58,10 +58,12 @@ const ChatPage = (() => {
     </div>`;
   }
 
+  const welcomeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18a2 2 0 0 1 2 2a2 2 0 0 1 2-2a2 2 0 0 1-2-2a2 2 0 0 1-2 2zm0-12a2 2 0 0 1 2 2a2 2 0 0 1 2-2a2 2 0 0 1-2-2a2 2 0 0 1-2 2zM8 12a6 6 0 0 1 6 6a6 6 0 0 1 6-6a6 6 0 0 1-6-6a6 6 0 0 1-6 6z"/></svg>`;
+
   function renderWelcome() {
     return `<div class="chat-welcome-area">
       <div class="chat-welcome-inner">
-        <div class="chat-w-icon"><i class="ti ti-sparkles"></i><div class="chat-w-glow"></div></div>
+        <div class="chat-w-icon">${welcomeIcon}<div class="chat-w-glow"></div></div>
         <div class="chat-w-title">How can I help you today?</div>
         <div class="chat-w-sub">Ask about troubleshooting your school equipment — WiFi, tablets, platform, power, or accounts.</div>
         <div class="chat-w-grid">
@@ -81,12 +83,14 @@ const ChatPage = (() => {
     </div>`;
   }
 
+  const aiIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18a2 2 0 0 1 2 2a2 2 0 0 1 2-2a2 2 0 0 1-2-2a2 2 0 0 1-2 2zm0-12a2 2 0 0 1 2 2a2 2 0 0 1 2-2a2 2 0 0 1-2-2a2 2 0 0 1-2 2zM8 12a6 6 0 0 1 6 6a6 6 0 0 1 6-6a6 6 0 0 1-6-6a6 6 0 0 1-6 6z"/></svg>`;
+
   function renderMsg(m) {
     if (m.role === 'user') {
       return `<div class="chat-row user"><div class="chat-u-bubble">${esc(m.content)}</div></div>`;
     }
     return `<div class="chat-row ai">
-      <div class="chat-ai-av"><i class="ti ti-sparkles"></i></div>
+      <div class="chat-ai-av">${aiIcon}</div>
       <div class="chat-ai-bubble"><div class="chat-ai-bar"></div><div class="chat-ai-text">${formatMarkdown(m.content)}</div></div>
     </div>`;
   }
@@ -94,12 +98,12 @@ const ChatPage = (() => {
   function renderThinking() {
     if (streamBuffer) {
       return `<div class="chat-row ai">
-        <div class="chat-ai-av"><i class="ti ti-sparkles"></i></div>
+        <div class="chat-ai-av">${aiIcon}</div>
         <div class="chat-ai-bubble"><div class="chat-ai-bar"></div><div class="chat-ai-text" id="stream-output">${formatMarkdown(streamBuffer)}</div></div>
       </div>`;
     }
     return `<div class="chat-row ai">
-      <div class="chat-ai-av pulse"><i class="ti ti-sparkles"></i><div class="chat-av-ring"></div></div>
+      <div class="chat-ai-av pulse">${aiIcon}<div class="chat-av-ring"></div></div>
       <div class="chat-think">
         <div class="chat-think-bar"></div>
         <div class="chat-think-inner">
@@ -115,11 +119,13 @@ const ChatPage = (() => {
     </div>`;
   }
 
+  const sendIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5l0 14"/><path d="M18 11l-6-6"/><path d="M6 11l6-6"/></svg>`;
+
   function renderInput() {
     return `<div class="chat-ibox ${isStreaming ? 'off' : ''}">
       <textarea id="chat-input" placeholder="Ask a troubleshooting question..." rows="1" ${isStreaming ? 'disabled' : ''} onkeydown="ChatPage.handleKey(event)" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
       <button class="chat-send ${isStreaming ? 'loading' : ''}" onclick="ChatPage.send()" ${isStreaming ? 'disabled' : ''}>
-        ${isStreaming ? '<span class="chat-spinner"></span>' : '<i class="ti ti-arrow-up"></i>'}
+        ${isStreaming ? '<span class="chat-spinner"></span>' : sendIcon}
       </button>
     </div>
     <div class="chat-hint">Enter to send &middot; Shift+Enter for new line</div>`;
