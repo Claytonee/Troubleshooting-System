@@ -1,7 +1,9 @@
+const https = require('https');
 const pool = require('../config/database');
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
-const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-20250514';
+const BEDROCK_TOKEN = process.env.AWS_BEARER_TOKEN_BEDROCK || '';
+const BEDROCK_HOST = process.env.AWS_BEDROCK_HOST || 'bedrock-runtime.us-east-1.amazonaws.com';
+const CHAT_MODEL = process.env.AI_MODEL || 'us.anthropic.claude-sonnet-4-20250514-v1:0';
 
 const SYSTEM_PROMPT = `You are a technical support assistant for Quest Forward Tanzania (QFT), a school technology program. You help school administrators and teachers troubleshoot technical issues with tablets, WiFi/internet connectivity, the learning platform, power/UPS systems, and user accounts.
 
@@ -36,6 +38,70 @@ async function getKnowledgeContext() {
   return { guidesText, manualsText };
 }
 
+function invokeBedrockStream(payload) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify(payload);
+    const req = https.request({
+      hostname: BEDROCK_HOST,
+      path: `/model/${CHAT_MODEL}/invoke-with-response-stream`,
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${BEDROCK_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    }, (response) => {
+      if (response.statusCode !== 200) {
+        let errBody = '';
+        response.on('data', d => errBody += d.toString());
+        response.on('end', () => reject(new Error(`Bedrock ${response.statusCode}: ${errBody}`)));
+      } else {
+        resolve(response);
+      }
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
+
+function parseEventStream(stream, onDelta, onDone, onError) {
+  let rawBuffer = Buffer.alloc(0);
+
+  stream.on('data', (chunk) => {
+    rawBuffer = Buffer.concat([rawBuffer, chunk]);
+
+    while (rawBuffer.length >= 16) {
+      const totalLen = rawBuffer.readUInt32BE(0);
+      if (rawBuffer.length < totalLen) break;
+
+      const headerLen = rawBuffer.readUInt32BE(4);
+      const payloadStart = 12 + headerLen;
+      const payloadEnd = totalLen - 4;
+
+      if (payloadEnd > payloadStart) {
+        const payloadBuf = rawBuffer.slice(payloadStart, payloadEnd);
+        try {
+          const frameJson = JSON.parse(payloadBuf.toString('utf8'));
+          if (frameJson.bytes) {
+            const decoded = Buffer.from(frameJson.bytes, 'base64').toString('utf8');
+            const data = JSON.parse(decoded);
+
+            if (data.type === 'content_block_delta' && data.delta && data.delta.text) {
+              onDelta(data.delta.text);
+            }
+          }
+        } catch (e) {}
+      }
+
+      rawBuffer = rawBuffer.slice(totalLen);
+    }
+  });
+
+  stream.on('end', onDone);
+  stream.on('error', onError);
+}
+
 async function getChats(req, res) {
   const [chats] = await pool.query(
     'SELECT id, title, created_at, updated_at FROM ai_chats WHERE user_id = ? ORDER BY updated_at DESC',
@@ -65,8 +131,8 @@ async function sendMessage(req, res) {
   const { message, chat_id } = req.body;
   if (!message || !message.trim()) return res.status(400).json({ error: 'Message is required' });
 
-  if (!ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'AI service not configured. Please set ANTHROPIC_API_KEY.' });
+  if (!BEDROCK_TOKEN) {
+    return res.status(503).json({ error: 'AI service not configured. Please set AWS_BEARER_TOKEN_BEDROCK.' });
   }
 
   let chatId = chat_id;
@@ -106,78 +172,39 @@ async function sendMessage(req, res) {
   res.flushHeaders();
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: AI_MODEL,
-        max_tokens: 2048,
-        system: systemPrompt,
-        messages,
-        stream: true
-      })
+    const stream = await invokeBedrockStream({
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages
     });
-
-    if (!response.ok) {
-      const err = await response.text();
-      res.write(`data: ${JSON.stringify({ type: 'error', error: 'AI service error' })}\n\n`);
-      res.write('data: [DONE]\n\n');
-      res.end();
-      return;
-    }
 
     let fullResponse = '';
-    const reader = response.body;
 
-    const { Readable } = require('stream');
-    const readable = Readable.fromWeb(reader);
-    let buffer = '';
-
-    readable.on('data', (chunk) => {
-      buffer += chunk.toString();
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
-              fullResponse += parsed.delta.text;
-              res.write(`data: ${JSON.stringify({ type: 'delta', text: parsed.delta.text })}\n\n`);
-            } else if (parsed.type === 'message_stop') {
-              // done
-            }
-          } catch (e) {}
+    parseEventStream(
+      stream,
+      (text) => {
+        fullResponse += text;
+        res.write(`data: ${JSON.stringify({ type: 'delta', text })}\n\n`);
+      },
+      async () => {
+        if (fullResponse) {
+          await pool.query(
+            'INSERT INTO ai_chat_messages (chat_id, role, content) VALUES (?, ?, ?)',
+            [chatId, 'assistant', fullResponse]
+          );
+          await pool.query('UPDATE ai_chats SET updated_at = NOW() WHERE id = ?', [chatId]);
         }
+        res.write(`data: ${JSON.stringify({ type: 'done', chat_id: chatId })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+      },
+      (err) => {
+        res.write(`data: ${JSON.stringify({ type: 'error', error: 'Stream interrupted' })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
       }
-    });
-
-    readable.on('end', async () => {
-      if (fullResponse) {
-        await pool.query(
-          'INSERT INTO ai_chat_messages (chat_id, role, content) VALUES (?, ?, ?)',
-          [chatId, 'assistant', fullResponse]
-        );
-        await pool.query('UPDATE ai_chats SET updated_at = NOW() WHERE id = ?', [chatId]);
-      }
-      res.write(`data: ${JSON.stringify({ type: 'done', chat_id: chatId })}\n\n`);
-      res.write('data: [DONE]\n\n');
-      res.end();
-    });
-
-    readable.on('error', (err) => {
-      res.write(`data: ${JSON.stringify({ type: 'error', error: 'Stream interrupted' })}\n\n`);
-      res.write('data: [DONE]\n\n');
-      res.end();
-    });
-
+    );
   } catch (err) {
     res.write(`data: ${JSON.stringify({ type: 'error', error: 'Failed to connect to AI service' })}\n\n`);
     res.write('data: [DONE]\n\n');
