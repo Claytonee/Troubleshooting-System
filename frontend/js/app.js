@@ -57,6 +57,8 @@ const App = (() => {
     const handler = pages[page];
     const main = $('main');
 
+    main.classList.toggle('chat-active', page === 'chat');
+
     if (handler && handler.render) {
       main.innerHTML = handler.render();
       if (handler.afterRender) handler.afterRender();

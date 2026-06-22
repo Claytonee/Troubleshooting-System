@@ -15,6 +15,7 @@ const ChatPage = (() => {
 
   function render() {
     return `
+    <div class="chat-page-wrap">
     <div class="section-header">
       <div>
         <div class="section-title"><span class="chat-title-shimmer">AI Assistant</span></div>
@@ -43,6 +44,7 @@ const ChatPage = (() => {
       <div class="chat-body">
         ${activeChat || messages.length > 0 ? renderConversation() : renderWelcome()}
       </div>
+    </div>
     </div>`;
   }
 
