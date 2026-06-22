@@ -4,14 +4,38 @@
  */
 const API = (() => {
   const BASE = '/api';
+  const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes inactivity
+  let _inactivityTimer = null;
 
   function getToken() { return localStorage.getItem('qft_token'); }
-  function setToken(t) { localStorage.setItem('qft_token', t); }
-  function clearToken() { localStorage.removeItem('qft_token'); }
+  function setToken(t) { localStorage.setItem('qft_token', t); resetInactivityTimer(); }
+  function clearToken() { localStorage.removeItem('qft_token'); clearInactivityTimer(); }
   function getUser() { const u = localStorage.getItem('qft_user'); return u ? JSON.parse(u) : null; }
   function setUser(u) { localStorage.setItem('qft_user', JSON.stringify(u)); }
   function clearUser() { localStorage.removeItem('qft_user'); }
   function isLoggedIn() { return !!getToken(); }
+
+  function resetInactivityTimer() {
+    clearInactivityTimer();
+    if (!getToken()) return;
+    _inactivityTimer = setTimeout(() => {
+      clearToken();
+      clearUser();
+      window.dispatchEvent(new CustomEvent('auth:expired'));
+    }, SESSION_TIMEOUT);
+  }
+
+  function clearInactivityTimer() {
+    if (_inactivityTimer) { clearTimeout(_inactivityTimer); _inactivityTimer = null; }
+  }
+
+  function initSessionMonitor() {
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(ev => document.addEventListener(ev, () => {
+      if (getToken()) resetInactivityTimer();
+    }, { passive: true }));
+    if (getToken()) resetInactivityTimer();
+  }
 
   async function request(method, path, body = null) {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -96,5 +120,6 @@ const API = (() => {
       if (!res.ok) throw { status: res.status };
       return res.blob();
     },
+    initSessionMonitor,
   };
 })();

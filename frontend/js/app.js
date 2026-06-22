@@ -171,6 +171,7 @@ const ErrorDetailModal = (() => {
 document.addEventListener('DOMContentLoaded', () => {
   Modal.init();
   Auth.init();
+  API.initSessionMonitor();
   Router.initHashListener();
   if (Auth.checkSession()) {
     App.init();
