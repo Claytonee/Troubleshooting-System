@@ -111,13 +111,13 @@ const GuidesPage = (() => {
 
     return `<div class="card reveal" style="padding:18px 20px;cursor:pointer;border-left:3px solid ${m.color};transition:all .15s" onclick="GuidesPage.selectGuide(${g.id})" onmouseover="this.style.borderColor='${m.color}';this.style.background='var(--bg3)'" onmouseout="this.style.background='';this.style.borderColor=''">
       <div style="display:flex;align-items:flex-start;gap:14px">
-        <div style="width:40px;height:40px;background:${m.color}14;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <i class="ti ${g.icon || m.icon}" style="color:${m.color};font-size:19px"></i>
+        <div style="width:40px;height:40px;background:${m.color}30;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="ti ${g.icon || m.icon}" style="color:#fff;font-size:19px"></i>
         </div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:600;font-size:13px;color:var(--text1);margin-bottom:6px;line-height:1.4">${esc(g.title)}</div>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span style="font-size:10px;padding:2px 7px;border-radius:4px;background:${m.color}14;color:${m.color};font-weight:500">${esc(g.category)}</span>
+            <span style="font-size:10px;padding:2px 7px;border-radius:4px;background:${m.color}22;color:${m.color};font-weight:500">${esc(g.category)}</span>
             <span style="font-size:10px;color:var(--text3);display:flex;align-items:center;gap:3px"><i class="ti ti-list-numbers" style="font-size:11px"></i>${g.steps.length} steps</span>
             <span style="font-size:10px;color:var(--text3);display:flex;align-items:center;gap:3px"><i class="ti ti-clock" style="font-size:11px"></i>${readTime} min</span>
           </div>
@@ -143,13 +143,13 @@ const GuidesPage = (() => {
 
       <div class="card reveal" style="padding:24px;border-left:4px solid ${m.color}">
         <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:20px">
-          <div style="width:48px;height:48px;background:${m.color}14;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <i class="ti ${g.icon || m.icon}" style="color:${m.color};font-size:24px"></i>
+          <div style="width:48px;height:48px;background:${m.color}30;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <i class="ti ${g.icon || m.icon}" style="color:#fff;font-size:24px"></i>
           </div>
           <div style="flex:1">
             <div style="font-weight:600;font-size:16px;color:var(--text1);margin-bottom:6px">${esc(g.title)}</div>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-              <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:${m.color}14;color:${m.color};font-weight:500">${esc(g.category)}</span>
+              <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:${m.color}22;color:${m.color};font-weight:500">${esc(g.category)}</span>
               <span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:3px"><i class="ti ti-list-numbers" style="font-size:12px"></i>${g.steps.length} steps</span>
               <span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:3px"><i class="ti ti-clock" style="font-size:12px"></i>${readTime} min read</span>
               ${done.length > 0 ? `<span style="font-size:11px;color:var(--green);font-weight:500">${pct}% complete</span>` : ''}
@@ -199,7 +199,7 @@ const GuidesPage = (() => {
             const rm = getMeta(r.category);
             return `<div class="card reveal" style="padding:14px 16px;cursor:pointer;border-left:3px solid ${rm.color}" onclick="GuidesPage.selectGuide(${r.id})">
               <div style="display:flex;align-items:center;gap:10px">
-                <div style="width:32px;height:32px;background:${rm.color}14;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${r.icon || rm.icon}" style="color:${rm.color};font-size:15px"></i></div>
+                <div style="width:32px;height:32px;background:${rm.color}30;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${r.icon || rm.icon}" style="color:#fff;font-size:15px"></i></div>
                 <div><div style="font-size:12px;font-weight:500;color:var(--text1)">${esc(r.title)}</div><div style="font-size:10px;color:var(--text3)">${r.steps.length} steps</div></div>
               </div>
             </div>`;
