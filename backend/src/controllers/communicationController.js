@@ -44,6 +44,10 @@ async function create(req, res, next) {
       return res.status(400).json({ error: 'school_id and note are required.' });
     }
 
+    if (req.user.role === 'school' && parseInt(school_id) !== req.user.school_id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
     const [result] = await pool.query(
       'INSERT INTO communications (school_id, recorded_by, note) VALUES (?, ?, ?)',
       [school_id, recorded_by || req.user.full_name, note]

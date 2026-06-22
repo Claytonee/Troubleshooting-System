@@ -34,9 +34,15 @@ const Router = (() => {
 
   function applyRoleVisibility() {
     const user = API.getUser();
-    const hideAdmin = !user || user.role !== 'admin';
+    const role = user ? user.role : '';
+    const hideAdmin = role !== 'admin';
+    const hideSchool = role !== 'school';
     document.querySelectorAll('[data-role="admin"]').forEach(el => el.classList.toggle('nav-hidden', hideAdmin));
+    document.querySelectorAll('[data-role="school"]').forEach(el => el.classList.toggle('nav-hidden', hideSchool));
     if (hideAdmin && ['analytics', 'schooladmins', 'branding', 'audit'].includes(currentPage)) {
+      navigate('dashboard');
+    }
+    if (hideSchool && ['report', 'help'].includes(currentPage)) {
       navigate('dashboard');
     }
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === currentPage));

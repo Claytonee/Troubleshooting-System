@@ -136,6 +136,10 @@ async function getById(req, res, next) {
 
     if (!rows.length) return res.status(404).json({ error: 'Error not found.' });
 
+    if (req.user.role === 'school' && rows[0].school_id !== req.user.school_id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
     const [updates] = await pool.query(
       'SELECT * FROM error_updates WHERE error_id = ? ORDER BY created_at DESC',
       [req.params.id]
@@ -148,6 +152,10 @@ async function getById(req, res, next) {
 async function create(req, res, next) {
   try {
     const { title, description, school_id, category, subcategory, priority, reporter_name, reporter_role, reporter_contact, location, affected_devices } = req.body;
+
+    if (req.user.role === 'school' && parseInt(school_id) !== req.user.school_id) {
+      return res.status(403).json({ error: 'You can only report errors for your own school.' });
+    }
 
     // Derive next code from the highest numeric code (not last-inserted row),
     // so seeded data with non-sequential ids can't cause a duplicate code.
@@ -232,6 +240,10 @@ async function updateStatus(req, res, next) {
     const prev = await getErrorRow(req.params.id);
     if (!prev) return res.status(404).json({ error: 'Error not found.' });
 
+    if (req.user.role === 'school' && prev.school_id !== req.user.school_id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
     const resolvedAt = status === 'resolved' ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null;
 
     // Stamp first response when an error first moves off "open".
@@ -284,6 +296,13 @@ async function addUpdate(req, res, next) {
   try {
     const { update_type, note, recorded_by } = req.body;
     if (!note) return res.status(400).json({ error: 'Note is required.' });
+
+    if (req.user.role === 'school') {
+      const row = await getErrorRow(req.params.id);
+      if (row && row.school_id !== req.user.school_id) {
+        return res.status(403).json({ error: 'Access denied.' });
+      }
+    }
 
     await pool.query(
       'INSERT INTO error_updates (error_id, update_type, note, recorded_by) VALUES (?, ?, ?, ?)',

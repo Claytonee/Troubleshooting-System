@@ -9,6 +9,10 @@ const ReportPage = (() => {
   }
 
   function render() {
+    const user = API.getUser();
+    const isSchool = user && user.role === 'school';
+    const userSchool = isSchool ? schools.find(s => s.id === user.school_id) : null;
+
     return `
     <div class="section-header"><div>
       <div class="section-title">Report a Technical Error</div>
@@ -18,8 +22,10 @@ const ReportPage = (() => {
       <div class="card">
         <div class="form-grid">
           <div class="form-group"><label>Reporting School *</label>
-            <select id="f-school"><option value="">— Select school —</option>
-              ${schools.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></div>
+            ${isSchool && userSchool
+              ? `<input type="text" value="${esc(userSchool.name)}" disabled><input type="hidden" id="f-school" value="${userSchool.id}">`
+              : `<select id="f-school"><option value="">— Select school —</option>${schools.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>`
+            }</div>
           <div class="form-group"><label>Reported By *</label><input id="f-reporter" type="text" placeholder="Full name"></div>
           <div class="form-group"><label>Role</label><select id="f-role">
             <option>Teacher</option><option>School IT Coordinator</option><option>Head Teacher</option><option>Quest Coordinator</option><option>Student</option></select></div>
