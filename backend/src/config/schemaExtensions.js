@@ -49,6 +49,25 @@ async function applyExtensions(db) {
   await db.query('ALTER TABLE schools ADD COLUMN IF NOT EXISTS it_email VARCHAR(255)');
   await db.query('ALTER TABLE schools ADD COLUMN IF NOT EXISTS coordinator_name VARCHAR(200)');
   await db.query('ALTER TABLE schools ADD COLUMN IF NOT EXISTS coordinator_email VARCHAR(255)');
+
+  // --- AI Chat (self-service troubleshooting assistant) ---
+  await db.query(`CREATE TABLE IF NOT EXISTS ai_chats (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    title VARCHAR(300) DEFAULT 'New Chat',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+  )`);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_ai_chats_user ON ai_chats (user_id)');
+
+  await db.query(`CREATE TABLE IF NOT EXISTS ai_chat_messages (
+    id SERIAL PRIMARY KEY,
+    chat_id INTEGER NOT NULL REFERENCES ai_chats(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('user','assistant')),
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_ai_messages_chat ON ai_chat_messages (chat_id)');
 }
 
 module.exports = { applyExtensions, SLA_TARGET_HOURS };

@@ -17,6 +17,7 @@ const App = (() => {
     branding: BrandingPage,
     audit: AuditPage,
     search: SearchPage,
+    chat: ChatPage,
     help: HelpPage,
   };
 

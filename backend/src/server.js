@@ -21,6 +21,7 @@ const guideRoutes = require('./routes/guides');
 const manualRoutes = require('./routes/manuals');
 const commRoutes = require('./routes/communications');
 const settingsRoutes = require('./routes/settings');
+const aiChatRoutes = require('./routes/aiChat');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -96,6 +97,7 @@ app.use('/api/guides', guideRoutes);
 app.use('/api/manuals', manualRoutes);
 app.use('/api/communications', commRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/ai', aiChatRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

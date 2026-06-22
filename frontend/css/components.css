@@ -206,3 +206,17 @@ select option { background: var(--bg3); }
 .login-sub { font-size: 13px; color: var(--text3); text-align: center; margin-bottom: 28px; }
 .login-error { background: rgba(255,82,99,0.1); border: 1px solid rgba(255,82,99,0.3); color: var(--red); border-radius: 8px; padding: 10px 14px; font-size: 12px; margin-bottom: 16px; display: none; }
 .login-error.show { display: block; }
+
+/* AI Chat */
+.chat-streaming-indicator { display: flex; gap: 4px; padding: 4px 0; margin-bottom: 4px; }
+.chat-streaming-indicator span { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; animation: chatDot 1.2s infinite; }
+.chat-streaming-indicator span:nth-child(2) { animation-delay: .2s; }
+.chat-streaming-indicator span:nth-child(3) { animation-delay: .4s; }
+@keyframes chatDot { 0%, 60%, 100% { opacity: .3; transform: scale(.8); } 30% { opacity: 1; transform: scale(1); } }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 920px) {
+  .chat-layout { grid-template-columns: 1fr !important; height: calc(100vh - 200px) !important; }
+  .chat-sidebar { display: none !important; }
+}
