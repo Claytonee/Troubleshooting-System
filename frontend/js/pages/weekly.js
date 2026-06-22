@@ -35,7 +35,7 @@ const WeeklyPage = (() => {
         <td>${esc(s.contact_name || '—')}</td>
         <td><span class="badge ${status === 'green' ? 'badge-green' : status === 'amber' ? 'badge-amber' : status === 'red' ? 'badge-red' : 'badge-gray'}">${label}</span></td>
         <td>${c ? esc(c.note || '—') : '—'}</td>
-        <td>${!c ? `<button class="btn btn-primary btn-sm" onclick="WeeklyPage.openCheckin(${s.id})"><i class="ti ti-clipboard-check"></i> Check-In</button>` : `<button class="btn btn-secondary btn-sm" onclick="WeeklyPage.viewCheckin(${s.id})"><i class="ti ti-eye"></i></button>`}</td>
+        <td>${!c ? `<button class="btn btn-primary btn-sm" onclick="WeeklyPage.openCheckin(${s.id})"><i class="ti ti-clipboard-check"></i> Check-In</button>` : `<button class="btn btn-secondary btn-sm" onclick="WeeklyPage.viewCheckin(${s.id})"><i class="ti ti-eye"></i> View</button>`}</td>
       </tr>`;
     }).join('');
 
