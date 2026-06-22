@@ -96,7 +96,7 @@ const GuidesPage = (() => {
     </div>
 
     ${!filtered.length ? renderEmptyState() : `
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(320px,100%),1fr));gap:12px">
       ${filtered.map(g => renderArticleCard(g)).join('')}
     </div>`}`;
   }

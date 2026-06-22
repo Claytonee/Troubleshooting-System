@@ -29,14 +29,47 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 .reveal { opacity: 0; transform: translateY(12px); transition: opacity .4s ease, transform .4s ease; }
 .reveal.visible { opacity: 1; transform: none; }
 
-/* Responsive */
+/* Page-specific layouts */
+.report-layout, .help-layout { display: grid; }
+
+/* Responsive — Tablet (920px) */
 @media (max-width: 920px) {
+  .report-layout { grid-template-columns: 1fr !important; }
+  .help-layout { grid-template-columns: 1fr !important; }
   .app { grid-template-columns: 1fr; grid-template-rows: 56px 1fr; }
   .sidebar { transform: translateX(-100%); transition: transform .25s; }
   .sidebar.open { transform: translateX(0); box-shadow: 0 0 40px rgba(0,0,0,0.6); }
   .main { grid-column: 1; margin-top: 56px; padding: 16px 16px 60px; }
   .menu-toggle { display: flex; }
   .two-col, .three-col, .form-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .section-header { flex-direction: column; align-items: flex-start; gap: 10px; margin: -16px -16px 16px; padding: 16px 16px 12px; }
+  .brand span { display: none; }
+}
+
+/* Responsive — Mobile (520px) */
+@media (max-width: 520px) {
+  .topbar { padding: 0 12px; gap: 8px; }
+  .topbar-search { display: none !important; }
+  .role-switch { display: none !important; }
+  .main { padding: 12px 12px 60px; }
+  .stats-grid { grid-template-columns: 1fr; gap: 10px; }
+  .stat-card { padding: 12px; }
+  .stat-val { font-size: 22px; }
+  .card { padding: 14px; }
+  .section-header { margin: -12px -12px 14px; padding: 12px 12px 10px; top: -12px; }
+  .section-title { font-size: 16px; }
+  .section-sub { font-size: 12px; }
+  .btn { padding: 8px 14px; font-size: 12px; }
+  .btn-sm { padding: 5px 10px; font-size: 11px; }
+  table { font-size: 12px; }
+  th, td { padding: 8px 8px; }
+  .modal { width: 100%; max-width: 100%; border-radius: 14px 14px 0 0; max-height: 85vh; }
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .form-grid { gap: 10px; }
+  .alert-banner { padding: 10px 12px; font-size: 12px; }
+  .chip { font-size: 11px; padding: 4px 10px; }
+  .school-card { padding: 12px; }
 }
 .sidebar-backdrop { display: none; position: fixed; inset: 56px 0 0 0; background: rgba(0,0,0,0.5); z-index: 25; }
 .sidebar-backdrop.show { display: block; }

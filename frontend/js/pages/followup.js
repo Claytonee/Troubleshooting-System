@@ -61,7 +61,7 @@ const FollowUpPage = (() => {
     <div class="section-header">
       <div><div class="section-title">Follow-Up Center</div><div class="section-sub">Open issues needing action + communication log</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start">
+    <div class="two-col" style="grid-template-columns:1fr 340px;gap:20px;align-items:start">
       <div>
         <div class="card" style="margin-bottom:16px">
           <div class="card-title">Issues Requiring Action (${pending.length})</div>

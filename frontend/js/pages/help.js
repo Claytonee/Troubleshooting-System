@@ -37,7 +37,7 @@ const HelpPage = (() => {
         <div class="section-sub">Mwongozo wa Matumizi &mdash; School Admin</div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start">
+    <div class="help-layout" style="display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start">
       <div class="card reveal" style="position:sticky;top:76px;padding:10px 8px">
         ${nav}
       </div>

@@ -27,9 +27,21 @@ const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
 
+// Force HTTPS in production (Render terminates SSL at the proxy)
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, 'https://' + req.headers.host + req.url);
+    }
+    next();
+  });
+}
+
 // Security middleware
 app.use(helmet({
-  contentSecurityPolicy: false
+  contentSecurityPolicy: false,
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' ? (process.env.FRONTEND_URL || true) : '*',
