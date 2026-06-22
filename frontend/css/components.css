@@ -13,8 +13,8 @@
 .nav-badge.alert { background: rgba(255,82,99,0.2); color: var(--red); }
 .nav-hidden { display: none !important; }
 
-/* Sidebar footer */
-.sidebar-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); }
+/* Sidebar footer — fixed at bottom */
+.sidebar-footer { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); position: sticky; bottom: 0; background: var(--bg2); padding-bottom: 4px; }
 
 /* Cards */
 .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
