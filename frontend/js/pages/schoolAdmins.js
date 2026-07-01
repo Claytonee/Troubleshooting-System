@@ -81,28 +81,16 @@ const SchoolAdminsPage = (() => {
       <button class="btn btn-primary" onclick="SchoolAdminsPage.openCreate()"><i class="ti ti-user-plus"></i> Add School Admin</button>
     </div>
 
-    <div class="sa-stats">
-      <div class="sa-stat"><span class="sa-stat-val">${stats.total}</span><span class="sa-stat-label">Total</span></div>
-      <div class="sa-stat-divider"></div>
-      <div class="sa-stat"><span class="sa-stat-val" style="color:var(--green)">${stats.active}</span><span class="sa-stat-label">Active</span></div>
-      <div class="sa-stat-divider"></div>
-      <div class="sa-stat"><span class="sa-stat-val" style="color:var(--amber)">${stats.pending}</span><span class="sa-stat-label">Pending</span></div>
-      <div class="sa-stat-divider"></div>
-      <div class="sa-stat"><span class="sa-stat-val" style="color:var(--red)">${stats.rejected}</span><span class="sa-stat-label">Rejected</span></div>
-    </div>
-
-    <div class="sa-tabs-sticky">
-      <div class="tab-row" style="padding:0;background:var(--bg2);border:1px solid var(--border);border-radius:10px 10px 0 0;padding:0 16px">
+    <div class="sa-toolbar">
+      <div class="tab-row" style="padding:0;border-bottom:none">
         <button class="tab-btn ${filter === 'all' ? 'active' : ''}" onclick="SchoolAdminsPage.setFilter('all')">All Active (${stats.active})</button>
-        <button class="tab-btn ${filter === 'pending' ? 'active' : ''}" onclick="SchoolAdminsPage.setFilter('pending')">Pending ${stats.pending > 0 ? `<span class="notif-badge-inline">${stats.pending}</span>` : ''}</button>
+        <button class="tab-btn ${filter === 'pending' ? 'active' : ''}" onclick="SchoolAdminsPage.setFilter('pending')">Pending ${stats.pending > 0 ? `<span class="notif-badge-inline">${stats.pending}</span>` : `(${stats.pending})`}</button>
         <button class="tab-btn ${filter === 'rejected' ? 'active' : ''}" onclick="SchoolAdminsPage.setFilter('rejected')">Rejected (${stats.rejected})</button>
       </div>
-      <div style="padding:10px 16px;background:var(--bg2);border-left:1px solid var(--border);border-right:1px solid var(--border)">
-        <input type="text" placeholder="Search by name, email or school..." value="${esc(search)}"
-          oninput="SchoolAdminsPage.setSearch(this.value)" style="width:100%;max-width:380px;padding:8px 12px">
-      </div>
+      <input type="text" placeholder="Search by name, email or school..." value="${esc(search)}"
+        oninput="SchoolAdminsPage.setSearch(this.value)" class="sa-search">
     </div>
-    <div class="card" style="border-radius:0 0 10px 10px;border-top:none;padding:16px">
+    <div class="sa-list">
       ${content}
     </div>`;
   }
