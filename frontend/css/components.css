@@ -439,3 +439,9 @@ select option { background: var(--bg3); }
 .sa-row-rejected { border-left: 3px solid var(--red); opacity: .8; }
 .sa-row-rejected:hover { opacity: 1; }
 .notif-badge-inline { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; background: var(--red); color: #fff; font-size: 9px; font-weight: 700; border-radius: 20px; padding: 0 4px; margin-left: 6px; }
+.sa-stats { display: flex; align-items: center; gap: 0; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 20px; margin-bottom: 16px; }
+.sa-stat { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: center; }
+.sa-stat-val { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+.sa-stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; font-weight: 500; }
+.sa-stat-divider { width: 1px; height: 28px; background: var(--border); margin: 0 8px; }
+.sa-tabs-sticky { position: sticky; top: 40px; z-index: 8; }
