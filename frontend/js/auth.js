@@ -5,6 +5,8 @@
 const Auth = (() => {
   function showLogin() {
     $('app-container').style.display = 'none';
+    const regPage = document.getElementById('register-page');
+    if (regPage) regPage.style.display = 'none';
     $('login-page').style.display = 'flex';
     $('login-error').classList.remove('show');
     closeProfileMenu();
@@ -224,16 +226,12 @@ const Auth = (() => {
     });
   }
 
-  function goRegister() {
+  async function goRegister() {
     $('login-page').style.display = 'none';
-    $('app-container').style.display = 'grid';
-    window.location.hash = 'register';
-    // Hide sidebar for registration (public page)
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) sidebar.style.display = 'none';
-    const main = document.getElementById('main');
-    if (main) main.style.gridColumn = '1 / -1';
-    App.loadAndRender();
+    $('app-container').style.display = 'none';
+    $('register-page').style.display = 'flex';
+    await RegisterPage.load();
+    $('register-content').innerHTML = RegisterPage.render();
   }
 
   return { init, showLogin, showApp, logout, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, switchRole, goRegister };

@@ -323,29 +323,29 @@ select option { background: var(--bg3); }
 }
 
 /* Registration Page */
-.reg-page { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 56px); padding: 24px; }
-.reg-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 36px 32px; max-width: 560px; width: 100%; animation: fadeUp .4s ease; }
+.reg-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+.reg-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 28px 28px 24px; max-width: 520px; width: 100%; animation: fadeUp .4s ease; }
 .reg-card-status { text-align: center; max-width: 420px; }
-.reg-header { text-align: center; margin-bottom: 28px; }
+.reg-header { text-align: center; margin-bottom: 16px; }
 .reg-icon { width: 56px; height: 56px; margin: 0 auto 16px; background: rgba(79,124,255,0.08); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: var(--accent); }
-.reg-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
-.reg-sub { font-size: 13px; color: var(--text3); line-height: 1.6; }
-.reg-error { background: rgba(255,82,99,0.08); border: 1px solid rgba(255,82,99,0.2); color: var(--red); border-radius: 8px; padding: 10px 14px; font-size: 12px; margin-bottom: 16px; }
-.reg-form { display: flex; flex-direction: column; gap: 14px; }
-.reg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.reg-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.reg-sub { font-size: 12px; color: var(--text3); line-height: 1.5; }
+.reg-error { background: rgba(255,82,99,0.08); border: 1px solid rgba(255,82,99,0.2); color: var(--red); border-radius: 8px; padding: 8px 12px; font-size: 12px; margin-bottom: 12px; }
+.reg-form { display: flex; flex-direction: column; gap: 10px; }
+.reg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
 .reg-full { grid-column: 1 / -1; }
 @media (max-width: 520px) { .reg-grid { grid-template-columns: 1fr; } }
-.reg-field { display: flex; flex-direction: column; gap: 5px; }
-.reg-field label { font-size: 12px; font-weight: 500; color: var(--text2); }
+.reg-field { display: flex; flex-direction: column; gap: 3px; }
+.reg-field label { font-size: 11px; font-weight: 500; color: var(--text2); }
 .reg-field .req { color: var(--red); }
-.reg-field input, .reg-field select { padding: 10px 12px; background: var(--bg1); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; font-family: var(--font); transition: border-color .2s; }
+.reg-field input, .reg-field select { padding: 8px 10px; background: var(--bg1); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; font-family: var(--font); transition: border-color .2s; }
 .reg-field input:focus, .reg-field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(79,124,255,0.08); }
-.reg-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; background: linear-gradient(135deg, var(--accent), #6366f1); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: var(--font); width: 100%; margin-top: 8px; }
+.reg-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; background: linear-gradient(135deg, var(--accent), #6366f1); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: var(--font); width: 100%; margin-top: 4px; }
 .reg-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,124,255,0.3); }
 .reg-btn:active { transform: scale(0.98); }
 .reg-btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
 .reg-btn-outline:hover { background: rgba(79,124,255,0.06); box-shadow: none; }
-.reg-footer { text-align: center; margin-top: 20px; font-size: 12px; color: var(--text3); }
+.reg-footer { text-align: center; margin-top: 14px; font-size: 12px; color: var(--text3); }
 .reg-footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
 
 /* Pending Animation */

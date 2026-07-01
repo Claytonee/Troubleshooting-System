@@ -25,11 +25,9 @@ const RegisterPage = (() => {
     <div class="reg-page">
       <div class="reg-card">
         <div class="reg-header">
-          <div class="reg-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/></svg>
-          </div>
+          <div class="brand-dot" style="width:40px;height:40px;font-size:14px;margin:0 auto 10px">QF</div>
           <h1 class="reg-title">School Admin Registration</h1>
-          <p class="reg-sub">Register as a school administrator for Opportunity Education Tanzania technical support system</p>
+          <p class="reg-sub">Join Opportunity Education Tanzania technical support</p>
         </div>
         ${errorMsg ? `<div class="reg-error">${errorMsg}</div>` : ''}
         <form class="reg-form" onsubmit="RegisterPage.submit(event)">
@@ -162,7 +160,7 @@ const RegisterPage = (() => {
 
     if (password !== confirm) {
       errorMsg = 'Passwords do not match.';
-      App.render(); return;
+      reRender(); return;
     }
 
     const btn = document.getElementById('reg-submit-btn');
@@ -178,17 +176,17 @@ const RegisterPage = (() => {
 
       if (!res.ok) {
         errorMsg = data.error || 'Registration failed.';
-        App.render(); return;
+        reRender(); return;
       }
 
       requestId = data.request_id;
       requestEmail = email;
       step = 'pending';
-      App.render();
+      reRender();
       startPolling();
     } catch (err) {
       errorMsg = 'Network error. Please try again.';
-      App.render();
+      reRender();
     }
   }
 
@@ -201,12 +199,12 @@ const RegisterPage = (() => {
         if (data.status === 'approved') {
           step = 'approved';
           clearInterval(pollInterval);
-          App.render();
+          reRender();
         } else if (data.status === 'rejected') {
           step = 'rejected';
           errorMsg = data.rejection_reason || '';
           clearInterval(pollInterval);
-          App.render();
+          reRender();
         }
       } catch (e) {}
     }, 10000);
@@ -233,7 +231,7 @@ const RegisterPage = (() => {
       if (res.ok) {
         showToast('Appeal submitted successfully');
         step = 'pending';
-        App.render();
+        reRender();
         startPolling();
       } else {
         showToast(data.error || 'Failed to submit appeal');
@@ -246,8 +244,14 @@ const RegisterPage = (() => {
   function goLogin() {
     if (pollInterval) clearInterval(pollInterval);
     step = 'form'; errorMsg = ''; requestId = null; requestEmail = null;
-    window.location.hash = '';
-    window.location.reload();
+    const regPage = document.getElementById('register-page');
+    if (regPage) regPage.style.display = 'none';
+    Auth.showLogin();
+  }
+
+  function reRender() {
+    const el = document.getElementById('register-content');
+    if (el) el.innerHTML = render();
   }
 
   function afterRender() {}

@@ -217,15 +217,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const teacherRegMatch = window.location.pathname.match(/\/register\/teacher\/([a-f0-9]+)/);
   if (teacherRegMatch) {
     document.getElementById('login-page').style.display = 'none';
-    document.getElementById('app-container').style.display = 'grid';
-    document.getElementById('sidebar').style.display = 'none';
-    const main = document.getElementById('main');
-    main.style.gridColumn = '1 / -1';
-    document.querySelector('.topbar').style.display = 'none';
-    main.style.marginTop = '0';
-    main.style.height = '100vh';
+    document.getElementById('app-container').style.display = 'none';
+    const regPage = document.getElementById('register-page');
+    regPage.style.display = 'flex';
     await TeacherRegisterPage.init();
-    main.innerHTML = TeacherRegisterPage.render();
+    document.getElementById('register-content').innerHTML = TeacherRegisterPage.render();
+    return;
+  }
+
+  // Handle #register hash directly
+  if (window.location.hash === '#register') {
+    Auth.goRegister();
     return;
   }
 
