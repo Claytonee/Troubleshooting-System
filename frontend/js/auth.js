@@ -194,8 +194,17 @@ const Auth = (() => {
       showApp();
       App.init();
     } catch (err) {
-      errorEl.textContent = err.error || 'Login failed. Check your credentials.';
-      errorEl.classList.add('show');
+      if (err.error === 'pending_approval' || err.error === 'registration_rejected') {
+        // Redirect to registration status page
+        RegisterPage.showStatus(err.error, err.request_id, err.email, err.rejection_reason);
+        $('login-page').style.display = 'none';
+        $('app-container').style.display = 'none';
+        $('register-page').style.display = 'flex';
+        $('register-content').innerHTML = RegisterPage.render();
+      } else {
+        errorEl.textContent = err.error || 'Login failed. Check your credentials.';
+        errorEl.classList.add('show');
+      }
     } finally {
       btn.disabled = false;
       btn.innerHTML = '<i class="ti ti-login"></i> Sign In';

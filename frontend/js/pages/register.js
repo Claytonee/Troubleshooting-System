@@ -263,6 +263,18 @@ const RegisterPage = (() => {
     Auth.showLogin();
   }
 
+  function showStatus(status, id, email, reason) {
+    requestId = id;
+    requestEmail = email;
+    if (status === 'pending_approval') {
+      step = 'pending';
+      startPolling();
+    } else if (status === 'registration_rejected') {
+      step = 'rejected';
+      errorMsg = reason || '';
+    }
+  }
+
   function reRender() {
     const el = document.getElementById('register-content');
     if (el) el.innerHTML = render();
@@ -313,5 +325,5 @@ const RegisterPage = (() => {
 
   function afterRender() {}
 
-  return { load, render, afterRender, submit, showAppeal, submitAppeal, goLogin, toggleDropdown, filterSchools, selectSchool };
+  return { load, render, afterRender, submit, showAppeal, submitAppeal, goLogin, showStatus, toggleDropdown, filterSchools, selectSchool };
 })();
