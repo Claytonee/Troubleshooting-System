@@ -28,6 +28,7 @@ const App = (() => {
     Router.applyRoleVisibility();
     await loadAndRender();
     updateBadges();
+    setInterval(updateBadges, 30000);
   }
 
   async function updateBadges() {
@@ -39,18 +40,18 @@ const App = (() => {
       const navCrit = document.getElementById('nav-crit');
       const navTrack = document.getElementById('nav-track');
       const navFu = document.getElementById('nav-fu');
-      const notifDot = document.getElementById('notif-dot');
       if (navCrit) { navCrit.textContent = crit > 0 ? crit : ''; navCrit.style.display = crit > 0 ? 'inline-block' : 'none'; }
       if (navTrack) { navTrack.textContent = open > 0 ? open : ''; navTrack.style.display = open > 0 ? 'inline-block' : 'none'; }
       if (navFu) { navFu.textContent = fuCount > 0 ? fuCount : ''; navFu.style.display = fuCount > 0 ? 'inline-block' : 'none'; }
-      if (notifDot) notifDot.style.display = fuCount > 0 ? 'block' : 'none';
 
-      // Admin: approval badge
       const user = API.getUser();
+      const token = API.getToken();
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      // Admin: approval badge in sidebar
       if (user && user.role === 'admin') {
         try {
-          const token = API.getToken();
-          const res = await fetch('/api/register/approvals/pending', { headers: { 'Authorization': `Bearer ${token}` } });
+          const res = await fetch('/api/register/approvals/pending', { headers });
           if (res.ok) {
             const pending = await res.json();
             const navApprovals = document.getElementById('nav-approvals');
@@ -65,8 +66,7 @@ const App = (() => {
       // School admin: pending teachers badge
       if (user && user.role === 'school') {
         try {
-          const token = API.getToken();
-          const res = await fetch('/api/register/teacher-approvals/pending', { headers: { 'Authorization': `Bearer ${token}` } });
+          const res = await fetch('/api/register/teacher-approvals/pending', { headers });
           if (res.ok) {
             const pending = await res.json();
             const navTeachers = document.getElementById('nav-teachers');
@@ -77,6 +77,9 @@ const App = (() => {
           }
         } catch (e) {}
       }
+
+      // Refresh notification bell
+      Notifications.refresh();
     } catch (e) {}
   }
 
