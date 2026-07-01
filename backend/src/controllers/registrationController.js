@@ -128,6 +128,12 @@ async function submitAppeal(req, res, next) {
       [request_id, full_name, email, phone || null, message]
     );
 
+    // Reset request status to pending so admin sees it again and polling works
+    await pool.query(
+      "UPDATE registration_requests SET status = 'pending', reviewed_at = NULL, reviewed_by = NULL, rejection_reason = NULL WHERE id = ?",
+      [request_id]
+    );
+
     res.status(201).json({ message: 'Appeal submitted successfully.' });
   } catch (err) { next(err); }
 }
@@ -189,7 +195,7 @@ async function approveRegistration(req, res, next) {
     const { id } = req.params;
 
     const [rows] = await pool.query(
-      "SELECT * FROM registration_requests WHERE id = ? AND status = 'pending'", [id]
+      "SELECT * FROM registration_requests WHERE id = ? AND status IN ('pending', 'rejected')", [id]
     );
     if (!rows.length) {
       return res.status(400).json({ error: 'Request not found or already processed.' });
