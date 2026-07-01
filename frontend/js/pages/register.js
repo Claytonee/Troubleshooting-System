@@ -33,36 +33,38 @@ const RegisterPage = (() => {
         </div>
         ${errorMsg ? `<div class="reg-error">${errorMsg}</div>` : ''}
         <form class="reg-form" onsubmit="RegisterPage.submit(event)">
-          <div class="reg-field">
-            <label>Full Name <span class="req">*</span></label>
-            <input type="text" id="reg-name" placeholder="Enter your full name" required minlength="3">
-          </div>
-          <div class="reg-field">
-            <label>Email Address <span class="req">*</span></label>
-            <input type="email" id="reg-email" placeholder="your.email@example.com" required>
-          </div>
-          <div class="reg-field">
-            <label>Phone Number <span class="req">*</span></label>
-            <input type="tel" id="reg-phone" placeholder="+255 7XX XXX XXX" required>
-          </div>
-          <div class="reg-field">
-            <label>School <span class="req">*</span></label>
-            <select id="reg-school" required>
-              <option value="">Select your school</option>
-              ${schools.map(s => `<option value="${s.id}">${s.name} (${s.zone || 'N/A'})</option>`).join('')}
-            </select>
-          </div>
-          <div class="reg-field">
-            <label>Your Role/Title</label>
-            <input type="text" id="reg-title" placeholder="e.g. IT Coordinator, Head Teacher">
-          </div>
-          <div class="reg-field">
-            <label>Password <span class="req">*</span></label>
-            <input type="password" id="reg-password" placeholder="Minimum 8 characters" required minlength="8">
-          </div>
-          <div class="reg-field">
-            <label>Confirm Password <span class="req">*</span></label>
-            <input type="password" id="reg-confirm" placeholder="Re-enter password" required>
+          <div class="reg-grid">
+            <div class="reg-field">
+              <label>Full Name <span class="req">*</span></label>
+              <input type="text" id="reg-name" placeholder="Enter your full name" required minlength="3">
+            </div>
+            <div class="reg-field">
+              <label>Email Address <span class="req">*</span></label>
+              <input type="email" id="reg-email" placeholder="your.email@example.com" required>
+            </div>
+            <div class="reg-field">
+              <label>Phone Number <span class="req">*</span></label>
+              <input type="tel" id="reg-phone" placeholder="+255 7XX XXX XXX" required>
+            </div>
+            <div class="reg-field">
+              <label>Your Role/Title</label>
+              <input type="text" id="reg-title" placeholder="e.g. IT Coordinator, Head Teacher">
+            </div>
+            <div class="reg-field reg-full">
+              <label>School <span class="req">*</span></label>
+              <select id="reg-school" required>
+                <option value="">Select your school</option>
+                ${schools.map(s => `<option value="${s.id}">${s.name} (${s.zone || 'N/A'})</option>`).join('')}
+              </select>
+            </div>
+            <div class="reg-field">
+              <label>Password <span class="req">*</span></label>
+              <input type="password" id="reg-password" placeholder="Minimum 8 characters" required minlength="8">
+            </div>
+            <div class="reg-field">
+              <label>Confirm Password <span class="req">*</span></label>
+              <input type="password" id="reg-confirm" placeholder="Re-enter password" required>
+            </div>
           </div>
           <button type="submit" class="reg-btn" id="reg-submit-btn">
             <span>Submit Registration</span>
