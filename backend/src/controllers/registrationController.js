@@ -222,6 +222,12 @@ async function approveRegistration(req, res, next) {
       [req.user.id, id]
     );
 
+    // Mark any pending appeals for this request as resolved
+    await pool.query(
+      "UPDATE registration_appeals SET status = 'resolved' WHERE request_id = ? AND status = 'pending'",
+      [id]
+    );
+
     await pool.query(
       `INSERT INTO audit_log (actor_id, actor_name, actor_role, action, entity_type, entity_id, summary, ip)
        VALUES (?, ?, ?, 'registration.approved', 'user', ?, ?, ?)`,
@@ -273,6 +279,7 @@ async function getAppeals(req, res, next) {
        FROM registration_appeals a
        JOIN registration_requests r ON a.request_id = r.id
        LEFT JOIN schools s ON r.school_id = s.id
+       WHERE r.status != 'approved'
        ORDER BY a.created_at DESC`
     );
     res.json(rows);
