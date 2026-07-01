@@ -224,5 +224,17 @@ const Auth = (() => {
     });
   }
 
-  return { init, showLogin, showApp, logout, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, switchRole };
+  function goRegister() {
+    $('login-page').style.display = 'none';
+    $('app-container').style.display = 'grid';
+    window.location.hash = 'register';
+    // Hide sidebar for registration (public page)
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.style.display = 'none';
+    const main = document.getElementById('main');
+    if (main) main.style.gridColumn = '1 / -1';
+    App.loadAndRender();
+  }
+
+  return { init, showLogin, showApp, logout, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, switchRole, goRegister };
 })();

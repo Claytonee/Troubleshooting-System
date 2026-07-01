@@ -22,6 +22,7 @@ const manualRoutes = require('./routes/manuals');
 const commRoutes = require('./routes/communications');
 const settingsRoutes = require('./routes/settings');
 const aiChatRoutes = require('./routes/aiChat');
+const registrationRoutes = require('./routes/registration');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -65,6 +66,14 @@ const authLimiter = rateLimit({
 });
 app.use('/api/auth/login', authLimiter);
 
+const registrationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many registration attempts, please try again later.' }
+});
+app.use('/api/register/school-admin', registrationLimiter);
+app.use('/api/register/teacher', registrationLimiter);
+
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -98,6 +107,7 @@ app.use('/api/manuals', manualRoutes);
 app.use('/api/communications', commRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/ai', aiChatRoutes);
+app.use('/api/register', registrationRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

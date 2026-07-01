@@ -321,3 +321,64 @@ select option { background: var(--bg3); }
   .chat-u-bubble { max-width: 85%; }
   .chat-ai-bubble { max-width: 95%; }
 }
+
+/* Registration Page */
+.reg-page { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 56px); padding: 24px; }
+.reg-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 36px 32px; max-width: 460px; width: 100%; animation: fadeUp .4s ease; }
+.reg-card-status { text-align: center; max-width: 420px; }
+.reg-header { text-align: center; margin-bottom: 28px; }
+.reg-icon { width: 56px; height: 56px; margin: 0 auto 16px; background: rgba(79,124,255,0.08); border-radius: 16px; display: flex; align-items: center; justify-content: center; color: var(--accent); }
+.reg-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+.reg-sub { font-size: 13px; color: var(--text3); line-height: 1.6; }
+.reg-error { background: rgba(255,82,99,0.08); border: 1px solid rgba(255,82,99,0.2); color: var(--red); border-radius: 8px; padding: 10px 14px; font-size: 12px; margin-bottom: 16px; }
+.reg-form { display: flex; flex-direction: column; gap: 14px; }
+.reg-field { display: flex; flex-direction: column; gap: 5px; }
+.reg-field label { font-size: 12px; font-weight: 500; color: var(--text2); }
+.reg-field .req { color: var(--red); }
+.reg-field input, .reg-field select { padding: 10px 12px; background: var(--bg1); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; font-family: var(--font); transition: border-color .2s; }
+.reg-field input:focus, .reg-field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(79,124,255,0.08); }
+.reg-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; background: linear-gradient(135deg, var(--accent), #6366f1); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: var(--font); width: 100%; margin-top: 8px; }
+.reg-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,124,255,0.3); }
+.reg-btn:active { transform: scale(0.98); }
+.reg-btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+.reg-btn-outline:hover { background: rgba(79,124,255,0.06); box-shadow: none; }
+.reg-footer { text-align: center; margin-top: 20px; font-size: 12px; color: var(--text3); }
+.reg-footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
+
+/* Pending Animation */
+.reg-pending-anim { margin-bottom: 20px; }
+.reg-pending-circle { width: 72px; height: 72px; margin: 0 auto; background: rgba(245,166,35,0.06); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--amber); position: relative; }
+.reg-pending-ring { position: absolute; inset: -4px; border: 2px solid var(--amber); border-radius: 50%; border-top-color: transparent; animation: spin 2s linear infinite; }
+.reg-success-anim { margin-bottom: 20px; animation: scaleIn .4s ease; }
+.reg-reject-anim { margin-bottom: 20px; }
+@keyframes scaleIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.reg-status-card { background: var(--bg1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin: 16px 0; }
+.reg-status-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; font-size: 12px; }
+.reg-status-row span:first-child { color: var(--text3); }
+.reg-badge { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+.reg-badge.pending { background: rgba(245,166,35,0.1); color: var(--amber); }
+.reg-hint { font-size: 11px; color: var(--text3); margin-top: 16px; line-height: 1.6; }
+
+/* Approvals & Teacher Management */
+.tab-row { display: flex; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+.tab-btn { padding: 8px 16px; font-size: 12px; font-weight: 500; background: none; border: none; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; font-family: var(--font); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-btn:hover { color: var(--text); }
+
+.approval-list { display: flex; flex-direction: column; gap: 10px; }
+.approval-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; background: var(--bg1); border: 1px solid var(--border); border-radius: 10px; transition: all .15s; }
+.approval-item:hover { border-color: rgba(79,124,255,0.2); }
+.approval-info { flex: 1; min-width: 0; }
+.approval-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.approval-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.approval-msg { font-size: 12px; color: var(--text2); margin-top: 6px; padding: 8px; background: var(--bg2); border-radius: 6px; font-style: italic; }
+.approval-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.empty-state { text-align: center; padding: 40px; color: var(--text3); font-size: 13px; }
+
+.btn-icon { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg2); color: var(--text2); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all .15s; font-size: 12px; }
+.btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+
+.badge-green { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 500; background: rgba(45,217,138,0.1); color: var(--green); }
+.badge-red { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 500; background: rgba(255,82,99,0.1); color: var(--red); }
+.badge-gray { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 500; background: var(--bg3); color: var(--text3); }

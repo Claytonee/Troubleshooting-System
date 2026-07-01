@@ -19,6 +19,9 @@ const App = (() => {
     search: SearchPage,
     chat: ChatPage,
     help: HelpPage,
+    register: RegisterPage,
+    approvals: ApprovalsPage,
+    teachers: TeachersPage,
   };
 
   async function init() {
@@ -41,6 +44,39 @@ const App = (() => {
       if (navTrack) { navTrack.textContent = open > 0 ? open : ''; navTrack.style.display = open > 0 ? 'inline-block' : 'none'; }
       if (navFu) { navFu.textContent = fuCount > 0 ? fuCount : ''; navFu.style.display = fuCount > 0 ? 'inline-block' : 'none'; }
       if (notifDot) notifDot.style.display = fuCount > 0 ? 'block' : 'none';
+
+      // Admin: approval badge
+      const user = API.getUser();
+      if (user && user.role === 'admin') {
+        try {
+          const token = API.getToken();
+          const res = await fetch('/api/register/approvals/pending', { headers: { 'Authorization': `Bearer ${token}` } });
+          if (res.ok) {
+            const pending = await res.json();
+            const navApprovals = document.getElementById('nav-approvals');
+            if (navApprovals) {
+              navApprovals.textContent = pending.length > 0 ? pending.length : '';
+              navApprovals.style.display = pending.length > 0 ? 'inline-block' : 'none';
+            }
+          }
+        } catch (e) {}
+      }
+
+      // School admin: pending teachers badge
+      if (user && user.role === 'school') {
+        try {
+          const token = API.getToken();
+          const res = await fetch('/api/register/teacher-approvals/pending', { headers: { 'Authorization': `Bearer ${token}` } });
+          if (res.ok) {
+            const pending = await res.json();
+            const navTeachers = document.getElementById('nav-teachers');
+            if (navTeachers) {
+              navTeachers.textContent = pending.length > 0 ? pending.length : '';
+              navTeachers.style.display = pending.length > 0 ? 'inline-block' : 'none';
+            }
+          }
+        } catch (e) {}
+      }
     } catch (e) {}
   }
 
@@ -171,11 +207,28 @@ const ErrorDetailModal = (() => {
 })();
 
 // Initialize on load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   Modal.init();
   Auth.init();
   API.initSessionMonitor();
   Router.initHashListener();
+
+  // Handle public teacher registration URL
+  const teacherRegMatch = window.location.pathname.match(/\/register\/teacher\/([a-f0-9]+)/);
+  if (teacherRegMatch) {
+    document.getElementById('login-page').style.display = 'none';
+    document.getElementById('app-container').style.display = 'grid';
+    document.getElementById('sidebar').style.display = 'none';
+    const main = document.getElementById('main');
+    main.style.gridColumn = '1 / -1';
+    document.querySelector('.topbar').style.display = 'none';
+    main.style.marginTop = '0';
+    main.style.height = '100vh';
+    await TeacherRegisterPage.init();
+    main.innerHTML = TeacherRegisterPage.render();
+    return;
+  }
+
   if (Auth.checkSession()) {
     App.init();
   }

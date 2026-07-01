@@ -56,6 +56,9 @@ function buildErrorFilters(req) {
   } else if (req.user.role === 'school') {
     conditions.push('s.id = ?');
     params.push(req.user.school_id);
+  } else if (req.user.role === 'teacher') {
+    conditions.push('e.reported_by_user_id = ?');
+    params.push(req.user.id);
   }
   if (req.query.status && req.query.status !== 'all') { conditions.push('e.status = ?'); params.push(req.query.status); }
   if (req.query.priority) { conditions.push('e.priority = ?'); params.push(req.query.priority); }
@@ -153,7 +156,7 @@ async function create(req, res, next) {
   try {
     const { title, description, school_id, category, subcategory, priority, reporter_name, reporter_role, reporter_contact, location, affected_devices } = req.body;
 
-    if (req.user.role === 'school' && parseInt(school_id) !== req.user.school_id) {
+    if ((req.user.role === 'school' || req.user.role === 'teacher') && parseInt(school_id) !== req.user.school_id) {
       return res.status(403).json({ error: 'You can only report errors for your own school.' });
     }
 
@@ -171,10 +174,13 @@ async function create(req, res, next) {
     const prio = priority || 'medium';
     const slaHours = targetHours(prio);
 
+    // Tiered escalation: teachers report to school level, school admins report to platform level
+    const escalationLevel = req.user.role === 'school' ? 'platform' : 'school';
+
     const [result] = await pool.query(
-      `INSERT INTO errors (error_code, title, description, school_id, category, subcategory, priority, status, assigned_to, reporter_name, reporter_role, reporter_contact, location, affected_devices, sla_due_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, NOW() + make_interval(hours => ?))`,
-      [errorCode, title, description, school_id, category, subcategory || null, prio, assignedTo, reporter_name || null, reporter_role || null, reporter_contact || null, location || null, affected_devices || null, slaHours]
+      `INSERT INTO errors (error_code, title, description, school_id, category, subcategory, priority, status, assigned_to, reporter_name, reporter_role, reporter_contact, location, affected_devices, sla_due_at, escalation_level, reported_by_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, NOW() + make_interval(hours => ?), ?, ?)`,
+      [errorCode, title, description, school_id, category, subcategory || null, prio, assignedTo, reporter_name || null, reporter_role || null, reporter_contact || null, location || null, affected_devices || null, slaHours, escalationLevel, req.user.id]
     );
 
     await logAudit({
@@ -382,4 +388,41 @@ async function getStats(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getById, create, update, updateStatus, addUpdate, remove, getStats, exportErrors, submitCsat };
+async function escalateToAdmin(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { reason, note } = req.body;
+
+    if (!reason) return res.status(400).json({ error: 'Escalation reason is required.' });
+
+    const row = await getErrorRow(id);
+    if (!row) return res.status(404).json({ error: 'Error not found.' });
+
+    if (req.user.role === 'school' && row.school_id !== req.user.school_id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
+    if (row.escalation_level === 'platform') {
+      return res.status(400).json({ error: 'Error is already escalated to platform admin.' });
+    }
+
+    await pool.query(
+      `UPDATE errors SET escalation_level = 'platform', escalated_by = ?, escalated_at = NOW(), status = 'escalated' WHERE id = ?`,
+      [req.user.id, id]
+    );
+
+    await pool.query(
+      'INSERT INTO error_updates (error_id, update_type, note, recorded_by) VALUES (?, ?, ?, ?)',
+      [id, 'Escalation', `Escalated to platform admin: ${reason}${note ? ' — ' + note : ''}`, req.user.full_name]
+    );
+
+    await logAudit({
+      actor: req.user, ip: req.ip, action: 'error.escalated', entityType: 'error', entityId: id,
+      summary: `${row.error_code} escalated to platform: ${reason}`, meta: { reason }
+    });
+
+    res.json({ message: 'Error escalated to platform admin.' });
+  } catch (err) { next(err); }
+}
+
+module.exports = { getAll, getById, create, update, updateStatus, addUpdate, remove, getStats, exportErrors, submitCsat, escalateToAdmin };

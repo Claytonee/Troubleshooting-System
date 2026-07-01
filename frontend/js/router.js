@@ -3,7 +3,7 @@
  * Handles page navigation with hash-based routing for persistence
  */
 const Router = (() => {
-  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'manuals', 'analytics', 'schooladmins', 'branding', 'audit', 'search', 'chat', 'help'];
+  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'manuals', 'analytics', 'schooladmins', 'branding', 'audit', 'search', 'chat', 'help', 'register', 'approvals', 'teachers'];
 
   function getPageFromHash() {
     const hash = window.location.hash.replace('#', '');
@@ -41,10 +41,10 @@ const Router = (() => {
     document.querySelectorAll('[data-role="admin"]').forEach(el => el.classList.toggle('nav-hidden', hideAdmin));
     document.querySelectorAll('[data-role="school"]').forEach(el => el.classList.toggle('nav-hidden', hideSchool));
     document.querySelectorAll('[data-role="no-admin"]').forEach(el => el.classList.toggle('nav-hidden', hideNoAdmin));
-    if (hideAdmin && ['analytics', 'schooladmins', 'branding', 'audit'].includes(currentPage)) {
+    if (hideAdmin && ['analytics', 'schooladmins', 'branding', 'audit', 'approvals'].includes(currentPage)) {
       navigate('dashboard');
     }
-    if (hideSchool && ['report', 'help'].includes(currentPage)) {
+    if (hideSchool && ['report', 'help', 'teachers'].includes(currentPage)) {
       navigate('dashboard');
     }
     if (hideNoAdmin && ['chat'].includes(currentPage)) {

@@ -43,6 +43,8 @@ router.post('/:id/updates', [
   validate
 ], errorController.addUpdate);
 
+router.post('/:id/escalate', authorize('school'), errorController.escalateToAdmin);
+
 router.delete('/:id', authorize('admin'), errorController.remove);
 
 module.exports = router;
