@@ -73,25 +73,28 @@ const SchoolAdminsPage = (() => {
     }
 
     return `
-    <div class="section-header">
-      <div>
-        <div class="section-title">School Admins</div>
-        <div class="section-sub">Manage school-level administrator accounts &amp; approvals</div>
+    <div class="sa-page">
+      <div class="section-header" style="flex-shrink:0">
+        <div>
+          <div class="section-title">School Admins</div>
+          <div class="section-sub">Manage school-level administrator accounts &amp; approvals</div>
+        </div>
+        <button class="btn btn-primary" onclick="SchoolAdminsPage.openCreate()"><i class="ti ti-user-plus"></i> Add School Admin</button>
       </div>
-      <button class="btn btn-primary" onclick="SchoolAdminsPage.openCreate()"><i class="ti ti-user-plus"></i> Add School Admin</button>
-    </div>
 
-    <div class="sa-toolbar">
-      <div class="tab-row" style="padding:0;border-bottom:none">
-        <button class="tab-btn ${filter === 'all' ? 'active' : ''}" onclick="SchoolAdminsPage.setFilter('all')">All Active (${stats.active})</button>
-        <button class="tab-btn ${filter === 'pending' ? 'active' : ''}" onclick="SchoolAdminsPage.setFilter('pending')">Pending ${stats.pending > 0 ? `<span class="notif-badge-inline">${stats.pending}</span>` : `(${stats.pending})`}</button>
-        <button class="tab-btn ${filter === 'rejected' ? 'active' : ''}" onclick="SchoolAdminsPage.setFilter('rejected')">Rejected (${stats.rejected})</button>
+      <div class="sa-toolbar">
+        <div class="tab-row" style="padding:0;border-bottom:none">
+          <button class="tab-btn ${filter === 'all' ? 'active' : ''}" onclick="SchoolAdminsPage.setFilter('all')">All Active (${stats.active})</button>
+          <button class="tab-btn ${filter === 'pending' ? 'active' : ''}" onclick="SchoolAdminsPage.setFilter('pending')">Pending ${stats.pending > 0 ? `<span class="notif-badge-inline">${stats.pending}</span>` : `(${stats.pending})`}</button>
+          <button class="tab-btn ${filter === 'rejected' ? 'active' : ''}" onclick="SchoolAdminsPage.setFilter('rejected')">Rejected (${stats.rejected})</button>
+        </div>
+        <input type="text" placeholder="Search by name, email or school..." value="${esc(search)}"
+          oninput="SchoolAdminsPage.setSearch(this.value)" class="sa-search">
       </div>
-      <input type="text" placeholder="Search by name, email or school..." value="${esc(search)}"
-        oninput="SchoolAdminsPage.setSearch(this.value)" class="sa-search">
-    </div>
-    <div class="sa-list">
-      ${content}
+
+      <div class="sa-list">
+        ${content}
+      </div>
     </div>`;
   }
 
