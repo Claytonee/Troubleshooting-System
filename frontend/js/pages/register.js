@@ -17,6 +17,7 @@ const RegisterPage = (() => {
     if (step === 'pending') return renderPending();
     if (step === 'approved') return renderApproved();
     if (step === 'rejected') return renderRejected();
+    if (step === 'appeal') return renderAppealForm();
     return renderForm();
   }
 
@@ -137,20 +138,44 @@ const RegisterPage = (() => {
         <div class="reg-status-card">
           <div class="reg-status-row"><span>Reason</span><span style="color:var(--text2)">${errorMsg || 'Not specified'}</span></div>
         </div>
-        <p class="reg-sub" style="margin-top:16px">If you believe this is an error, you may submit an appeal:</p>
-        <button class="reg-btn reg-btn-outline" onclick="RegisterPage.showAppeal()">
-          <span>Submit Appeal</span>
+        <button class="reg-btn reg-btn-outline" style="margin-top:20px" onclick="RegisterPage.showAppeal()">
+          <span>Submit an Appeal</span>
         </button>
-        <div id="appeal-form" style="display:none;margin-top:20px;width:100%">
-          <form onsubmit="RegisterPage.submitAppeal(event)" style="display:flex;flex-direction:column;gap:12px">
-            <div class="reg-field"><label>Full Name</label><input type="text" id="appeal-name" required></div>
-            <div class="reg-field"><label>Email</label><input type="email" id="appeal-email" value="${requestEmail || ''}" required></div>
-            <div class="reg-field"><label>Message</label><textarea id="appeal-msg" rows="4" placeholder="Explain why you should be approved..." required minlength="10" style="width:100%;padding:10px;background:var(--bg1);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;resize:vertical"></textarea></div>
-            <button type="submit" class="reg-btn"><span>Send Appeal</span></button>
-          </form>
-        </div>
-        <div class="reg-footer" style="margin-top:20px">
+        <div class="reg-footer" style="margin-top:16px">
           <a href="#" onclick="RegisterPage.goLogin()">Back to Login</a>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderAppealForm() {
+    return `
+    <div class="reg-page">
+      <div class="reg-card">
+        <div class="reg-header">
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(155,125,255,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 10px">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <h1 class="reg-title">Submit Appeal</h1>
+          <p class="reg-sub">Tell us why your registration should be reconsidered</p>
+        </div>
+        <form onsubmit="RegisterPage.submitAppeal(event)" style="display:flex;flex-direction:column;gap:12px">
+          <div class="reg-field">
+            <label>Full Name <span class="req">*</span></label>
+            <input type="text" id="appeal-name" required placeholder="Your full name">
+          </div>
+          <div class="reg-field">
+            <label>Email <span class="req">*</span></label>
+            <input type="email" id="appeal-email" value="${requestEmail || ''}" required placeholder="Your email">
+          </div>
+          <div class="reg-field">
+            <label>Why should we approve your registration? <span class="req">*</span></label>
+            <textarea id="appeal-msg" rows="4" placeholder="Explain your role, why you need access..." required minlength="10" style="width:100%;padding:10px;background:var(--bg1);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;resize:vertical"></textarea>
+          </div>
+          <button type="submit" class="reg-btn" id="appeal-submit-btn"><span>Send Appeal</span></button>
+        </form>
+        <div class="reg-footer">
+          <a href="#" onclick="RegisterPage.cancelAppeal()">Cancel</a>
         </div>
       </div>
     </div>`;
@@ -225,8 +250,13 @@ const RegisterPage = (() => {
   }
 
   function showAppeal() {
-    const el = document.getElementById('appeal-form');
-    if (el) el.style.display = 'block';
+    step = 'appeal';
+    reRender();
+  }
+
+  function cancelAppeal() {
+    step = 'rejected';
+    reRender();
   }
 
   async function submitAppeal(e) {
@@ -325,5 +355,5 @@ const RegisterPage = (() => {
 
   function afterRender() {}
 
-  return { load, render, afterRender, submit, showAppeal, submitAppeal, goLogin, showStatus, toggleDropdown, filterSchools, selectSchool };
+  return { load, render, afterRender, submit, showAppeal, cancelAppeal, submitAppeal, goLogin, showStatus, toggleDropdown, filterSchools, selectSchool };
 })();
