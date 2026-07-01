@@ -50,10 +50,20 @@ const RegisterPage = (() => {
             </div>
             <div class="reg-field reg-full">
               <label>School <span class="req">*</span></label>
-              <select id="reg-school" required>
-                <option value="">Select your school</option>
-                ${schools.map(s => `<option value="${s.id}">${s.name} (${s.zone || 'N/A'})</option>`).join('')}
-              </select>
+              <input type="hidden" id="reg-school" required>
+              <div class="reg-select" id="reg-select-school" onclick="RegisterPage.toggleDropdown(event)">
+                <span class="reg-select-text" id="reg-select-text">Select your school</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="reg-select-arrow"><path d="M6 9l6 6 6-6"/></svg>
+              </div>
+              <div class="reg-dropdown" id="reg-dropdown" style="display:none">
+                <div class="reg-dropdown-search">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg>
+                  <input type="text" id="reg-school-search" placeholder="Search schools..." oninput="RegisterPage.filterSchools(this.value)">
+                </div>
+                <div class="reg-dropdown-list" id="reg-dropdown-list">
+                  ${schools.map(s => `<div class="reg-dropdown-item" data-id="${s.id}" onclick="RegisterPage.selectSchool(${s.id}, '${s.name.replace(/'/g, "\\'")}', '${(s.zone || '').replace(/'/g, "\\'")}')"><span class="reg-dropdown-name">${s.name}</span><span class="reg-dropdown-zone">${s.zone || 'N/A'}</span></div>`).join('')}
+                </div>
+              </div>
             </div>
             <div class="reg-field">
               <label>Password <span class="req">*</span></label>
@@ -158,6 +168,10 @@ const RegisterPage = (() => {
     const password = document.getElementById('reg-password').value;
     const confirm = document.getElementById('reg-confirm').value;
 
+    if (!school_id) {
+      errorMsg = 'Please select your school.';
+      reRender(); return;
+    }
     if (password !== confirm) {
       errorMsg = 'Passwords do not match.';
       reRender(); return;
@@ -254,7 +268,50 @@ const RegisterPage = (() => {
     if (el) el.innerHTML = render();
   }
 
+  function toggleDropdown(e) {
+    e.stopPropagation();
+    const dd = document.getElementById('reg-dropdown');
+    const isOpen = dd.style.display !== 'none';
+    if (isOpen) {
+      dd.style.display = 'none';
+    } else {
+      dd.style.display = 'block';
+      const input = document.getElementById('reg-school-search');
+      if (input) { input.value = ''; filterSchools(''); input.focus(); }
+    }
+  }
+
+  function filterSchools(query) {
+    const list = document.getElementById('reg-dropdown-list');
+    if (!list) return;
+    const q = query.toLowerCase();
+    const items = list.querySelectorAll('.reg-dropdown-item');
+    items.forEach(item => {
+      const name = item.querySelector('.reg-dropdown-name').textContent.toLowerCase();
+      const zone = item.querySelector('.reg-dropdown-zone').textContent.toLowerCase();
+      item.style.display = (name.includes(q) || zone.includes(q)) ? 'flex' : 'none';
+    });
+  }
+
+  function selectSchool(id, name, zone) {
+    document.getElementById('reg-school').value = id;
+    const text = document.getElementById('reg-select-text');
+    text.innerHTML = `<span style="color:var(--text)">${name}</span><span class="reg-dropdown-zone" style="margin-left:8px">${zone || 'N/A'}</span>`;
+    text.classList.add('selected');
+    document.getElementById('reg-dropdown').style.display = 'none';
+  }
+
+  function closeDropdownOnOutsideClick(e) {
+    const dd = document.getElementById('reg-dropdown');
+    const sel = document.getElementById('reg-select-school');
+    if (dd && sel && !sel.contains(e.target) && !dd.contains(e.target)) {
+      dd.style.display = 'none';
+    }
+  }
+
+  document.addEventListener('click', closeDropdownOnOutsideClick);
+
   function afterRender() {}
 
-  return { load, render, afterRender, submit, showAppeal, submitAppeal, goLogin };
+  return { load, render, afterRender, submit, showAppeal, submitAppeal, goLogin, toggleDropdown, filterSchools, selectSchool };
 })();
