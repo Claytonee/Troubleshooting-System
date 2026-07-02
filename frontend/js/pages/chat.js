@@ -21,7 +21,7 @@ const ChatPage = (() => {
         <div class="section-title"><span class="chat-title-shimmer">AI Assistant</span></div>
         <div class="section-sub">Technical Support &mdash; Troubleshooting help</div>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="ChatPage.newChat()" style="gap:6px"><i class="ti ti-plus" style="font-size:13px"></i> New Chat</button>
+      <button class="btn btn-primary btn-sm" data-tip="${TIP.NEW_CHAT}" onclick="ChatPage.newChat()" style="gap:6px"><i class="ti ti-plus" style="font-size:13px"></i> New Chat</button>
     </div>
     <div class="chat-container">
       <div class="chat-sidebar">

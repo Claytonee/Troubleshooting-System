@@ -61,8 +61,8 @@ const ApprovalsPage = (() => {
             <div class="approval-meta" style="color:var(--text3)">Submitted ${timeAgo(r.created_at)}</div>
           </div>
           <div class="approval-actions">
-            <button class="btn btn-sm" style="background:var(--green);color:#fff" onclick="ApprovalsPage.approve(${r.id})">Approve</button>
-            <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="ApprovalsPage.reject(${r.id})">Reject</button>
+            <button class="btn btn-sm" data-tip="${TIP.APPROVE}" data-tip-color="green" style="background:var(--green);color:#fff" onclick="ApprovalsPage.approve(${r.id})">Approve</button>
+            <button class="btn btn-sm" data-tip="${TIP.REJECT}" data-tip-color="red" style="background:var(--red);color:#fff" onclick="ApprovalsPage.reject(${r.id})">Reject</button>
           </div>
         </div>
       `).join('')}
@@ -82,7 +82,7 @@ const ApprovalsPage = (() => {
             <div class="approval-meta" style="color:var(--text3)">Appeal submitted ${timeAgo(a.created_at)}</div>
           </div>
           <div class="approval-actions">
-            <button class="btn btn-sm" style="background:var(--green);color:#fff" onclick="ApprovalsPage.approveFromAppeal(${a.request_id})">Approve</button>
+            <button class="btn btn-sm" data-tip="${TIP.APPROVE}" data-tip-color="green" style="background:var(--green);color:#fff" onclick="ApprovalsPage.approveFromAppeal(${a.request_id})">Approve</button>
           </div>
         </div>
       `).join('')}

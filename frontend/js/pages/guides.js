@@ -155,7 +155,7 @@ const GuidesPage = (() => {
               ${done.length > 0 ? `<span style="font-size:11px;color:var(--green);font-weight:500">${pct}% complete</span>` : ''}
             </div>
           </div>
-          ${done.length > 0 ? `<button class="btn btn-sm" onclick="GuidesPage.resetProgress(${g.id})" style="flex-shrink:0;font-size:11px"><i class="ti ti-refresh" style="font-size:12px"></i> Reset</button>` : ''}
+          ${done.length > 0 ? `<button class="btn btn-sm" data-tip="${TIP.RESET_PROGRESS}" onclick="GuidesPage.resetProgress(${g.id})" style="flex-shrink:0;font-size:11px"><i class="ti ti-refresh" style="font-size:12px"></i> Reset</button>` : ''}
         </div>
 
         ${allDone ? `<div style="padding:12px 16px;background:rgba(45,217,138,0.06);border:1px solid rgba(45,217,138,0.15);border-radius:8px;margin-bottom:20px;display:flex;align-items:center;gap:10px">
@@ -186,7 +186,7 @@ const GuidesPage = (() => {
         </div>
 
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-sm" onclick="Router.navigate('report')" style="gap:5px"><i class="ti ti-alert-triangle" style="font-size:13px;color:var(--amber)"></i> Escalate Issue</button>
+          <button class="btn btn-sm" data-tip="${TIP.ESCALATE_ISSUE}" onclick="Router.navigate('report')" style="gap:5px"><i class="ti ti-alert-triangle" style="font-size:13px;color:var(--amber)"></i> Escalate Issue</button>
           <div style="margin-left:auto;font-size:11px;color:var(--text3)">Still stuck? Report for engineer follow-up</div>
         </div>
       </div>

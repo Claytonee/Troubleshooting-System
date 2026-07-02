@@ -240,9 +240,9 @@ const ErrorDetailModal = (() => {
         </div>
       </div>`;
     const footer = `
-      <button class="btn btn-secondary" data-tip="Cancel · Go back to the error details without escalating" onclick="ErrorDetailModal.open(${id})">Cancel</button>
+      <button class="btn btn-secondary" onclick="ErrorDetailModal.open(${id})">Cancel</button>
       <button class="btn btn-danger" id="esc-submit" data-tip="Escalate · Send this error to OE Tanzania platform team — they'll take over from here" data-tip-color="red" onclick="ErrorDetailModal.submitEscalation(${id})"><i class="ti ti-arrow-up-right"></i> Escalate to OE</button>`;
-    Modal.open('Escalate Error', body, footer, { wide: true });
+    Modal.open('Escalate Error', body, footer);
   }
 
   async function submitEscalation(id) {

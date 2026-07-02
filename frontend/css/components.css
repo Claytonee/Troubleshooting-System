@@ -114,7 +114,7 @@ select option { background: var(--bg3); }
 .modal.preview { width: min(1080px, 95vw); }
 .modal-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
 .modal-header h3, .modal-header div { font-size: 15px; }
-.modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+.modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; min-height: 0; }
 .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; overflow: visible; position: relative; }
 
 /* School card */

@@ -25,7 +25,7 @@ const SchoolsPage = (() => {
     return `
     <div class="section-header">
       <div><div class="section-title">School Profiles</div><div class="section-sub">${schools.length} schools</div></div>
-      ${isAdmin() ? `<button class="btn btn-primary" onclick="SchoolsPage.openCreate()"><i class="ti ti-plus"></i> Add School Profile</button>` : ''}
+      ${isAdmin() ? `<button class="btn btn-primary" data-tip="${TIP.ADD_SCHOOL}" onclick="SchoolsPage.openCreate()"><i class="ti ti-plus"></i> Add School Profile</button>` : ''}
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px">
       ${schools.map(s => {
@@ -92,7 +92,7 @@ const SchoolsPage = (() => {
       <button class="btn btn-secondary btn-sm" onclick="SchoolsPage.back()"><i class="ti ti-arrow-left"></i> Schools</button>
       ${isAdmin() ? `<div style="display:flex;gap:8px">
         <button class="btn btn-secondary btn-sm" onclick="SchoolsPage.openEdit(${s.id})"><i class="ti ti-edit"></i> Edit</button>
-        <button class="btn btn-secondary btn-sm" style="color:var(--red);border-color:rgba(255,82,99,0.3)" onclick="SchoolsPage.remove(${s.id})"><i class="ti ti-trash"></i> Delete</button>
+        <button class="btn btn-secondary btn-sm" data-tip="${TIP.DELETE}" data-tip-color="red" style="color:var(--red);border-color:rgba(255,82,99,0.3)" onclick="SchoolsPage.remove(${s.id})"><i class="ti ti-trash"></i> Delete</button>
       </div>` : ''}
     </div>
 

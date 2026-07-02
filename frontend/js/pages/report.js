@@ -65,7 +65,7 @@ const ReportPage = (() => {
           <div class="form-group"><label>Location</label><input id="f-location" type="text" placeholder="e.g. Computer Lab 1"></div>
         </div>
         <div style="display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-          <button class="btn btn-primary" onclick="ReportPage.submit()"><i class="ti ti-send"></i> Submit Report</button>
+          <button class="btn btn-primary" data-tip="${TIP.SUBMIT_REPORT}" onclick="ReportPage.submit()"><i class="ti ti-send"></i> Submit Report</button>
           <button class="btn btn-secondary" onclick="Router.navigate('report');App.loadAndRender()"><i class="ti ti-trash"></i> Clear</button>
         </div>
       </div>

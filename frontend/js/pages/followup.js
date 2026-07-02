@@ -34,8 +34,8 @@ const FollowUpPage = (() => {
         <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Age ${ageStr(e.hours_open)} · assigned to ${esc(e.assigned_name || 'unassigned')}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-secondary btn-sm" onclick="ErrorDetailModal.open(${e.id})"><i class="ti ti-eye"></i> View</button>
-          ${e.status !== 'escalated' ? `<button class="btn btn-danger btn-sm" onclick="FollowUpPage.escalate(${e.id})"><i class="ti ti-arrow-up"></i> Escalate</button>` : ''}
-          <button class="btn btn-success btn-sm" onclick="FollowUpPage.resolve(${e.id})"><i class="ti ti-check"></i> Resolve</button>
+          ${e.status !== 'escalated' ? `<button class="btn btn-danger btn-sm" data-tip="${TIP.ESCALATE}" onclick="FollowUpPage.escalate(${e.id})"><i class="ti ti-arrow-up"></i> Escalate</button>` : ''}
+          <button class="btn btn-success btn-sm" data-tip="${TIP.RESOLVE}" onclick="FollowUpPage.resolve(${e.id})"><i class="ti ti-check"></i> Resolve</button>
         </div>
       </div>`;
     }).join('') : '<div class="empty"><i class="ti ti-circle-check"></i>Nothing overdue — all issues within SLA</div>';

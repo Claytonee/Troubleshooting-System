@@ -35,7 +35,7 @@ const WeeklyPage = (() => {
         <td>${esc(s.contact_name || '—')}</td>
         <td><span class="badge ${status === 'green' ? 'badge-green' : status === 'amber' ? 'badge-amber' : status === 'red' ? 'badge-red' : 'badge-gray'}">${label}</span></td>
         <td>${c ? esc(c.note || '—') : '—'}</td>
-        <td>${!c ? `<button class="btn btn-primary btn-sm" onclick="WeeklyPage.openCheckin(${s.id})"><i class="ti ti-clipboard-check"></i> Check-In</button>` : `<button class="btn btn-secondary btn-sm" onclick="WeeklyPage.viewCheckin(${s.id})"><i class="ti ti-eye"></i> View</button>`}</td>
+        <td>${!c ? `<button class="btn btn-primary btn-sm" data-tip="${TIP.CHECKIN}" onclick="WeeklyPage.openCheckin(${s.id})"><i class="ti ti-clipboard-check"></i> Check-In</button>` : `<button class="btn btn-secondary btn-sm" onclick="WeeklyPage.viewCheckin(${s.id})"><i class="ti ti-eye"></i> View</button>`}</td>
       </tr>`;
     }).join('');
 
@@ -88,7 +88,7 @@ const WeeklyPage = (() => {
         <div class="form-group full"><label>Overall Status</label>${Dropdown.render('ci-status', 'Green — All OK', overallOpts, { defaultValue: 'green' })}</div>
         <div class="form-group full"><label>Notes</label><textarea id="ci-note" rows="3" placeholder="Any observations..."></textarea></div>
       </div>`;
-    const footer = `<button class="btn btn-primary" onclick="WeeklyPage.submitCheckin(${schoolId})"><i class="ti ti-check"></i> Submit Check-In</button>`;
+    const footer = `<button class="btn btn-primary" data-tip="${TIP.SUBMIT_CHECKIN}" onclick="WeeklyPage.submitCheckin(${schoolId})"><i class="ti ti-check"></i> Submit Check-In</button>`;
     Modal.open('Weekly Check-In', body, footer);
   }
 

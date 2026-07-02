@@ -22,6 +22,45 @@ function relTime(iso) {
   return Math.round(diff / 24) + 'd ago';
 }
 
+/**
+ * TIP — Centralized tooltip text constants.
+ * Format: "Title · Description" — the title renders bold, description lighter.
+ * Usage: data-tip="${TIP.RESOLVE}" or data-tip="${TIP.custom('Title','desc')}"
+ * Rule: Only add tooltips to buttons that NEED extra explanation — not obvious ones.
+ */
+const TIP = {
+  // Destructive / consequential actions
+  RESOLVE: 'Resolve · Mark this error as fixed — the reporter will be notified',
+  ESCALATE: 'Escalate · Forward to the next support level for immediate help',
+  ESCALATE_OE: 'Escalate to OE · Forward this error to Opportunity Education platform team for immediate support',
+  DELETE: 'Delete · Permanently remove this item — this cannot be undone',
+  SUSPEND: 'Suspend · Temporarily disable this account',
+  REACTIVATE: 'Reactivate · Restore access for this account',
+  DEACTIVATE_LINK: 'Deactivate · Disable this registration link permanently',
+  REJECT: 'Reject · Deny access — the user will be notified',
+  APPROVE: 'Approve · Grant access — the user can sign in immediately',
+  // Actions that benefit from explanation
+  EXPORT_CSV: 'Export · Download filtered data as a CSV spreadsheet',
+  SUBMIT_REPORT: 'Submit · Send this error for tracking and automatic assignment',
+  CHECKIN: 'Check-In · Fill the weekly health report for this school',
+  SUBMIT_CHECKIN: 'Submit · Save this weekly check-in report',
+  GENERATE_LINK: 'Generate Link · Create a self-registration URL for teachers',
+  COPY_LINK: 'Copy · Copy this link to your clipboard',
+  ADD_SCHOOL: 'Add School · Register a new school profile in the system',
+  ADD_ADMIN: 'Add Admin · Create a new school administrator account',
+  ADD_TEACHER: 'Add Teacher · Register a new teacher manually',
+  UPLOAD: 'Upload · Add a new file to the resource library',
+  PREVIEW: 'Preview · View this file inline without downloading',
+  DOWNLOAD: 'Download · Save this file to your device',
+  SAVE_BRANDING: 'Save · Apply your branding customizations system-wide',
+  RESET_BRANDING: 'Reset · Restore all branding to default settings',
+  RESET_PROGRESS: 'Reset · Start this guide from the beginning',
+  ESCALATE_ISSUE: 'Escalate Issue · Report this as a new error if the guide didn\'t help',
+  NEW_CHAT: 'New Chat · Start a fresh AI conversation',
+
+  custom(title, desc) { return `${title} · ${desc}`; }
+};
+
 const PRI = {
   critical: { label: 'Critical', badge: 'badge-red', dot: 'dot-red' },
   high: { label: 'High', badge: 'badge-amber', dot: 'dot-amber' },
@@ -128,7 +167,10 @@ const Dropdown = (() => {
       dd.style.display = 'block';
       dd.classList.remove('drop-up', 'drop-side');
       openId = id;
-      const card = dd.closest('.card') || dd.closest('.modal-body') || dd.closest('.form-grid');
+      // Allow dropdown to escape modal overflow
+      const modalBody = dd.closest('.modal-body');
+      if (modalBody) modalBody.style.overflow = 'visible';
+      const card = dd.closest('.card') || modalBody || dd.closest('.form-grid');
       const cardRect = card ? card.getBoundingClientRect() : null;
       const spaceRight = cardRect ? window.innerWidth - cardRect.right : 0;
       if (spaceRight > 290) {
@@ -144,7 +186,13 @@ const Dropdown = (() => {
   }
 
   function closeAll() {
-    document.querySelectorAll('.reg-dropdown').forEach(d => d.style.display = 'none');
+    document.querySelectorAll('.reg-dropdown').forEach(d => {
+      if (d.style.display !== 'none') {
+        const mb = d.closest('.modal-body');
+        if (mb) mb.style.overflow = '';
+      }
+      d.style.display = 'none';
+    });
     openId = null;
   }
 

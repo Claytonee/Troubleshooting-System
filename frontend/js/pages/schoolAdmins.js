@@ -73,7 +73,7 @@ const SchoolAdminsPage = (() => {
           <div class="section-title">School Admins</div>
           <div class="section-sub">Manage school-level administrator accounts &amp; approvals</div>
         </div>
-        <button class="btn btn-primary" onclick="SchoolAdminsPage.openCreate()"><i class="ti ti-user-plus"></i> Add School Admin</button>
+        <button class="btn btn-primary" data-tip="${TIP.ADD_ADMIN}" onclick="SchoolAdminsPage.openCreate()"><i class="ti ti-user-plus"></i> Add School Admin</button>
       </div>
 
       <div class="sa-toolbar">
@@ -116,9 +116,9 @@ const SchoolAdminsPage = (() => {
           <div style="margin-top:2px"><i class="ti ti-phone" style="margin-right:4px;color:var(--text3)"></i>${esc(a.phone || '—')}</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
-          <button class="btn btn-secondary btn-sm" onclick="SchoolAdminsPage.openEdit(${a.id})"><i class="ti ti-edit"></i> Edit</button>
-          <button class="btn btn-secondary btn-sm" onclick="SchoolAdminsPage.resetPassword(${a.id})"><i class="ti ti-key"></i></button>
-          <button class="btn btn-secondary btn-sm" style="color:var(--red);border-color:rgba(255,82,99,0.3)" onclick="SchoolAdminsPage.remove(${a.id})"><i class="ti ti-trash"></i></button>
+          <button class="btn btn-secondary btn-sm" data-tip="${TIP.EDIT}" onclick="SchoolAdminsPage.openEdit(${a.id})"><i class="ti ti-edit"></i> Edit</button>
+          <button class="btn btn-secondary btn-sm" data-tip="${TIP.custom('Reset Password','Generate a new password for this admin')}" onclick="SchoolAdminsPage.resetPassword(${a.id})"><i class="ti ti-key"></i></button>
+          <button class="btn btn-secondary btn-sm" data-tip="${TIP.DELETE}" data-tip-color="red" style="color:var(--red);border-color:rgba(255,82,99,0.3)" onclick="SchoolAdminsPage.remove(${a.id})"><i class="ti ti-trash"></i></button>
         </div>
       </div>`;
     }).join('');
@@ -146,8 +146,8 @@ const SchoolAdminsPage = (() => {
           <div style="margin-top:2px;color:var(--text3)"><i class="ti ti-clock" style="margin-right:4px"></i>${timeAgo(r.created_at)}</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
-          <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="SchoolAdminsPage.approveReg(${r.id})"><i class="ti ti-check"></i> Approve</button>
-          <button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="SchoolAdminsPage.rejectReg(${r.id})"><i class="ti ti-x"></i> Reject</button>
+          <button class="btn btn-sm" data-tip="${TIP.APPROVE}" data-tip-color="green" style="background:var(--green);color:#fff;border:none" onclick="SchoolAdminsPage.approveReg(${r.id})"><i class="ti ti-check"></i> Approve</button>
+          <button class="btn btn-sm" data-tip="${TIP.REJECT}" data-tip-color="red" style="background:var(--red);color:#fff;border:none" onclick="SchoolAdminsPage.rejectReg(${r.id})"><i class="ti ti-x"></i> Reject</button>
         </div>
       </div>
     `).join('');
@@ -174,7 +174,7 @@ const SchoolAdminsPage = (() => {
           <div style="margin-top:2px;color:var(--text3)">Reason: ${esc(r.rejection_reason || 'None given')}</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
-          <button class="btn btn-secondary btn-sm" onclick="SchoolAdminsPage.approveReg(${r.id})"><i class="ti ti-check"></i> Approve</button>
+          <button class="btn btn-secondary btn-sm" data-tip="${TIP.APPROVE}" data-tip-color="green" onclick="SchoolAdminsPage.approveReg(${r.id})"><i class="ti ti-check"></i> Approve</button>
         </div>
       </div>
     `).join('');

@@ -37,7 +37,7 @@ const TrackerPage = (() => {
         <div><div class="section-title">Error Tracker</div><div class="section-sub">All reported issues</div></div>
         <div style="display:flex;gap:10px;align-items:center">
           <input type="text" placeholder="Search errors…" style="width:200px" id="search-input" value="${esc(search)}" oninput="TrackerPage.setSearch(this.value)">
-          <button class="btn btn-secondary btn-sm" onclick="TrackerPage.exportCsv()"><i class="ti ti-download"></i> Export</button>
+          <button class="btn btn-secondary btn-sm" data-tip="${TIP.EXPORT_CSV}" onclick="TrackerPage.exportCsv()"><i class="ti ti-download"></i> Export</button>
           <button class="btn btn-primary btn-sm" onclick="Router.navigate('report');App.loadAndRender()"><i class="ti ti-plus"></i> New</button>
         </div>
       </div>
@@ -79,7 +79,7 @@ const TrackerPage = (() => {
         <td style="font-size:12px;color:var(--text2)">${e.assigned_name ? esc(e.assigned_name) : '<span style="color:var(--text3)">Unassigned</span>'}</td>
         <td style="font-size:12px;color:${breach ? 'var(--red)' : 'var(--text3)'}">${ageStr(e.hours_open)}${breach ? ' <i class="ti ti-alert-triangle" style="font-size:11px"></i>' : ''}</td>
         <td onclick="event.stopPropagation()"><div style="display:flex;gap:4px">
-          ${e.status !== 'resolved' ? `<button class="btn btn-success btn-sm" style="padding:3px 8px" onclick="TrackerPage.resolve(${e.id})" title="Resolve"><i class="ti ti-check" style="font-size:12px"></i></button>` : ''}
+          ${e.status !== 'resolved' ? `<button class="btn btn-success btn-sm" style="padding:3px 8px" data-tip="${TIP.RESOLVE}" onclick="TrackerPage.resolve(${e.id})"><i class="ti ti-check" style="font-size:12px"></i></button>` : ''}
         </div></td></tr>`;
     }).join('');
   }

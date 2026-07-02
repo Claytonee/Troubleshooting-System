@@ -31,8 +31,8 @@ const TeachersPage = (() => {
         <div class="section-sub">Manage teachers, approvals, and registration links</div>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-primary btn-sm" onclick="TeachersPage.generateLink()"><i class="ti ti-link"></i> Generate Registration Link</button>
-        <button class="btn btn-sm" onclick="TeachersPage.showAddModal()"><i class="ti ti-plus"></i> Add Teacher</button>
+        <button class="btn btn-primary btn-sm" data-tip="${TIP.GENERATE_LINK}" onclick="TeachersPage.generateLink()"><i class="ti ti-link"></i> Generate Registration Link</button>
+        <button class="btn btn-sm" data-tip="${TIP.ADD_TEACHER}" onclick="TeachersPage.showAddModal()"><i class="ti ti-plus"></i> Add Teacher</button>
       </div>
     </div>
     <div class="stats-grid" style="margin-bottom:20px">
@@ -61,9 +61,9 @@ const TeachersPage = (() => {
           <td>${esc(t.subject || '—')}</td>
           <td><span class="badge-${t.status === 'active' ? 'green' : t.status === 'suspended' ? 'red' : 'gray'}">${t.status}</span></td>
           <td>
-            ${t.status === 'active' ? `<button class="btn-icon" title="Suspend" onclick="TeachersPage.updateStatus(${t.id},'suspended')"><i class="ti ti-ban"></i></button>` : ''}
-            ${t.status === 'suspended' ? `<button class="btn-icon" title="Reactivate" onclick="TeachersPage.updateStatus(${t.id},'active')"><i class="ti ti-check"></i></button>` : ''}
-            <button class="btn-icon" title="Delete" onclick="TeachersPage.deleteTeacher(${t.id})"><i class="ti ti-trash"></i></button>
+            ${t.status === 'active' ? `<button class="btn-icon" data-tip="${TIP.SUSPEND}" onclick="TeachersPage.updateStatus(${t.id},'suspended')"><i class="ti ti-ban"></i></button>` : ''}
+            ${t.status === 'suspended' ? `<button class="btn-icon" data-tip="${TIP.REACTIVATE}" onclick="TeachersPage.updateStatus(${t.id},'active')"><i class="ti ti-check"></i></button>` : ''}
+            <button class="btn-icon" data-tip="${TIP.DELETE}" data-tip-color="red" onclick="TeachersPage.deleteTeacher(${t.id})"><i class="ti ti-trash"></i></button>
           </td>
         </tr>`).join('')}
       </tbody>
@@ -82,8 +82,8 @@ const TeachersPage = (() => {
             <div class="approval-meta" style="color:var(--text3)">Registered ${timeAgo(t.created_at)}</div>
           </div>
           <div class="approval-actions">
-            <button class="btn btn-sm" style="background:var(--green);color:#fff" onclick="TeachersPage.approveTeacher(${t.teacher_id})">Approve</button>
-            <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="TeachersPage.rejectTeacher(${t.teacher_id})">Reject</button>
+            <button class="btn btn-sm" data-tip="${TIP.APPROVE}" data-tip-color="green" style="background:var(--green);color:#fff" onclick="TeachersPage.approveTeacher(${t.teacher_id})">Approve</button>
+            <button class="btn btn-sm" data-tip="${TIP.REJECT}" data-tip-color="red" style="background:var(--red);color:#fff" onclick="TeachersPage.rejectTeacher(${t.teacher_id})">Reject</button>
           </div>
         </div>
       `).join('')}
@@ -112,7 +112,7 @@ const TeachersPage = (() => {
           </div>
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:12px;display:flex;align-items:center;gap:8px">
             <code style="flex:1;font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fullUrl}</code>
-            ${active ? `<button class="btn-icon" title="Copy link" onclick="TeachersPage.copyLink('${l.token}')" style="flex-shrink:0"><i class="ti ti-copy"></i></button>` : ''}
+            ${active ? `<button class="btn-icon" data-tip="${TIP.COPY_LINK}" onclick="TeachersPage.copyLink('${l.token}')" style="flex-shrink:0"><i class="ti ti-copy"></i></button>` : ''}
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:${active ? '12px' : '0'}">
             <div>
@@ -131,7 +131,7 @@ const TeachersPage = (() => {
               <div style="font-size:11px;color:var(--text3)">${created.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
             </div>
           </div>
-          ${active ? `<div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="TeachersPage.deactivateLink(${l.id})"><i class="ti ti-link-off"></i> Deactivate</button></div>` : ''}
+          ${active ? `<div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn btn-sm" data-tip="${TIP.DEACTIVATE_LINK}" data-tip-color="red" style="background:var(--red);color:#fff" onclick="TeachersPage.deactivateLink(${l.id})"><i class="ti ti-link-off"></i> Deactivate</button></div>` : ''}
         </div>`;
       }).join('')}
     </div>`;
@@ -174,7 +174,7 @@ const TeachersPage = (() => {
         <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Registration URL</div>
         <div style="display:flex;align-items:center;gap:8px">
           <input type="text" value="${url}" readonly style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;font-family:var(--mono);color:var(--text);outline:none" id="gen-link-url">
-          <button class="btn btn-sm" onclick="TeachersPage.copyGenerated()" style="white-space:nowrap"><i class="ti ti-copy"></i> Copy</button>
+          <button class="btn btn-sm" data-tip="${TIP.COPY_LINK}" onclick="TeachersPage.copyGenerated()" style="white-space:nowrap"><i class="ti ti-copy"></i> Copy</button>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
@@ -280,7 +280,7 @@ const TeachersPage = (() => {
         <div class="form-group"><label>Phone</label><input type="tel" id="add-t-phone" class="form-control"></div>
         <div class="form-group"><label>Subject</label><input type="text" id="add-t-subject" class="form-control" placeholder="e.g. Mathematics"></div>
         <div class="form-group"><label>Employee ID</label><input type="text" id="add-t-empid" class="form-control"></div>
-        <button type="submit" class="btn btn-primary" style="width:100%;margin-top:12px">Add Teacher</button>
+        <button type="submit" class="btn btn-primary" data-tip="${TIP.ADD_TEACHER}" style="width:100%;margin-top:12px">Add Teacher</button>
       </form>
     `, '');
   }
