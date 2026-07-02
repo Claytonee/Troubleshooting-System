@@ -46,7 +46,7 @@ const TrackerPage = (() => {
       </div>
     </div>
     <div class="card" style="padding:0"><div class="table-wrap"><table>
-      <thead><tr><th>ID</th><th>Error / School</th><th>Category</th><th>Priority</th><th>Status</th><th>Assigned</th><th>Reported</th><th></th></tr></thead>
+      <thead><tr><th>ID</th><th>Error / School</th><th>Category</th><th>Priority</th><th>Status</th><th>Assigned</th><th>Reported</th><th>Action</th></tr></thead>
       <tbody id="error-tbody"></tbody>
     </table></div></div>`;
   }
