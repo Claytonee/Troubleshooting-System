@@ -3,7 +3,7 @@
  * Handles page navigation with hash-based routing for persistence
  */
 const Router = (() => {
-  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'manuals', 'analytics', 'schooladmins', 'branding', 'audit', 'search', 'chat', 'help', 'register', 'approvals', 'teachers'];
+  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'manuals', 'analytics', 'schooladmins', 'branding', 'audit', 'search', 'chat', 'help', 'approvals', 'teachers'];
 
   function getPageFromHash() {
     const hash = window.location.hash.replace('#', '');
@@ -55,6 +55,11 @@ const Router = (() => {
 
   function initHashListener() {
     window.addEventListener('hashchange', () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash === 'register') {
+        Auth.goRegister();
+        return;
+      }
       const page = getPageFromHash();
       if (page !== currentPage) {
         currentPage = page;

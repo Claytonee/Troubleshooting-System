@@ -19,7 +19,6 @@ const App = (() => {
     search: SearchPage,
     chat: ChatPage,
     help: HelpPage,
-    register: RegisterPage,
     approvals: ApprovalsPage,
     teachers: TeachersPage,
   };
