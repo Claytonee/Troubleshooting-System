@@ -48,33 +48,35 @@ const TeacherRegisterPage = (() => {
         </div>
         ${errorMsg ? `<div class="reg-error">${errorMsg}</div>` : ''}
         <form class="reg-form" onsubmit="TeacherRegisterPage.submit(event)">
-          <div class="reg-field">
-            <label>Full Name <span class="req">*</span></label>
-            <input type="text" id="tr-name" placeholder="Your full name" required minlength="3">
-          </div>
-          <div class="reg-field">
-            <label>Email Address <span class="req">*</span></label>
-            <input type="email" id="tr-email" placeholder="your.email@example.com" required>
-          </div>
-          <div class="reg-field">
-            <label>Phone Number</label>
-            <input type="tel" id="tr-phone" placeholder="+255 7XX XXX XXX">
-          </div>
-          <div class="reg-field">
-            <label>Subject / Department</label>
-            <input type="text" id="tr-subject" placeholder="e.g. Mathematics, Science">
-          </div>
-          <div class="reg-field">
-            <label>Employee ID (if any)</label>
-            <input type="text" id="tr-empid" placeholder="Optional">
-          </div>
-          <div class="reg-field">
-            <label>Password <span class="req">*</span></label>
-            <input type="password" id="tr-password" placeholder="Minimum 8 characters" required minlength="8">
-          </div>
-          <div class="reg-field">
-            <label>Confirm Password <span class="req">*</span></label>
-            <input type="password" id="tr-confirm" placeholder="Re-enter password" required>
+          <div class="reg-grid">
+            <div class="reg-field reg-full">
+              <label>Full Name <span class="req">*</span></label>
+              <input type="text" id="tr-name" placeholder="Your full name" required minlength="3">
+            </div>
+            <div class="reg-field">
+              <label>Email Address <span class="req">*</span></label>
+              <input type="email" id="tr-email" placeholder="your.email@example.com" required>
+            </div>
+            <div class="reg-field">
+              <label>Phone Number</label>
+              <input type="tel" id="tr-phone" placeholder="+255 7XX XXX XXX">
+            </div>
+            <div class="reg-field">
+              <label>Subject / Department</label>
+              <input type="text" id="tr-subject" placeholder="e.g. Mathematics, Science">
+            </div>
+            <div class="reg-field">
+              <label>Employee ID (if any)</label>
+              <input type="text" id="tr-empid" placeholder="Optional">
+            </div>
+            <div class="reg-field">
+              <label>Password <span class="req">*</span></label>
+              <input type="password" id="tr-password" placeholder="Minimum 8 characters" required minlength="8">
+            </div>
+            <div class="reg-field">
+              <label>Confirm Password <span class="req">*</span></label>
+              <input type="password" id="tr-confirm" placeholder="Re-enter password" required>
+            </div>
           </div>
           <button type="submit" class="reg-btn" id="tr-submit-btn">
             <span>Register</span>
