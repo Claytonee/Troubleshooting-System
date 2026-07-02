@@ -67,15 +67,25 @@ const WeeklyPage = (() => {
 
   function openCheckin(schoolId) {
     const school = schools.find(s => s.id === schoolId);
+    const statusOpts = [
+      { value: 'ok', label: 'OK', tag: 'Good' },
+      { value: 'issue', label: 'Issue', tag: 'Problem' },
+      { value: 'na', label: 'N/A', tag: 'Skip' }
+    ];
+    const overallOpts = [
+      { value: 'green', label: 'Green', desc: '— All OK' },
+      { value: 'amber', label: 'Amber', desc: '— Minor Issues' },
+      { value: 'red', label: 'Red', desc: '— Critical' }
+    ];
     const body = `
       <div class="form-grid">
         <div class="form-group"><label>School</label><input type="text" value="${esc(school?.name || '')}" disabled></div>
         <div class="form-group"><label>Week</label><input type="text" value="Week ${selectedWeek}" disabled></div>
-        <div class="form-group"><label>Connectivity</label><select id="ci-conn"><option value="ok">OK</option><option value="issue">Issue</option><option value="na">N/A</option></select></div>
-        <div class="form-group"><label>Tablets</label><select id="ci-tab"><option value="ok">OK</option><option value="issue">Issue</option><option value="na">N/A</option></select></div>
-        <div class="form-group"><label>Platform</label><select id="ci-plat"><option value="ok">OK</option><option value="issue">Issue</option><option value="na">N/A</option></select></div>
-        <div class="form-group"><label>Power</label><select id="ci-power"><option value="ok">OK</option><option value="issue">Issue</option><option value="na">N/A</option></select></div>
-        <div class="form-group full"><label>Overall Status</label><select id="ci-status"><option value="green">Green — All OK</option><option value="amber">Amber — Minor Issues</option><option value="red">Red — Critical</option></select></div>
+        <div class="form-group"><label>Connectivity</label>${Dropdown.render('ci-conn', 'OK', statusOpts, { defaultValue: 'ok' })}</div>
+        <div class="form-group"><label>Tablets</label>${Dropdown.render('ci-tab', 'OK', statusOpts, { defaultValue: 'ok' })}</div>
+        <div class="form-group"><label>Platform</label>${Dropdown.render('ci-plat', 'OK', statusOpts, { defaultValue: 'ok' })}</div>
+        <div class="form-group"><label>Power</label>${Dropdown.render('ci-power', 'OK', statusOpts, { defaultValue: 'ok' })}</div>
+        <div class="form-group full"><label>Overall Status</label>${Dropdown.render('ci-status', 'Green — All OK', overallOpts, { defaultValue: 'green' })}</div>
         <div class="form-group full"><label>Notes</label><textarea id="ci-note" rows="3" placeholder="Any observations..."></textarea></div>
       </div>`;
     const footer = `<button class="btn btn-primary" onclick="WeeklyPage.submitCheckin(${schoolId})"><i class="ti ti-check"></i> Submit Check-In</button>`;
@@ -87,11 +97,11 @@ const WeeklyPage = (() => {
       school_id: schoolId,
       week_number: selectedWeek,
       term: 'Term 2 · 2026',
-      status: document.getElementById('ci-status').value,
-      connectivity: document.getElementById('ci-conn').value,
-      tablets: document.getElementById('ci-tab').value,
-      platform: document.getElementById('ci-plat').value,
-      power: document.getElementById('ci-power').value,
+      status: Dropdown.getValue('ci-status') || 'green',
+      connectivity: Dropdown.getValue('ci-conn') || 'ok',
+      tablets: Dropdown.getValue('ci-tab') || 'ok',
+      platform: Dropdown.getValue('ci-plat') || 'ok',
+      power: Dropdown.getValue('ci-power') || 'ok',
       note: document.getElementById('ci-note').value.trim()
     };
     try {

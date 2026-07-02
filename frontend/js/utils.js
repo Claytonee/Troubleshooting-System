@@ -83,3 +83,121 @@ function downloadBlob(blob, filename) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+const Dropdown = (() => {
+  let openId = null;
+
+  function render(id, placeholder, items, opts = {}) {
+    const defaultVal = opts.defaultValue || '';
+    const onSelect = opts.onSelect || '';
+    const itemsHtml = items.map(item => {
+      const val = typeof item === 'object' ? item.value : item;
+      const label = typeof item === 'object' ? item.label : item;
+      const tag = typeof item === 'object' ? (item.tag || '') : '';
+      const desc = typeof item === 'object' ? (item.desc || '') : '';
+      return `<div class="reg-dropdown-item" data-value="${esc(val)}" onclick="Dropdown.select('${id}','${esc(String(val)).replace(/'/g, "\\'")}','${esc(label).replace(/'/g, "\\'")}')">
+        <span class="reg-dropdown-name">${esc(label)}${desc ? `<span style="font-size:11px;color:var(--text3);margin-left:6px">${esc(desc)}</span>` : ''}</span>
+        ${tag ? `<span class="reg-dropdown-zone">${esc(tag)}</span>` : ''}
+      </div>`;
+    }).join('');
+
+    const hasDefault = !!defaultVal;
+    return `<div style="position:relative" data-dropdown="${id}">
+      <input type="hidden" id="${id}" value="${esc(defaultVal)}"${onSelect ? ` data-onselect="${esc(onSelect)}"` : ''}>
+      <div class="reg-select" id="${id}-trigger" onclick="Dropdown.toggle('${id}',event)">
+        <span class="reg-select-text${hasDefault ? ' selected' : ''}" id="${id}-text">${placeholder}</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="reg-select-arrow"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="reg-dropdown" id="${id}-dd" style="display:none">
+        <div class="reg-dropdown-search">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" placeholder="Search..." oninput="Dropdown.filter('${id}',this.value)">
+        </div>
+        <div class="reg-dropdown-list" id="${id}-list">${itemsHtml}</div>
+      </div>
+    </div>`;
+  }
+
+  function toggle(id, e) {
+    e.stopPropagation();
+    const dd = document.getElementById(id + '-dd');
+    if (!dd) return;
+    const isOpen = dd.style.display !== 'none';
+    closeAll();
+    if (!isOpen) {
+      dd.style.display = 'block';
+      dd.classList.remove('drop-up', 'drop-side');
+      openId = id;
+      const card = dd.closest('.card') || dd.closest('.modal-body') || dd.closest('.form-grid');
+      const cardRect = card ? card.getBoundingClientRect() : null;
+      const spaceRight = cardRect ? window.innerWidth - cardRect.right : 0;
+      if (spaceRight > 290) {
+        dd.classList.add('drop-side');
+      } else {
+        const trigger = document.getElementById(id + '-trigger');
+        const rect = trigger ? trigger.getBoundingClientRect() : { bottom: 0 };
+        if (window.innerHeight - rect.bottom < 220) dd.classList.add('drop-up');
+      }
+      const input = dd.querySelector('input[type="text"]');
+      if (input) { input.value = ''; filter(id, ''); input.focus(); }
+    }
+  }
+
+  function closeAll() {
+    document.querySelectorAll('.reg-dropdown').forEach(d => d.style.display = 'none');
+    openId = null;
+  }
+
+  function filter(id, query) {
+    const list = document.getElementById(id + '-list');
+    if (!list) return;
+    const q = query.toLowerCase();
+    list.querySelectorAll('.reg-dropdown-item').forEach(item => {
+      item.style.display = item.textContent.toLowerCase().includes(q) ? 'flex' : 'none';
+    });
+  }
+
+  function select(id, value, label) {
+    const hidden = document.getElementById(id);
+    const text = document.getElementById(id + '-text');
+    if (hidden) hidden.value = value;
+    if (text) { text.textContent = label; text.classList.add('selected'); }
+    closeAll();
+    if (hidden && hidden.dataset.onselect) {
+      try { eval(hidden.dataset.onselect); } catch (e) {}
+    }
+  }
+
+  function updateItems(id, items) {
+    const list = document.getElementById(id + '-list');
+    const text = document.getElementById(id + '-text');
+    const hidden = document.getElementById(id);
+    if (!list) return;
+    list.innerHTML = items.map(item => {
+      const val = typeof item === 'object' ? item.value : item;
+      const label = typeof item === 'object' ? item.label : item;
+      const tag = typeof item === 'object' ? (item.tag || '') : '';
+      return `<div class="reg-dropdown-item" data-value="${esc(val)}" onclick="Dropdown.select('${id}','${esc(String(val)).replace(/'/g, "\\'")}','${esc(label).replace(/'/g, "\\'")}')">
+        <span class="reg-dropdown-name">${esc(label)}</span>
+        ${tag ? `<span class="reg-dropdown-zone">${esc(tag)}</span>` : ''}
+      </div>`;
+    }).join('');
+    if (text) { text.textContent = items.length ? text.dataset.placeholder || 'Select...' : 'None available'; text.classList.remove('selected'); }
+    if (hidden) hidden.value = '';
+  }
+
+  function getValue(id) {
+    const el = document.getElementById(id);
+    return el ? el.value : '';
+  }
+
+  document.addEventListener('click', (e) => {
+    if (openId) {
+      const dd = document.getElementById(openId + '-dd');
+      const trigger = document.getElementById(openId + '-trigger');
+      if (dd && trigger && !trigger.contains(e.target) && !dd.contains(e.target)) closeAll();
+    }
+  });
+
+  return { render, toggle, filter, select, closeAll, updateItems, getValue };
+})();

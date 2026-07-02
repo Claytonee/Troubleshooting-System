@@ -161,15 +161,13 @@ const SchoolsPage = (() => {
     </div>`;
   }
 
-  function adminOptions(selected) {
-    const opts = team.map(t => `<option value="${t.id}" ${String(t.id) === String(selected) ? 'selected' : ''}>${esc(t.full_name)}</option>`).join('');
-    return `<option value="">— Unassigned —</option>${opts}`;
-  }
 
   function formBody(s) {
     s = s || {};
     const grp = (inner) => `<div style="display:flex;gap:12px;flex-wrap:wrap">${inner}</div>`;
     const fg = (label, html, flex) => `<div class="form-group" style="flex:${flex || 1};min-width:160px">${label}${html}</div>`;
+    const adminItems = [{ value: '', label: 'Unassigned' }, ...team.map(t => ({ value: t.id, label: t.full_name, tag: t.zone || '' }))];
+    const currentAdmin = team.find(t => String(t.id) === String(s.assigned_admin_id));
     return `
       <div style="display:flex;flex-direction:column;gap:12px">
         <div class="form-group">
@@ -197,7 +195,7 @@ const SchoolsPage = (() => {
 
         <div class="form-group">
           <label>Assigned Sub-Admin (Field Engineer)</label>
-          <select id="sc-admin">${adminOptions(s.assigned_admin_id)}</select>
+          ${Dropdown.render('sc-admin', currentAdmin ? currentAdmin.full_name : 'Unassigned', adminItems, { defaultValue: s.assigned_admin_id || '' })}
         </div>
       </div>`;
   }
@@ -225,7 +223,7 @@ const SchoolsPage = (() => {
       name: val('sc-name'), zone: val('sc-zone'), tablets: num('sc-tablets'), students: num('sc-students'),
       isp: val('sc-isp'), contact_name: val('sc-cname'), contact_role: val('sc-crole'),
       contact_phone: val('sc-cphone'), contact_email: val('sc-cemail'),
-      assigned_admin_id: document.getElementById('sc-admin').value || null
+      assigned_admin_id: Dropdown.getValue('sc-admin') || null
     };
   }
 

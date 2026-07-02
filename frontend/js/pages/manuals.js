@@ -133,7 +133,7 @@ const ManualsPage = (() => {
 
   function openUpload() {
     uploadMode = 'file';
-    const catOptions = CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+    const catDropdown = Dropdown.render('mu-category', 'Select category', CATEGORIES, { defaultValue: 'General' });
     const tabBtn = (mode, label, icon) => `<button type="button" id="mu-tab-${mode}" onclick="ManualsPage.setUploadMode('${mode}')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border2);background:${mode === 'file' ? 'var(--accent)' : 'var(--bg3)'};color:${mode === 'file' ? '#fff' : 'var(--text2)'};font-weight:600;font-size:12.5px;cursor:pointer;font-family:var(--font);display:inline-flex;align-items:center;justify-content:center;gap:6px"><i class="ti ${icon}"></i> ${label}</button>`;
     const body = `
       <div style="display:flex;flex-direction:column;gap:16px">
@@ -154,7 +154,7 @@ const ManualsPage = (() => {
         </div>
         <div class="form-group">
           <label>Category</label>
-          <select id="mu-category">${catOptions}</select>
+          ${catDropdown}
         </div>
         <div id="mu-progress" style="display:none">
           <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Saving...</div>
@@ -183,7 +183,7 @@ const ManualsPage = (() => {
 
   async function submitUpload() {
     const title = document.getElementById('mu-title').value.trim();
-    const category = document.getElementById('mu-category').value;
+    const category = Dropdown.getValue('mu-category') || 'General';
     const btn = document.getElementById('mu-submit');
 
     // Webpage / URL mode — no file upload.

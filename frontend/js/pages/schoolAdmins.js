@@ -46,12 +46,6 @@ const SchoolAdminsPage = (() => {
     return map[status] || ['badge-gray', '—'];
   }
 
-  function schoolOptions(selectedId) {
-    const opts = schools.map(s =>
-      `<option value="${s.id}" ${String(s.id) === String(selectedId) ? 'selected' : ''}>${esc(s.name)}${s.zone ? ' · ' + esc(s.zone) : ''}</option>`
-    ).join('');
-    return `<option value="">— Select a school —</option>${opts}`;
-  }
 
   function render() {
     const term = search.trim().toLowerCase();
@@ -251,6 +245,13 @@ const SchoolAdminsPage = (() => {
 
   function formBody(a) {
     a = a || {};
+    const schoolItems = schools.map(s => ({ value: s.id, label: s.name, tag: s.zone || '' }));
+    const statusItems = [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }];
+    const currentStatus = a.status || 'active';
+    const currentStatusLabel = currentStatus === 'inactive' ? 'Inactive' : 'Active';
+    const currentSchool = schools.find(s => String(s.id) === String(a.school_id));
+    const schoolPlaceholder = currentSchool ? currentSchool.name : 'Select a school';
+
     return `
       <div style="display:flex;flex-direction:column;gap:14px">
         <div class="form-group">
@@ -273,15 +274,12 @@ const SchoolAdminsPage = (() => {
         </div>
         <div class="form-group">
           <label>Assigned School <span style="color:var(--red)">*</span></label>
-          <select id="sa-school">${schoolOptions(a.school_id)}</select>
+          ${Dropdown.render('sa-school', schoolPlaceholder, schoolItems, { defaultValue: a.school_id || '' })}
         </div>
         <div style="display:flex;gap:12px;flex-wrap:wrap">
           <div class="form-group" style="flex:1;min-width:160px">
             <label>Status</label>
-            <select id="sa-status">
-              <option value="active" ${a.status === 'active' || !a.status ? 'selected' : ''}>Active</option>
-              <option value="inactive" ${a.status === 'inactive' ? 'selected' : ''}>Inactive</option>
-            </select>
+            ${Dropdown.render('sa-status', currentStatusLabel, statusItems, { defaultValue: currentStatus })}
           </div>
           <div class="form-group" style="flex:1;min-width:160px">
             <label>Title</label>
@@ -320,8 +318,8 @@ const SchoolAdminsPage = (() => {
       username: (document.getElementById('sa-username').value || '').trim(),
       email: document.getElementById('sa-email').value.trim(),
       phone: document.getElementById('sa-phone').value.trim(),
-      school_id: document.getElementById('sa-school').value || null,
-      status: document.getElementById('sa-status').value,
+      school_id: Dropdown.getValue('sa-school') || null,
+      status: Dropdown.getValue('sa-status') || 'active',
       title: document.getElementById('sa-title').value.trim()
     };
   }
