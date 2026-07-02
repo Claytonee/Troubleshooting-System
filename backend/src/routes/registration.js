@@ -12,6 +12,7 @@ router.post('/appeal', ctrl.submitAppeal);
 // --- Teacher registration via link (public) ---
 router.get('/verify/:token', ctrl.verifyTeacherLink);
 router.post('/teacher/:token', ctrl.registerTeacher);
+router.post('/teacher-status', ctrl.getTeacherStatus);
 
 // --- Admin: Approval management ---
 router.get('/approvals', authenticate, authorize('admin'), ctrl.getAllApprovals);

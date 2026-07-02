@@ -131,6 +131,7 @@ async function applyExtensions(db) {
   )`);
   await db.query('CREATE INDEX IF NOT EXISTS idx_teachers_school ON teachers (school_id)');
   await db.query('CREATE INDEX IF NOT EXISTS idx_teachers_user ON teachers (user_id)');
+  await db.query("ALTER TABLE teachers ADD COLUMN IF NOT EXISTS rejection_reason TEXT");
 
   // --- Add approval_status to users (existing users = approved) ---
   await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) DEFAULT 'approved'");

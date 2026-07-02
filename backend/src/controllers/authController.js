@@ -19,7 +19,7 @@ async function login(req, res, next) {
     }
 
     const [rows] = await pool.query(
-      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, password_hash, school_id FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)',
+      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, password_hash, school_id, approval_status FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)',
       [username, username]
     );
 
@@ -70,6 +70,15 @@ async function login(req, res, next) {
         }
       }
       return res.status(401).json({ error: 'Invalid username or password.' });
+    }
+
+    // Check if teacher is pending approval
+    if (user.role === 'teacher' && user.approval_status === 'pending') {
+      return res.status(403).json({ error: 'teacher_pending', user_id: user.id, email: user.email });
+    }
+    if (user.role === 'teacher' && user.approval_status === 'rejected') {
+      const [teacherRows] = await pool.query('SELECT rejection_reason FROM teachers WHERE user_id = ?', [user.id]);
+      return res.status(403).json({ error: 'teacher_rejected', user_id: user.id, email: user.email, rejection_reason: teacherRows[0]?.rejection_reason || null });
     }
 
     const token = generateToken(user);

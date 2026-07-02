@@ -430,6 +430,23 @@ async function registerTeacher(req, res, next) {
   } catch (err) { next(err); }
 }
 
+async function getTeacherStatus(req, res, next) {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required.' });
+
+    const [rows] = await pool.query(
+      `SELECT t.status, t.rejection_reason FROM teachers t
+       JOIN users u ON t.user_id = u.id
+       WHERE LOWER(u.email) = LOWER(?)
+       ORDER BY t.id DESC LIMIT 1`,
+      [email]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Not found.' });
+    res.json({ status: rows[0].status, rejection_reason: rows[0].rejection_reason || null });
+  } catch (err) { next(err); }
+}
+
 // --- School Admin: Teacher Approval ---
 
 async function getPendingTeachers(req, res, next) {
@@ -480,6 +497,7 @@ async function rejectTeacher(req, res, next) {
   try {
     const { id } = req.params;
     const schoolId = req.user.school_id;
+    const { reason } = req.body || {};
 
     const [rows] = await pool.query(
       "SELECT t.*, u.full_name FROM teachers t JOIN users u ON t.user_id = u.id WHERE t.id = ? AND t.school_id = ? AND t.status = 'pending'",
@@ -489,7 +507,7 @@ async function rejectTeacher(req, res, next) {
       return res.status(404).json({ error: 'Pending teacher not found.' });
     }
 
-    await pool.query("UPDATE teachers SET status = 'rejected' WHERE id = ?", [id]);
+    await pool.query("UPDATE teachers SET status = 'rejected', rejection_reason = ? WHERE id = ?", [reason || null, id]);
     await pool.query("UPDATE users SET approval_status = 'rejected', status = 'inactive' WHERE id = ?", [rows[0].user_id]);
 
     res.json({ message: `Teacher ${rows[0].full_name} rejected.` });
@@ -664,6 +682,7 @@ module.exports = {
   deactivateLink,
   verifyTeacherLink,
   registerTeacher,
+  getTeacherStatus,
   getPendingTeachers,
   approveTeacher,
   rejectTeacher,

@@ -195,12 +195,17 @@ const Auth = (() => {
       App.init();
     } catch (err) {
       if (err.error === 'pending_approval' || err.error === 'registration_rejected') {
-        // Redirect to registration status page
         RegisterPage.showStatus(err.error, err.request_id, err.email, err.rejection_reason);
         $('login-page').style.display = 'none';
         $('app-container').style.display = 'none';
         $('register-page').style.display = 'flex';
         $('register-content').innerHTML = RegisterPage.render();
+      } else if (err.error === 'teacher_pending' || err.error === 'teacher_rejected') {
+        TeacherRegisterPage.showStatus(err.error, err.user_id, err.email, err.rejection_reason);
+        $('login-page').style.display = 'none';
+        $('app-container').style.display = 'none';
+        $('register-page').style.display = 'flex';
+        $('register-content').innerHTML = TeacherRegisterPage.render();
       } else {
         errorEl.textContent = err.error || 'Login failed. Check your credentials.';
         errorEl.classList.add('show');
