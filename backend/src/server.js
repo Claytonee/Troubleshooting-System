@@ -53,7 +53,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: process.env.NODE_ENV === 'production' ? 200 : 1000,
   message: { error: 'Too many requests, please try again later.' }
 });
 app.use('/api/', limiter);
@@ -72,7 +72,7 @@ const registrationLimiter = rateLimit({
   message: { error: 'Too many registration attempts, please try again later.' }
 });
 app.use('/api/register/school-admin', registrationLimiter);
-app.use('/api/register/teacher', registrationLimiter);
+app.use('/api/register/teacher/register', registrationLimiter);
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
