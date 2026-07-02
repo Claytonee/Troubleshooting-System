@@ -230,12 +230,16 @@ const Auth = (() => {
   function init() {
     $('login-form').addEventListener('submit', handleLogin);
     window.addEventListener('auth:expired', () => {
+      const regPage = document.getElementById('register-page');
+      if (regPage && regPage.style.display !== 'none') return;
       showToast('Session expired. Please login again.');
       showLogin();
     });
   }
 
   async function goRegister() {
+    API.clearToken();
+    API.clearUser();
     $('login-page').style.display = 'none';
     $('app-container').style.display = 'none';
     $('register-page').style.display = 'flex';
