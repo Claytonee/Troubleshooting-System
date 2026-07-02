@@ -1,6 +1,6 @@
-# Quest Forward Tanzania — Feature Roadmap & Design
+# Opportunity Education Tanzania — Feature Roadmap & Design
 
-> Living design document for the feature programme agreed in June 2026.
+> Living design document for the feature programme.
 > Tracks **what** we are building, **why**, the **data model & API** changes, and **status**.
 > Companion document: [`API_AND_DTO_REFERENCE.md`](./API_AND_DTO_REFERENCE.md) (request/response DTOs).
 
@@ -8,15 +8,15 @@
 
 ## 1. Context & principles
 
-- **Users:** platform admins, sub-admins (field engineers), school admins (school staff).
+- **Users:** platform admins, sub-admins (field engineers), school admins (school staff), teachers.
 - **Environment:** rural Tanzania, low/intermittent bandwidth, modest shared hosting.
-- **Stack:** Node.js + Express + MySQL backend; vanilla-JS SPA frontend served by Express.
+- **Stack:** Node.js + Express + PostgreSQL backend; vanilla-JS SPA frontend served by Express.
 - **Design principles:**
   1. **Graceful degradation** — optional integrations (email, SMS) must no-op safely when unconfigured, never break core flows.
-  2. **No heavy infra** — prefer MySQL features (FULLTEXT, computed columns) over new services.
-  3. **Idempotent migrations** — schema changes run safely on every startup (`config/schemaExtensions.js`).
-  4. **Accountability** — mutating actions are audited.
-  5. **Bandwidth-aware** — small payloads, server-side aggregation, offline-tolerant where possible.
+  2. **Additive migrations** — schema changes are expand-and-contract, safe to re-run on every startup (`config/schemaExtensions.js`).
+  3. **Accountability** — mutating actions are audited (`audit_log` table).
+  4. **Bandwidth-aware** — small payloads, server-side aggregation, offline-tolerant where possible.
+  5. **Strict role separation** — uncrossable boundaries between teacher, school admin, and platform admin.
 
 ---
 
@@ -26,20 +26,27 @@
 |---|---------|------|--------|
 | 1 | Email notifications | 🟢 1 | **Implemented** (needs SMTP creds to send) |
 | 2 | SLA timers + breach flags | 🟢 1 | **Implemented** |
-| 5 | Audit log | 🟢 1 | **Implemented** |
 | 3 | Knowledge-base search | 🟢 1 | **Implemented** |
 | 4 | CSV/Excel export | 🟢 1 | **Implemented** |
+| 5 | Audit log | 🟢 1 | **Implemented** |
 | 6 | CSAT feedback | 🟢 1 | **Implemented** |
-| 7 | SMS / WhatsApp notifications | 🟡 2 | Designed |
-| 8 | School self-service portal | 🟡 2 | Designed |
-| 9 | Auto-assignment | 🟡 2 | Designed |
-| 10 | Reporting trends + weekly digest | 🟡 2 | Designed |
-| 11 | 2FA + security hardening | 🟡 2 | Designed |
-| 12 | Swahili localization (i18n) | 🟡 2 | Designed |
-| 13 | Offline / PWA | 🔵 3 | Designed |
-| 14 | Recurring-problem detection | 🔵 3 | Designed |
-| 15 | Preventive-maintenance reminders | 🔵 3 | Designed |
-| 16 | Email-to-ticket | 🔵 3 | Designed |
+| 7 | SMS notifications (Africa's Talking) | 🟢 1 | **Implemented** (needs AT creds) |
+| 8 | Teacher self-registration | 🟢 1 | **Implemented** |
+| 9 | 4-tier RBAC (teacher role) | 🟢 1 | **Implemented** |
+| 10 | Tiered escalation (teacher→school→platform) | 🟢 1 | **Implemented** |
+| 11 | Custom dropdown system (no native selects) | 🟢 1 | **Implemented** |
+| 12 | PostgreSQL migration (from MySQL) | 🟢 1 | **Implemented** (June 2026) |
+| 13 | Cloudinary file storage | 🟢 1 | **Implemented** |
+| 14 | School admin self-registration + approval | 🟢 1 | **Implemented** |
+| 15 | In-app notifications (bell) | 🟢 1 | **Implemented** |
+| 16 | Auto-assignment | 🟡 2 | Designed |
+| 17 | Reporting trends + weekly digest | 🟡 2 | Designed |
+| 18 | 2FA + security hardening | 🟡 2 | Designed |
+| 19 | Swahili localization (i18n) | 🟡 2 | Designed |
+| 20 | Offline / PWA | 🔵 3 | Planned |
+| 21 | Recurring-problem detection | 🔵 3 | Planned |
+| 22 | Preventive-maintenance reminders | 🔵 3 | Planned |
+| 23 | Email-to-ticket | 🔵 3 | Planned |
 
 ---
 
