@@ -149,6 +149,10 @@ async function applyExtensions(db) {
   await db.query('ALTER TABLE errors ADD COLUMN IF NOT EXISTS escalated_by INTEGER');
   await db.query('ALTER TABLE errors ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMP');
   await db.query('ALTER TABLE errors ADD COLUMN IF NOT EXISTS reported_by_user_id INTEGER');
+
+  // --- User profile extensions (avatar, bio) ---
+  await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)");
+  await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT");
 }
 
 module.exports = { applyExtensions, SLA_TARGET_HOURS };

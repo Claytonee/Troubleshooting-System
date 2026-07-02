@@ -1,10 +1,20 @@
 const express = require('express');
+const multer = require('multer');
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { authenticate, authorize } = require('../middleware/auth');
 const authController = require('../controllers/authController');
 
 const router = express.Router();
+
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only image files allowed'));
+  }
+});
 
 router.post('/login', [
   body('username').notEmpty().withMessage('Username is required'),
@@ -24,6 +34,8 @@ router.post('/register', [
 ], authController.register);
 
 router.get('/profile', authenticate, authController.getProfile);
+router.put('/profile', authenticate, authController.updateProfile);
+router.post('/profile/avatar', authenticate, avatarUpload.single('avatar'), authController.uploadAvatar);
 
 router.put('/change-password', [
   authenticate,

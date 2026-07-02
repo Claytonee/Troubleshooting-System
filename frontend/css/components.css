@@ -222,6 +222,10 @@ select option { background: var(--bg3); }
 .pd-icon-box { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; font-size: 15px; flex-shrink: 0; }
 .profile-dropdown-divider { height: 1px; background: var(--border); margin: 4px 6px; }
 
+/* Profile Modal */
+.profile-modal-hero { display: flex; align-items: center; gap: 18px; padding: 4px 0 20px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 @media (max-width: 920px) {
   .topbar-user-info { display: none; }
   .topbar-profile .ti-chevron-down { display: none; }

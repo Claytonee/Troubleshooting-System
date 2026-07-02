@@ -23,17 +23,41 @@ const Auth = (() => {
     if (!user) return;
     const name = user.full_name || user.username;
     const ini = initials(name);
-    const roleLabel = user.role === 'admin' ? 'Administrator' : user.role === 'subadmin' ? 'Field Engineer' : 'School';
+    const roleLabel = user.role === 'admin' ? 'Administrator' : user.role === 'subadmin' ? 'Field Engineer' : user.role === 'teacher' ? 'Teacher' : 'School';
 
     $('user-display').textContent = name;
     $('user-role-display').textContent = roleLabel;
-    $('topbar-avatar').textContent = ini;
+
+    // Topbar avatar — show photo if available
+    const tbAvatar = $('topbar-avatar');
+    if (tbAvatar) {
+      if (user.avatar_url) {
+        tbAvatar.innerHTML = '';
+        tbAvatar.style.backgroundImage = `url(${user.avatar_url})`;
+        tbAvatar.style.backgroundSize = 'cover';
+        tbAvatar.style.backgroundPosition = 'center';
+      } else {
+        tbAvatar.textContent = ini;
+        tbAvatar.style.backgroundImage = '';
+      }
+    }
+
     $('sidebar-user').textContent = name;
 
     const ddAvatar = document.getElementById('dd-avatar');
     const ddName = document.getElementById('dd-name');
     const ddEmail = document.getElementById('dd-email');
-    if (ddAvatar) ddAvatar.textContent = ini;
+    if (ddAvatar) {
+      if (user.avatar_url) {
+        ddAvatar.innerHTML = '';
+        ddAvatar.style.backgroundImage = `url(${user.avatar_url})`;
+        ddAvatar.style.backgroundSize = 'cover';
+        ddAvatar.style.backgroundPosition = 'center';
+      } else {
+        ddAvatar.textContent = ini;
+        ddAvatar.style.backgroundImage = '';
+      }
+    }
     if (ddName) ddName.textContent = name;
     if (ddEmail) ddEmail.textContent = user.email || '—';
     const ddRole = document.getElementById('dd-role-badge');
@@ -129,39 +153,184 @@ const Auth = (() => {
     }
   }
 
-  function showProfile() {
+  async function showProfile() {
     closeProfileMenu();
-    const user = API.getUser();
+    let user = API.getUser();
     if (!user) return;
-    const roleLabel = user.role === 'admin' ? 'Administrator' : user.role === 'subadmin' ? 'Field Engineer' : 'School Staff';
-    const body = `
-      <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
-        <div class="topbar-avatar" style="width:56px;height:56px;font-size:18px">${initials(user.full_name)}</div>
-        <div>
-          <div style="font-size:17px;font-weight:700">${esc(user.full_name)}</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(roleLabel)}</div>
+    try { user = await API.getProfile(); API.setUser(user); } catch (e) { /* use cached */ }
+    _renderProfileModal(user, false);
+  }
+
+  function _roleLabel(role) {
+    return role === 'admin' ? 'Administrator' : role === 'subadmin' ? 'Field Engineer' : role === 'teacher' ? 'Teacher' : 'School Staff';
+  }
+
+  function _avatarHtml(user, size = 80, editable = false) {
+    const ini = initials(user.full_name || user.username);
+    const img = user.avatar_url
+      ? `<img src="${esc(user.avatar_url)}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;display:block">`
+      : `<div class="topbar-avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.3)}px;flex-shrink:0">${ini}</div>`;
+    if (!editable) return img;
+    return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;cursor:pointer" onclick="document.getElementById('avatar-file-input').click()">
+      ${img}
+      <div style="position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s" class="avatar-hover-overlay">
+        <i class="ti ti-camera" style="font-size:22px;color:#fff"></i>
+      </div>
+      <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="Auth._onAvatarFile(this)">
+    </div>`;
+  }
+
+  function _renderProfileModal(user, editMode) {
+    const rl = _roleLabel(user.role);
+    const memberSince = user.created_at ? new Date(user.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—';
+
+    const viewBody = `
+      <div class="profile-modal-hero">
+        ${_avatarHtml(user, 80, false)}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:19px;font-weight:700;color:var(--text)">${esc(user.full_name)}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(user.title || rl)}</div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+            <span class="pd-role-badge" style="font-size:11px;padding:3px 9px">${rl}</span>
+            ${user.zone ? `<span style="font-size:11px;padding:3px 9px;border-radius:20px;background:rgba(54,217,204,0.12);color:var(--teal);border:1px solid rgba(54,217,204,0.25)">${esc(user.zone)}</span>` : ''}
+          </div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:13px">
-        <div style="background:var(--bg3);border-radius:8px;padding:12px">
-          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Username</div>
-          <div style="font-weight:500">${esc(user.username)}</div>
+      ${user.bio ? `<div style="background:var(--bg3);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;border:1px solid var(--border)">${esc(user.bio)}</div>` : ''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
+        ${_infoTile('ti-at','Email', user.email || '—')}
+        ${_infoTile('ti-phone','Phone', user.phone || '—')}
+        ${_infoTile('ti-id-badge','Username', user.username)}
+        ${_infoTile('ti-calendar','Member since', memberSince)}
+      </div>`;
+
+    const editBody = `
+      <div class="profile-modal-hero" style="align-items:flex-start">
+        ${_avatarHtml(user, 80, true)}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Profile Photo</div>
+          <div style="font-size:11px;color:var(--text3);line-height:1.5">Click the photo to upload a new one.<br>JPG, PNG or WEBP, max 5MB.</div>
+          <div id="avatar-upload-status" style="font-size:11px;margin-top:4px"></div>
         </div>
-        <div style="background:var(--bg3);border-radius:8px;padding:12px">
-          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Email</div>
-          <div style="font-weight:500">${esc(user.email || '—')}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+        <div class="form-group" style="margin:0">
+          <label>Full Name *</label>
+          <input type="text" id="pf-fullname" value="${esc(user.full_name)}" placeholder="Your full name">
         </div>
-        <div style="background:var(--bg3);border-radius:8px;padding:12px">
-          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Phone</div>
-          <div style="font-weight:500">${esc(user.phone || '—')}</div>
+        <div class="form-group" style="margin:0">
+          <label>Email *</label>
+          <input type="email" id="pf-email" value="${esc(user.email || '')}" placeholder="your@email.com">
         </div>
-        <div style="background:var(--bg3);border-radius:8px;padding:12px">
-          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Zone</div>
-          <div style="font-weight:500">${esc(user.zone || '—')}</div>
+        <div class="form-group" style="margin:0">
+          <label>Phone</label>
+          <input type="text" id="pf-phone" value="${esc(user.phone || '')}" placeholder="+255 700 000 000">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>Job Title</label>
+          <input type="text" id="pf-title" value="${esc(user.title || '')}" placeholder="e.g. IT Coordinator">
+        </div>
+        <div class="form-group" style="margin:0;grid-column:1/-1">
+          <label>Zone / Region</label>
+          <input type="text" id="pf-zone" value="${esc(user.zone || '')}" placeholder="e.g. Dar es Salaam">
+        </div>
+        <div class="form-group" style="margin:0;grid-column:1/-1">
+          <label>Bio</label>
+          <textarea id="pf-bio" rows="3" placeholder="Short description about yourself..." style="resize:vertical">${esc(user.bio || '')}</textarea>
         </div>
       </div>`;
-    const footer = `<button class="btn btn-secondary" onclick="Modal.close()">Close</button>`;
-    Modal.open('My Profile', body, footer);
+
+    const viewFooter = `
+      <div style="display:flex;gap:8px;width:100%">
+        <button class="btn btn-secondary" onclick="Modal.close()">Close</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-secondary" onclick="Auth.showChangePassword()"><i class="ti ti-lock"></i> Password</button>
+        <button class="btn btn-primary" onclick="Auth._switchToEditProfile()"><i class="ti ti-pencil"></i> Edit Profile</button>
+      </div>`;
+
+    const editFooter = `
+      <div style="display:flex;gap:8px;width:100%">
+        <button class="btn btn-secondary" onclick="Auth.showProfile()">Cancel</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-primary" id="pf-save-btn" onclick="Auth._saveProfile()"><i class="ti ti-check"></i> Save Changes</button>
+      </div>`;
+
+    Modal.open('My Profile', editMode ? editBody : viewBody, editMode ? editFooter : viewFooter, true);
+
+    if (editMode) {
+      document.querySelectorAll('.avatar-hover-overlay').forEach(el => {
+        el.closest('div[onclick]').addEventListener('mouseenter', () => el.style.opacity = '1');
+        el.closest('div[onclick]').addEventListener('mouseleave', () => el.style.opacity = '0');
+      });
+    }
+  }
+
+  function _infoTile(icon, label, value) {
+    return `<div style="background:var(--bg3);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">
+        <i class="ti ${icon}" style="font-size:12px"></i>${label}
+      </div>
+      <div style="font-weight:500;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(String(value))}</div>
+    </div>`;
+  }
+
+  function _switchToEditProfile() {
+    const user = API.getUser();
+    if (user) _renderProfileModal(user, true);
+  }
+
+  async function _onAvatarFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const status = document.getElementById('avatar-upload-status');
+    if (status) status.innerHTML = '<span style="color:var(--teal)"><i class="ti ti-loader" style="animation:spin 1s linear infinite"></i> Uploading…</span>';
+    try {
+      const fd = new FormData();
+      fd.append('avatar', file);
+      const res = await API.uploadAvatar(fd);
+      const user = API.getUser();
+      user.avatar_url = res.avatar_url;
+      API.setUser(user);
+      updateUserDisplay();
+      if (status) status.innerHTML = '<span style="color:var(--green)"><i class="ti ti-check"></i> Photo updated!</span>';
+      // refresh avatar in modal
+      const wrap = document.querySelector('[onclick*="avatar-file-input"]');
+      if (wrap) {
+        const img = wrap.querySelector('img');
+        if (img) { img.src = res.avatar_url; }
+        else {
+          const av = wrap.querySelector('.topbar-avatar');
+          if (av) { av.outerHTML = `<img src="${res.avatar_url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;display:block">`; }
+        }
+      }
+    } catch (e) {
+      if (status) status.innerHTML = `<span style="color:var(--red)">Upload failed</span>`;
+    }
+  }
+
+  async function _saveProfile() {
+    const btn = document.getElementById('pf-save-btn');
+    const full_name = document.getElementById('pf-fullname')?.value.trim();
+    const email = document.getElementById('pf-email')?.value.trim();
+    const phone = document.getElementById('pf-phone')?.value.trim();
+    const title = document.getElementById('pf-title')?.value.trim();
+    const zone = document.getElementById('pf-zone')?.value.trim();
+    const bio = document.getElementById('pf-bio')?.value.trim();
+
+    if (!full_name) { showToast('Full name is required'); return; }
+    if (!email) { showToast('Email is required'); return; }
+
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Saving…'; }
+    try {
+      const updated = await API.updateProfile({ full_name, email, phone, title, zone, bio });
+      API.setUser(updated);
+      updateUserDisplay();
+      showToast('Profile updated successfully');
+      _renderProfileModal(updated, false);
+    } catch (e) {
+      showToast(e.error || 'Failed to save profile');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Save Changes'; }
+    }
   }
 
   function showChangePassword() {
@@ -289,5 +458,5 @@ const Auth = (() => {
     $('register-content').innerHTML = RegisterPage.render();
   }
 
-  return { init, showLogin, showApp, logout, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, switchRole, toggleRoleDrop, filterRoleDrop, selectRole, goRegister };
+  return { init, showLogin, showApp, logout, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, switchRole, toggleRoleDrop, filterRoleDrop, selectRole, goRegister, _switchToEditProfile, _saveProfile, _onAvatarFile };
 })();

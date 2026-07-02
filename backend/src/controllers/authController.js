@@ -1,6 +1,18 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const streamifier = require('streamifier');
 const pool = require('../config/database');
+const cloudinary = require('../config/cloudinary');
+
+function uploadToCloudinary(buffer, options) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+      if (result) resolve(result);
+      else reject(error);
+    });
+    streamifier.createReadStream(buffer).pipe(stream);
+  });
+}
 
 function generateToken(user) {
   return jwt.sign(
@@ -141,11 +153,48 @@ async function register(req, res, next) {
 async function getProfile(req, res, next) {
   try {
     const [rows] = await pool.query(
-      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, school_id, created_at FROM users WHERE id = ?',
+      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, school_id, bio, avatar_url, created_at FROM users WHERE id = ?',
       [req.user.id]
     );
     if (!rows.length) return res.status(404).json({ error: 'User not found.' });
     res.json(rows[0]);
+  } catch (err) { next(err); }
+}
+
+async function updateProfile(req, res, next) {
+  try {
+    const { full_name, email, phone, zone, title, bio } = req.body;
+    if (!full_name || !full_name.trim()) return res.status(400).json({ error: 'Full name is required.' });
+
+    const [existing] = await pool.query('SELECT id FROM users WHERE email = ? AND id != ?', [email, req.user.id]);
+    if (existing.length) return res.status(400).json({ error: 'Email already in use.' });
+
+    await pool.query(
+      'UPDATE users SET full_name = ?, email = ?, phone = ?, zone = ?, title = ?, bio = ?, updated_at = NOW() WHERE id = ?',
+      [full_name.trim(), email || null, phone || null, zone || null, title || null, bio || null, req.user.id]
+    );
+    const [rows] = await pool.query(
+      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, school_id, bio, avatar_url, created_at FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    res.json(rows[0]);
+  } catch (err) { next(err); }
+}
+
+async function uploadAvatar(req, res, next) {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+    if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'Only image files are allowed.' });
+
+    const result = await uploadToCloudinary(req.file.buffer, {
+      resource_type: 'image',
+      folder: 'oe-avatars',
+      public_id: `avatar-${req.user.id}-${Date.now()}`,
+      transformation: [{ width: 300, height: 300, crop: 'fill', gravity: 'face' }]
+    });
+
+    await pool.query('UPDATE users SET avatar_url = ?, updated_at = NOW() WHERE id = ?', [result.secure_url, req.user.id]);
+    res.json({ avatar_url: result.secure_url });
   } catch (err) { next(err); }
 }
 
@@ -173,4 +222,4 @@ async function changePassword(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { login, register, getProfile, changePassword };
+module.exports = { login, register, getProfile, updateProfile, uploadAvatar, changePassword };

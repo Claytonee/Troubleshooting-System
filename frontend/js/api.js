@@ -70,6 +70,15 @@ const API = (() => {
     getToken, setToken, clearToken, getUser, setUser, clearUser, isLoggedIn,
     login: (username, password) => request('POST', '/auth/login', { username, password }),
     getProfile: () => request('GET', '/auth/profile'),
+    updateProfile: (data) => request('PUT', '/auth/profile', data),
+    uploadAvatar: (formData) => {
+      const token = localStorage.getItem('token');
+      return fetch('/api/auth/profile/avatar', {
+        method: 'POST',
+        headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+        body: formData
+      }).then(async r => { const d = await r.json(); if (!r.ok) throw d; return d; });
+    },
     changePassword: (data) => request('PUT', '/auth/change-password', data),
     getDashboard: () => request('GET', '/dashboard'),
     getSchools: () => request('GET', '/schools'),
