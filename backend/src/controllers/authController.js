@@ -45,9 +45,6 @@ async function login(req, res, next) {
     }
 
     const user = rows[0];
-    if (user.status === 'inactive') {
-      return res.status(403).json({ error: 'Account is deactivated.' });
-    }
 
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
@@ -72,13 +69,17 @@ async function login(req, res, next) {
       return res.status(401).json({ error: 'Invalid username or password.' });
     }
 
-    // Check if teacher is pending approval
+    // Check teacher approval status before generic inactive check
     if (user.role === 'teacher' && user.approval_status === 'pending') {
       return res.status(403).json({ error: 'teacher_pending', user_id: user.id, email: user.email });
     }
     if (user.role === 'teacher' && user.approval_status === 'rejected') {
       const [teacherRows] = await pool.query('SELECT rejection_reason FROM teachers WHERE user_id = ?', [user.id]);
       return res.status(403).json({ error: 'teacher_rejected', user_id: user.id, email: user.email, rejection_reason: teacherRows[0]?.rejection_reason || null });
+    }
+
+    if (user.status === 'inactive') {
+      return res.status(403).json({ error: 'Account is deactivated.' });
     }
 
     const token = generateToken(user);
