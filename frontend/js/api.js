@@ -72,7 +72,7 @@ const API = (() => {
     getProfile: () => request('GET', '/auth/profile'),
     updateProfile: (data) => request('PUT', '/auth/profile', data),
     uploadAvatar: (formData) => {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       return fetch('/api/auth/profile/avatar', {
         method: 'POST',
         headers: token ? { 'Authorization': 'Bearer ' + token } : {},
