@@ -399,8 +399,24 @@ async function registerTeacher(req, res, next) {
       return res.status(410).json({ error: 'Registration link has reached maximum uses.' });
     }
 
-    const [existingUser] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
+    const [existingUser] = await pool.query('SELECT id, role, status, approval_status FROM users WHERE LOWER(email) = LOWER(?)', [email]);
     if (existingUser.length) {
+      const eu = existingUser[0];
+      // Allow re-registration for rejected/deleted teachers
+      if (eu.role === 'teacher' && (eu.status === 'inactive' || eu.approval_status === 'rejected')) {
+        const passwordHash = await bcrypt.hash(password, 12);
+        await pool.query(
+          `UPDATE users SET password_hash = ?, full_name = ?, phone = ?, school_id = ?, status = 'active', approval_status = 'pending', updated_at = NOW() WHERE id = ?`,
+          [passwordHash, full_name, phone || null, link.school_id, eu.id]
+        );
+        await pool.query('DELETE FROM teachers WHERE user_id = ?', [eu.id]);
+        await pool.query(
+          `INSERT INTO teachers (user_id, school_id, subject, employee_id, status, registered_via) VALUES (?, ?, ?, ?, 'pending', 'link')`,
+          [eu.id, link.school_id, subject || null, employee_id || null]
+        );
+        await pool.query('UPDATE registration_links SET use_count = use_count + 1 WHERE id = ?', [link.id]);
+        return res.status(201).json({ message: 'Registration submitted. Awaiting approval from your school administrator.', status: 'pending' });
+      }
       return res.status(409).json({ error: 'Email already registered.' });
     }
 
