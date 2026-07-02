@@ -36,6 +36,8 @@ const Auth = (() => {
     if (ddAvatar) ddAvatar.textContent = ini;
     if (ddName) ddName.textContent = name;
     if (ddEmail) ddEmail.textContent = user.email || '—';
+    const ddRole = document.getElementById('dd-role-badge');
+    if (ddRole) ddRole.textContent = roleLabel;
 
     populateRoleSwitch();
   }

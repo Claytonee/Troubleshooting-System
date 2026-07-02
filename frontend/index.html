@@ -114,14 +114,30 @@
       </div>
       <div class="profile-dropdown" id="profile-dropdown">
         <div class="profile-dropdown-header" id="profile-dd-header">
-          <div class="topbar-avatar" style="width:40px;height:40px;font-size:14px" id="dd-avatar">KM</div>
-          <div><div style="font-weight:600;font-size:13px" id="dd-name">—</div><div style="font-size:11px;color:var(--text3)" id="dd-email">—</div></div>
+          <div class="pd-avatar-wrap">
+            <div class="topbar-avatar pd-avatar" id="dd-avatar">SA</div>
+            <div class="pd-online-dot"></div>
+          </div>
+          <div class="pd-info">
+            <div class="pd-name" id="dd-name">—</div>
+            <div class="pd-email" id="dd-email">—</div>
+            <div class="pd-role-badge" id="dd-role-badge">Admin</div>
+          </div>
         </div>
         <div class="profile-dropdown-items">
-          <div class="profile-dropdown-item" onclick="Auth.showProfile()"><i class="ti ti-user"></i> My Profile</div>
-          <div class="profile-dropdown-item" onclick="Auth.showChangePassword()"><i class="ti ti-key"></i> Change Password</div>
+          <div class="profile-dropdown-item" onclick="Auth.showProfile()">
+            <span class="pd-icon-box" style="background:rgba(79,124,255,0.12);color:var(--accent)"><i class="ti ti-user"></i></span>
+            <span>My Profile</span>
+          </div>
+          <div class="profile-dropdown-item" onclick="Auth.showChangePassword()">
+            <span class="pd-icon-box" style="background:rgba(54,217,204,0.12);color:var(--teal)"><i class="ti ti-lock"></i></span>
+            <span>Change Password</span>
+          </div>
           <div class="profile-dropdown-divider"></div>
-          <div class="profile-dropdown-item danger" onclick="Auth.logout()"><i class="ti ti-logout"></i> Sign Out</div>
+          <div class="profile-dropdown-item danger" onclick="Auth.logout()">
+            <span class="pd-icon-box" style="background:rgba(255,82,99,0.12);color:var(--red)"><i class="ti ti-logout"></i></span>
+            <span>Sign Out</span>
+          </div>
         </div>
       </div>
     </div>

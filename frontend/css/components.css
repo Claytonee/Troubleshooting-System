@@ -204,16 +204,23 @@ select option { background: var(--bg3); }
 .topbar-role { font-size: 10.5px; color: var(--text3); text-transform: capitalize; }
 
 /* Profile Dropdown */
-.profile-dropdown { position: absolute; top: calc(100% + 8px); right: 0; width: 240px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 100; opacity: 0; visibility: hidden; transform: translateY(-6px); transition: all .2s; overflow: hidden; }
+.profile-dropdown { position: absolute; top: calc(100% + 8px); right: 0; width: 260px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; box-shadow: 0 16px 48px rgba(0,0,0,0.55); z-index: 100; opacity: 0; visibility: hidden; transform: translateY(-6px); transition: all .2s; overflow: hidden; }
 .profile-dropdown.open { opacity: 1; visibility: visible; transform: translateY(0); }
-.profile-dropdown-header { display: flex; align-items: center; gap: 10px; padding: 16px; border-bottom: 1px solid var(--border); }
-.profile-dropdown-items { padding: 6px; }
-.profile-dropdown-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; font-size: 13px; color: var(--text2); cursor: pointer; transition: all .15s; }
+.profile-dropdown-header { display: flex; align-items: center; gap: 12px; padding: 18px 16px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, rgba(79,124,255,0.07) 0%, rgba(155,125,255,0.05) 100%); }
+.pd-avatar-wrap { position: relative; flex-shrink: 0; }
+.pd-avatar { width: 46px !important; height: 46px !important; font-size: 16px !important; border: 2px solid rgba(79,124,255,0.35); }
+.pd-online-dot { position: absolute; bottom: 1px; right: 1px; width: 10px; height: 10px; background: var(--green); border-radius: 50%; border: 2px solid var(--bg2); }
+.pd-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pd-name { font-weight: 600; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pd-email { font-size: 11px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pd-role-badge { display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; padding: 2px 7px; border-radius: 20px; background: rgba(79,124,255,0.15); color: var(--accent); border: 1px solid rgba(79,124,255,0.25); width: fit-content; }
+.profile-dropdown-items { padding: 8px; }
+.profile-dropdown-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 9px; font-size: 13px; color: var(--text2); cursor: pointer; transition: all .15s; }
 .profile-dropdown-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
-.profile-dropdown-item .ti { font-size: 16px; width: 18px; text-align: center; }
 .profile-dropdown-item.danger { color: var(--red); }
 .profile-dropdown-item.danger:hover { background: rgba(255,82,99,0.08); }
-.profile-dropdown-divider { height: 1px; background: var(--border); margin: 4px 8px; }
+.pd-icon-box { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; font-size: 15px; flex-shrink: 0; }
+.profile-dropdown-divider { height: 1px; background: var(--border); margin: 4px 6px; }
 
 @media (max-width: 920px) {
   .topbar-user-info { display: none; }
