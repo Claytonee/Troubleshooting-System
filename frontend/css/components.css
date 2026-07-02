@@ -361,6 +361,10 @@ select option { background: var(--bg3); }
 .reg-field .req { color: var(--red); }
 .reg-field input, .reg-field select { padding: 8px 10px; background: var(--bg1); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; font-family: var(--font); transition: border-color .2s; }
 .reg-field input:focus, .reg-field select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(79,124,255,0.08); }
+.reg-pw-wrap { position: relative; display: flex; align-items: center; }
+.reg-pw-wrap input { width: 100%; padding-right: 36px; }
+.reg-pw-toggle { position: absolute; right: 8px; background: none; border: none; color: var(--text3); cursor: pointer; padding: 2px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: color .15s; }
+.reg-pw-toggle:hover { color: var(--accent); }
 .reg-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; background: linear-gradient(135deg, var(--accent), #6366f1); color: #fff; border: none; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; font-family: var(--font); width: 100%; margin-top: 4px; }
 .reg-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(79,124,255,0.3); }
 .reg-btn:active { transform: scale(0.98); }
