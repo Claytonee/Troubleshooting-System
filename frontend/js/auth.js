@@ -232,6 +232,8 @@ const Auth = (() => {
     window.addEventListener('auth:expired', () => {
       const regPage = document.getElementById('register-page');
       if (regPage && regPage.style.display !== 'none') return;
+      const loginPage = document.getElementById('login-page');
+      if (loginPage && loginPage.style.display !== 'none') return;
       showToast('Session expired. Please login again.');
       showLogin();
     });
