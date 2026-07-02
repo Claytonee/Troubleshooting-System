@@ -91,25 +91,47 @@ const TeachersPage = (() => {
   }
 
   function renderLinks() {
-    if (!Array.isArray(links) || !links.length) return '<div class="empty-state">No registration links generated yet</div>';
-    return `<div class="approval-list">
+    if (!Array.isArray(links) || !links.length) return '<div class="empty-state"><i class="ti ti-link-off" style="font-size:32px;opacity:.4;display:block;margin-bottom:8px"></i>No registration links generated yet.<br><span style="font-size:12px;color:var(--text3)">Click "Generate Registration Link" to create one.</span></div>';
+    return `<div style="display:flex;flex-direction:column;gap:12px">
       ${links.map(l => {
         const expired = new Date(l.expires_at) < new Date();
         const full = l.use_count >= l.max_uses;
         const active = l.is_active && !expired && !full;
+        const statusLabel = active ? 'Active' : expired ? 'Expired' : full ? 'Full' : 'Deactivated';
+        const statusColor = active ? 'green' : 'red';
+        const expires = new Date(l.expires_at);
+        const created = new Date(l.created_at);
+        const daysLeft = Math.max(0, Math.ceil((expires - Date.now()) / (1000 * 60 * 60 * 24)));
+        const usePct = Math.round((l.use_count / l.max_uses) * 100);
+        const fullUrl = `${window.location.origin}/register/teacher/${l.token}`;
         return `
-        <div class="approval-item">
-          <div class="approval-info">
-            <div class="approval-name" style="font-family:var(--mono);font-size:11px">${window.location.origin}/register/teacher/${l.token.substring(0, 12)}...</div>
-            <div class="approval-meta">Uses: ${l.use_count}/${l.max_uses} &middot; Expires: ${new Date(l.expires_at).toLocaleDateString()}</div>
-            <div class="approval-meta"><span class="badge-${active ? 'green' : 'red'}">${active ? 'Active' : expired ? 'Expired' : full ? 'Full' : 'Deactivated'}</span></div>
+        <div style="background:var(--bg1);border:1px solid var(--border);border-radius:10px;padding:16px;border-left:3px solid var(--${statusColor})">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <span class="badge-${statusColor}">${statusLabel}</span>
+            <span style="font-size:11px;color:var(--text3)">Created ${timeAgo(l.created_at)}</span>
           </div>
-          <div class="approval-actions">
-            ${active ? `
-              <button class="btn btn-sm" onclick="TeachersPage.copyLink('${l.token}')">Copy Link</button>
-              <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="TeachersPage.deactivateLink(${l.id})">Deactivate</button>
-            ` : ''}
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+            <code style="flex:1;font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fullUrl}</code>
+            ${active ? `<button class="btn-icon" title="Copy link" onclick="TeachersPage.copyLink('${l.token}')" style="flex-shrink:0"><i class="ti ti-copy"></i></button>` : ''}
           </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:${active ? '12px' : '0'}">
+            <div>
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Usage</div>
+              <div style="font-size:14px;font-weight:600;color:var(--text)">${l.use_count}<span style="font-size:11px;color:var(--text3);font-weight:400">/${l.max_uses}</span></div>
+              <div style="margin-top:4px;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden"><div style="height:100%;width:${usePct}%;background:var(--${usePct >= 90 ? 'red' : usePct >= 60 ? 'amber' : 'green'});border-radius:2px"></div></div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">${active ? 'Expires in' : 'Expired'}</div>
+              <div style="font-size:14px;font-weight:600;color:${active ? 'var(--text)' : 'var(--red)'}">${active ? daysLeft + 'd' : expired ? 'Expired' : '—'}</div>
+              <div style="font-size:11px;color:var(--text3)">${expires.toLocaleDateString()}</div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Created</div>
+              <div style="font-size:14px;font-weight:600;color:var(--text)">${created.toLocaleDateString(undefined, {day:'numeric',month:'short'})}</div>
+              <div style="font-size:11px;color:var(--text3)">${created.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+            </div>
+          </div>
+          ${active ? `<div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="TeachersPage.deactivateLink(${l.id})"><i class="ti ti-link-off"></i> Deactivate</button></div>` : ''}
         </div>`;
       }).join('')}
     </div>`;
@@ -129,12 +151,56 @@ const TeachersPage = (() => {
       if (res.ok) {
         const fullUrl = `${window.location.origin}/register/teacher/${data.token}`;
         await navigator.clipboard.writeText(fullUrl).catch(() => {});
-        showToast('Registration link generated and copied!');
-        await load(); App.render();
+        showLinkModal(fullUrl, data);
+        tab = 'links';
+        await load();
       } else {
         showToast(data.error || 'Failed');
       }
     } catch (e) { showToast('Network error'); }
+  }
+
+  function showLinkModal(url, data) {
+    const expires = new Date(data.expires_at);
+    const daysLeft = Math.ceil((expires - Date.now()) / (1000 * 60 * 60 * 24));
+    Modal.open('Registration Link Generated', `
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="width:48px;height:48px;border-radius:50%;background:rgba(45,217,138,0.12);display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px">
+          <i class="ti ti-check" style="font-size:24px;color:var(--green)"></i>
+        </div>
+        <div style="font-size:13px;color:var(--text2)">Link created and copied to clipboard</div>
+      </div>
+      <div style="background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px">
+        <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Registration URL</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="text" value="${url}" readonly style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;font-family:var(--mono);color:var(--text);outline:none" id="gen-link-url">
+          <button class="btn btn-sm" onclick="TeachersPage.copyGenerated()" style="white-space:nowrap"><i class="ti ti-copy"></i> Copy</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div style="background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:12px">
+          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Expires in</div>
+          <div style="font-size:18px;font-weight:600;color:var(--text)">${daysLeft} days</div>
+          <div style="font-size:11px;color:var(--text3)">${expires.toLocaleDateString()} ${expires.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+        <div style="background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:12px">
+          <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Max Uses</div>
+          <div style="font-size:18px;font-weight:600;color:var(--text)">${data.max_uses}</div>
+          <div style="font-size:11px;color:var(--text3)">teachers can register</div>
+        </div>
+      </div>
+      <div style="background:rgba(79,124,255,0.06);border:1px solid rgba(79,124,255,0.15);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);display:flex;align-items:flex-start;gap:8px">
+        <i class="ti ti-info-circle" style="color:var(--accent);flex-shrink:0;margin-top:1px"></i>
+        <span>Share this link with teachers. They'll fill a registration form and await your approval before gaining access.</span>
+      </div>
+    `, '<button class="btn btn-primary" onclick="Modal.close()">Done</button>');
+  }
+
+  function copyGenerated() {
+    const input = document.getElementById('gen-link-url');
+    if (input) {
+      navigator.clipboard.writeText(input.value).then(() => showToast('Link copied!')).catch(() => showToast('Copy failed'));
+    }
   }
 
   function copyLink(token) {
@@ -207,7 +273,7 @@ const TeachersPage = (() => {
   }
 
   function showAddModal() {
-    Modal.show('Add Teacher', `
+    Modal.open('Add Teacher', `
       <form onsubmit="TeachersPage.submitAdd(event)">
         <div class="form-group"><label>Full Name *</label><input type="text" id="add-t-name" required class="form-control"></div>
         <div class="form-group"><label>Email *</label><input type="email" id="add-t-email" required class="form-control"></div>
@@ -216,7 +282,7 @@ const TeachersPage = (() => {
         <div class="form-group"><label>Employee ID</label><input type="text" id="add-t-empid" class="form-control"></div>
         <button type="submit" class="btn btn-primary" style="width:100%;margin-top:12px">Add Teacher</button>
       </form>
-    `);
+    `, '');
   }
 
   async function submitAdd(e) {
@@ -237,7 +303,7 @@ const TeachersPage = (() => {
       });
       const data = await res.json();
       if (res.ok) {
-        Modal.hide();
+        Modal.close();
         showToast(data.temporary_password ? `Teacher added! Temp password: ${data.temporary_password}` : 'Teacher added!');
         await load(); App.render();
       } else {
@@ -257,5 +323,5 @@ const TeachersPage = (() => {
 
   function afterRender() {}
 
-  return { load, render, afterRender, setTab, generateLink, copyLink, deactivateLink, approveTeacher, rejectTeacher, updateStatus, deleteTeacher, showAddModal, submitAdd };
+  return { load, render, afterRender, setTab, generateLink, copyLink, copyGenerated, deactivateLink, approveTeacher, rejectTeacher, updateStatus, deleteTeacher, showAddModal, submitAdd };
 })();
