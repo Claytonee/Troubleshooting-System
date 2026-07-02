@@ -83,6 +83,7 @@ const API = (() => {
     getErrorStats: () => request('GET', '/errors/stats'),
     createError: (data) => request('POST', '/errors', data),
     updateErrorStatus: (id, status) => request('PATCH', `/errors/${id}/status`, { status }),
+    escalateError: (id, data) => request('POST', `/errors/${id}/escalate`, data),
     addErrorUpdate: (id, data) => request('POST', `/errors/${id}/updates`, data),
     getTeam: () => request('GET', '/team'),
     getTeamMember: (id) => request('GET', `/team/${id}`),
