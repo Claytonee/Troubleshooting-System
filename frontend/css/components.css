@@ -227,6 +227,8 @@ select option { background: var(--bg3); }
 .login-sub { font-size: 13px; color: var(--text3); text-align: center; margin-bottom: 28px; }
 .login-error { background: rgba(255,82,99,0.1); border: 1px solid rgba(255,82,99,0.3); color: var(--red); border-radius: 8px; padding: 10px 14px; font-size: 12px; margin-bottom: 16px; display: none; }
 .login-error.show { display: block; }
+.oe-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; }
+.oe-footer-logo { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: center; opacity: 0.7; }
 
 /* AI Chat */
 .main.chat-active { overflow: hidden; padding: 0; }
@@ -413,7 +415,6 @@ select option { background: var(--bg3); }
 .reg-badge { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
 .reg-badge.pending { background: rgba(245,166,35,0.1); color: var(--amber); }
 .reg-hint { font-size: 11px; color: var(--text3); margin-top: 16px; line-height: 1.6; }
-.reg-oe-logo { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: center; opacity: 0.7; }
 
 /* Approvals & Teacher Management */
 .tab-row { display: flex; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
