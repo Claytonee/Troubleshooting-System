@@ -185,7 +185,7 @@ const SchoolsPage = (() => {
           fg('<label>Number of Students</label>', `<input type="number" id="sc-students" min="0" value="${s.students != null ? s.students : 0}">`)
         )}
 
-        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;letter-spacing:.4px">SCHOOL CONTACT</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;letter-spacing:.4px">SCHOOL ADMIN</div>
         ${grp(
           fg('<label>Contact Name</label>', `<input type="text" id="sc-cname" value="${esc(s.contact_name || '')}" placeholder="e.g. Head Teacher name">`) +
           fg('<label>Role</label>', `<input type="text" id="sc-crole" value="${esc(s.contact_role || '')}" placeholder="e.g. Head Teacher">`)
