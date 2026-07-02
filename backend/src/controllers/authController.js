@@ -26,16 +26,19 @@ async function login(req, res, next) {
     if (!rows.length) {
       // Check if this is a pending registration
       const [regRows] = await pool.query(
-        'SELECT id, status, email, rejection_reason FROM registration_requests WHERE email = ?',
+        'SELECT id, status, email, password_hash, rejection_reason FROM registration_requests WHERE email = ?',
         [username]
       );
       if (regRows.length) {
         const reg = regRows[0];
-        if (reg.status === 'pending') {
-          return res.status(403).json({ error: 'pending_approval', request_id: reg.id, email: reg.email });
-        }
-        if (reg.status === 'rejected') {
-          return res.status(403).json({ error: 'registration_rejected', request_id: reg.id, email: reg.email, rejection_reason: reg.rejection_reason });
+        const regPwValid = await bcrypt.compare(password, reg.password_hash);
+        if (regPwValid) {
+          if (reg.status === 'pending') {
+            return res.status(403).json({ error: 'pending_approval', request_id: reg.id, email: reg.email });
+          }
+          if (reg.status === 'rejected') {
+            return res.status(403).json({ error: 'registration_rejected', request_id: reg.id, email: reg.email, rejection_reason: reg.rejection_reason });
+          }
         }
       }
       return res.status(401).json({ error: 'Invalid username or password.' });
@@ -48,6 +51,24 @@ async function login(req, res, next) {
 
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
+      // Check if this email has a pending/rejected registration with correct password
+      const emailToCheck = user.email || username;
+      const [regRows] = await pool.query(
+        'SELECT id, status, email, password_hash, rejection_reason FROM registration_requests WHERE email = ?',
+        [emailToCheck]
+      );
+      if (regRows.length) {
+        const reg = regRows[0];
+        const regPwValid = await bcrypt.compare(password, reg.password_hash);
+        if (regPwValid) {
+          if (reg.status === 'pending') {
+            return res.status(403).json({ error: 'pending_approval', request_id: reg.id, email: reg.email });
+          }
+          if (reg.status === 'rejected') {
+            return res.status(403).json({ error: 'registration_rejected', request_id: reg.id, email: reg.email, rejection_reason: reg.rejection_reason });
+          }
+        }
+      }
       return res.status(401).json({ error: 'Invalid username or password.' });
     }
 
