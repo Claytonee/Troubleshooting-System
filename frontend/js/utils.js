@@ -201,3 +201,63 @@ const Dropdown = (() => {
 
   return { render, toggle, filter, select, closeAll, updateItems, getValue };
 })();
+
+const Tooltip = (() => {
+  let activeEl = null;
+  let tipEl = null;
+
+  function show(target) {
+    if (activeEl === target) return;
+    hide();
+    const text = target.getAttribute('data-tip');
+    if (!text) return;
+    activeEl = target;
+
+    tipEl = document.createElement('div');
+    tipEl.className = 'tooltip-card';
+    const color = target.getAttribute('data-tip-color') || '';
+    if (color) tipEl.classList.add('tip-' + color);
+
+    const parts = text.split(' · ');
+    if (parts.length > 1) {
+      tipEl.innerHTML = `<div class="tip-title">${esc(parts[0])}</div><div class="tip-desc">${esc(parts.slice(1).join(' · '))}</div>`;
+    } else {
+      tipEl.innerHTML = `<div class="tip-desc">${esc(text)}</div>`;
+    }
+
+    document.body.appendChild(tipEl);
+    position(target);
+    requestAnimationFrame(() => tipEl && tipEl.classList.add('visible'));
+  }
+
+  function position(target) {
+    if (!tipEl) return;
+    const r = target.getBoundingClientRect();
+    const tw = tipEl.offsetWidth;
+    const th = tipEl.offsetHeight;
+    let top = r.top - th - 12;
+    let left = r.left + (r.width / 2) - (tw / 2);
+    if (top < 8) top = r.bottom + 12;
+    if (left < 8) left = 8;
+    if (left + tw > window.innerWidth - 8) left = window.innerWidth - tw - 8;
+    tipEl.style.top = top + 'px';
+    tipEl.style.left = left + 'px';
+  }
+
+  function hide() {
+    if (tipEl) { tipEl.remove(); tipEl = null; }
+    activeEl = null;
+  }
+
+  document.addEventListener('mouseover', (e) => {
+    const el = e.target.closest('[data-tip]');
+    if (el) show(el); else hide();
+  });
+  document.addEventListener('mouseout', (e) => {
+    const el = e.target.closest('[data-tip]');
+    if (el && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener('scroll', hide, true);
+
+  return { show, hide };
+})();

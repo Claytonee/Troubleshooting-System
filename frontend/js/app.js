@@ -191,17 +191,17 @@ const ErrorDetailModal = (() => {
       if (canResolve || canEscalate) {
         footer += '<div style="display:flex;gap:10px;width:100%;align-items:center">';
         if (canEscalate) {
-          footer += `<button class="btn btn-danger btn-sm" style="display:inline-flex;align-items:center;gap:6px" data-tip="Forward this error to Opportunity Education platform team for immediate support" data-tip-color="red" onclick="ErrorDetailModal.escalate(${e.id})"><i class="ti ti-arrow-up-right"></i> Escalate to OE</button>`;
+          footer += `<button class="btn btn-danger btn-sm" style="display:inline-flex;align-items:center;gap:6px" data-tip="Escalate to OE · Forward this error to Opportunity Education platform team for immediate support and resolution" data-tip-color="red" onclick="ErrorDetailModal.escalate(${e.id})"><i class="ti ti-arrow-up-right"></i> Escalate to OE</button>`;
         }
         footer += '<div style="flex:1"></div>';
         if (canResolve) {
-          footer += `<button class="btn btn-success" data-tip="Close this error as resolved — the reporter will be asked for satisfaction feedback" data-tip-color="green" onclick="ErrorDetailModal.resolve(${e.id})"><i class="ti ti-check"></i> Mark Resolved</button>`;
+          footer += `<button class="btn btn-success" data-tip="Mark Resolved · Close this error as resolved — the reporter will be notified and asked for satisfaction feedback" data-tip-color="green" onclick="ErrorDetailModal.resolve(${e.id})"><i class="ti ti-check"></i> Mark Resolved</button>`;
         }
         footer += '</div>';
       } else {
         footer = `<button class="btn btn-secondary" onclick="Modal.close()">Close</button>`;
       }
-      Modal.open('Error Detail', body, footer);
+      Modal.open('Error Detail', body, footer, { wide: true });
     } catch (err) {
       showToast('Failed to load error details');
     }
@@ -240,9 +240,9 @@ const ErrorDetailModal = (() => {
         </div>
       </div>`;
     const footer = `
-      <button class="btn btn-secondary" data-tip="Go back to error details" onclick="ErrorDetailModal.open(${id})">Cancel</button>
-      <button class="btn btn-danger" id="esc-submit" data-tip="Send this error to OE Tanzania — they'll take over from here" data-tip-color="red" onclick="ErrorDetailModal.submitEscalation(${id})"><i class="ti ti-arrow-up-right"></i> Escalate to OE</button>`;
-    Modal.open('Escalate Error', body, footer);
+      <button class="btn btn-secondary" data-tip="Cancel · Go back to the error details without escalating" onclick="ErrorDetailModal.open(${id})">Cancel</button>
+      <button class="btn btn-danger" id="esc-submit" data-tip="Escalate · Send this error to OE Tanzania platform team — they'll take over from here" data-tip-color="red" onclick="ErrorDetailModal.submitEscalation(${id})"><i class="ti ti-arrow-up-right"></i> Escalate to OE</button>`;
+    Modal.open('Escalate Error', body, footer, { wide: true });
   }
 
   async function submitEscalation(id) {
