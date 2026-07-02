@@ -2,7 +2,7 @@
   font-family: 'Axiforma';
   src: url('../fonts/axiforma-semi-bold.woff2') format('woff2'),
        url('../fonts/axiforma-semi-bold.woff') format('woff');
-  font-weight: 600;
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
