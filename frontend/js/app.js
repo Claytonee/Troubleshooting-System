@@ -201,7 +201,7 @@ const ErrorDetailModal = (() => {
       } else {
         footer = `<button class="btn btn-secondary" onclick="Modal.close()">Close</button>`;
       }
-      Modal.open('Error Detail', body, footer, { wide: true });
+      Modal.open('Error Detail', body, footer);
     } catch (err) {
       showToast('Failed to load error details');
     }
