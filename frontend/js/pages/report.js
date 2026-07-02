@@ -5,13 +5,18 @@ const ReportPage = (() => {
   let schools = [];
 
   async function load() {
-    try { schools = await API.getSchools(); } catch (e) { schools = []; }
+    const user = API.getUser();
+    if (user && user.role !== 'teacher') {
+      try { schools = await API.getSchools(); } catch (e) { schools = []; }
+    }
   }
 
   function render() {
     const user = API.getUser();
     const isSchool = user && user.role === 'school';
-    const userSchool = isSchool ? schools.find(s => s.id === user.school_id) : null;
+    const isTeacher = user && user.role === 'teacher';
+    const isFixed = isSchool || isTeacher;
+    const userSchool = isFixed ? (schools.find(s => s.id === user.school_id) || { id: user.school_id, name: user.school_name || 'My School' }) : null;
 
     return `
     <div class="section-header"><div>
@@ -22,13 +27,13 @@ const ReportPage = (() => {
       <div class="card">
         <div class="form-grid">
           <div class="form-group"><label>Reporting School *</label>
-            ${isSchool && userSchool
+            ${isFixed && userSchool
               ? `<input type="text" value="${esc(userSchool.name)}" disabled><input type="hidden" id="f-school" value="${userSchool.id}">`
               : `<select id="f-school"><option value="">— Select school —</option>${schools.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>`
             }</div>
-          <div class="form-group"><label>Reported By *</label><input id="f-reporter" type="text" placeholder="Full name"></div>
+          <div class="form-group"><label>Reported By *</label><input id="f-reporter" type="text" placeholder="Full name" ${isTeacher ? `value="${esc(user.full_name)}"` : ''}></div>
           <div class="form-group"><label>Role</label><select id="f-role">
-            <option>Teacher</option><option>School IT Coordinator</option><option>Head Teacher</option><option>Quest Coordinator</option><option>Student</option></select></div>
+            <option ${isTeacher ? 'selected' : ''}>Teacher</option><option>School IT Coordinator</option><option>Head Teacher</option><option>Quest Coordinator</option><option>Student</option></select></div>
           <div class="form-group"><label>Contact / Phone</label><input id="f-contact" type="text" placeholder="+255 __ ___ ____"></div>
           <div class="form-group"><label>Category *</label><select id="f-category" onchange="ReportPage.updateSubcat()">
             <option value="">— Select —</option>${Object.keys(SUBCATS).map(c => `<option value="${c}">${c}</option>`).join('')}</select></div>
@@ -98,7 +103,8 @@ const ReportPage = (() => {
         affected_devices: $('f-affected').value
       });
       showToast(`${res.error_code} submitted successfully!`);
-      Router.navigate('tracker');
+      const dest = API.getUser() && API.getUser().role === 'teacher' ? 'dashboard' : 'tracker';
+      Router.navigate(dest);
     } catch (e) {
       showToast(e.error || 'Failed to submit report');
     }

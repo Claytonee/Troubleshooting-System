@@ -35,21 +35,26 @@ const Router = (() => {
   function applyRoleVisibility() {
     const user = API.getUser();
     const role = user ? user.role : '';
-    const hideAdmin = role !== 'admin';
-    const hideSchool = role !== 'school';
-    const hideNoAdmin = role === 'admin';
-    document.querySelectorAll('[data-role="admin"]').forEach(el => el.classList.toggle('nav-hidden', hideAdmin));
-    document.querySelectorAll('[data-role="school"]').forEach(el => el.classList.toggle('nav-hidden', hideSchool));
-    document.querySelectorAll('[data-role="no-admin"]').forEach(el => el.classList.toggle('nav-hidden', hideNoAdmin));
-    if (hideAdmin && ['analytics', 'schooladmins', 'branding', 'audit', 'approvals'].includes(currentPage)) {
-      navigate('dashboard');
-    }
-    if (hideSchool && ['report', 'help', 'teachers'].includes(currentPage)) {
-      navigate('dashboard');
-    }
-    if (hideNoAdmin && ['chat'].includes(currentPage)) {
-      navigate('dashboard');
-    }
+    const isAdmin = role === 'admin';
+    const isSchool = role === 'school';
+    const isTeacher = role === 'teacher';
+    const isStaff = isAdmin || role === 'subadmin' || isSchool;
+
+    document.querySelectorAll('[data-role="admin"]').forEach(el => el.classList.toggle('nav-hidden', !isAdmin));
+    document.querySelectorAll('[data-role="school"]').forEach(el => el.classList.toggle('nav-hidden', !isSchool));
+    document.querySelectorAll('[data-role="school-teacher"]').forEach(el => el.classList.toggle('nav-hidden', !isSchool && !isTeacher));
+    document.querySelectorAll('[data-role="staff"]').forEach(el => el.classList.toggle('nav-hidden', !isStaff));
+    document.querySelectorAll('[data-role="no-admin"]').forEach(el => el.classList.toggle('nav-hidden', isAdmin));
+
+    const adminPages = ['analytics', 'schooladmins', 'branding', 'audit', 'approvals'];
+    const schoolPages = ['help', 'teachers'];
+    const staffPages = ['tracker', 'followup', 'weekly', 'schools'];
+
+    if (!isAdmin && adminPages.includes(currentPage)) navigate('dashboard');
+    if (!isSchool && schoolPages.includes(currentPage)) navigate('dashboard');
+    if (!isStaff && staffPages.includes(currentPage)) navigate('dashboard');
+    if (isAdmin && currentPage === 'chat') navigate('dashboard');
+
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === currentPage));
   }
 

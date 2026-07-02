@@ -84,6 +84,12 @@ async function login(req, res, next) {
 
     const token = generateToken(user);
 
+    let school_name = null;
+    if (user.school_id) {
+      const [schoolRows] = await pool.query('SELECT name FROM schools WHERE id = ?', [user.school_id]);
+      if (schoolRows.length) school_name = schoolRows[0].name;
+    }
+
     res.json({
       token,
       user: {
@@ -97,7 +103,8 @@ async function login(req, res, next) {
         color: user.color,
         title: user.title,
         status: user.status,
-        school_id: user.school_id
+        school_id: user.school_id,
+        school_name
       }
     });
   } catch (err) { next(err); }

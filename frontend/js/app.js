@@ -33,6 +33,7 @@ const App = (() => {
   async function updateBadges() {
     try {
       const d = await API.getDashboard();
+      if (d.type === 'teacher') return;
       const open = parseInt(d.errors.open_count) || 0;
       const crit = parseInt(d.errors.critical_open) || 0;
       const fuCount = open;

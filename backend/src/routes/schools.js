@@ -8,8 +8,8 @@ const router = express.Router();
 
 router.use(authenticate);
 
-router.get('/', schoolController.getAll);
-router.get('/:id', schoolController.getById);
+router.get('/', authorize('admin', 'subadmin', 'school'), schoolController.getAll);
+router.get('/:id', authorize('admin', 'subadmin', 'school'), schoolController.getById);
 
 router.post('/', [
   authorize('admin'),

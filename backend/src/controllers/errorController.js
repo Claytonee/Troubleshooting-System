@@ -142,6 +142,9 @@ async function getById(req, res, next) {
     if (req.user.role === 'school' && rows[0].school_id !== req.user.school_id) {
       return res.status(403).json({ error: 'Access denied.' });
     }
+    if (req.user.role === 'teacher' && rows[0].reported_by_user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
 
     const [updates] = await pool.query(
       'SELECT * FROM error_updates WHERE error_id = ? ORDER BY created_at DESC',
@@ -249,6 +252,9 @@ async function updateStatus(req, res, next) {
     if (req.user.role === 'school' && prev.school_id !== req.user.school_id) {
       return res.status(403).json({ error: 'Access denied.' });
     }
+    if (req.user.role === 'teacher' && prev.reported_by_user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
 
     const resolvedAt = status === 'resolved' ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null;
 
@@ -309,6 +315,12 @@ async function addUpdate(req, res, next) {
         return res.status(403).json({ error: 'Access denied.' });
       }
     }
+    if (req.user.role === 'teacher') {
+      const row = await getErrorRow(req.params.id);
+      if (row && row.reported_by_user_id !== req.user.id) {
+        return res.status(403).json({ error: 'Access denied.' });
+      }
+    }
 
     await pool.query(
       'INSERT INTO error_updates (error_id, update_type, note, recorded_by) VALUES (?, ?, ?, ?)',
@@ -354,6 +366,9 @@ async function getStats(req, res, next) {
     } else if (req.user.role === 'school') {
       schoolFilter = 'AND e.school_id = ?';
       params.push(req.user.school_id);
+    } else if (req.user.role === 'teacher') {
+      schoolFilter = 'AND e.reported_by_user_id = ?';
+      params.push(req.user.id);
     }
 
     const [totals] = await pool.query(`
@@ -401,27 +416,37 @@ async function escalateToAdmin(req, res, next) {
     if (req.user.role === 'school' && row.school_id !== req.user.school_id) {
       return res.status(403).json({ error: 'Access denied.' });
     }
+    if (req.user.role === 'teacher' && row.reported_by_user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
+    // Tiered escalation: teacher → school admin, school admin → platform admin
+    const targetLevel = req.user.role === 'teacher' ? 'school' : 'platform';
+    const targetLabel = targetLevel === 'school' ? 'school admin' : 'platform admin';
 
     if (row.escalation_level === 'platform') {
       return res.status(400).json({ error: 'Error is already escalated to platform admin.' });
     }
+    if (req.user.role === 'teacher' && row.escalation_level === 'school') {
+      return res.status(400).json({ error: 'Error is already escalated to school admin.' });
+    }
 
     await pool.query(
-      `UPDATE errors SET escalation_level = 'platform', escalated_by = ?, escalated_at = NOW(), status = 'escalated' WHERE id = ?`,
-      [req.user.id, id]
+      `UPDATE errors SET escalation_level = ?, escalated_by = ?, escalated_at = NOW(), status = 'escalated' WHERE id = ?`,
+      [targetLevel, req.user.id, id]
     );
 
     await pool.query(
       'INSERT INTO error_updates (error_id, update_type, note, recorded_by) VALUES (?, ?, ?, ?)',
-      [id, 'Escalation', `Escalated to platform admin: ${reason}${note ? ' — ' + note : ''}`, req.user.full_name]
+      [id, 'Escalation', `Escalated to ${targetLabel}: ${reason}${note ? ' — ' + note : ''}`, req.user.full_name]
     );
 
     await logAudit({
       actor: req.user, ip: req.ip, action: 'error.escalated', entityType: 'error', entityId: id,
-      summary: `${row.error_code} escalated to platform: ${reason}`, meta: { reason }
+      summary: `${row.error_code} escalated to ${targetLevel}: ${reason}`, meta: { reason, target: targetLevel }
     });
 
-    res.json({ message: 'Error escalated to platform admin.' });
+    res.json({ message: `Error escalated to ${targetLabel}.` });
   } catch (err) { next(err); }
 }
 

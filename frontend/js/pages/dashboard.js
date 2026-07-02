@@ -12,6 +12,8 @@ const DashboardPage = (() => {
   function render() {
     if (!data) return '<div class="empty"><i class="ti ti-loader"></i>Loading dashboard...</div>';
 
+    if (data.type === 'teacher') return renderTeacher();
+
     const { schools_total, schools_healthy, errors, recent_errors, checkins, category_breakdown } = data;
     const user = API.getUser();
     const open = parseInt(errors.open_count) || 0;
@@ -102,6 +104,66 @@ const DashboardPage = (() => {
           </div>
         </div>
       </div>
+    </div>
+  </div>`;
+  }
+
+  function renderTeacher() {
+    const user = API.getUser();
+    const { school, my_errors, recent_errors, guides_available } = data;
+    const total = parseInt(my_errors.total) || 0;
+    const open = parseInt(my_errors.open_count) || 0;
+    const resolved = parseInt(my_errors.resolved_count) || 0;
+
+    const errorRows = (recent_errors || []).map(e => {
+      const pri = PRI[e.priority] || PRI.medium;
+      const stat = STAT[e.status] || STAT.open;
+      return `<tr>
+        <td><span class="dot ${pri.dot}"></span></td>
+        <td><span style="font-size:12px;font-weight:500">${esc(e.title)}</span><br><span class="error-id">${e.error_code}</span></td>
+        <td><span style="font-size:11px;color:var(--text3)">${e.category}</span></td>
+        <td><span class="badge ${stat.badge}">${stat.label}</span></td>
+        <td style="font-size:12px;color:var(--text3)">${ageStr(e.hours_open)}</td></tr>`;
+    }).join('') || '<tr><td colspan="5"><div class="empty" style="padding:20px 0"><i class="ti ti-circle-check"></i>No errors reported yet</div></td></tr>';
+
+    return `
+  <div class="section-header">
+    <div>
+      <div class="section-title">My Dashboard</div>
+      <div class="section-sub">Teacher · ${school ? esc(school.name) : 'Unassigned'}</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary btn-sm" onclick="Router.navigate('report');App.loadAndRender()"><i class="ti ti-plus"></i> Report Error</button>
+    </div>
+  </div>
+
+  <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+    <div class="stat-card r"><div class="stat-label">Open Issues</div><div class="stat-val" style="color:var(--red)">${open}</div><div class="stat-sub">awaiting resolution</div></div>
+    <div class="stat-card g"><div class="stat-label">Resolved</div><div class="stat-val" style="color:var(--green)">${resolved}</div><div class="stat-sub">issues fixed</div></div>
+    <div class="stat-card"><div class="stat-label">Total Reported</div><div class="stat-val">${total}</div><div class="stat-sub">all time</div></div>
+    <div class="stat-card t"><div class="stat-label">Guides Available</div><div class="stat-val" style="color:var(--teal)">${guides_available}</div><div class="stat-sub" style="cursor:pointer;color:var(--accent)" onclick="Router.navigate('troubleshoot');App.loadAndRender()">Browse guides →</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">My Recent Reports</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>Error</th><th>Category</th><th>Status</th><th>Age</th></tr></thead>
+      <tbody>${errorRows}</tbody>
+    </table></div>
+  </div>
+
+  <div class="two-col" style="align-items:start">
+    <div class="card" style="text-align:center;padding:32px 20px">
+      <i class="ti ti-book-2" style="font-size:36px;color:var(--teal);margin-bottom:12px"></i>
+      <div style="font-size:14px;font-weight:500;margin-bottom:6px">Troubleshooting Guides</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Find step-by-step solutions for common issues</div>
+      <button class="btn btn-secondary btn-sm" onclick="Router.navigate('troubleshoot');App.loadAndRender()">Open Guides</button>
+    </div>
+    <div class="card" style="text-align:center;padding:32px 20px">
+      <i class="ti ti-files" style="font-size:36px;color:var(--accent);margin-bottom:12px"></i>
+      <div style="font-size:14px;font-weight:500;margin-bottom:6px">Resource Library</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Manuals, guides, and reference documents</div>
+      <button class="btn btn-secondary btn-sm" onclick="Router.navigate('manuals');App.loadAndRender()">Browse Resources</button>
     </div>
   </div>`;
   }
