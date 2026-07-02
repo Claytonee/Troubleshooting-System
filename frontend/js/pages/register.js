@@ -317,7 +317,20 @@ const RegisterPage = (() => {
     if (isOpen) {
       dd.style.display = 'none';
     } else {
+      dd.classList.remove('drop-up', 'drop-side');
       dd.style.display = 'block';
+
+      const field = document.getElementById('reg-select-school');
+      const rect = field.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceRight = window.innerWidth - rect.right;
+
+      if (spaceBelow < 220 && spaceRight > 300) {
+        dd.classList.add('drop-side');
+      } else if (spaceBelow < 220) {
+        dd.classList.add('drop-up');
+      }
+
       const input = document.getElementById('reg-school-search');
       if (input) { input.value = ''; filterSchools(''); input.focus(); }
     }
