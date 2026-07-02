@@ -46,7 +46,7 @@ const TrackerPage = (() => {
       </div>
     </div>
     <div class="card" style="padding:0"><div class="table-wrap"><table>
-      <thead><tr><th>ID</th><th>Error / School</th><th>Category</th><th>Priority</th><th>Status</th><th>Assigned</th><th>Age</th><th></th></tr></thead>
+      <thead><tr><th>ID</th><th>Error / School</th><th>Category</th><th>Priority</th><th>Status</th><th>Assigned</th><th>Reported</th><th></th></tr></thead>
       <tbody id="error-tbody"></tbody>
     </table></div></div>`;
   }
@@ -77,7 +77,10 @@ const TrackerPage = (() => {
         <td><span class="badge ${pri.badge}">${pri.label}</span></td>
         <td><span class="badge ${stat.badge}">${stat.label}</span></td>
         <td style="font-size:12px;color:var(--text2)">${e.assigned_name ? esc(e.assigned_name) : '<span style="color:var(--text3)">Unassigned</span>'}</td>
-        <td style="font-size:12px;color:${breach ? 'var(--red)' : 'var(--text3)'}">${ageStr(e.hours_open)}${breach ? ' <i class="ti ti-alert-triangle" style="font-size:11px"></i>' : ''}</td>
+        <td style="font-size:12px">
+          <div style="color:var(--text2);font-weight:500">${e.created_at ? fmtDate(e.created_at) : '—'}</div>
+          <div style="color:${breach ? 'var(--red)' : 'var(--text3)'};margin-top:2px">${ageStr(e.hours_open)}${breach ? ' <i class="ti ti-alert-triangle" style="font-size:11px"></i>' : ''}</div>
+        </td>
         <td onclick="event.stopPropagation()"><div style="display:flex;gap:4px">
           ${e.status !== 'resolved' ? `<button class="btn btn-success btn-sm" style="padding:3px 8px" data-tip="${TIP.RESOLVE}" onclick="TrackerPage.resolve(${e.id})"><i class="ti ti-check" style="font-size:12px"></i></button>` : ''}
         </div></td></tr>`;
