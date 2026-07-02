@@ -413,6 +413,7 @@ select option { background: var(--bg3); }
 .reg-badge { padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
 .reg-badge.pending { background: rgba(245,166,35,0.1); color: var(--amber); }
 .reg-hint { font-size: 11px; color: var(--text3); margin-top: 16px; line-height: 1.6; }
+.reg-oe-logo { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: center; opacity: 0.7; }
 
 /* Approvals & Teacher Management */
 .tab-row { display: flex; gap: 4px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
