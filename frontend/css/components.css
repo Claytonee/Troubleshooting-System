@@ -346,7 +346,7 @@ select option { background: var(--bg3); }
 }
 
 /* Registration Page */
-.reg-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+.reg-page { display: flex; align-items: center; justify-content: center; height: 100vh; padding: 20px; overflow: hidden; }
 .reg-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 28px 28px 24px; max-width: 520px; width: 100%; animation: fadeUp .4s ease; }
 .reg-card-status { text-align: center; max-width: 420px; }
 .reg-header { text-align: center; margin-bottom: 16px; }
