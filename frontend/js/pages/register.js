@@ -338,15 +338,19 @@ const RegisterPage = (() => {
       dd.classList.remove('drop-up', 'drop-side');
       dd.style.display = 'block';
 
-      const field = document.getElementById('reg-select-school');
-      const rect = field.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceRight = window.innerWidth - rect.right;
+      const card = document.querySelector('.reg-card');
+      const cardRect = card ? card.getBoundingClientRect() : null;
+      const spaceRight = cardRect ? window.innerWidth - cardRect.right : 0;
 
-      if (spaceBelow < 220 && spaceRight > 300) {
+      if (spaceRight > 290) {
         dd.classList.add('drop-side');
-      } else if (spaceBelow < 220) {
-        dd.classList.add('drop-up');
+      } else {
+        const field = document.getElementById('reg-select-school');
+        const rect = field.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow < 220) {
+          dd.classList.add('drop-up');
+        }
       }
 
       const input = document.getElementById('reg-school-search');
