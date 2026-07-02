@@ -19,14 +19,14 @@ async function login(req, res, next) {
     }
 
     const [rows] = await pool.query(
-      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, password_hash, school_id FROM users WHERE username = ? OR email = ?',
+      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, password_hash, school_id FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)',
       [username, username]
     );
 
     if (!rows.length) {
-      // Check if this is a pending registration
+      // Check if this is a pending registration (case-insensitive email match)
       const [regRows] = await pool.query(
-        'SELECT id, status, email, password_hash, rejection_reason FROM registration_requests WHERE email = ?',
+        'SELECT id, status, email, password_hash, rejection_reason FROM registration_requests WHERE LOWER(email) = LOWER(?)',
         [username]
       );
       if (regRows.length) {
@@ -54,7 +54,7 @@ async function login(req, res, next) {
       // Check if this email has a pending/rejected registration with correct password
       const emailToCheck = user.email || username;
       const [regRows] = await pool.query(
-        'SELECT id, status, email, password_hash, rejection_reason FROM registration_requests WHERE email = ?',
+        'SELECT id, status, email, password_hash, rejection_reason FROM registration_requests WHERE LOWER(email) = LOWER(?)',
         [emailToCheck]
       );
       if (regRows.length) {
