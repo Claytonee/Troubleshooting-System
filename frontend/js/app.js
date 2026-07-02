@@ -189,13 +189,13 @@ const ErrorDetailModal = (() => {
 
       let footer = '';
       if (canResolve || canEscalate) {
-        footer += '<div style="display:flex;gap:10px;width:100%">';
+        footer += '<div style="display:flex;gap:10px;width:100%;align-items:center">';
         if (canEscalate) {
-          footer += `<button class="btn btn-danger btn-sm" style="display:inline-flex;align-items:center;gap:6px" onclick="ErrorDetailModal.escalate(${e.id})"><i class="ti ti-arrow-up-right"></i> Escalate to OE</button>`;
+          footer += `<button class="btn btn-danger btn-sm" style="display:inline-flex;align-items:center;gap:6px" data-tip="Forward this error to Opportunity Education platform team for immediate support" data-tip-color="red" onclick="ErrorDetailModal.escalate(${e.id})"><i class="ti ti-arrow-up-right"></i> Escalate to OE</button>`;
         }
         footer += '<div style="flex:1"></div>';
         if (canResolve) {
-          footer += `<button class="btn btn-success" onclick="ErrorDetailModal.resolve(${e.id})"><i class="ti ti-check"></i> Mark Resolved</button>`;
+          footer += `<button class="btn btn-success" data-tip="Close this error as resolved — the reporter will be asked for satisfaction feedback" data-tip-color="green" onclick="ErrorDetailModal.resolve(${e.id})"><i class="ti ti-check"></i> Mark Resolved</button>`;
         }
         footer += '</div>';
       } else {
@@ -240,8 +240,8 @@ const ErrorDetailModal = (() => {
         </div>
       </div>`;
     const footer = `
-      <button class="btn btn-secondary" onclick="ErrorDetailModal.open(${id})">Cancel</button>
-      <button class="btn btn-danger" id="esc-submit" onclick="ErrorDetailModal.submitEscalation(${id})"><i class="ti ti-arrow-up-right"></i> Escalate to OE</button>`;
+      <button class="btn btn-secondary" data-tip="Go back to error details" onclick="ErrorDetailModal.open(${id})">Cancel</button>
+      <button class="btn btn-danger" id="esc-submit" data-tip="Send this error to OE Tanzania — they'll take over from here" data-tip-color="red" onclick="ErrorDetailModal.submitEscalation(${id})"><i class="ti ti-arrow-up-right"></i> Escalate to OE</button>`;
     Modal.open('Escalate Error', body, footer);
   }
 
