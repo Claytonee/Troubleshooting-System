@@ -1,6 +1,7 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
 body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; -webkit-font-smoothing: antialiased; }
+.font-brand { font-family: var(--font-brand); }
 
 /* Layout — Fixed topbar + fixed sidebar + scrollable main */
 .app { display: grid; grid-template-columns: 230px 1fr; grid-template-rows: 56px 1fr; min-height: 100vh; }

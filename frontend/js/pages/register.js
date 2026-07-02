@@ -33,7 +33,7 @@ const RegisterPage = (() => {
             ${oeIconSvg}
           </div>
           <h1 class="reg-title">School Admin Registration</h1>
-          <p class="reg-sub">Join Opportunity Education Tanzania technical support</p>
+          <p class="reg-sub">Join <span class="font-brand">Opportunity Education Tanzania</span> technical support</p>
         </div>
         ${errorMsg ? `<div class="reg-error">${errorMsg}</div>` : ''}
         <form class="reg-form" onsubmit="RegisterPage.submit(event)">
@@ -114,7 +114,7 @@ const RegisterPage = (() => {
           </div>
         </div>
         <h1 class="reg-title">Registration Submitted</h1>
-        <p class="reg-sub">Your registration is pending approval from<br><strong>Opportunity Education Tanzania</strong></p>
+        <p class="reg-sub">Your registration is pending approval from<br><strong class="font-brand">Opportunity Education Tanzania</strong></p>
         <div class="reg-status-card">
           <div class="reg-status-row"><span>Status</span><span class="reg-badge pending">Pending Review</span></div>
           <div class="reg-status-row"><span>Request ID</span><span>#${requestId}</span></div>

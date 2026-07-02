@@ -223,7 +223,7 @@ select option { background: var(--bg3); }
 /* Login page */
 .login-container { display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--bg); position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none; }
 .login-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 40px; width: 400px; max-width: 90vw; }
-.login-title { font-size: 22px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+.login-title { font-size: 22px; font-weight: 600; text-align: center; margin-bottom: 8px; font-family: var(--font-brand); }
 .login-sub { font-size: 13px; color: var(--text3); text-align: center; margin-bottom: 28px; }
 .login-error { background: rgba(255,82,99,0.1); border: 1px solid rgba(255,82,99,0.3); color: var(--red); border-radius: 8px; padding: 10px 14px; font-size: 12px; margin-bottom: 16px; display: none; }
 .login-error.show { display: block; }
