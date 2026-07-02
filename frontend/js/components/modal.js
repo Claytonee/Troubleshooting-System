@@ -20,8 +20,12 @@ const Modal = (() => {
 
   function init() {
     const overlay = $('modal');
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
+    overlay.addEventListener('mousedown', (e) => {
+      if (e.target === overlay) overlay._clickedOverlay = true;
+    });
+    overlay.addEventListener('mouseup', (e) => {
+      if (e.target === overlay && overlay._clickedOverlay) close();
+      overlay._clickedOverlay = false;
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && overlay.classList.contains('open')) close();

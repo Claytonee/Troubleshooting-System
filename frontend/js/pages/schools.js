@@ -178,33 +178,21 @@ const SchoolsPage = (() => {
         </div>
         ${grp(
           fg('<label>Region</label>', `<input type="text" id="sc-zone" value="${esc(s.zone || '')}" placeholder="e.g. Rombo">`) +
-          fg('<label>Number of Tablets</label>', `<input type="number" id="sc-tablets" min="0" value="${s.tablets != null ? s.tablets : 0}">`)
-        )}
-        ${grp(
-          fg('<label>Students</label>', `<input type="number" id="sc-students" min="0" value="${s.students != null ? s.students : 0}">`) +
           fg('<label>ISP</label>', `<input type="text" id="sc-isp" value="${esc(s.isp || '')}" placeholder="e.g. Vodacom Fibre">`)
         )}
-
-        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;letter-spacing:.4px">CONTACT INFO</div>
         ${grp(
-          fg('<label>Contact Name</label>', `<input type="text" id="sc-cname" value="${esc(s.contact_name || '')}">`) +
-          fg('<label>Contact Role</label>', `<input type="text" id="sc-crole" value="${esc(s.contact_role || '')}" placeholder="e.g. Head Teacher">`)
-        )}
-        ${grp(
-          fg('<label>Contact Phone</label>', `<input type="text" id="sc-cphone" value="${esc(s.contact_phone || '')}" placeholder="+255 ...">`) +
-          fg('<label>Contact Email</label>', `<input type="email" id="sc-cemail" value="${esc(s.contact_email || '')}" placeholder="name@school.org">`)
+          fg('<label>Number of Tablets</label>', `<input type="number" id="sc-tablets" min="0" value="${s.tablets != null ? s.tablets : 0}">`) +
+          fg('<label>Number of Students</label>', `<input type="number" id="sc-students" min="0" value="${s.students != null ? s.students : 0}">`)
         )}
 
-        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;letter-spacing:.4px">IT PERSONNEL</div>
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;letter-spacing:.4px">SCHOOL CONTACT</div>
         ${grp(
-          fg('<label>IT Personnel Name</label>', `<input type="text" id="sc-itname" value="${esc(s.it_name || '')}">`) +
-          fg('<label>IT Personnel Email</label>', `<input type="email" id="sc-itemail" value="${esc(s.it_email || '')}" placeholder="it@school.org">`)
+          fg('<label>Contact Name</label>', `<input type="text" id="sc-cname" value="${esc(s.contact_name || '')}" placeholder="e.g. Head Teacher name">`) +
+          fg('<label>Role</label>', `<input type="text" id="sc-crole" value="${esc(s.contact_role || '')}" placeholder="e.g. Head Teacher">`)
         )}
-
-        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;letter-spacing:.4px">COORDINATOR</div>
         ${grp(
-          fg('<label>Coordinator Name</label>', `<input type="text" id="sc-coname" value="${esc(s.coordinator_name || '')}">`) +
-          fg('<label>Coordinator Email</label>', `<input type="email" id="sc-coemail" value="${esc(s.coordinator_email || '')}" placeholder="coordinator@school.org">`)
+          fg('<label>Phone</label>', `<input type="text" id="sc-cphone" value="${esc(s.contact_phone || '')}" placeholder="+255 ...">`) +
+          fg('<label>Email</label>', `<input type="email" id="sc-cemail" value="${esc(s.contact_email || '')}" placeholder="school@example.com">`)
         )}
 
         <div class="form-group">
@@ -237,8 +225,6 @@ const SchoolsPage = (() => {
       name: val('sc-name'), zone: val('sc-zone'), tablets: num('sc-tablets'), students: num('sc-students'),
       isp: val('sc-isp'), contact_name: val('sc-cname'), contact_role: val('sc-crole'),
       contact_phone: val('sc-cphone'), contact_email: val('sc-cemail'),
-      it_name: val('sc-itname'), it_email: val('sc-itemail'),
-      coordinator_name: val('sc-coname'), coordinator_email: val('sc-coemail'),
       assigned_admin_id: document.getElementById('sc-admin').value || null
     };
   }
@@ -247,9 +233,7 @@ const SchoolsPage = (() => {
 
   function validate(d) {
     if (!d.name) return 'School name is required';
-    if (!validEmail(d.contact_email)) return 'Contact email is invalid';
-    if (!validEmail(d.it_email)) return 'IT personnel email is invalid';
-    if (!validEmail(d.coordinator_email)) return 'Coordinator email is invalid';
+    if (d.contact_email && !validEmail(d.contact_email)) return 'Contact email is invalid';
     return null;
   }
 
