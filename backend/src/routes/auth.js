@@ -35,7 +35,12 @@ router.post('/register', [
 
 router.get('/profile', authenticate, authController.getProfile);
 router.put('/profile', authenticate, authController.updateProfile);
-router.post('/profile/avatar', authenticate, avatarUpload.single('avatar'), authController.uploadAvatar);
+router.post('/profile/avatar', authenticate, (req, res, next) => {
+  avatarUpload.single('avatar')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message || 'File upload failed' });
+    next();
+  });
+}, authController.uploadAvatar);
 
 router.put('/change-password', [
   authenticate,

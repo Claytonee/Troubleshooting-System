@@ -282,6 +282,8 @@ const Auth = (() => {
   async function _onAvatarFile(input) {
     const file = input.files[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { showToast('File too large — max 5MB'); return; }
+    if (!file.type.startsWith('image/')) { showToast('Only image files allowed'); return; }
     const status = document.getElementById('avatar-upload-status');
     if (status) status.innerHTML = '<span style="color:var(--teal)"><i class="ti ti-loader" style="animation:spin 1s linear infinite"></i> Uploading…</span>';
     try {
@@ -293,7 +295,6 @@ const Auth = (() => {
       API.setUser(user);
       updateUserDisplay();
       if (status) status.innerHTML = '<span style="color:var(--green)"><i class="ti ti-check"></i> Photo updated!</span>';
-      // refresh avatar in modal
       const wrap = document.querySelector('[onclick*="avatar-file-input"]');
       if (wrap) {
         const img = wrap.querySelector('img');
@@ -304,7 +305,8 @@ const Auth = (() => {
         }
       }
     } catch (e) {
-      if (status) status.innerHTML = `<span style="color:var(--red)">Upload failed</span>`;
+      const msg = e && e.error ? e.error : 'Upload failed — check connection';
+      if (status) status.innerHTML = `<span style="color:var(--red)">${esc(msg)}</span>`;
     }
   }
 

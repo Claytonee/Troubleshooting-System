@@ -31,7 +31,7 @@ async function login(req, res, next) {
     }
 
     const [rows] = await pool.query(
-      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, password_hash, school_id, approval_status FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)',
+      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, password_hash, school_id, approval_status, avatar_url, bio FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)',
       [username, username]
     );
 
@@ -116,7 +116,9 @@ async function login(req, res, next) {
         title: user.title,
         status: user.status,
         school_id: user.school_id,
-        school_name
+        school_name,
+        avatar_url: user.avatar_url || null,
+        bio: user.bio || null
       }
     });
   } catch (err) { next(err); }
@@ -190,12 +192,16 @@ async function uploadAvatar(req, res, next) {
       resource_type: 'image',
       folder: 'oe-avatars',
       public_id: `avatar-${req.user.id}-${Date.now()}`,
-      transformation: [{ width: 300, height: 300, crop: 'fill', gravity: 'face' }]
+      overwrite: true
     });
 
-    await pool.query('UPDATE users SET avatar_url = ?, updated_at = NOW() WHERE id = ?', [result.secure_url, req.user.id]);
-    res.json({ avatar_url: result.secure_url });
-  } catch (err) { next(err); }
+    const avatarUrl = result.secure_url.replace('/upload/', '/upload/w_300,h_300,c_fill,g_face/');
+    await pool.query('UPDATE users SET avatar_url = ?, updated_at = NOW() WHERE id = ?', [avatarUrl, req.user.id]);
+    res.json({ avatar_url: avatarUrl });
+  } catch (err) {
+    console.error('Avatar upload error:', err);
+    next(err);
+  }
 }
 
 async function changePassword(req, res, next) {
