@@ -165,16 +165,16 @@ const Auth = (() => {
     return role === 'admin' ? 'Administrator' : role === 'subadmin' ? 'Field Engineer' : role === 'teacher' ? 'Teacher' : 'School Staff';
   }
 
-  function _avatarHtml(user, size = 80, editable = false) {
+  function _avatarHtml(user, size = 64, editable = false) {
     const ini = initials(user.full_name || user.username);
     const img = user.avatar_url
-      ? `<img src="${esc(user.avatar_url)}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;display:block">`
-      : `<div class="topbar-avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.3)}px;flex-shrink:0">${ini}</div>`;
+      ? `<img src="${esc(user.avatar_url)}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;display:block;margin:${editable ? '0' : '0 auto'}">`
+      : `<div class="topbar-avatar" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.3)}px;flex-shrink:0;${editable ? '' : 'margin:0 auto'}">${ini}</div>`;
     if (!editable) return img;
     return `<div style="position:relative;width:${size}px;height:${size}px;flex-shrink:0;cursor:pointer" onclick="document.getElementById('avatar-file-input').click()">
       ${img}
       <div style="position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s" class="avatar-hover-overlay">
-        <i class="ti ti-camera" style="font-size:22px;color:#fff"></i>
+        <i class="ti ti-camera" style="font-size:18px;color:#fff"></i>
       </div>
       <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="Auth._onAvatarFile(this)">
     </div>`;
@@ -182,38 +182,36 @@ const Auth = (() => {
 
   function _renderProfileModal(user, editMode) {
     const rl = _roleLabel(user.role);
-    const memberSince = user.created_at ? new Date(user.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '—';
+    const memberSince = user.created_at ? new Date(user.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
     const viewBody = `
-      <div class="profile-modal-hero">
-        ${_avatarHtml(user, 80, false)}
-        <div style="flex:1;min-width:0">
-          <div style="font-size:19px;font-weight:700;color:var(--text)">${esc(user.full_name)}</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(user.title || rl)}</div>
-          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
-            <span class="pd-role-badge" style="font-size:11px;padding:3px 9px">${rl}</span>
-            ${user.zone ? `<span style="font-size:11px;padding:3px 9px;border-radius:20px;background:rgba(54,217,204,0.12);color:var(--teal);border:1px solid rgba(54,217,204,0.25)">${esc(user.zone)}</span>` : ''}
-          </div>
+      <div style="text-align:center;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px">
+        ${_avatarHtml(user, 64, false)}
+        <div style="font-size:16px;font-weight:700;margin-top:10px">${esc(user.full_name)}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">${esc(user.title || rl)}</div>
+        <div style="margin-top:8px;display:inline-flex;gap:6px">
+          <span class="pd-role-badge" style="font-size:10px;padding:3px 8px">${rl}</span>
+          ${user.zone ? `<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:rgba(54,217,204,0.12);color:var(--teal);border:1px solid rgba(54,217,204,0.25)">${esc(user.zone)}</span>` : ''}
         </div>
       </div>
-      ${user.bio ? `<div style="background:var(--bg3);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:16px;border:1px solid var(--border)">${esc(user.bio)}</div>` : ''}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">
-        ${_infoTile('ti-at','Email', user.email || '—')}
-        ${_infoTile('ti-phone','Phone', user.phone || '—')}
-        ${_infoTile('ti-id-badge','Username', user.username)}
-        ${_infoTile('ti-calendar','Member since', memberSince)}
+      ${user.bio ? `<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:12px;border:1px solid var(--border)">${esc(user.bio)}</div>` : ''}
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+        ${_infoRow('ti-at','Email', user.email || '—')}
+        ${_infoRow('ti-phone','Phone', user.phone || '—')}
+        ${_infoRow('ti-id-badge','Username', user.username)}
+        ${_infoRow('ti-calendar','Member since', memberSince)}
       </div>`;
 
     const editBody = `
-      <div class="profile-modal-hero" style="align-items:flex-start">
-        ${_avatarHtml(user, 80, true)}
+      <div style="display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:14px">
+        ${_avatarHtml(user, 56, true)}
         <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Profile Photo</div>
-          <div style="font-size:11px;color:var(--text3);line-height:1.5">Click the photo to upload a new one.<br>JPG, PNG or WEBP, max 5MB.</div>
-          <div id="avatar-upload-status" style="font-size:11px;margin-top:4px"></div>
+          <div style="font-size:12px;font-weight:600;color:var(--text)">Profile Photo</div>
+          <div style="font-size:11px;color:var(--text3)">Click photo to change · max 5MB</div>
+          <div id="avatar-upload-status" style="font-size:11px;margin-top:3px"></div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div class="form-group" style="margin:0">
           <label>Full Name *</label>
           <input type="text" id="pf-fullname" value="${esc(user.full_name)}" placeholder="Your full name">
@@ -236,7 +234,7 @@ const Auth = (() => {
         </div>
         <div class="form-group" style="margin:0;grid-column:1/-1">
           <label>Bio</label>
-          <textarea id="pf-bio" rows="3" placeholder="Short description about yourself..." style="resize:vertical">${esc(user.bio || '')}</textarea>
+          <textarea id="pf-bio" rows="2" placeholder="Short description about yourself..." style="resize:vertical">${esc(user.bio || '')}</textarea>
         </div>
       </div>`;
 
@@ -245,17 +243,17 @@ const Auth = (() => {
         <button class="btn btn-secondary" onclick="Modal.close()">Close</button>
         <div style="flex:1"></div>
         <button class="btn btn-secondary" onclick="Auth.showChangePassword()"><i class="ti ti-lock"></i> Password</button>
-        <button class="btn btn-primary" onclick="Auth._switchToEditProfile()"><i class="ti ti-pencil"></i> Edit Profile</button>
+        <button class="btn btn-primary" onclick="Auth._switchToEditProfile()"><i class="ti ti-pencil"></i> Edit</button>
       </div>`;
 
     const editFooter = `
       <div style="display:flex;gap:8px;width:100%">
         <button class="btn btn-secondary" onclick="Auth.showProfile()">Cancel</button>
         <div style="flex:1"></div>
-        <button class="btn btn-primary" id="pf-save-btn" onclick="Auth._saveProfile()"><i class="ti ti-check"></i> Save Changes</button>
+        <button class="btn btn-primary" id="pf-save-btn" onclick="Auth._saveProfile()"><i class="ti ti-check"></i> Save</button>
       </div>`;
 
-    Modal.open('My Profile', editMode ? editBody : viewBody, editMode ? editFooter : viewFooter, true);
+    Modal.open('My Profile', editMode ? editBody : viewBody, editMode ? editFooter : viewFooter);
 
     if (editMode) {
       document.querySelectorAll('.avatar-hover-overlay').forEach(el => {
@@ -265,12 +263,11 @@ const Auth = (() => {
     }
   }
 
-  function _infoTile(icon, label, value) {
-    return `<div style="background:var(--bg3);border-radius:10px;padding:12px 14px;border:1px solid var(--border)">
-      <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">
-        <i class="ti ${icon}" style="font-size:12px"></i>${label}
-      </div>
-      <div style="font-weight:500;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(String(value))}</div>
+  function _infoRow(icon, label, value) {
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+      <i class="ti ${icon}" style="font-size:14px;color:var(--text3);width:16px;text-align:center"></i>
+      <span style="font-size:11px;color:var(--text3);min-width:70px">${label}</span>
+      <span style="font-weight:500;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(String(value))}</span>
     </div>`;
   }
 

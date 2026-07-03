@@ -188,6 +188,10 @@ async function uploadAvatar(req, res, next) {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
     if (!req.file.mimetype.startsWith('image/')) return res.status(400).json({ error: 'Only image files are allowed.' });
 
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY) {
+      return res.status(500).json({ error: 'Cloud storage not configured — contact admin' });
+    }
+
     const result = await uploadToCloudinary(req.file.buffer, {
       resource_type: 'image',
       folder: 'oe-avatars',
@@ -199,8 +203,8 @@ async function uploadAvatar(req, res, next) {
     await pool.query('UPDATE users SET avatar_url = ?, updated_at = NOW() WHERE id = ?', [avatarUrl, req.user.id]);
     res.json({ avatar_url: avatarUrl });
   } catch (err) {
-    console.error('Avatar upload error:', err);
-    next(err);
+    console.error('Avatar upload error:', err && err.message ? err.message : err);
+    res.status(500).json({ error: 'Photo upload failed — please try again' });
   }
 }
 

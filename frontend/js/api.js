@@ -73,11 +73,18 @@ const API = (() => {
     updateProfile: (data) => request('PUT', '/auth/profile', data),
     uploadAvatar: (formData) => {
       const token = getToken();
+      if (!token) return Promise.reject({ error: 'Not authenticated — please log in again' });
       return fetch('/api/auth/profile/avatar', {
         method: 'POST',
-        headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+        headers: { 'Authorization': 'Bearer ' + token },
         body: formData
-      }).then(async r => { const d = await r.json(); if (!r.ok) throw d; return d; });
+      }).then(async r => {
+        const text = await r.text();
+        let d;
+        try { d = JSON.parse(text); } catch (e) { throw { error: `Server error (${r.status})` }; }
+        if (!r.ok) throw d;
+        return d;
+      });
     },
     changePassword: (data) => request('PUT', '/auth/change-password', data),
     getDashboard: () => request('GET', '/dashboard'),
