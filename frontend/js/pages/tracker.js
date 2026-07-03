@@ -102,9 +102,13 @@ const TrackerPage = (() => {
       if (filter !== 'all') params.status = filter;
       if (search.trim()) params.search = search.trim();
       const blob = await API.exportErrorsCsv(params);
+      if (!blob || blob.size === 0) { showToast('No data to export'); return; }
       downloadBlob(blob, 'errors-export.csv');
       showToast('Export downloaded');
-    } catch (e) { showToast('Export failed'); }
+    } catch (e) {
+      const msg = e && e.status === 403 ? 'Permission denied' : e && e.status === 401 ? 'Session expired — login again' : 'Export failed';
+      showToast(msg);
+    }
   }
 
   function afterRender() { refreshTable(); }

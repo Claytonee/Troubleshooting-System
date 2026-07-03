@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const pool = require('../config/database');
+const { toCsv } = require('../utils/csv');
 const { logAudit } = require('../services/audit');
 const { notifyErrorEvent } = require('../services/notify');
 const { notifyErrorSms } = require('../services/sms');
@@ -65,7 +66,7 @@ function buildErrorFilters(req) {
   if (req.query.category) { conditions.push('e.category = ?'); params.push(req.query.category); }
   if (req.query.school_id) { conditions.push('e.school_id = ?'); params.push(req.query.school_id); }
   if (req.query.search) {
-    conditions.push('(e.title LIKE ? OR e.error_code LIKE ? OR s.name LIKE ?)');
+    conditions.push('(e.title ILIKE ? OR e.error_code ILIKE ? OR s.name ILIKE ?)');
     const term = `%${req.query.search}%`;
     params.push(term, term, term);
   }
@@ -97,7 +98,6 @@ async function getAll(req, res, next) {
 // CSV export of the (filtered, role-scoped) error list — Tier 1 #4.
 async function exportErrors(req, res, next) {
   try {
-    const { toCsv } = require('../utils/csv');
     const { where, params } = buildErrorFilters(req);
     const [rows] = await pool.query(`
       SELECT e.error_code, e.title, e.category, e.subcategory, e.priority, e.status,
