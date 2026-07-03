@@ -42,7 +42,8 @@ const Auth = (() => {
       }
     }
 
-    $('sidebar-user').textContent = name;
+    const sidebarUser = document.getElementById('sidebar-user');
+    if (sidebarUser) sidebarUser.textContent = name;
 
     const ddAvatar = document.getElementById('dd-avatar');
     const ddName = document.getElementById('dd-name');
