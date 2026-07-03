@@ -44,6 +44,20 @@ const Auth = (() => {
 
     const sidebarUser = document.getElementById('sidebar-user');
     if (sidebarUser) sidebarUser.textContent = name;
+    const sidebarRole = document.getElementById('sidebar-role');
+    if (sidebarRole) sidebarRole.textContent = roleLabel;
+    const sidebarAvatar = document.getElementById('sidebar-avatar');
+    if (sidebarAvatar) {
+      if (user.avatar_url) {
+        sidebarAvatar.innerHTML = '';
+        sidebarAvatar.style.backgroundImage = `url(${user.avatar_url})`;
+        sidebarAvatar.style.backgroundSize = 'cover';
+        sidebarAvatar.style.backgroundPosition = 'center';
+      } else {
+        sidebarAvatar.textContent = ini;
+        sidebarAvatar.style.backgroundImage = '';
+      }
+    }
 
     const ddAvatar = document.getElementById('dd-avatar');
     const ddName = document.getElementById('dd-name');

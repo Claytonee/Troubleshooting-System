@@ -170,7 +170,15 @@
     <div class="nav-item" data-page="branding" data-role="admin"><i class="ti ti-palette"></i>Branding</div>
     <div class="nav-item" data-page="audit" data-role="admin"><i class="ti ti-history"></i>Audit Log</div>
 
-    <div class="sidebar-footer"></div>
+    <div class="sidebar-footer">
+      <div style="padding:10px 12px;background:var(--bg3);border-radius:8px;display:flex;align-items:center;gap:10px">
+        <div class="topbar-avatar" style="width:32px;height:32px;font-size:11px" id="sidebar-avatar">—</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="sidebar-user">—</div>
+          <div style="font-size:10px;color:var(--text3)" id="sidebar-role">—</div>
+        </div>
+      </div>
+    </div>
   </nav>
 
   <!-- Main Content -->
