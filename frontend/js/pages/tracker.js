@@ -37,7 +37,7 @@ const TrackerPage = (() => {
         <div><div class="section-title">Error Tracker</div><div class="section-sub">All reported issues</div></div>
         <div style="display:flex;gap:10px;align-items:center">
           <input type="text" placeholder="Search errors…" style="width:200px" id="search-input" value="${esc(search)}" oninput="TrackerPage.setSearch(this.value)">
-          <button class="btn btn-secondary btn-sm" data-tip="${TIP.EXPORT_CSV}" onclick="TrackerPage.exportCsv()"><i class="ti ti-download"></i> Export</button>
+          ${API.getUser() && ['admin','subadmin'].includes(API.getUser().role) ? `<button class="btn btn-secondary btn-sm" data-tip="${TIP.EXPORT_CSV}" onclick="TrackerPage.exportCsv()"><i class="ti ti-download"></i> Export</button>` : ''}
           <button class="btn btn-primary btn-sm" onclick="Router.navigate('report');App.loadAndRender()"><i class="ti ti-plus"></i> New</button>
         </div>
       </div>

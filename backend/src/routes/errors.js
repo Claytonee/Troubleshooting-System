@@ -16,7 +16,7 @@ router.use(authenticate);
 
 router.get('/', errorController.getAll);
 router.get('/stats', errorController.getStats);
-router.get('/export', errorController.exportErrors);
+router.get('/export', authorize('admin', 'subadmin'), errorController.exportErrors);
 router.get('/:id', errorController.getById);
 
 router.post('/', [
