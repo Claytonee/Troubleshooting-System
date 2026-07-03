@@ -195,12 +195,17 @@ const Auth = (() => {
         </div>
       </div>
       ${user.bio ? `<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:12px;border:1px solid var(--border)">${esc(user.bio)}</div>` : ''}
-      <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
-        ${_infoRow('ti-at','Email', user.email || '—')}
-        ${_infoRow('ti-phone','Phone', user.phone || '—')}
-        ${_infoRow('ti-id-badge','Username', user.username)}
-        ${_infoRow('ti-calendar','Member since', memberSince)}
-      </div>`;
+      <table style="width:100%;border-collapse:separate;border-spacing:0;background:var(--bg3);border-radius:10px;border:1px solid var(--border);overflow:hidden">
+        <tbody>
+          ${_infoRow('ti-at','Email', user.email || '—', 'var(--accent)')}
+          <tr><td colspan="2" style="padding:0;height:1px;background:var(--border)"></td></tr>
+          ${_infoRow('ti-phone','Phone', user.phone || '—', 'var(--green)')}
+          <tr><td colspan="2" style="padding:0;height:1px;background:var(--border)"></td></tr>
+          ${_infoRow('ti-id-badge','Username', user.username, 'var(--purple)')}
+          <tr><td colspan="2" style="padding:0;height:1px;background:var(--border)"></td></tr>
+          ${_infoRow('ti-calendar','Member since', memberSince, 'var(--amber)')}
+        </tbody>
+      </table>`;
 
     const editBody = `
       <div style="display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:14px">
@@ -263,12 +268,15 @@ const Auth = (() => {
     }
   }
 
-  function _infoRow(icon, label, value) {
-    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
-      <i class="ti ${icon}" style="font-size:14px;color:var(--text3);width:16px;text-align:center"></i>
-      <span style="font-size:11px;color:var(--text3);min-width:70px">${label}</span>
-      <span style="font-weight:500;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(String(value))}</span>
-    </div>`;
+  function _infoRow(icon, label, value, color) {
+    return `<tr>
+      <td style="padding:9px 12px;white-space:nowrap">
+        <span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)">
+          <i class="ti ${icon}" style="font-size:13px;color:${color}"></i>${label}
+        </span>
+      </td>
+      <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${esc(String(value))}</td>
+    </tr>`;
   }
 
   function _switchToEditProfile() {
