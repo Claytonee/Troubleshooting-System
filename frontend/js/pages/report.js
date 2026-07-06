@@ -4,42 +4,69 @@
 const ReportPage = (() => {
   let schools = [];
 
+  const ROLES = ['Teacher', 'School IT Coordinator', 'Head Teacher', 'Quest Coordinator', 'Student'];
+  const PRIORITIES = [
+    { value: 'critical', label: 'Critical', desc: '— School cannot operate' },
+    { value: 'high', label: 'High', desc: '— Major disruption' },
+    { value: 'medium', label: 'Medium', desc: '— Partial disruption' },
+    { value: 'low', label: 'Low', desc: '— Minor issue' }
+  ];
+
   async function load() {
-    try { schools = await API.getSchools(); } catch (e) { schools = []; }
+    const user = API.getUser();
+    if (user && user.role !== 'teacher') {
+      try { schools = await API.getSchools(); } catch (e) { schools = []; }
+    }
   }
 
   function render() {
+    const user = API.getUser();
+    const isSchool = user && user.role === 'school';
+    const isTeacher = user && user.role === 'teacher';
+    const isFixed = isSchool || isTeacher;
+    const userSchool = isFixed ? (schools.find(s => s.id === user.school_id) || { id: user.school_id, name: user.school_name || 'My School' }) : null;
+
+    const categories = Object.keys(SUBCATS).map(c => c);
+
+    const schoolField = isFixed && userSchool
+      ? `<input type="text" value="${esc(userSchool.name)}" disabled><input type="hidden" id="f-school" value="${userSchool.id}">`
+      : Dropdown.render('f-school', 'Select school', schools.map(s => ({ value: s.id, label: s.name, tag: s.zone || '' })));
+
+    const reporterField = isTeacher
+      ? `<input type="text" value="${esc(user.full_name)}" disabled><input type="hidden" id="f-reporter" value="${esc(user.full_name)}">`
+      : `<input id="f-reporter" type="text" placeholder="Full name">`;
+
+    const roleField = isTeacher
+      ? `<input type="text" value="Teacher" disabled><input type="hidden" id="f-role" value="Teacher">`
+      : Dropdown.render('f-role', 'Select role', ROLES);
+
+    const categoryField = Dropdown.render('f-category', 'Select category', categories, { onSelect: "ReportPage.onCategoryChange()" });
+    const subcatField = Dropdown.render('f-subcat', 'Select sub-category', []);
+    const priorityField = Dropdown.render('f-priority', 'Medium — Partial disruption', PRIORITIES, { defaultValue: 'medium' });
+
     return `
     <div class="section-header"><div>
       <div class="section-title">Report a Technical Error</div>
       <div class="section-sub">Submit a new issue for tracking and resolution</div>
     </div></div>
-    <div style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
+    <div class="report-layout" style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
       <div class="card">
         <div class="form-grid">
-          <div class="form-group"><label>Reporting School *</label>
-            <select id="f-school"><option value="">— Select school —</option>
-              ${schools.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></div>
-          <div class="form-group"><label>Reported By *</label><input id="f-reporter" type="text" placeholder="Full name"></div>
-          <div class="form-group"><label>Role</label><select id="f-role">
-            <option>Teacher</option><option>School IT Coordinator</option><option>Head Teacher</option><option>Quest Coordinator</option><option>Student</option></select></div>
+          <div class="form-group"><label>Reporting School *</label>${schoolField}</div>
+          <div class="form-group"><label>Reported By *</label>${reporterField}</div>
+          <div class="form-group"><label>Role</label>${roleField}</div>
           <div class="form-group"><label>Contact / Phone</label><input id="f-contact" type="text" placeholder="+255 __ ___ ____"></div>
-          <div class="form-group"><label>Category *</label><select id="f-category" onchange="ReportPage.updateSubcat()">
-            <option value="">— Select —</option>${Object.keys(SUBCATS).map(c => `<option value="${c}">${c}</option>`).join('')}</select></div>
-          <div class="form-group"><label>Sub-category</label><select id="f-subcat"><option value="">— Select category first —</option></select></div>
-          <div class="form-group"><label>Priority *</label><select id="f-priority">
-            <option value="critical">Critical — School cannot operate</option>
-            <option value="high">High — Major disruption</option>
-            <option value="medium" selected>Medium — Partial disruption</option>
-            <option value="low">Low — Minor issue</option></select></div>
+          <div class="form-group"><label>Category *</label>${categoryField}</div>
+          <div class="form-group"><label>Sub-category</label>${subcatField}</div>
+          <div class="form-group"><label>Priority *</label>${priorityField}</div>
           <div class="form-group"><label>Affected Devices</label><input id="f-affected" type="text" placeholder="e.g. 12 tablets, 1 projector"></div>
           <div class="form-group full"><label>Error Title *</label><input id="f-title" type="text" placeholder="Brief description of the problem"></div>
           <div class="form-group full"><label>Detailed Description *</label><textarea id="f-desc" placeholder="When did it start? What were students/teachers doing? Any error messages?"></textarea></div>
           <div class="form-group"><label>Location</label><input id="f-location" type="text" placeholder="e.g. Computer Lab 1"></div>
         </div>
         <div style="display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-          <button class="btn btn-primary" onclick="ReportPage.submit()"><i class="ti ti-send"></i> Submit Report</button>
-          <button class="btn btn-secondary" onclick="Router.navigate('report')"><i class="ti ti-trash"></i> Clear</button>
+          <button class="btn btn-primary" data-tip="${TIP.SUBMIT_REPORT}" onclick="ReportPage.submit()"><i class="ti ti-send"></i> Submit Report</button>
+          <button class="btn btn-secondary" onclick="Router.navigate('report');App.loadAndRender()"><i class="ti ti-trash"></i> Clear</button>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:16px;position:sticky;top:76px;align-self:start">
@@ -60,22 +87,27 @@ const ReportPage = (() => {
     </div>`;
   }
 
-  function updateSubcat() {
-    const cat = $('f-category').value;
+  function onCategoryChange() {
+    const cat = Dropdown.getValue('f-category');
     const opts = SUBCATS[cat] || [];
-    $('f-subcat').innerHTML = opts.length ? opts.map(o => `<option>${esc(o)}</option>`).join('') : '<option value="">— Select category first —</option>';
+    Dropdown.updateItems('f-subcat', opts);
   }
 
   async function submit() {
-    const school_id = $('f-school').value;
+    const school_id = Dropdown.getValue('f-school') || ($('f-school') ? $('f-school').value : '');
     const title = $('f-title').value.trim();
     const description = $('f-desc').value.trim();
-    const category = $('f-category').value;
+    const category = Dropdown.getValue('f-category');
 
     if (!school_id || !title || !description || !category) {
       showToast('Please fill in all required (*) fields');
       return;
     }
+
+    const reporter = $('f-reporter') ? $('f-reporter').value : '';
+    const role = Dropdown.getValue('f-role') || ($('f-role') ? $('f-role').value : '');
+    const priority = Dropdown.getValue('f-priority') || 'medium';
+    const subcat = Dropdown.getValue('f-subcat');
 
     try {
       const res = await API.createError({
@@ -83,20 +115,22 @@ const ReportPage = (() => {
         description,
         school_id: parseInt(school_id),
         category,
-        subcategory: $('f-subcat').value,
-        priority: $('f-priority').value,
-        reporter_name: $('f-reporter').value,
-        reporter_role: $('f-role').value,
-        reporter_contact: $('f-contact').value,
-        location: $('f-location').value,
-        affected_devices: $('f-affected').value
+        subcategory: subcat,
+        priority,
+        reporter_name: reporter,
+        reporter_role: role,
+        reporter_contact: $('f-contact') ? $('f-contact').value : '',
+        location: $('f-location') ? $('f-location').value : '',
+        affected_devices: $('f-affected') ? $('f-affected').value : ''
       });
       showToast(`${res.error_code} submitted successfully!`);
-      Router.navigate('tracker');
+      const dest = API.getUser() && API.getUser().role === 'teacher' ? 'dashboard' : 'tracker';
+      Router.navigate(dest);
+      App.loadAndRender();
     } catch (e) {
       showToast(e.error || 'Failed to submit report');
     }
   }
 
-  return { load, render, updateSubcat, submit };
+  return { load, render, onCategoryChange, submit };
 })();

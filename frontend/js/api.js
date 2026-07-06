@@ -4,14 +4,38 @@
  */
 const API = (() => {
   const BASE = '/api';
+  const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes inactivity
+  let _inactivityTimer = null;
 
   function getToken() { return localStorage.getItem('qft_token'); }
-  function setToken(t) { localStorage.setItem('qft_token', t); }
-  function clearToken() { localStorage.removeItem('qft_token'); }
+  function setToken(t) { localStorage.setItem('qft_token', t); resetInactivityTimer(); }
+  function clearToken() { localStorage.removeItem('qft_token'); clearInactivityTimer(); }
   function getUser() { const u = localStorage.getItem('qft_user'); return u ? JSON.parse(u) : null; }
   function setUser(u) { localStorage.setItem('qft_user', JSON.stringify(u)); }
   function clearUser() { localStorage.removeItem('qft_user'); }
   function isLoggedIn() { return !!getToken(); }
+
+  function resetInactivityTimer() {
+    clearInactivityTimer();
+    if (!getToken()) return;
+    _inactivityTimer = setTimeout(() => {
+      clearToken();
+      clearUser();
+      window.dispatchEvent(new CustomEvent('auth:expired'));
+    }, SESSION_TIMEOUT);
+  }
+
+  function clearInactivityTimer() {
+    if (_inactivityTimer) { clearTimeout(_inactivityTimer); _inactivityTimer = null; }
+  }
+
+  function initSessionMonitor() {
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(ev => document.addEventListener(ev, () => {
+      if (getToken()) resetInactivityTimer();
+    }, { passive: true }));
+    if (getToken()) resetInactivityTimer();
+  }
 
   async function request(method, path, body = null) {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -22,7 +46,7 @@ const API = (() => {
     const res = await fetch(BASE + path, opts);
     const data = await res.json().catch(() => ({}));
 
-    if (res.status === 401) {
+    if (res.status === 401 && !path.includes('/auth/login')) {
       clearToken();
       clearUser();
       window.dispatchEvent(new CustomEvent('auth:expired'));
@@ -46,6 +70,22 @@ const API = (() => {
     getToken, setToken, clearToken, getUser, setUser, clearUser, isLoggedIn,
     login: (username, password) => request('POST', '/auth/login', { username, password }),
     getProfile: () => request('GET', '/auth/profile'),
+    updateProfile: (data) => request('PUT', '/auth/profile', data),
+    uploadAvatar: (formData) => {
+      const token = getToken();
+      if (!token) return Promise.reject({ error: 'Not authenticated — please log in again' });
+      return fetch('/api/auth/profile/avatar', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        body: formData
+      }).then(async r => {
+        const text = await r.text();
+        let d;
+        try { d = JSON.parse(text); } catch (e) { throw { error: `Server error (${r.status})` }; }
+        if (!r.ok) throw d;
+        return d;
+      });
+    },
     changePassword: (data) => request('PUT', '/auth/change-password', data),
     getDashboard: () => request('GET', '/dashboard'),
     getSchools: () => request('GET', '/schools'),
@@ -59,6 +99,7 @@ const API = (() => {
     getErrorStats: () => request('GET', '/errors/stats'),
     createError: (data) => request('POST', '/errors', data),
     updateErrorStatus: (id, status) => request('PATCH', `/errors/${id}/status`, { status }),
+    escalateError: (id, data) => request('POST', `/errors/${id}/escalate`, data),
     addErrorUpdate: (id, data) => request('POST', `/errors/${id}/updates`, data),
     getTeam: () => request('GET', '/team'),
     getTeamMember: (id) => request('GET', `/team/${id}`),
@@ -89,6 +130,9 @@ const API = (() => {
     updateSettings: (data) => request('PUT', '/settings', data),
     getAuditLog: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/audit' + (qs ? '?' + qs : '')); },
     search: (q) => request('GET', '/search?q=' + encodeURIComponent(q)),
+    getAiChats: () => request('GET', '/ai/chats'),
+    getAiChat: (id) => request('GET', `/ai/chats/${id}`),
+    deleteAiChat: (id) => request('DELETE', `/ai/chats/${id}`),
     submitCsat: (token, data) => request('POST', `/errors/csat/${token}`, data),
     exportErrorsCsv: async (params = {}) => {
       const qs = new URLSearchParams(params).toString();
@@ -96,5 +140,6 @@ const API = (() => {
       if (!res.ok) throw { status: res.status };
       return res.blob();
     },
+    initSessionMonitor,
   };
 })();

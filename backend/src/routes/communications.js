@@ -6,7 +6,7 @@ const commController = require('../controllers/communicationController');
 
 const router = express.Router();
 
-router.use(authenticate);
+router.use(authenticate, authorize('admin', 'subadmin', 'school'));
 
 router.get('/', commController.getAll);
 

@@ -1,12 +1,12 @@
 const express = require('express');
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const checkinController = require('../controllers/checkinController');
 
 const router = express.Router();
 
-router.use(authenticate);
+router.use(authenticate, authorize('admin', 'subadmin', 'school'));
 
 router.get('/', checkinController.getAll);
 router.get('/stats', checkinController.getStats);

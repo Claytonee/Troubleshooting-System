@@ -2,6 +2,11 @@ const pool = require('../config/database');
 
 async function getDashboard(req, res) {
   try {
+    // Teacher-specific dashboard
+    if (req.user.role === 'teacher') {
+      return getTeacherDashboard(req, res);
+    }
+
     let schoolFilter = '';
     let errorFilter = '';
     const params = [];
@@ -67,6 +72,44 @@ async function getDashboard(req, res) {
   } catch (err) {
     console.error('Dashboard error:', err.message);
     res.status(500).json({ error: 'Failed to load dashboard data.' });
+  }
+}
+
+async function getTeacherDashboard(req, res) {
+  try {
+    const userId = req.user.id;
+    const schoolId = req.user.school_id;
+
+    const [myErrors] = await pool.query(`
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN status != 'resolved' THEN 1 ELSE 0 END) as open_count,
+        SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved_count
+      FROM errors WHERE reported_by_user_id = ?
+    `, [userId]);
+
+    const [recentErrors] = await pool.query(`
+      SELECT id, error_code, title, priority, status, category, created_at, hours_open
+      FROM errors WHERE reported_by_user_id = ?
+      ORDER BY created_at DESC LIMIT 5
+    `, [userId]);
+
+    const [schoolInfo] = await pool.query(
+      'SELECT name, zone FROM schools WHERE id = ?', [schoolId]
+    );
+
+    const [guidesCount] = await pool.query('SELECT COUNT(*) as count FROM guides');
+
+    res.json({
+      type: 'teacher',
+      school: schoolInfo[0] || null,
+      my_errors: myErrors[0],
+      recent_errors: recentErrors,
+      guides_available: guidesCount[0].count
+    });
+  } catch (err) {
+    console.error('Teacher dashboard error:', err.message);
+    res.status(500).json({ error: 'Failed to load dashboard.' });
   }
 }
 

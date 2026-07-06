@@ -21,15 +21,29 @@ const guideRoutes = require('./routes/guides');
 const manualRoutes = require('./routes/manuals');
 const commRoutes = require('./routes/communications');
 const settingsRoutes = require('./routes/settings');
+const aiChatRoutes = require('./routes/aiChat');
+const registrationRoutes = require('./routes/registration');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
 
+// Force HTTPS in production (Render terminates SSL at the proxy)
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, 'https://' + req.headers.host + req.url);
+    }
+    next();
+  });
+}
+
 // Security middleware
 app.use(helmet({
-  contentSecurityPolicy: false
+  contentSecurityPolicy: false,
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' ? (process.env.FRONTEND_URL || true) : '*',
@@ -39,7 +53,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: process.env.NODE_ENV === 'production' ? 200 : 1000,
   message: { error: 'Too many requests, please try again later.' }
 });
 app.use('/api/', limiter);
@@ -51,6 +65,14 @@ const authLimiter = rateLimit({
   message: { error: 'Too many login attempts, please try again later.' }
 });
 app.use('/api/auth/login', authLimiter);
+
+const registrationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many registration attempts, please try again later.' }
+});
+app.use('/api/register/school-admin', registrationLimiter);
+app.use('/api/register/teacher/register', registrationLimiter);
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
@@ -84,6 +106,8 @@ app.use('/api/guides', guideRoutes);
 app.use('/api/manuals', manualRoutes);
 app.use('/api/communications', commRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/ai', aiChatRoutes);
+app.use('/api/register', registrationRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

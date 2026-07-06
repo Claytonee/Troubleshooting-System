@@ -51,8 +51,8 @@ const BrandingPage = (() => {
           </div>
         </div>
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px">
-          <button class="btn btn-primary" onclick="BrandingPage.save()"><i class="ti ti-check"></i> Save Changes</button>
-          <button class="btn btn-secondary" onclick="BrandingPage.reset()"><i class="ti ti-refresh"></i> Reset to Default</button>
+          <button class="btn btn-primary" data-tip="${TIP.SAVE_BRANDING}" onclick="BrandingPage.save()"><i class="ti ti-check"></i> Save Changes</button>
+          <button class="btn btn-secondary" data-tip="${TIP.RESET_BRANDING}" onclick="BrandingPage.reset()"><i class="ti ti-refresh"></i> Reset to Default</button>
         </div>
       </div>
 

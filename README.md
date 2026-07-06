@@ -1,24 +1,32 @@
-# Quest Forward Tanzania — Technical Support System
+# Opportunity Education Tanzania — Technical Support System
 
-A full-stack troubleshooting and error management system for school technical support teams.
+A full-stack troubleshooting and error management system for school technical support teams across Tanzania.
 
 ## Features
 
-- **Dashboard** — Real-time KPIs, critical alerts, priority errors
-- **Error Tracker** — Full lifecycle management with SLA tracking
-- **Report Error** — Guided error submission with school/category routing
-- **School Profiles** — All school assets, contacts, and history
+- **Dashboard** — Role-specific KPIs, critical alerts, priority errors
+- **Error Tracker** — Full lifecycle management with SLA tracking and breach detection
+- **Report Error** — Guided error submission with auto-routing and tiered escalation
+- **School Profiles** — School assets, contacts, history, and health status
+- **Weekly Check-Ins** — Structured health monitoring (connectivity, tablets, platform, power)
 - **Troubleshooting Guides** — Step-by-step tech support procedures
-- **Team Management** — Sub-admin CRUD and school assignments
-- **Branding** — Admin-configurable logo, name, colors, loader text
-- **Role-Based Access** — Admin, Sub-Admin, School roles with JWT auth
+- **Resource Library** — Upload, preview, and download manuals/training materials (Cloudinary CDN)
+- **Teacher Registration** — Link-based self-registration with approval workflow
+- **Team Management** — Sub-admin and school admin management
+- **Analytics** — SLA compliance, error trends, school health
+- **Audit Log** — Complete activity history for accountability
+- **Branding** — Admin-configurable logo, name, colors
+- **4-Tier RBAC** — Platform Admin > Sub-Admin > School Admin > Teacher
 
 ## Tech Stack
 
-- **Backend:** Node.js, Express, MySQL 8.4
-- **Frontend:** Vanilla JS SPA with glassmorphism dark UI
+- **Backend:** Node.js, Express, PostgreSQL (Render Managed)
+- **Frontend:** Vanilla JS SPA, dark theme, DM Sans + Axiforma fonts
 - **Auth:** JWT with bcrypt password hashing
-- **Icons:** Tabler Icons + Iconscout Unicons
+- **Icons:** Tabler Icons
+- **File Storage:** Cloudinary CDN
+- **Hosting:** Render Web Service (auto-deploy from main)
+- **Source:** GitHub + GitLab (dual remote)
 
 ## Quick Start (Local)
 
@@ -32,60 +40,61 @@ cd backend && npm install
 
 # 3. Configure
 cp .env.example .env
-# Edit .env with your MySQL credentials
+# Edit .env with your PostgreSQL credentials (DATABASE_URL or DB_* vars)
 
-# 4. Database setup
-npm run migrate
-npm run seed
-
-# 5. Run
+# 4. Run (auto-creates tables + seeds demo data on first start)
 npm start
 # Open http://localhost:3000
 ```
 
 **Default login:** `admin` / `admin123`
 
-## Deploy to Render + Aiven (Free)
+## Deploy to Render (Production)
 
-### Step 1: Create Free MySQL Database (Aiven)
+### Step 1: Create PostgreSQL Database
 
-1. Go to [aiven.io](https://aiven.io) and sign up (free)
-2. Create a new **MySQL** service (Free plan)
-3. Wait for it to be "Running"
-4. Copy the connection details: host, port, user, password, database name
+1. In [Render Dashboard](https://dashboard.render.com), click **New > PostgreSQL**
+2. Choose a plan (Free or paid with backups for production)
+3. Copy the **Internal Database URL**
 
-### Step 2: Deploy to Render
+### Step 2: Deploy Web Service
 
-1. Go to [render.com](https://render.com) and sign up (free)
-2. Click **New > Web Service**
-3. Connect your GitHub repo: `Claytonee/Troubleshooting-System`
-4. Settings:
+1. Click **New > Web Service**
+2. Connect your GitHub repo: `Claytonee/Troubleshooting-System`
+3. Settings:
    - **Root Directory:** `backend`
    - **Build Command:** `npm install`
    - **Start Command:** `node src/server.js`
-   - **Instance Type:** Free
-5. Add Environment Variables:
+4. Add Environment Variables:
+   - `DATABASE_URL` = (Internal Database URL from Step 1)
+   - `DB_SSL` = `true`
    - `NODE_ENV` = `production`
-   - `DB_HOST` = (from Aiven)
-   - `DB_PORT` = (from Aiven)
-   - `DB_USER` = (from Aiven)
-   - `DB_PASSWORD` = (from Aiven)
-   - `DB_NAME` = (from Aiven)
    - `JWT_SECRET` = (generate a random 64-char string)
    - `JWT_EXPIRES_IN` = `7d`
-   - `UPLOAD_DIR` = `./uploads`
-   - `MAX_FILE_SIZE` = `5242880`
-6. Click **Create Web Service**
+   - `CLOUDINARY_CLOUD_NAME` = (your Cloudinary cloud name)
+   - `CLOUDINARY_API_KEY` = (your Cloudinary API key)
+   - `CLOUDINARY_API_SECRET` = (your Cloudinary API secret)
+5. Click **Create Web Service**
 
-### Step 3: Run Migration on Render
-
-After deploy, open the Render shell and run:
-```bash
-node src/config/migrate.js
-node src/config/seed.js
-```
+The app auto-creates tables and seeds demo data on first start. No manual migration needed.
 
 Your app will be live at `https://your-app.onrender.com`
+
+## Documentation
+
+- [System Documentation](docs/SYSTEM_DOCUMENTATION.md) — Complete technical reference
+- [API Reference](docs/API_AND_DTO_REFERENCE.md) — Request/response DTOs
+- [Deployment Guide](docs/DEPLOY_RENDER_POSTGRES.md) — Detailed Render + PostgreSQL setup
+- [Roadmap](docs/ROADMAP_AND_DESIGN.md) — Feature roadmap and design decisions
+
+## Role Hierarchy
+
+```
+Platform Admin → full system access, team management, analytics
+  └─ Sub-Admin (Field Engineer) → assigned schools, error resolution
+      └─ School Admin → own school, teacher management, error reporting
+          └─ Teacher → own errors, guides, resources only
+```
 
 ## License
 

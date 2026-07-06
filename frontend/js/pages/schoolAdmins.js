@@ -5,14 +5,34 @@
 const SchoolAdminsPage = (() => {
   let admins = [];
   let schools = [];
+  let pendingRegs = [];
+  let rejectedRegs = [];
   let search = '';
+  let filter = 'all'; // all, active, pending, rejected
 
   async function load() {
     try {
-      [admins, schools] = await Promise.all([
+      const token = API.getToken();
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const [adminsRes, schoolsRes] = await Promise.all([
         API.getSchoolAdmins(),
         API.getSchools().catch(() => [])
       ]);
+      admins = adminsRes;
+      schools = schoolsRes;
+
+      // Load pending/rejected registrations
+      try {
+        const pendRes = await fetch('/api/register/approvals/pending', { headers });
+        pendingRegs = pendRes.ok ? await pendRes.json() : [];
+      } catch (e) { pendingRegs = []; }
+      try {
+        const allRes = await fetch('/api/register/approvals', { headers });
+        if (allRes.ok) {
+          const allRegs = await allRes.json();
+          rejectedRegs = allRegs.filter(r => r.status === 'rejected');
+        } else { rejectedRegs = []; }
+      } catch (e) { rejectedRegs = []; }
     } catch (e) { admins = []; }
   }
 
@@ -26,15 +46,53 @@ const SchoolAdminsPage = (() => {
     return map[status] || ['badge-gray', '—'];
   }
 
-  function schoolOptions(selectedId) {
-    const opts = schools.map(s =>
-      `<option value="${s.id}" ${String(s.id) === String(selectedId) ? 'selected' : ''}>${esc(s.name)}${s.zone ? ' · ' + esc(s.zone) : ''}</option>`
-    ).join('');
-    return `<option value="">— Select a school —</option>${opts}`;
-  }
 
   function render() {
     const term = search.trim().toLowerCase();
+
+    const stats = {
+      total: admins.length,
+      active: admins.filter(a => a.status === 'active').length,
+      pending: pendingRegs.length,
+      rejected: rejectedRegs.length
+    };
+
+    let content = '';
+    if (filter === 'pending') {
+      content = renderPendingList(term);
+    } else if (filter === 'rejected') {
+      content = renderRejectedList(term);
+    } else {
+      content = renderAdminsList(term);
+    }
+
+    return `
+    <div class="sa-page">
+      <div class="section-header" style="flex-shrink:0">
+        <div>
+          <div class="section-title">School Admins</div>
+          <div class="section-sub">Manage school-level administrator accounts &amp; approvals</div>
+        </div>
+        <button class="btn btn-primary" data-tip="${TIP.ADD_ADMIN}" onclick="SchoolAdminsPage.openCreate()"><i class="ti ti-user-plus"></i> Add School Admin</button>
+      </div>
+
+      <div class="sa-toolbar">
+        <div class="tab-row" style="padding:0;border-bottom:none">
+          <button class="tab-btn ${filter === 'all' ? 'active' : ''}" onclick="SchoolAdminsPage.setFilter('all')">All Active (${stats.active})</button>
+          <button class="tab-btn ${filter === 'pending' ? 'active' : ''}" onclick="SchoolAdminsPage.setFilter('pending')">Pending ${stats.pending > 0 ? `<span class="notif-badge-inline">${stats.pending}</span>` : `(${stats.pending})`}</button>
+          <button class="tab-btn ${filter === 'rejected' ? 'active' : ''}" onclick="SchoolAdminsPage.setFilter('rejected')">Rejected (${stats.rejected})</button>
+        </div>
+        <input type="text" placeholder="Search by name, email or school..." value="${esc(search)}"
+          oninput="SchoolAdminsPage.setSearch(this.value)" class="sa-search">
+      </div>
+
+      <div class="sa-list">
+        ${content}
+      </div>
+    </div>`;
+  }
+
+  function renderAdminsList(term) {
     const filtered = !term ? admins : admins.filter(a =>
       (a.full_name || '').toLowerCase().includes(term) ||
       (a.username || '').toLowerCase().includes(term) ||
@@ -42,71 +100,158 @@ const SchoolAdminsPage = (() => {
       (a.school_name || '').toLowerCase().includes(term)
     );
 
-    const stats = {
-      total: admins.length,
-      active: admins.filter(a => a.status === 'active').length,
-      unassigned: admins.filter(a => !a.school_id).length
-    };
+    if (!filtered.length) return `<div class="empty"><i class="ti ti-user-shield"></i>${admins.length ? 'No school admins match your search' : 'No school admins yet — add one to get started'}</div>`;
 
-    const rows = filtered.length ? filtered.map(a => {
+    return filtered.map(a => {
       const st = statusBadge(a.status);
       const color = a.color || '#2dd98a';
-      return `<div class="card" style="padding:14px 16px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-          <div class="av" style="width:42px;height:42px;font-size:14px;background:${color}22;color:${color};flex-shrink:0">${initials(a.full_name || '?')}</div>
-          <div style="flex:1;min-width:180px">
-            <div style="font-weight:600;font-size:14px">${esc(a.full_name)} <span class="badge ${st[0]}" style="margin-left:6px">${st[1]}</span></div>
-            <div style="font-size:12px;color:var(--text3);margin-top:2px">@${esc(a.username)} · ${esc(a.email)}</div>
-          </div>
-          <div style="min-width:160px;font-size:12px;color:var(--text2)">
-            <div><i class="ti ti-school" style="margin-right:6px;color:var(--accent)"></i>${a.school_name ? esc(a.school_name) : '<span style="color:var(--amber)">No school assigned</span>'}</div>
-            <div><i class="ti ti-phone" style="margin-right:6px;color:var(--text3)"></i>${esc(a.phone || '—')}</div>
-          </div>
-          <div style="display:flex;gap:8px;flex-shrink:0">
-            <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px" onclick="SchoolAdminsPage.openEdit(${a.id})"><i class="ti ti-edit"></i> Edit</button>
-            <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px" onclick="SchoolAdminsPage.resetPassword(${a.id})"><i class="ti ti-key"></i> Password</button>
-            <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;color:var(--red);border-color:rgba(255,82,99,0.3)" onclick="SchoolAdminsPage.remove(${a.id})"><i class="ti ti-trash"></i> Delete</button>
-          </div>
+      return `<div class="sa-row">
+        <div class="av" style="width:40px;height:40px;font-size:13px;background:${color}22;color:${color};flex-shrink:0">${initials(a.full_name || '?')}</div>
+        <div style="flex:1;min-width:160px">
+          <div style="font-weight:600;font-size:13px">${esc(a.full_name)} <span class="badge ${st[0]}" style="margin-left:6px">${st[1]}</span></div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">@${esc(a.username)} · ${esc(a.email)}</div>
+        </div>
+        <div style="min-width:140px;font-size:11px;color:var(--text2)">
+          <div><i class="ti ti-school" style="margin-right:4px;color:var(--accent)"></i>${a.school_name ? esc(a.school_name) : '<span style="color:var(--amber)">Unassigned</span>'}</div>
+          <div style="margin-top:2px"><i class="ti ti-phone" style="margin-right:4px;color:var(--text3)"></i>${esc(a.phone || '—')}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-secondary btn-sm" data-tip="${TIP.EDIT}" onclick="SchoolAdminsPage.openEdit(${a.id})"><i class="ti ti-edit"></i> Edit</button>
+          <button class="btn btn-secondary btn-sm" data-tip="${TIP.custom('Reset Password','Generate a new password for this admin')}" onclick="SchoolAdminsPage.resetPassword(${a.id})"><i class="ti ti-key"></i></button>
+          <button class="btn btn-secondary btn-sm" data-tip="${TIP.DELETE}" data-tip-color="red" style="color:var(--red);border-color:rgba(255,82,99,0.3)" onclick="SchoolAdminsPage.remove(${a.id})"><i class="ti ti-trash"></i></button>
         </div>
       </div>`;
-    }).join('') : `<div class="empty"><i class="ti ti-user-shield"></i>${admins.length ? 'No school admins match your search' : 'No school admins yet — add one to get started'}</div>`;
+    }).join('');
+  }
 
-    return `
-    <div class="section-header">
-      <div>
-        <div class="section-title">School Admins</div>
-        <div class="section-sub">Manage school-level administrator accounts &amp; their school assignment</div>
+  function renderPendingList(term) {
+    const filtered = !term ? pendingRegs : pendingRegs.filter(r =>
+      (r.full_name || '').toLowerCase().includes(term) ||
+      (r.email || '').toLowerCase().includes(term) ||
+      (r.school_name || '').toLowerCase().includes(term)
+    );
+
+    if (!filtered.length) return '<div class="empty"><i class="ti ti-clock"></i>No pending registration requests</div>';
+
+    return filtered.map(r => `
+      <div class="sa-row sa-row-pending">
+        <div class="av" style="width:40px;height:40px;font-size:13px;background:rgba(245,166,35,0.12);color:var(--amber);flex-shrink:0">${initials(r.full_name || '?')}</div>
+        <div style="flex:1;min-width:160px">
+          <div style="font-weight:600;font-size:13px">${esc(r.full_name)} <span class="badge badge-amber" style="margin-left:6px">Pending</span></div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${esc(r.email)} · ${esc(r.phone || '')}</div>
+          ${r.title ? `<div style="font-size:11px;color:var(--text3);margin-top:1px">Role: ${esc(r.title)}</div>` : ''}
+        </div>
+        <div style="min-width:140px;font-size:11px;color:var(--text2)">
+          <div><i class="ti ti-school" style="margin-right:4px;color:var(--accent)"></i>${esc(r.school_name || 'Unknown')}</div>
+          <div style="margin-top:2px;color:var(--text3)"><i class="ti ti-clock" style="margin-right:4px"></i>${timeAgo(r.created_at)}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-sm" data-tip="${TIP.APPROVE}" data-tip-color="green" style="background:var(--green);color:#fff;border:none" onclick="SchoolAdminsPage.approveReg(${r.id})"><i class="ti ti-check"></i> Approve</button>
+          <button class="btn btn-sm" data-tip="${TIP.REJECT}" data-tip-color="red" style="background:var(--red);color:#fff;border:none" onclick="SchoolAdminsPage.rejectReg(${r.id})"><i class="ti ti-x"></i> Reject</button>
+        </div>
       </div>
-      <button class="btn btn-primary" onclick="SchoolAdminsPage.openCreate()"><i class="ti ti-user-plus"></i> Add School Admin</button>
-    </div>
+    `).join('');
+  }
 
-    <div class="stats-grid" style="grid-template-columns:repeat(3, 1fr)">
-      <div class="stat-card"><div class="stat-label">Total School Admins</div><div class="stat-val">${stats.total}</div><div class="stat-sub">all schools</div></div>
-      <div class="stat-card t"><div class="stat-label">Active</div><div class="stat-val" style="color:var(--green)">${stats.active}</div><div class="stat-sub">can sign in</div></div>
-      <div class="stat-card a"><div class="stat-label">Unassigned</div><div class="stat-val" style="color:var(--amber)">${stats.unassigned}</div><div class="stat-sub">no school linked</div></div>
-    </div>
+  function renderRejectedList(term) {
+    const filtered = !term ? rejectedRegs : rejectedRegs.filter(r =>
+      (r.full_name || '').toLowerCase().includes(term) ||
+      (r.email || '').toLowerCase().includes(term) ||
+      (r.school_name || '').toLowerCase().includes(term)
+    );
 
-    <div style="margin-bottom:16px">
-      <input type="text" placeholder="Search by name, username, email or school..." value="${esc(search)}"
-        oninput="SchoolAdminsPage.setSearch(this.value)" style="width:100%;max-width:420px;padding:9px 12px">
-    </div>
+    if (!filtered.length) return '<div class="empty"><i class="ti ti-user-x"></i>No rejected registrations</div>';
 
-    ${rows}`;
+    return filtered.map(r => `
+      <div class="sa-row sa-row-rejected">
+        <div class="av" style="width:40px;height:40px;font-size:13px;background:rgba(255,82,99,0.1);color:var(--red);flex-shrink:0">${initials(r.full_name || '?')}</div>
+        <div style="flex:1;min-width:160px">
+          <div style="font-weight:600;font-size:13px">${esc(r.full_name)} <span class="badge badge-red" style="margin-left:6px">Rejected</span></div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${esc(r.email)} · ${esc(r.phone || '')}</div>
+        </div>
+        <div style="min-width:140px;font-size:11px;color:var(--text2)">
+          <div><i class="ti ti-school" style="margin-right:4px;color:var(--accent)"></i>${esc(r.school_name || 'Unknown')}</div>
+          <div style="margin-top:2px;color:var(--text3)">Reason: ${esc(r.rejection_reason || 'None given')}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-secondary btn-sm" data-tip="${TIP.APPROVE}" data-tip-color="green" onclick="SchoolAdminsPage.approveReg(${r.id})"><i class="ti ti-check"></i> Approve</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function setFilter(f) {
+    filter = f;
+    search = '';
+    App.render();
   }
 
   function setSearch(v) {
     search = v;
-    // Re-render only the list area without rebuilding focus-stealing input would be ideal;
-    // simple full re-render keeps logic clear for this admin tool.
     const main = document.querySelector('main');
     if (main) main.innerHTML = render();
-    // Restore focus + caret to the search box.
     const box = main && main.querySelector('input[placeholder^="Search by name"]');
     if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); }
   }
 
+  async function approveReg(id) {
+    if (!confirm('Approve this registration? The user will be able to sign in.')) return;
+    try {
+      const token = API.getToken();
+      const res = await fetch(`/api/register/approvals/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        showToast('Registration approved — account is now active');
+        await load(); App.render();
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Failed to approve');
+      }
+    } catch (e) { showToast('Network error'); }
+  }
+
+  async function rejectReg(id) {
+    const reason = prompt('Rejection reason (will be shown to applicant):');
+    if (reason === null) return;
+    try {
+      const token = API.getToken();
+      const res = await fetch(`/api/register/approvals/${id}/reject`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reason || 'Registration not approved' })
+      });
+      if (res.ok) {
+        showToast('Registration rejected');
+        await load(); App.render();
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Failed to reject');
+      }
+    } catch (e) { showToast('Network error'); }
+  }
+
+  function timeAgo(date) {
+    if (!date) return '';
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+  }
+
   function formBody(a) {
     a = a || {};
+    const schoolItems = schools.map(s => ({ value: s.id, label: s.name, tag: s.zone || '' }));
+    const statusItems = [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }];
+    const currentStatus = a.status || 'active';
+    const currentStatusLabel = currentStatus === 'inactive' ? 'Inactive' : 'Active';
+    const currentSchool = schools.find(s => String(s.id) === String(a.school_id));
+    const schoolPlaceholder = currentSchool ? currentSchool.name : 'Select a school';
+
     return `
       <div style="display:flex;flex-direction:column;gap:14px">
         <div class="form-group">
@@ -129,15 +274,12 @@ const SchoolAdminsPage = (() => {
         </div>
         <div class="form-group">
           <label>Assigned School <span style="color:var(--red)">*</span></label>
-          <select id="sa-school">${schoolOptions(a.school_id)}</select>
+          ${Dropdown.render('sa-school', schoolPlaceholder, schoolItems, { defaultValue: a.school_id || '' })}
         </div>
         <div style="display:flex;gap:12px;flex-wrap:wrap">
           <div class="form-group" style="flex:1;min-width:160px">
             <label>Status</label>
-            <select id="sa-status">
-              <option value="active" ${a.status === 'active' || !a.status ? 'selected' : ''}>Active</option>
-              <option value="inactive" ${a.status === 'inactive' ? 'selected' : ''}>Inactive</option>
-            </select>
+            ${Dropdown.render('sa-status', currentStatusLabel, statusItems, { defaultValue: currentStatus })}
           </div>
           <div class="form-group" style="flex:1;min-width:160px">
             <label>Title</label>
@@ -176,8 +318,8 @@ const SchoolAdminsPage = (() => {
       username: (document.getElementById('sa-username').value || '').trim(),
       email: document.getElementById('sa-email').value.trim(),
       phone: document.getElementById('sa-phone').value.trim(),
-      school_id: document.getElementById('sa-school').value || null,
-      status: document.getElementById('sa-status').value,
+      school_id: Dropdown.getValue('sa-school') || null,
+      status: Dropdown.getValue('sa-status') || 'active',
       title: document.getElementById('sa-title').value.trim()
     };
   }
@@ -251,5 +393,5 @@ const SchoolAdminsPage = (() => {
     } catch (e) { showToast(e.error || 'Could not delete school admin'); }
   }
 
-  return { load, render, setSearch, openCreate, openEdit, submitCreate, submitEdit, resetPassword, remove };
+  return { load, render, setFilter, setSearch, openCreate, openEdit, submitCreate, submitEdit, resetPassword, remove, approveReg, rejectReg };
 })();

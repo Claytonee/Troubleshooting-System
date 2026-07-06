@@ -159,6 +159,13 @@ async function bootstrap() {
   }
 
   await applyExtensions(pool);
+
+  // Fix sequences after seeding (ensures SERIAL nextval > max existing id)
+  const seqTables = ['users', 'schools', 'errors', 'error_updates', 'weekly_checkins',
+    'troubleshooting_guides', 'manuals', 'settings', 'audit_log'];
+  for (const t of seqTables) {
+    try { await pool.query(`SELECT setval('${t}_id_seq', COALESCE((SELECT MAX(id) FROM ${t}), 1))`); } catch (e) {}
+  }
 }
 
 module.exports = { bootstrap };

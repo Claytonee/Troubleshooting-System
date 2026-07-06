@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const pool = require('../config/database');
+const { toCsv } = require('../utils/csv');
 const { logAudit } = require('../services/audit');
 const { notifyErrorEvent } = require('../services/notify');
 const { notifyErrorSms } = require('../services/sms');
@@ -56,13 +57,16 @@ function buildErrorFilters(req) {
   } else if (req.user.role === 'school') {
     conditions.push('s.id = ?');
     params.push(req.user.school_id);
+  } else if (req.user.role === 'teacher') {
+    conditions.push('e.reported_by_user_id = ?');
+    params.push(req.user.id);
   }
   if (req.query.status && req.query.status !== 'all') { conditions.push('e.status = ?'); params.push(req.query.status); }
   if (req.query.priority) { conditions.push('e.priority = ?'); params.push(req.query.priority); }
   if (req.query.category) { conditions.push('e.category = ?'); params.push(req.query.category); }
   if (req.query.school_id) { conditions.push('e.school_id = ?'); params.push(req.query.school_id); }
   if (req.query.search) {
-    conditions.push('(e.title LIKE ? OR e.error_code LIKE ? OR s.name LIKE ?)');
+    conditions.push('(e.title ILIKE ? OR e.error_code ILIKE ? OR s.name ILIKE ?)');
     const term = `%${req.query.search}%`;
     params.push(term, term, term);
   }
@@ -94,7 +98,6 @@ async function getAll(req, res, next) {
 // CSV export of the (filtered, role-scoped) error list — Tier 1 #4.
 async function exportErrors(req, res, next) {
   try {
-    const { toCsv } = require('../utils/csv');
     const { where, params } = buildErrorFilters(req);
     const [rows] = await pool.query(`
       SELECT e.error_code, e.title, e.category, e.subcategory, e.priority, e.status,
@@ -136,6 +139,13 @@ async function getById(req, res, next) {
 
     if (!rows.length) return res.status(404).json({ error: 'Error not found.' });
 
+    if (req.user.role === 'school' && rows[0].school_id !== req.user.school_id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+    if (req.user.role === 'teacher' && rows[0].reported_by_user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
     const [updates] = await pool.query(
       'SELECT * FROM error_updates WHERE error_id = ? ORDER BY created_at DESC',
       [req.params.id]
@@ -148,6 +158,10 @@ async function getById(req, res, next) {
 async function create(req, res, next) {
   try {
     const { title, description, school_id, category, subcategory, priority, reporter_name, reporter_role, reporter_contact, location, affected_devices } = req.body;
+
+    if ((req.user.role === 'school' || req.user.role === 'teacher') && parseInt(school_id) !== req.user.school_id) {
+      return res.status(403).json({ error: 'You can only report errors for your own school.' });
+    }
 
     // Derive next code from the highest numeric code (not last-inserted row),
     // so seeded data with non-sequential ids can't cause a duplicate code.
@@ -163,10 +177,13 @@ async function create(req, res, next) {
     const prio = priority || 'medium';
     const slaHours = targetHours(prio);
 
+    // Tiered escalation: teachers report to school level, school admins report to platform level
+    const escalationLevel = req.user.role === 'school' ? 'platform' : 'school';
+
     const [result] = await pool.query(
-      `INSERT INTO errors (error_code, title, description, school_id, category, subcategory, priority, status, assigned_to, reporter_name, reporter_role, reporter_contact, location, affected_devices, sla_due_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, NOW() + make_interval(hours => ?))`,
-      [errorCode, title, description, school_id, category, subcategory || null, prio, assignedTo, reporter_name || null, reporter_role || null, reporter_contact || null, location || null, affected_devices || null, slaHours]
+      `INSERT INTO errors (error_code, title, description, school_id, category, subcategory, priority, status, assigned_to, reporter_name, reporter_role, reporter_contact, location, affected_devices, sla_due_at, escalation_level, reported_by_user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, NOW() + make_interval(hours => ?), ?, ?)`,
+      [errorCode, title, description, school_id, category, subcategory || null, prio, assignedTo, reporter_name || null, reporter_role || null, reporter_contact || null, location || null, affected_devices || null, slaHours, escalationLevel, req.user.id]
     );
 
     await logAudit({
@@ -232,6 +249,13 @@ async function updateStatus(req, res, next) {
     const prev = await getErrorRow(req.params.id);
     if (!prev) return res.status(404).json({ error: 'Error not found.' });
 
+    if (req.user.role === 'school' && prev.school_id !== req.user.school_id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+    if (req.user.role === 'teacher' && prev.reported_by_user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
     const resolvedAt = status === 'resolved' ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null;
 
     // Stamp first response when an error first moves off "open".
@@ -285,6 +309,19 @@ async function addUpdate(req, res, next) {
     const { update_type, note, recorded_by } = req.body;
     if (!note) return res.status(400).json({ error: 'Note is required.' });
 
+    if (req.user.role === 'school') {
+      const row = await getErrorRow(req.params.id);
+      if (row && row.school_id !== req.user.school_id) {
+        return res.status(403).json({ error: 'Access denied.' });
+      }
+    }
+    if (req.user.role === 'teacher') {
+      const row = await getErrorRow(req.params.id);
+      if (row && row.reported_by_user_id !== req.user.id) {
+        return res.status(403).json({ error: 'Access denied.' });
+      }
+    }
+
     await pool.query(
       'INSERT INTO error_updates (error_id, update_type, note, recorded_by) VALUES (?, ?, ?, ?)',
       [req.params.id, update_type || 'Progress Update', note, recorded_by || req.user.full_name]
@@ -329,6 +366,9 @@ async function getStats(req, res, next) {
     } else if (req.user.role === 'school') {
       schoolFilter = 'AND e.school_id = ?';
       params.push(req.user.school_id);
+    } else if (req.user.role === 'teacher') {
+      schoolFilter = 'AND e.reported_by_user_id = ?';
+      params.push(req.user.id);
     }
 
     const [totals] = await pool.query(`
@@ -363,4 +403,51 @@ async function getStats(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getById, create, update, updateStatus, addUpdate, remove, getStats, exportErrors, submitCsat };
+async function escalateToAdmin(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { reason, note } = req.body;
+
+    if (!reason) return res.status(400).json({ error: 'Escalation reason is required.' });
+
+    const row = await getErrorRow(id);
+    if (!row) return res.status(404).json({ error: 'Error not found.' });
+
+    if (req.user.role === 'school' && row.school_id !== req.user.school_id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+    if (req.user.role === 'teacher' && row.reported_by_user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
+    // Tiered escalation: teacher → school admin, school admin → platform admin
+    const targetLevel = req.user.role === 'teacher' ? 'school' : 'platform';
+    const targetLabel = targetLevel === 'school' ? 'school admin' : 'platform admin';
+
+    if (row.escalation_level === 'platform') {
+      return res.status(400).json({ error: 'Error is already escalated to platform admin.' });
+    }
+    if (req.user.role === 'teacher' && row.escalation_level === 'school') {
+      return res.status(400).json({ error: 'Error is already escalated to school admin.' });
+    }
+
+    await pool.query(
+      `UPDATE errors SET escalation_level = ?, escalated_by = ?, escalated_at = NOW(), status = 'escalated' WHERE id = ?`,
+      [targetLevel, req.user.id, id]
+    );
+
+    await pool.query(
+      'INSERT INTO error_updates (error_id, update_type, note, recorded_by) VALUES (?, ?, ?, ?)',
+      [id, 'Escalation', `Escalated to ${targetLabel}: ${reason}${note ? ' — ' + note : ''}`, req.user.full_name]
+    );
+
+    await logAudit({
+      actor: req.user, ip: req.ip, action: 'error.escalated', entityType: 'error', entityId: id,
+      summary: `${row.error_code} escalated to ${targetLevel}: ${reason}`, meta: { reason, target: targetLevel }
+    });
+
+    res.json({ message: `Error escalated to ${targetLabel}.` });
+  } catch (err) { next(err); }
+}
+
+module.exports = { getAll, getById, create, update, updateStatus, addUpdate, remove, getStats, exportErrors, submitCsat, escalateToAdmin };

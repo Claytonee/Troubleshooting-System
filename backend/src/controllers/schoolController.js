@@ -39,6 +39,10 @@ async function getAll(req, res, next) {
 
 async function getById(req, res, next) {
   try {
+    if (req.user.role === 'school' && parseInt(req.params.id) !== req.user.school_id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
     const [rows] = await pool.query(`
       SELECT s.*, u.full_name as admin_name, u.phone as admin_phone, u.color as admin_color, u.title as admin_title
       FROM schools s

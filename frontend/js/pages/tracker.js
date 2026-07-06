@@ -37,7 +37,7 @@ const TrackerPage = (() => {
         <div><div class="section-title">Error Tracker</div><div class="section-sub">All reported issues</div></div>
         <div style="display:flex;gap:10px;align-items:center">
           <input type="text" placeholder="Search errors…" style="width:200px" id="search-input" value="${esc(search)}" oninput="TrackerPage.setSearch(this.value)">
-          <button class="btn btn-secondary btn-sm" onclick="TrackerPage.exportCsv()"><i class="ti ti-download"></i> Export</button>
+          ${API.getUser() && ['admin','subadmin'].includes(API.getUser().role) ? `<button class="btn btn-secondary btn-sm" data-tip="${TIP.EXPORT_CSV}" onclick="TrackerPage.exportCsv()"><i class="ti ti-download"></i> Export</button>` : ''}
           <button class="btn btn-primary btn-sm" onclick="Router.navigate('report');App.loadAndRender()"><i class="ti ti-plus"></i> New</button>
         </div>
       </div>
@@ -46,7 +46,7 @@ const TrackerPage = (() => {
       </div>
     </div>
     <div class="card" style="padding:0"><div class="table-wrap"><table>
-      <thead><tr><th>ID</th><th>Error / School</th><th>Category</th><th>Priority</th><th>Status</th><th>Assigned</th><th>Age</th><th></th></tr></thead>
+      <thead><tr><th>ID</th><th>Error / School</th><th>Category</th><th>Priority</th><th>Status</th><th>Assigned</th><th>Reported</th><th>Action</th></tr></thead>
       <tbody id="error-tbody"></tbody>
     </table></div></div>`;
   }
@@ -77,9 +77,12 @@ const TrackerPage = (() => {
         <td><span class="badge ${pri.badge}">${pri.label}</span></td>
         <td><span class="badge ${stat.badge}">${stat.label}</span></td>
         <td style="font-size:12px;color:var(--text2)">${e.assigned_name ? esc(e.assigned_name) : '<span style="color:var(--text3)">Unassigned</span>'}</td>
-        <td style="font-size:12px;color:${breach ? 'var(--red)' : 'var(--text3)'}">${ageStr(e.hours_open)}${breach ? ' <i class="ti ti-alert-triangle" style="font-size:11px"></i>' : ''}</td>
+        <td style="font-size:12px">
+          <div style="color:var(--text2);font-weight:500">${e.created_at ? fmtDate(e.created_at) : '—'}</div>
+          <div style="color:${breach ? 'var(--red)' : 'var(--text3)'};margin-top:2px">${ageStr(e.hours_open)}${breach ? ' <i class="ti ti-alert-triangle" style="font-size:11px"></i>' : ''}</div>
+        </td>
         <td onclick="event.stopPropagation()"><div style="display:flex;gap:4px">
-          ${e.status !== 'resolved' ? `<button class="btn btn-success btn-sm" style="padding:3px 8px" onclick="TrackerPage.resolve(${e.id})" title="Resolve"><i class="ti ti-check" style="font-size:12px"></i></button>` : ''}
+          ${e.status !== 'resolved' ? `<button class="btn btn-success btn-sm" style="padding:3px 8px" data-tip="${TIP.RESOLVE}" onclick="TrackerPage.resolve(${e.id})"><i class="ti ti-check" style="font-size:12px"></i></button>` : ''}
         </div></td></tr>`;
     }).join('');
   }
@@ -99,9 +102,13 @@ const TrackerPage = (() => {
       if (filter !== 'all') params.status = filter;
       if (search.trim()) params.search = search.trim();
       const blob = await API.exportErrorsCsv(params);
+      if (!blob || blob.size === 0) { showToast('No data to export'); return; }
       downloadBlob(blob, 'errors-export.csv');
       showToast('Export downloaded');
-    } catch (e) { showToast('Export failed'); }
+    } catch (e) {
+      const msg = e && e.status === 403 ? 'Permission denied' : e && e.status === 401 ? 'Session expired — login again' : 'Export failed';
+      showToast(msg);
+    }
   }
 
   function afterRender() { refreshTable(); }

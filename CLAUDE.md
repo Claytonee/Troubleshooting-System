@@ -81,6 +81,26 @@ Simple flat cards, no glassmorphism:
 ```
 No backdrop-filter. No hover transforms. No glow.
 
+### Modals (Compact)
+- **Default:** 480px — profile, error detail, change password, confirmations
+- **Wide (600px):** forms with many fields (school profiles, resource upload)
+- **Preview (1080px):** media preview only
+- Never use `wide` for content that fits in default. Modals must be proportional to content.
+
+### Info Table Pattern (Read-Only Fields)
+Display entity metadata (email, phone, username, dates) in a modern bordered table with colored icons — NOT tiles, NOT plain lists:
+```html
+<table style="width:100%;border-collapse:separate;border-spacing:0;background:var(--bg3);border-radius:10px;border:1px solid var(--border);overflow:hidden">
+  <tr>
+    <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)">
+      <i class="ti ti-at" style="font-size:13px;color:var(--accent)"></i>Email</span></td>
+    <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">value</td>
+  </tr>
+  <tr><td colspan="2" style="padding:0;height:1px;background:var(--border)"></td></tr>
+</table>
+```
+**Icon colors:** Email=accent, Phone=green, Username=purple, Date=amber, Location=teal, Role=red
+
 ### Page Structure Template
 Every page render function MUST follow this structure:
 ```javascript

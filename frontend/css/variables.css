@@ -1,3 +1,12 @@
+@font-face {
+  font-family: 'Axiforma';
+  src: url('../fonts/axiforma-semi-bold.woff2') format('woff2'),
+       url('../fonts/axiforma-semi-bold.woff') format('woff');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg: #0f1117;
   --bg2: #161921;
@@ -23,5 +32,6 @@
   --radius: 10px;
   --radius-sm: 6px;
   --font: 'DM Sans', sans-serif;
+  --font-brand: 'Axiforma', 'DM Sans', sans-serif;
   --mono: 'DM Mono', monospace;
 }

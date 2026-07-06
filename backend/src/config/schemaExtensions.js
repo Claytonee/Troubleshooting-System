@@ -49,6 +49,110 @@ async function applyExtensions(db) {
   await db.query('ALTER TABLE schools ADD COLUMN IF NOT EXISTS it_email VARCHAR(255)');
   await db.query('ALTER TABLE schools ADD COLUMN IF NOT EXISTS coordinator_name VARCHAR(200)');
   await db.query('ALTER TABLE schools ADD COLUMN IF NOT EXISTS coordinator_email VARCHAR(255)');
+
+  // --- AI Chat (self-service troubleshooting assistant) ---
+  await db.query(`CREATE TABLE IF NOT EXISTS ai_chats (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    title VARCHAR(300) DEFAULT 'New Chat',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+  )`);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_ai_chats_user ON ai_chats (user_id)');
+
+  await db.query(`CREATE TABLE IF NOT EXISTS ai_chat_messages (
+    id SERIAL PRIMARY KEY,
+    chat_id INTEGER NOT NULL REFERENCES ai_chats(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL CHECK (role IN ('user','assistant')),
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_ai_messages_chat ON ai_chat_messages (chat_id)');
+
+  // --- Self-Registration & Approval System ---
+  await db.query(`CREATE TABLE IF NOT EXISTS registration_requests (
+    id SERIAL PRIMARY KEY,
+    full_name VARCHAR(200) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(50),
+    password_hash VARCHAR(255) NOT NULL,
+    school_id INTEGER NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'school',
+    title VARCHAR(200),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    reviewed_by INTEGER,
+    reviewed_at TIMESTAMP,
+    rejection_reason TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+  )`);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_reg_requests_status ON registration_requests (status)');
+  await db.query('CREATE INDEX IF NOT EXISTS idx_reg_requests_email ON registration_requests (email)');
+
+  // --- Teacher Registration Links ---
+  await db.query(`CREATE TABLE IF NOT EXISTS registration_links (
+    id SERIAL PRIMARY KEY,
+    school_id INTEGER NOT NULL,
+    token VARCHAR(100) NOT NULL UNIQUE,
+    created_by INTEGER NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    max_uses INTEGER DEFAULT 50,
+    use_count INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_reg_links_token ON registration_links (token)');
+
+  // --- Registration Appeals ---
+  await db.query(`CREATE TABLE IF NOT EXISTS registration_appeals (
+    id SERIAL PRIMARY KEY,
+    request_id INTEGER NOT NULL,
+    full_name VARCHAR(200) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(50),
+    message TEXT NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT NOW()
+  )`);
+
+  // --- Teachers table (links user to school with extra metadata) ---
+  await db.query(`CREATE TABLE IF NOT EXISTS teachers (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER UNIQUE,
+    school_id INTEGER NOT NULL,
+    subject VARCHAR(200),
+    employee_id VARCHAR(50),
+    status VARCHAR(20) DEFAULT 'active',
+    registered_via VARCHAR(20) DEFAULT 'link',
+    approved_by INTEGER,
+    approved_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+  )`);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_teachers_school ON teachers (school_id)');
+  await db.query('CREATE INDEX IF NOT EXISTS idx_teachers_user ON teachers (user_id)');
+  await db.query("ALTER TABLE teachers ADD COLUMN IF NOT EXISTS rejection_reason TEXT");
+
+  // --- Add approval_status to users (existing users = approved) ---
+  await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) DEFAULT 'approved'");
+
+  // --- Add teacher role to users CHECK constraint ---
+  // PostgreSQL: drop old constraint and add new one that includes 'teacher'
+  await db.query(`DO $$ BEGIN
+    ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+    ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin','subadmin','school','teacher'));
+  EXCEPTION WHEN others THEN NULL;
+  END $$`);
+
+  // --- Add escalation fields to errors ---
+  await db.query("ALTER TABLE errors ADD COLUMN IF NOT EXISTS escalation_level VARCHAR(20) DEFAULT 'school'");
+  await db.query('ALTER TABLE errors ADD COLUMN IF NOT EXISTS escalated_by INTEGER');
+  await db.query('ALTER TABLE errors ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMP');
+  await db.query('ALTER TABLE errors ADD COLUMN IF NOT EXISTS reported_by_user_id INTEGER');
+
+  // --- User profile extensions (avatar, bio) ---
+  await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)");
+  await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT");
 }
 
 module.exports = { applyExtensions, SLA_TARGET_HOURS };
