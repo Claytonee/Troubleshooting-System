@@ -238,7 +238,13 @@ const ManualsPage = (() => {
     try {
       const data = await API.getManualDownload(id);
       if (data.url) {
-        window.open(data.url, '_blank');
+        // fl_attachment makes Cloudinary send Content-Disposition: attachment, so the
+        // browser saves the file (with its real name) instead of rendering it inline.
+        let dlUrl = data.url;
+        if (/res\.cloudinary\.com\/.+\/upload\//.test(dlUrl)) {
+          dlUrl = dlUrl.replace('/upload/', '/upload/fl_attachment/');
+        }
+        window.open(dlUrl, '_blank');
       }
     } catch (e) { showToast('Download failed'); }
   }
@@ -264,7 +270,7 @@ const ManualsPage = (() => {
       const viewerUrl = 'https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(url);
       content = `<iframe src="${esc(viewerUrl)}" style="width:100%;height:74vh;border:none;border-radius:8px;background:#fff" title="${esc(manual.title)}"></iframe>`;
     } else if (kind === 'text') {
-      content = `<iframe src="${esc(url)}" sandbox="" style="width:100%;height:74vh;border:1px solid var(--border);border-radius:8px;background:#fff" title="${esc(manual.title)}"></iframe>`;
+      content = `<div id="mp-text-box" style="width:100%;height:74vh;border:1px solid var(--border);border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px">Loading preview…</div>`;
     } else if (kind === 'url') {
       content = `<div style="font-size:11px;color:var(--text3);margin-bottom:8px"><i class="ti ti-info-circle"></i> Some websites block embedding — if it stays blank, use "Open in new tab".</div>
         <iframe src="${esc(url)}" style="width:100%;height:72vh;border:1px solid var(--border);border-radius:8px;background:#fff" title="${esc(manual.title)}"></iframe>`;
@@ -287,6 +293,30 @@ const ManualsPage = (() => {
     Modal.open(manual.title, meta + content, footer, true);
     const box = document.getElementById('modal-box');
     if (box) box.classList.add('preview');
+
+    if (kind === 'text') {
+      // Cloudinary serves raw HTML/SVG/text files with Content-Disposition: attachment
+      // (an anti-XSS safeguard), so pointing an <iframe src> at the URL just triggers a
+      // download and leaves the preview blank. Fetch the bytes instead and inject via
+      // srcdoc, which isn't affected by that header.
+      const isHtml = manual.file_type === 'text/html';
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('fetch failed');
+        const text = await res.text();
+        const container = document.getElementById('mp-text-box');
+        if (!container) return;
+        const iframe = document.createElement('iframe');
+        iframe.setAttribute('sandbox', '');
+        iframe.style.cssText = 'width:100%;height:100%;border:none;border-radius:8px;background:#fff';
+        iframe.title = manual.title;
+        iframe.srcdoc = isHtml ? text : `<pre style="white-space:pre-wrap;word-break:break-word;font-family:monospace;font-size:12px;padding:12px;margin:0">${esc(text)}</pre>`;
+        container.replaceWith(iframe);
+      } catch (e) {
+        const container = document.getElementById('mp-text-box');
+        if (container) container.innerHTML = '<div style="text-align:center;padding:20px"><i class="ti ti-alert-triangle" style="font-size:28px;color:var(--amber)"></i><div style="margin-top:8px;font-size:12px;color:var(--text3)">Could not load preview — try "Open in new tab" or Download instead.</div></div>';
+      }
+    }
   }
 
   async function remove(id) {
