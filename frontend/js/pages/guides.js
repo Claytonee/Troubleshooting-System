@@ -8,6 +8,7 @@ const GuidesPage = (() => {
   let searchQuery = '';
   let selectedId = null;
   let completedSteps = {};
+  let editingId = null;
 
   async function load() {
     try { guides = await API.getGuides(); } catch (e) { guides = []; }
@@ -134,6 +135,8 @@ const GuidesPage = (() => {
 
   function renderDetailView(g) {
     const m = getMeta(g.category);
+    const user = API.getUser();
+    const isAdmin = user && user.role === 'admin';
     const done = completedSteps[`${g.id}`] || [];
     const allDone = done.length === g.steps.length;
     const pct = g.steps.length ? Math.round((done.length / g.steps.length) * 100) : 0;
@@ -158,7 +161,10 @@ const GuidesPage = (() => {
               ${done.length > 0 ? `<span style="font-size:11px;color:var(--green);font-weight:500">${pct}% complete</span>` : ''}
             </div>
           </div>
-          ${done.length > 0 ? `<button class="btn btn-sm" data-tip="${TIP.RESET_PROGRESS}" onclick="GuidesPage.resetProgress(${g.id})" style="flex-shrink:0;font-size:11px"><i class="ti ti-refresh" style="font-size:12px"></i> Reset</button>` : ''}
+          <div style="display:flex;gap:8px;flex-shrink:0">
+            ${isAdmin ? `<button class="btn btn-secondary btn-sm" data-tip="${TIP.EDIT_GUIDE}" onclick="GuidesPage.openEdit(${g.id})" style="font-size:11px;gap:5px"><i class="ti ti-pencil" style="font-size:12px"></i> Edit</button>` : ''}
+            ${done.length > 0 ? `<button class="btn btn-sm" data-tip="${TIP.RESET_PROGRESS}" onclick="GuidesPage.resetProgress(${g.id})" style="font-size:11px"><i class="ti ti-refresh" style="font-size:12px"></i> Reset</button>` : ''}
+          </div>
         </div>
 
         ${allDone ? `<div style="padding:12px 16px;background:rgba(45,217,138,0.06);border:1px solid rgba(45,217,138,0.15);border-radius:8px;margin-bottom:20px;display:flex;align-items:center;gap:10px">
@@ -246,14 +252,17 @@ const GuidesPage = (() => {
     renumberSteps();
   }
 
-  function openAdd() {
+  function openForm(g) {
+    editingId = g ? g.id : null;
     const categories = Object.keys(catMeta);
-    const catDropdown = Dropdown.render('ag-category', 'Select category', categories, { defaultValue: 'Other' });
+    const catDropdown = Dropdown.render('ag-category', g ? esc(g.category) : 'Select category', categories, { defaultValue: g ? g.category : 'Other' });
+    const stepsHtml = g ? g.steps.map((s, i) => stepRowHtml(i, s)).join('') : stepRowHtml(0) + stepRowHtml(1);
+    const submitLabel = g ? '<i class="ti ti-check"></i> Save Changes' : '<i class="ti ti-plus"></i> Create Guide';
     const body = `
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="form-group">
           <label>Guide Title <span style="color:var(--red)">*</span></label>
-          <input type="text" id="ag-title" placeholder="e.g. Projector shows no signal">
+          <input type="text" id="ag-title" placeholder="e.g. Projector shows no signal" value="${g ? esc(g.title) : ''}">
         </div>
         <div class="form-group">
           <label>Category</label>
@@ -261,18 +270,25 @@ const GuidesPage = (() => {
         </div>
         <div class="form-group">
           <label>Resolution Steps <span style="color:var(--red)">*</span></label>
-          <div id="ag-steps" style="margin-top:6px">${stepRowHtml(0)}${stepRowHtml(1)}</div>
+          <div id="ag-steps" style="margin-top:6px">${stepsHtml}</div>
           <button type="button" class="btn btn-secondary btn-sm" onclick="GuidesPage.addStepRow()" style="gap:5px;margin-top:2px;align-self:flex-start"><i class="ti ti-plus" style="font-size:13px"></i> Add Step</button>
           <div style="font-size:11px;color:var(--text3);margin-top:6px">Steps appear as a numbered checklist users follow in order.</div>
         </div>
       </div>`;
     const footer = `
       <button class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
-      <button class="btn btn-primary" id="ag-submit" onclick="GuidesPage.submitAdd()"><i class="ti ti-plus"></i> Create Guide</button>`;
-    Modal.open('Add Troubleshooting Guide', body, footer, true);
+      <button class="btn btn-primary" id="ag-submit" onclick="GuidesPage.submitForm()">${submitLabel}</button>`;
+    Modal.open(g ? 'Edit Troubleshooting Guide' : 'Add Troubleshooting Guide', body, footer, true);
   }
 
-  async function submitAdd() {
+  function openAdd() { openForm(null); }
+
+  function openEdit(id) {
+    const g = guides.find(x => x.id === id);
+    if (g) openForm(g);
+  }
+
+  async function submitForm() {
     const title = document.getElementById('ag-title').value.trim();
     const category = Dropdown.getValue('ag-category') || 'Other';
     const steps = [...document.querySelectorAll('#ag-steps .ag-step-input')].map(i => i.value.trim()).filter(Boolean);
@@ -280,20 +296,30 @@ const GuidesPage = (() => {
     if (!title) { showToast('Please enter a guide title'); return; }
     if (!steps.length) { showToast('Please add at least one step'); return; }
 
+    const editing = editingId != null ? guides.find(x => x.id === editingId) : null;
+    // Keep a guide's existing icon unless its category changed.
+    const icon = editing && editing.category === category ? (editing.icon || getMeta(category).icon) : getMeta(category).icon;
+
     const btn = document.getElementById('ag-submit');
     btn.disabled = true;
     btn.innerHTML = '<i class="ti ti-loader"></i> Saving...';
 
     try {
-      await API.createGuide({ title, category, icon: getMeta(category).icon, steps });
+      if (editing) {
+        await API.updateGuide(editingId, { title, category, icon, steps });
+        // Drop step progress that may point at steps that no longer exist.
+        delete completedSteps[`${editingId}`];
+      } else {
+        await API.createGuide({ title, category, icon, steps });
+      }
       Modal.close();
-      showToast('Guide created successfully');
+      showToast(editing ? 'Guide updated successfully' : 'Guide created successfully');
       await load();
       App.render();
     } catch (e) {
-      showToast(e.error || 'Could not create guide');
+      showToast(e.error || (editing ? 'Could not update guide' : 'Could not create guide'));
       btn.disabled = false;
-      btn.innerHTML = '<i class="ti ti-plus"></i> Create Guide';
+      btn.innerHTML = editing ? '<i class="ti ti-check"></i> Save Changes' : '<i class="ti ti-plus"></i> Create Guide';
     }
   }
 
@@ -305,5 +331,5 @@ const GuidesPage = (() => {
     </div>`;
   }
 
-  return { load, render, setCategory, setSearch, selectGuide, toggleGuide: selectGuide, toggleStep, resetProgress, openAdd, addStepRow, removeStepRow, submitAdd };
+  return { load, render, setCategory, setSearch, selectGuide, toggleGuide: selectGuide, toggleStep, resetProgress, openAdd, openEdit, addStepRow, removeStepRow, submitForm };
 })();

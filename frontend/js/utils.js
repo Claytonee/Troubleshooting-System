@@ -58,6 +58,7 @@ const TIP = {
   ADD_TEACHER: 'Add Teacher · Register a new teacher manually',
   UPLOAD: 'Upload · Add a new file to the resource library',
   ADD_GUIDE: 'Add Guide · Create a new step-by-step troubleshooting guide',
+  EDIT_GUIDE: 'Edit Guide · Update this guide\'s title, category, or steps',
   PREVIEW: 'Preview · View this file inline without downloading',
   DOWNLOAD: 'Download · Save this file to your device',
   SAVE_BRANDING: 'Save · Apply your branding customizations system-wide',
