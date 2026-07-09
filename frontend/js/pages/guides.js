@@ -45,7 +45,14 @@ const GuidesPage = (() => {
     'Other': { icon: 'ti-tools', color: '#36d9cc', label: 'General' }
   };
 
-  function getMeta(cat) { return catMeta[cat] || catMeta['Other']; }
+  // Custom categories get a deterministic color from the palette and a generic icon.
+  const catPalette = ['#4f7cff', '#f5a623', '#9b7dff', '#36d9cc', '#2dd98a', '#ff5263'];
+  function getMeta(cat) {
+    if (catMeta[cat]) return catMeta[cat];
+    let h = 0;
+    for (const c of String(cat)) h = (h * 31 + c.charCodeAt(0)) % 997;
+    return { icon: 'ti-tools', color: catPalette[h % catPalette.length], label: cat };
+  }
 
   function getFilteredGuides() {
     return guides.filter(g => {
@@ -254,8 +261,10 @@ const GuidesPage = (() => {
 
   function openForm(g) {
     editingId = g ? g.id : null;
-    const categories = Object.keys(catMeta);
-    const catDropdown = Dropdown.render('ag-category', g ? esc(g.category) : 'Select category', categories, { defaultValue: g ? g.category : 'Other' });
+    // Built-in categories plus any custom ones already used by guides.
+    const categories = [...new Set([...Object.keys(catMeta), ...getCategories()])];
+    const items = [...categories.map(c => ({ value: c, label: c })), { value: '__new__', label: '+ New Category…' }];
+    const catDropdown = Dropdown.render('ag-category', g ? esc(g.category) : 'Select category', items, { defaultValue: g ? g.category : 'Other', onSelect: 'GuidesPage.onCategorySelect()' });
     const stepsHtml = g ? g.steps.map((s, i) => stepRowHtml(i, s)).join('') : stepRowHtml(0) + stepRowHtml(1);
     const submitLabel = g ? '<i class="ti ti-check"></i> Save Changes' : '<i class="ti ti-plus"></i> Create Guide';
     const body = `
@@ -267,6 +276,11 @@ const GuidesPage = (() => {
         <div class="form-group">
           <label>Category</label>
           ${catDropdown}
+        </div>
+        <div class="form-group" id="ag-newcat-group" style="display:none">
+          <label>New Category Name <span style="color:var(--red)">*</span></label>
+          <input type="text" id="ag-newcat" placeholder="e.g. Printing">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">The category appears as a filter chip once this guide is saved.</div>
         </div>
         <div class="form-group">
           <label>Resolution Steps <span style="color:var(--red)">*</span></label>
@@ -283,6 +297,15 @@ const GuidesPage = (() => {
 
   function openAdd() { openForm(null); }
 
+  // Shows the name input when "+ New Category…" is picked in the guide form.
+  function onCategorySelect() {
+    const grp = document.getElementById('ag-newcat-group');
+    if (!grp) return;
+    const isNew = Dropdown.getValue('ag-category') === '__new__';
+    grp.style.display = isNew ? 'flex' : 'none';
+    if (isNew) document.getElementById('ag-newcat').focus();
+  }
+
   function openEdit(id) {
     const g = guides.find(x => x.id === id);
     if (g) openForm(g);
@@ -290,7 +313,11 @@ const GuidesPage = (() => {
 
   async function submitForm() {
     const title = document.getElementById('ag-title').value.trim();
-    const category = Dropdown.getValue('ag-category') || 'Other';
+    let category = Dropdown.getValue('ag-category') || 'Other';
+    if (category === '__new__') {
+      category = document.getElementById('ag-newcat').value.trim();
+      if (!category) { showToast('Please enter the new category name'); return; }
+    }
     const steps = [...document.querySelectorAll('#ag-steps .ag-step-input')].map(i => i.value.trim()).filter(Boolean);
 
     if (!title) { showToast('Please enter a guide title'); return; }
@@ -350,5 +377,5 @@ const GuidesPage = (() => {
     </div>`;
   }
 
-  return { load, render, setCategory, setSearch, selectGuide, toggleGuide: selectGuide, toggleStep, resetProgress, openAdd, openEdit, addStepRow, removeStepRow, submitForm, escalate };
+  return { load, render, setCategory, setSearch, selectGuide, toggleGuide: selectGuide, toggleStep, resetProgress, openAdd, openEdit, onCategorySelect, addStepRow, removeStepRow, submitForm, escalate };
 })();
