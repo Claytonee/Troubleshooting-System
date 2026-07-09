@@ -11,6 +11,9 @@ router.use(authenticate);
 router.get('/', guideController.getAll);
 router.get('/:id', guideController.getById);
 
+// Any authenticated role can escalate a guide that didn't solve their issue.
+router.post('/:id/escalate', guideController.escalate);
+
 router.post('/', [
   authorize('admin'),
   body('title').notEmpty().withMessage('Guide title is required'),

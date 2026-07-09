@@ -1,4 +1,8 @@
 const pool = require('../config/database');
+const { sendMail } = require('../services/notify');
+
+// Where "Escalate Issue" clicks on troubleshooting guides are sent.
+const ESCALATION_EMAIL = process.env.ESCALATION_EMAIL || 'jmassawe@questforward.org';
 
 async function getAll(req, res, next) {
   try {
@@ -48,6 +52,38 @@ async function update(req, res, next) {
   } catch (err) { next(err); }
 }
 
+// "Escalate Issue" on a guide: emails the support lead that the guide didn't
+// resolve the user's problem. Best-effort — reports whether the email went out
+// so the frontend can fall back to the error-report form when SMTP is off.
+async function escalate(req, res, next) {
+  try {
+    const [rows] = await pool.query('SELECT * FROM troubleshooting_guides WHERE id = ?', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Guide not found.' });
+    const guide = rows[0];
+
+    let schoolName = '';
+    if (req.user.school_id) {
+      const [s] = await pool.query('SELECT name FROM schools WHERE id = ?', [req.user.school_id]);
+      if (s.length) schoolName = s[0].name;
+    }
+
+    const appUrl = process.env.APP_URL || '';
+    const subject = `[Guide Escalation] ${guide.title}${schoolName ? ' — ' + schoolName : ''}`;
+    const text = [
+      `A user followed the troubleshooting guide "${guide.title}" (${guide.category}) but the issue is NOT resolved.`,
+      '',
+      `Reported by: ${req.user.full_name} (${req.user.role})`,
+      schoolName ? `School: ${schoolName}` : '',
+      req.user.zone ? `Zone: ${req.user.zone}` : '',
+      `Time: ${new Date().toISOString()}`,
+      appUrl ? `\nOpen the system: ${appUrl}` : ''
+    ].filter(Boolean).join('\n');
+
+    const result = await sendMail({ to: ESCALATION_EMAIL, subject, text });
+    res.json({ sent: !!result.sent });
+  } catch (err) { next(err); }
+}
+
 async function remove(req, res, next) {
   try {
     await pool.query('DELETE FROM troubleshooting_guides WHERE id = ?', [req.params.id]);
@@ -55,4 +91,4 @@ async function remove(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getById, create, update, remove };
+module.exports = { getAll, getById, create, update, remove, escalate };

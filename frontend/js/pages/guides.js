@@ -195,7 +195,7 @@ const GuidesPage = (() => {
         </div>
 
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-sm" data-tip="${TIP.ESCALATE_ISSUE}" onclick="Router.navigate('report')" style="gap:5px"><i class="ti ti-alert-triangle" style="font-size:13px;color:var(--amber)"></i> Escalate Issue</button>
+          <button class="btn btn-sm" id="guide-escalate-btn" data-tip="${TIP.ESCALATE_ISSUE}" onclick="GuidesPage.escalate(${g.id})" style="gap:5px"><i class="ti ti-alert-triangle" style="font-size:13px;color:var(--amber)"></i> Escalate Issue</button>
           <div style="margin-left:auto;font-size:11px;color:var(--text3)">Still stuck? Report for engineer follow-up</div>
         </div>
       </div>
@@ -323,6 +323,25 @@ const GuidesPage = (() => {
     }
   }
 
+  // "Escalate Issue" — emails the support lead; falls back to the report form if email is off.
+  async function escalate(id) {
+    const btn = document.getElementById('guide-escalate-btn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Sending...'; }
+    try {
+      const r = await API.escalateGuide(id);
+      if (r.sent) {
+        showToast('Support has been notified by email');
+        if (btn) { btn.innerHTML = '<i class="ti ti-check" style="font-size:13px;color:var(--green)"></i> Escalated'; }
+      } else {
+        showToast('Email is not configured — please report the issue instead');
+        Router.navigate('report');
+      }
+    } catch (e) {
+      showToast(e.error || 'Could not send escalation');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-alert-triangle" style="font-size:13px;color:var(--amber)"></i> Escalate Issue'; }
+    }
+  }
+
   function renderEmptyState() {
     return `<div class="card reveal" style="padding:50px 20px;text-align:center">
       <i class="ti ti-file-search" style="font-size:36px;color:var(--text3);display:block;margin-bottom:10px"></i>
@@ -331,5 +350,5 @@ const GuidesPage = (() => {
     </div>`;
   }
 
-  return { load, render, setCategory, setSearch, selectGuide, toggleGuide: selectGuide, toggleStep, resetProgress, openAdd, openEdit, addStepRow, removeStepRow, submitForm };
+  return { load, render, setCategory, setSearch, selectGuide, toggleGuide: selectGuide, toggleStep, resetProgress, openAdd, openEdit, addStepRow, removeStepRow, submitForm, escalate };
 })();

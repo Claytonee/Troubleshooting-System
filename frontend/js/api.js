@@ -119,6 +119,7 @@ const API = (() => {
     createGuide: (data) => request('POST', '/guides', data),
     updateGuide: (id, data) => request('PUT', `/guides/${id}`, data),
     deleteGuide: (id) => request('DELETE', `/guides/${id}`),
+    escalateGuide: (id) => request('POST', `/guides/${id}/escalate`),
     getManuals: () => request('GET', '/manuals'),
     uploadManual: (formData) => upload('/manuals', formData),
     addManualLink: (data) => request('POST', '/manuals/link', data),

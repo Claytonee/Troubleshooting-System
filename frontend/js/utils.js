@@ -64,7 +64,7 @@ const TIP = {
   SAVE_BRANDING: 'Save · Apply your branding customizations system-wide',
   RESET_BRANDING: 'Reset · Restore all branding to default settings',
   RESET_PROGRESS: 'Reset · Start this guide from the beginning',
-  ESCALATE_ISSUE: 'Escalate Issue · Report this as a new error if the guide didn\'t help',
+  ESCALATE_ISSUE: 'Escalate Issue · Email the support team that this guide didn\'t solve your problem',
   NEW_CHAT: 'New Chat · Start a fresh AI conversation',
 
   custom(title, desc) { return `${title} · ${desc}`; }
