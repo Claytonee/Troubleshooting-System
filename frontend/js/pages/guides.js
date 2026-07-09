@@ -62,6 +62,8 @@ const GuidesPage = (() => {
     const categories = getCategories();
     const filtered = getFilteredGuides();
     const selected = guides.find(g => g.id === selectedId);
+    const user = API.getUser();
+    const isAdmin = user && user.role === 'admin';
 
     return `
     <div class="section-header">
@@ -69,6 +71,7 @@ const GuidesPage = (() => {
         <div class="section-title">Troubleshooting Guides</div>
         <div class="section-sub">Knowledge base · ${guides.length} articles</div>
       </div>
+      ${isAdmin ? `<button class="btn btn-primary" data-tip="${TIP.ADD_GUIDE}" onclick="GuidesPage.openAdd()"><i class="ti ti-plus"></i> Add Guide</button>` : ''}
     </div>
 
     ${selected ? renderDetailView(selected) : renderListView(categories, filtered)}`;
@@ -209,6 +212,91 @@ const GuidesPage = (() => {
     </div>`;
   }
 
+  // ---- Add Guide (admin) ----
+
+  function stepRowHtml(i, value = '') {
+    return `<div class="ag-step-row" style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div class="ag-step-num" style="width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;color:var(--text3)">${i + 1}</div>
+      <input type="text" class="ag-step-input" placeholder="Describe step ${i + 1}..." value="${esc(value)}" style="flex:1;padding:9px 12px;background:var(--bg1);border:1px solid var(--border);border-radius:6px;color:var(--text1);font-size:13px">
+      <button type="button" title="Remove step" onclick="GuidesPage.removeStepRow(this)" style="width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'"><i class="ti ti-x" style="font-size:13px"></i></button>
+    </div>`;
+  }
+
+  function renumberSteps() {
+    const rows = document.querySelectorAll('#ag-steps .ag-step-row');
+    rows.forEach((row, i) => {
+      row.querySelector('.ag-step-num').textContent = i + 1;
+      row.querySelector('.ag-step-input').placeholder = `Describe step ${i + 1}...`;
+    });
+  }
+
+  function addStepRow() {
+    const container = document.getElementById('ag-steps');
+    if (!container) return;
+    const count = container.querySelectorAll('.ag-step-row').length;
+    container.insertAdjacentHTML('beforeend', stepRowHtml(count));
+    const inputs = container.querySelectorAll('.ag-step-input');
+    inputs[inputs.length - 1].focus();
+  }
+
+  function removeStepRow(btn) {
+    const container = document.getElementById('ag-steps');
+    if (!container || container.querySelectorAll('.ag-step-row').length <= 1) { showToast('A guide needs at least one step'); return; }
+    btn.closest('.ag-step-row').remove();
+    renumberSteps();
+  }
+
+  function openAdd() {
+    const categories = Object.keys(catMeta);
+    const catDropdown = Dropdown.render('ag-category', 'Select category', categories, { defaultValue: 'Other' });
+    const body = `
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="form-group">
+          <label>Guide Title <span style="color:var(--red)">*</span></label>
+          <input type="text" id="ag-title" placeholder="e.g. Projector shows no signal">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          ${catDropdown}
+        </div>
+        <div class="form-group">
+          <label>Resolution Steps <span style="color:var(--red)">*</span></label>
+          <div id="ag-steps" style="margin-top:6px">${stepRowHtml(0)}${stepRowHtml(1)}</div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="GuidesPage.addStepRow()" style="gap:5px;margin-top:2px;align-self:flex-start"><i class="ti ti-plus" style="font-size:13px"></i> Add Step</button>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">Steps appear as a numbered checklist users follow in order.</div>
+        </div>
+      </div>`;
+    const footer = `
+      <button class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
+      <button class="btn btn-primary" id="ag-submit" onclick="GuidesPage.submitAdd()"><i class="ti ti-plus"></i> Create Guide</button>`;
+    Modal.open('Add Troubleshooting Guide', body, footer, true);
+  }
+
+  async function submitAdd() {
+    const title = document.getElementById('ag-title').value.trim();
+    const category = Dropdown.getValue('ag-category') || 'Other';
+    const steps = [...document.querySelectorAll('#ag-steps .ag-step-input')].map(i => i.value.trim()).filter(Boolean);
+
+    if (!title) { showToast('Please enter a guide title'); return; }
+    if (!steps.length) { showToast('Please add at least one step'); return; }
+
+    const btn = document.getElementById('ag-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader"></i> Saving...';
+
+    try {
+      await API.createGuide({ title, category, icon: getMeta(category).icon, steps });
+      Modal.close();
+      showToast('Guide created successfully');
+      await load();
+      App.render();
+    } catch (e) {
+      showToast(e.error || 'Could not create guide');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-plus"></i> Create Guide';
+    }
+  }
+
   function renderEmptyState() {
     return `<div class="card reveal" style="padding:50px 20px;text-align:center">
       <i class="ti ti-file-search" style="font-size:36px;color:var(--text3);display:block;margin-bottom:10px"></i>
@@ -217,5 +305,5 @@ const GuidesPage = (() => {
     </div>`;
   }
 
-  return { load, render, setCategory, setSearch, selectGuide, toggleGuide: selectGuide, toggleStep, resetProgress };
+  return { load, render, setCategory, setSearch, selectGuide, toggleGuide: selectGuide, toggleStep, resetProgress, openAdd, addStepRow, removeStepRow, submitAdd };
 })();

@@ -57,6 +57,7 @@ const TIP = {
   ADD_ADMIN: 'Add Admin · Create a new school administrator account',
   ADD_TEACHER: 'Add Teacher · Register a new teacher manually',
   UPLOAD: 'Upload · Add a new file to the resource library',
+  ADD_GUIDE: 'Add Guide · Create a new step-by-step troubleshooting guide',
   PREVIEW: 'Preview · View this file inline without downloading',
   DOWNLOAD: 'Download · Save this file to your device',
   SAVE_BRANDING: 'Save · Apply your branding customizations system-wide',
