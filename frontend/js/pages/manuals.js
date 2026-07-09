@@ -264,7 +264,7 @@ const ManualsPage = (() => {
     } else if (kind === 'audio') {
       content = `<div style="padding:40px 20px;text-align:center"><i class="ti ti-music" style="font-size:56px;color:var(--teal);display:block;margin-bottom:20px"></i><audio controls autoplay style="width:100%"><source src="${esc(url)}" type="${esc(manual.file_type)}">Your browser does not support audio playback.</audio></div>`;
     } else if (kind === 'pdf') {
-      content = `<iframe src="${esc(url)}#view=FitH" style="width:100%;height:74vh;border:none;border-radius:8px;background:#fff" title="${esc(manual.title)}"></iframe>`;
+      content = `<div id="mp-pdf-box" style="width:100%;height:74vh;border:1px solid var(--border);border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px">Loading preview…</div>`;
     } else if (kind === 'office') {
       // Microsoft Office web viewer renders PPT/DOC/XLS from a public https URL.
       const viewerUrl = 'https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(url);
@@ -293,6 +293,29 @@ const ManualsPage = (() => {
     Modal.open(manual.title, meta + content, footer, true);
     const box = document.getElementById('modal-box');
     if (box) box.classList.add('preview');
+
+    if (kind === 'pdf') {
+      // Cloudinary delivers PDFs as "raw" assets with a download disposition, so an
+      // <iframe src> pointed at the URL stays blank. Fetch the bytes and hand the
+      // browser's PDF viewer a blob URL instead (same approach as text previews).
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('fetch failed');
+        const buf = await res.arrayBuffer();
+        const blobUrl = URL.createObjectURL(new Blob([buf], { type: 'application/pdf' }));
+        const container = document.getElementById('mp-pdf-box');
+        if (!container) return;
+        const iframe = document.createElement('iframe');
+        iframe.src = blobUrl + '#view=FitH';
+        iframe.style.cssText = 'width:100%;height:74vh;border:none;border-radius:8px;background:#fff';
+        iframe.title = manual.title;
+        container.replaceWith(iframe);
+      } catch (e) {
+        const container = document.getElementById('mp-pdf-box');
+        if (container) container.innerHTML = '<div style="text-align:center;padding:20px"><i class="ti ti-alert-triangle" style="font-size:28px;color:var(--amber)"></i><div style="margin-top:8px;font-size:12px;color:var(--text3)">Could not load preview — try "Open in new tab" or Download instead.</div></div>';
+      }
+      return;
+    }
 
     if (kind === 'text') {
       // Cloudinary serves raw HTML/SVG/text files with Content-Disposition: attachment
