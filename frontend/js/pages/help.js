@@ -27,6 +27,7 @@ const HelpPage = (() => {
     if (contentEl && navEl) {
       contentEl.innerHTML = getContent(id);
       navEl.innerHTML = buildNav();
+      contentEl.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
     } else {
       App.render();
     }
@@ -50,7 +51,7 @@ const HelpPage = (() => {
       </div>
     </div>
     <div class="help-layout" style="display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start">
-      <div id="help-nav" class="card reveal" style="position:sticky;top:76px;padding:10px 8px">
+      <div id="help-nav" class="card" style="position:sticky;top:76px;padding:10px 8px">
         ${buildNav()}
       </div>
       <div id="help-content">
@@ -65,7 +66,7 @@ const HelpPage = (() => {
   }
 
   function title(icon, color, name, meaning) {
-    return `<div class="card reveal" style="padding:18px;margin-bottom:14px;border-left:3px solid ${color}">
+    return `<div class="card" style="padding:18px;margin-bottom:14px;border-left:3px solid ${color}">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
         <div style="width:36px;height:36px;background:${color}25;border-radius:10px;display:flex;align-items:center;justify-content:center">
           <i class="ti ${icon}" style="color:${color};font-size:18px"></i>
@@ -78,7 +79,7 @@ const HelpPage = (() => {
   }
 
   function section(heading, body) {
-    return `<div class="card reveal" style="padding:16px;margin-bottom:12px">
+    return `<div class="card" style="padding:16px;margin-bottom:12px">
       <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">${heading}</div>
       <div style="font-size:12px;color:var(--text2);line-height:1.7">${body}</div>
     </div>`;
@@ -98,7 +99,7 @@ const HelpPage = (() => {
         </div>
       </div>
 
-      <div class="card reveal" style="padding:16px;margin-bottom:12px">
+      <div class="card" style="padding:16px;margin-bottom:12px">
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Features Zako</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
           <div style="background:var(--bg3);border-radius:6px;padding:10px 12px"><strong>Dashboard</strong> — Hali ya shule kwa muhtasari</div>
@@ -329,5 +330,10 @@ const HelpPage = (() => {
     `,
   };
 
-  return { load, render, setSection };
+  function afterRender() {
+    const el = document.getElementById('help-content');
+    if (el) el.querySelectorAll('.card').forEach(c => { c.classList.add('reveal', 'visible'); });
+  }
+
+  return { load, render, afterRender, setSection };
 })();
