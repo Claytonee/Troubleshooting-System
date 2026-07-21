@@ -220,15 +220,20 @@ const SchoolsPage = (() => {
 
         <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;letter-spacing:.4px">FORM-LEVEL DATA</div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:2px">Students and tablets per form/class level</div>
-        <div id="sc-forms-list" style="display:flex;flex-direction:column;gap:6px;opacity:0.5;pointer-events:none">
+        <div id="sc-forms-list" style="display:flex;flex-direction:column;gap:6px">
           <div style="display:flex;gap:10px;font-size:10px;color:var(--text3);padding:0 0 2px 0">
             <span style="flex:1.2">Form</span><span style="flex:1">Students</span><span style="flex:1">Tablets</span>
           </div>
           ${defaultForms.map(f => `<div class="form-row" style="display:flex;gap:10px;align-items:center">
             <input type="text" class="frm-name" value="${esc(f.form_name || '')}" readonly style="flex:1.2;min-width:80px;background:var(--bg3)">
-            <input type="number" class="frm-students" value="${f.students || 0}" readonly style="flex:1;min-width:60px;background:var(--bg3)">
-            <input type="number" class="frm-tablets" value="${f.tablets || 0}" readonly style="flex:1;min-width:60px;background:var(--bg3)">
+            <input type="number" class="frm-students" value="${f.students || 0}" min="0" onchange="SchoolsPage.updateFormTotals()" style="flex:1;min-width:60px">
+            <input type="number" class="frm-tablets" value="${f.tablets || 0}" min="0" onchange="SchoolsPage.updateFormTotals()" style="flex:1;min-width:60px">
           </div>`).join('')}
+        </div>
+        <div id="sc-forms-totals" style="display:flex;gap:10px;padding:8px 0 0;border-top:1px solid var(--border);font-size:12px;font-weight:600">
+          <span style="flex:1.2;color:var(--text3)">TOTAL</span>
+          <span id="sc-total-students" style="flex:1;color:var(--accent)">${defaultForms.reduce((s,f) => s + (f.students||0), 0)}</span>
+          <span id="sc-total-tablets" style="flex:1;color:var(--teal)">${defaultForms.reduce((s,f) => s + (f.tablets||0), 0)}</span>
         </div>
 
         <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;letter-spacing:.4px">SCHOOL ADMIN</div>
@@ -262,6 +267,19 @@ const SchoolsPage = (() => {
       <button class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
       <button class="btn btn-primary" id="sc-submit" onclick="SchoolsPage.submitEdit(${id})"><i class="ti ti-check"></i> Save Changes</button>`;
     Modal.open('Edit School Profile', formBody(s), footer, true);
+  }
+
+  function updateFormTotals() {
+    const rows = document.querySelectorAll('#sc-forms-list .form-row');
+    let totalStudents = 0, totalTablets = 0;
+    rows.forEach(row => {
+      totalStudents += parseInt(row.querySelector('.frm-students').value) || 0;
+      totalTablets += parseInt(row.querySelector('.frm-tablets').value) || 0;
+    });
+    const sEl = document.getElementById('sc-total-students');
+    const tEl = document.getElementById('sc-total-tablets');
+    if (sEl) sEl.textContent = totalStudents;
+    if (tEl) tEl.textContent = totalTablets;
   }
 
   function addFormRowInModal() {
@@ -535,5 +553,5 @@ const SchoolsPage = (() => {
   }
 
   return { load, render, select, back, openCreate, openEdit, submitCreate, submitEdit, remove,
-    addFormRowInModal, openEditForms, addFormRow, submitForms, openImportCSV, downloadTemplate, submitCSV };
+    updateFormTotals, addFormRowInModal, openEditForms, addFormRow, submitForms, openImportCSV, downloadTemplate, submitCSV };
 })();
