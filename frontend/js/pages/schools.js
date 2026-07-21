@@ -220,18 +220,16 @@ const SchoolsPage = (() => {
 
         <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;letter-spacing:.4px">FORM-LEVEL DATA</div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:2px">Students and tablets per form/class level</div>
-        <div id="sc-forms-list" style="display:flex;flex-direction:column;gap:6px">
+        <div id="sc-forms-list" style="display:flex;flex-direction:column;gap:6px;opacity:0.5;pointer-events:none">
           <div style="display:flex;gap:10px;font-size:10px;color:var(--text3);padding:0 0 2px 0">
-            <span style="flex:1.2">Form Name</span><span style="flex:1">Students</span><span style="flex:1">Tablets</span><span style="width:32px"></span>
+            <span style="flex:1.2">Form</span><span style="flex:1">Students</span><span style="flex:1">Tablets</span>
           </div>
           ${defaultForms.map(f => `<div class="form-row" style="display:flex;gap:10px;align-items:center">
-            <input type="text" class="frm-name" value="${esc(f.form_name || '')}" placeholder="Form name" style="flex:1.2;min-width:80px">
-            <input type="number" class="frm-students" value="${f.students || 0}" min="0" style="flex:1;min-width:60px">
-            <input type="number" class="frm-tablets" value="${f.tablets || 0}" min="0" style="flex:1;min-width:60px">
-            <button type="button" class="btn btn-secondary btn-sm" style="padding:4px 8px;color:var(--red)" onclick="this.parentElement.remove()"><i class="ti ti-x"></i></button>
+            <input type="text" class="frm-name" value="${esc(f.form_name || '')}" readonly style="flex:1.2;min-width:80px;background:var(--bg3)">
+            <input type="number" class="frm-students" value="${f.students || 0}" readonly style="flex:1;min-width:60px;background:var(--bg3)">
+            <input type="number" class="frm-tablets" value="${f.tablets || 0}" readonly style="flex:1;min-width:60px;background:var(--bg3)">
           </div>`).join('')}
         </div>
-        <button type="button" class="btn btn-secondary btn-sm" style="align-self:flex-start" onclick="SchoolsPage.addFormRowInModal()"><i class="ti ti-plus"></i> Add Form</button>
 
         <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;letter-spacing:.4px">SCHOOL ADMIN</div>
         ${grp(
