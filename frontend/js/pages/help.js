@@ -20,16 +20,28 @@ const HelpPage = (() => {
     { id: 'account', icon: 'ti-user-circle', title: 'My Account', color: '#36d9cc' },
   ];
 
-  function setSection(id) { activeSection = id; App.render(); }
+  function setSection(id) {
+    activeSection = id;
+    const contentEl = document.getElementById('help-content');
+    const navEl = document.getElementById('help-nav');
+    if (contentEl && navEl) {
+      contentEl.innerHTML = getContent(id);
+      navEl.innerHTML = buildNav();
+    } else {
+      App.render();
+    }
+  }
 
-  function render() {
-    const nav = sections.map(s => {
+  function buildNav() {
+    return sections.map(s => {
       const active = activeSection === s.id;
       return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:${active ? '600' : '400'};transition:all .15s;background:${active ? s.color + '15' : 'transparent'};color:${active ? s.color : 'var(--text2)'};border-left:3px solid ${active ? s.color : 'transparent'}" onclick="HelpPage.setSection('${s.id}')">
         <i class="ti ${s.icon}" style="font-size:15px"></i>${s.title}
       </div>`;
     }).join('');
+  }
 
+  function render() {
     return `
     <div class="section-header">
       <div>
@@ -38,10 +50,10 @@ const HelpPage = (() => {
       </div>
     </div>
     <div class="help-layout" style="display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start">
-      <div class="card reveal" style="position:sticky;top:76px;padding:10px 8px">
-        ${nav}
+      <div id="help-nav" class="card reveal" style="position:sticky;top:76px;padding:10px 8px">
+        ${buildNav()}
       </div>
-      <div>
+      <div id="help-content">
         ${getContent(activeSection)}
       </div>
     </div>`;
