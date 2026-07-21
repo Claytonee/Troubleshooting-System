@@ -24,7 +24,7 @@ router.post('/', [
 ], schoolController.create);
 
 router.put('/:id', [
-  authorize('admin'),
+  authorize('admin', 'school'),
   body('name').notEmpty().withMessage('School name is required'),
   validate
 ], schoolController.update);
@@ -39,6 +39,6 @@ router.delete('/:id', authorize('admin'), schoolController.remove);
 
 // Form-level breakdown
 router.get('/:id/forms', authorize('admin', 'subadmin', 'school'), schoolController.getForms);
-router.put('/:id/forms', authorize('admin'), schoolController.saveForms);
+router.put('/:id/forms', authorize('admin', 'school'), schoolController.saveForms);
 
 module.exports = router;

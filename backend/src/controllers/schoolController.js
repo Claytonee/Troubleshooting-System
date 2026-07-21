@@ -119,6 +119,10 @@ async function create(req, res, next) {
 
 async function update(req, res, next) {
   try {
+    if (req.user.role === 'school' && parseInt(req.params.id) !== req.user.school_id) {
+      return res.status(403).json({ error: 'You can only edit your own school.' });
+    }
+
     const { name, zone, students, tablets, routers,
       contact_name, contact_role, contact_phone, contact_email,
       it_name, it_email, coordinator_name, coordinator_email,
@@ -177,6 +181,10 @@ async function getForms(req, res, next) {
 
 async function saveForms(req, res, next) {
   try {
+    if (req.user.role === 'school' && parseInt(req.params.id) !== req.user.school_id) {
+      return res.status(403).json({ error: 'You can only edit your own school.' });
+    }
+
     const { forms } = req.body;
     if (!Array.isArray(forms)) return res.status(400).json({ error: 'forms array is required' });
 

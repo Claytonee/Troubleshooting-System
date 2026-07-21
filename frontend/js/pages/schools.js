@@ -9,6 +9,8 @@ const SchoolsPage = (() => {
   let schoolForms = [];
 
   function isAdmin() { const u = API.getUser(); return u && u.role === 'admin'; }
+  function isSchoolAdmin() { const u = API.getUser(); return u && u.role === 'school'; }
+  function canEditSchool() { return isAdmin() || isSchoolAdmin(); }
 
   async function load() {
     try { schools = await API.getSchools(); } catch (e) { schools = []; }
@@ -97,10 +99,10 @@ const SchoolsPage = (() => {
     return `
     <div class="section-header">
       <button class="btn btn-secondary btn-sm" onclick="SchoolsPage.back()"><i class="ti ti-arrow-left"></i> Schools</button>
-      ${isAdmin() ? `<div style="display:flex;gap:8px">
-        <button class="btn btn-secondary btn-sm" onclick="SchoolsPage.openEdit(${s.id})"><i class="ti ti-edit"></i> Edit</button>
-        <button class="btn btn-secondary btn-sm" data-tip="${TIP.DELETE}" data-tip-color="red" style="color:var(--red);border-color:rgba(255,82,99,0.3)" onclick="SchoolsPage.remove(${s.id})"><i class="ti ti-trash"></i> Delete</button>
-      </div>` : ''}
+      <div style="display:flex;gap:8px">
+        ${canEditSchool() ? `<button class="btn btn-secondary btn-sm" onclick="SchoolsPage.openEdit(${s.id})"><i class="ti ti-edit"></i> Edit</button>` : ''}
+        ${isAdmin() ? `<button class="btn btn-secondary btn-sm" data-tip="${TIP.DELETE}" data-tip-color="red" style="color:var(--red);border-color:rgba(255,82,99,0.3)" onclick="SchoolsPage.remove(${s.id})"><i class="ti ti-trash"></i> Delete</button>` : ''}
+      </div>
     </div>
 
     <div class="card" style="margin-bottom:16px;padding:0;overflow:hidden">
@@ -127,7 +129,7 @@ const SchoolsPage = (() => {
     <div class="card" style="margin-bottom:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div class="card-title" style="margin:0">Form-Level Breakdown</div>
-        ${isAdmin() ? `<button class="btn btn-secondary btn-sm" onclick="SchoolsPage.openEditForms(${s.id})"><i class="ti ti-edit"></i> Edit</button>` : ''}
+        ${canEditSchool() ? `<button class="btn btn-secondary btn-sm" onclick="SchoolsPage.openEditForms(${s.id})"><i class="ti ti-edit"></i> Edit</button>` : ''}
       </div>
       <div class="table-wrap"><table>
         <thead><tr><th>Form</th><th style="text-align:center">Students</th><th style="text-align:center">Tablets</th><th style="text-align:center">Ratio</th></tr></thead>
@@ -142,7 +144,7 @@ const SchoolsPage = (() => {
           </tr>`;
         }).join('')}</tbody>
       </table></div>
-    </div>` : (isAdmin() ? `
+    </div>` : (canEditSchool() ? `
     <div class="card" style="margin-bottom:16px;padding:16px;display:flex;align-items:center;justify-content:space-between">
       <div style="font-size:13px;color:var(--text3)"><i class="ti ti-school" style="vertical-align:-2px;margin-right:6px"></i>No form-level data yet</div>
       <button class="btn btn-secondary btn-sm" onclick="SchoolsPage.openEditForms(${s.id})"><i class="ti ti-plus"></i> Add Form Data</button>
