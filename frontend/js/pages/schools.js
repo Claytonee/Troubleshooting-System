@@ -196,6 +196,13 @@ const SchoolsPage = (() => {
 
   function formBody(s) {
     s = s || {};
+    const forms = s.forms || schoolForms || [];
+    const defaultForms = forms.length ? forms : [
+      { form_name: 'Form 1', students: 0, tablets: 0 },
+      { form_name: 'Form 2', students: 0, tablets: 0 },
+      { form_name: 'Form 3', students: 0, tablets: 0 },
+      { form_name: 'Form 4', students: 0, tablets: 0 }
+    ];
     const grp = (inner) => `<div style="display:flex;gap:12px;flex-wrap:wrap">${inner}</div>`;
     const fg = (label, html, flex) => `<div class="form-group" style="flex:${flex || 1};min-width:160px">${label}${html}</div>`;
     const adminItems = [{ value: '', label: 'Unassigned' }, ...team.map(t => ({ value: t.id, label: t.full_name, tag: t.zone || '' }))];
@@ -210,10 +217,21 @@ const SchoolsPage = (() => {
           fg('<label>Region</label>', `<input type="text" id="sc-zone" value="${esc(s.zone || '')}" placeholder="e.g. Rombo">`) +
           fg('<label>ISP</label>', `<input type="text" id="sc-isp" value="${esc(s.isp || '')}" placeholder="e.g. Vodacom Fibre">`)
         )}
-        ${grp(
-          fg('<label>Number of Tablets</label>', `<input type="number" id="sc-tablets" min="0" value="${s.tablets != null ? s.tablets : 0}">`) +
-          fg('<label>Number of Students</label>', `<input type="number" id="sc-students" min="0" value="${s.students != null ? s.students : 0}">`)
-        )}
+
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;letter-spacing:.4px">FORM-LEVEL DATA</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:2px">Students and tablets per form/class level</div>
+        <div id="sc-forms-list" style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;gap:10px;font-size:10px;color:var(--text3);padding:0 0 2px 0">
+            <span style="flex:1.2">Form Name</span><span style="flex:1">Students</span><span style="flex:1">Tablets</span><span style="width:32px"></span>
+          </div>
+          ${defaultForms.map(f => `<div class="form-row" style="display:flex;gap:10px;align-items:center">
+            <input type="text" class="frm-name" value="${esc(f.form_name || '')}" placeholder="Form name" style="flex:1.2;min-width:80px">
+            <input type="number" class="frm-students" value="${f.students || 0}" min="0" style="flex:1;min-width:60px">
+            <input type="number" class="frm-tablets" value="${f.tablets || 0}" min="0" style="flex:1;min-width:60px">
+            <button type="button" class="btn btn-secondary btn-sm" style="padding:4px 8px;color:var(--red)" onclick="this.parentElement.remove()"><i class="ti ti-x"></i></button>
+          </div>`).join('')}
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" style="align-self:flex-start" onclick="SchoolsPage.addFormRowInModal()"><i class="ti ti-plus"></i> Add Form</button>
 
         <div style="font-size:11px;font-weight:600;color:var(--text3);margin-top:6px;letter-spacing:.4px">SCHOOL ADMIN</div>
         ${grp(
@@ -248,14 +266,43 @@ const SchoolsPage = (() => {
     Modal.open('Edit School Profile', formBody(s), footer, true);
   }
 
+  function addFormRowInModal() {
+    const list = document.getElementById('sc-forms-list');
+    if (!list) return;
+    const div = document.createElement('div');
+    div.className = 'form-row';
+    div.style.cssText = 'display:flex;gap:10px;align-items:center';
+    div.innerHTML = `
+      <input type="text" class="frm-name" value="" placeholder="Form name" style="flex:1.2;min-width:80px">
+      <input type="number" class="frm-students" value="0" min="0" style="flex:1;min-width:60px">
+      <input type="number" class="frm-tablets" value="0" min="0" style="flex:1;min-width:60px">
+      <button type="button" class="btn btn-secondary btn-sm" style="padding:4px 8px;color:var(--red)" onclick="this.parentElement.remove()"><i class="ti ti-x"></i></button>`;
+    list.appendChild(div);
+  }
+
+  function collectForms() {
+    const rows = document.querySelectorAll('#sc-forms-list .form-row');
+    const forms = [];
+    rows.forEach(row => {
+      const name = row.querySelector('.frm-name').value.trim();
+      const students = parseInt(row.querySelector('.frm-students').value) || 0;
+      const tablets = parseInt(row.querySelector('.frm-tablets').value) || 0;
+      if (name) forms.push({ form_name: name, students, tablets });
+    });
+    return forms;
+  }
+
   function collect() {
-    const num = (id) => parseInt(document.getElementById(id).value, 10) || 0;
     const val = (id) => document.getElementById(id).value.trim();
+    const forms = collectForms();
+    const totalStudents = forms.reduce((s, f) => s + f.students, 0);
+    const totalTablets = forms.reduce((s, f) => s + f.tablets, 0);
     return {
-      name: val('sc-name'), zone: val('sc-zone'), tablets: num('sc-tablets'), students: num('sc-students'),
+      name: val('sc-name'), zone: val('sc-zone'), tablets: totalStudents > 0 ? totalTablets : 0, students: totalStudents,
       isp: val('sc-isp'), contact_name: val('sc-cname'), contact_role: val('sc-crole'),
       contact_phone: val('sc-cphone'), contact_email: val('sc-cemail'),
-      assigned_admin_id: Dropdown.getValue('sc-admin') || null
+      assigned_admin_id: Dropdown.getValue('sc-admin') || null,
+      forms
     };
   }
 
@@ -273,7 +320,10 @@ const SchoolsPage = (() => {
     const btn = document.getElementById('sc-submit');
     btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Creating...';
     try {
-      await API.createSchool(d);
+      const result = await API.createSchool(d);
+      if (d.forms.length && result.id) {
+        await API.saveSchoolForms(result.id, d.forms);
+      }
       Modal.close(); showToast('School profile created');
       await load(); App.render();
     } catch (e) {
@@ -289,6 +339,9 @@ const SchoolsPage = (() => {
     btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Saving...';
     try {
       await API.updateSchool(id, d);
+      if (d.forms.length) {
+        await API.saveSchoolForms(id, d.forms);
+      }
       Modal.close(); showToast('School profile updated');
       await load(); App.render();
     } catch (e) {
@@ -484,5 +537,5 @@ const SchoolsPage = (() => {
   }
 
   return { load, render, select, back, openCreate, openEdit, submitCreate, submitEdit, remove,
-    openEditForms, addFormRow, submitForms, openImportCSV, downloadTemplate, submitCSV };
+    addFormRowInModal, openEditForms, addFormRow, submitForms, openImportCSV, downloadTemplate, submitCSV };
 })();
