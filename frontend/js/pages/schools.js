@@ -248,10 +248,10 @@ const SchoolsPage = (() => {
           fg('<label>Email</label>', `<input type="email" id="sc-cemail" value="${esc(s.contact_email || '')}" placeholder="school@example.com">`)
         )}
 
-        <div class="form-group">
+        ${isAdmin() ? `<div class="form-group">
           <label>Assigned Sub-Admin (Field Engineer)</label>
           ${Dropdown.render('sc-admin', currentAdmin ? currentAdmin.full_name : 'Unassigned', adminItems, { defaultValue: s.assigned_admin_id || '' })}
-        </div>
+        </div>` : ''}
       </div>`;
   }
 
@@ -311,17 +311,18 @@ const SchoolsPage = (() => {
   }
 
   function collect() {
-    const val = (id) => document.getElementById(id).value.trim();
+    const val = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
     const forms = collectForms();
     const totalStudents = forms.reduce((s, f) => s + f.students, 0);
     const totalTablets = forms.reduce((s, f) => s + f.tablets, 0);
-    return {
+    const data = {
       name: val('sc-name'), zone: val('sc-zone'), tablets: totalStudents > 0 ? totalTablets : 0, students: totalStudents,
       isp: val('sc-isp'), contact_name: val('sc-cname'), contact_role: val('sc-crole'),
       contact_phone: val('sc-cphone'), contact_email: val('sc-cemail'),
-      assigned_admin_id: Dropdown.getValue('sc-admin') || null,
       forms
     };
+    if (isAdmin()) data.assigned_admin_id = Dropdown.getValue('sc-admin') || null;
+    return data;
   }
 
   function validEmail(e) { return !e || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e); }

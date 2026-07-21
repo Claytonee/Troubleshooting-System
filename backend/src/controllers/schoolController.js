@@ -128,6 +128,11 @@ async function update(req, res, next) {
       it_name, it_email, coordinator_name, coordinator_email,
       lrs_ip, isp, assigned_admin_id } = req.body;
 
+    // Fetch current data to detect changes (for notifications)
+    const [current] = await pool.query('SELECT * FROM schools WHERE id = ?', [req.params.id]);
+    if (!current.length) return res.status(404).json({ error: 'School not found.' });
+    const old = current[0];
+
     const [result] = await pool.query(
       `UPDATE schools SET name=?, zone=?, students=?, tablets=?, routers=?,
         contact_name=?, contact_role=?, contact_phone=?, contact_email=?,
@@ -136,10 +141,28 @@ async function update(req, res, next) {
       [name, zone || null, students || 0, tablets || 0, routers || 0,
         contact_name || null, contact_role || null, contact_phone || null, contact_email || null,
         it_name || null, it_email || null, coordinator_name || null, coordinator_email || null,
-        lrs_ip || null, isp || null, assigned_admin_id || null, req.params.id]
+        lrs_ip || null, isp || null, req.user.role === 'admin' ? (assigned_admin_id || null) : old.assigned_admin_id, req.params.id]
     );
 
-    if (!result.affectedRows) return res.status(404).json({ error: 'School not found.' });
+    // Notify admin when school admin changes contact phone or email
+    if (req.user.role === 'school') {
+      const changes = [];
+      if (contact_phone && contact_phone !== old.contact_phone) {
+        changes.push({ field: 'Phone', from: old.contact_phone || '(empty)', to: contact_phone });
+      }
+      if (contact_email && contact_email !== old.contact_email) {
+        changes.push({ field: 'Email', from: old.contact_email || '(empty)', to: contact_email });
+      }
+      if (changes.length) {
+        const changeText = changes.map(c => `${c.field}: ${c.from} → ${c.to}`).join(', ');
+        await pool.query(
+          `INSERT INTO admin_notifications (target_role, type, title, message, meta) VALUES (?, ?, ?, ?, ?)`,
+          ['admin', 'contact_update', `${old.name} — contact info updated`,
+            `School admin ${req.user.full_name || req.user.username} updated: ${changeText}`,
+            JSON.stringify({ school_id: req.params.id, school_name: old.name, actor: req.user.full_name, changes })]
+        );
+      }
+    }
 
     await logAudit({
       actor: req.user, ip: req.ip, action: 'school.updated', entityType: 'school', entityId: req.params.id,
@@ -268,4 +291,22 @@ async function bulkImport(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getById, create, update, remove, reassignAdmin, getForms, saveForms, bulkImport };
+// --- Admin Notifications ---
+async function getNotifications(req, res, next) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM admin_notifications WHERE target_role = ? ORDER BY created_at DESC LIMIT 50',
+      ['admin']
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+}
+
+async function markNotificationRead(req, res, next) {
+  try {
+    await pool.query('UPDATE admin_notifications SET is_read = true WHERE id = ?', [req.params.id]);
+    res.json({ message: 'Marked as read' });
+  } catch (err) { next(err); }
+}
+
+module.exports = { getAll, getById, create, update, remove, reassignAdmin, getForms, saveForms, bulkImport, getNotifications, markNotificationRead };

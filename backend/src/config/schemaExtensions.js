@@ -154,6 +154,19 @@ async function applyExtensions(db) {
   await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)");
   await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT");
 
+  // --- Admin notifications (persistent in-app notifications) ---
+  await db.query(`CREATE TABLE IF NOT EXISTS admin_notifications (
+    id SERIAL PRIMARY KEY,
+    target_role VARCHAR(20) DEFAULT 'admin',
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(300) NOT NULL,
+    message TEXT,
+    meta JSONB,
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_admin_notif_read ON admin_notifications (is_read, created_at DESC)');
+
   // --- School form-level breakdown (students & tablets per form/class) ---
   await db.query(`CREATE TABLE IF NOT EXISTS school_forms (
     id SERIAL PRIMARY KEY,

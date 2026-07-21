@@ -8,6 +8,10 @@ const router = express.Router();
 
 router.use(authenticate);
 
+// Admin notifications for contact updates
+router.get('/notifications', authorize('admin'), schoolController.getNotifications);
+router.patch('/notifications/:id/read', authorize('admin'), schoolController.markNotificationRead);
+
 // CSV Bulk Import (before /:id routes)
 router.post('/bulk-import', authorize('admin'), schoolController.bulkImport);
 

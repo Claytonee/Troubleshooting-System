@@ -60,6 +60,28 @@ const Notifications = (() => {
             });
           });
         }
+
+        // Contact update notifications
+        const notifRes = await fetch('/api/schools/notifications', { headers });
+        if (notifRes.ok) {
+          const notifs = await notifRes.json();
+          notifs.filter(n => !n.is_read).forEach(n => {
+            items.push({
+              type: 'contact_update',
+              icon: 'ti-address-book',
+              color: 'var(--teal)',
+              title: n.title,
+              sub: `${n.message} · ${timeAgo(n.created_at)}`,
+              notifId: n.id,
+              action: () => {
+                close();
+                fetch(`/api/schools/notifications/${n.id}/read`, { method: 'PATCH', headers });
+                const meta = typeof n.meta === 'string' ? JSON.parse(n.meta) : n.meta;
+                if (meta && meta.school_id) { Router.navigate('schools'); SchoolsPage.select(meta.school_id); }
+              }
+            });
+          });
+        }
       }
 
       // School admin: pending teacher approvals
