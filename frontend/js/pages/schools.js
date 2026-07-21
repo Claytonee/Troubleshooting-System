@@ -6,6 +6,7 @@ const SchoolsPage = (() => {
   let team = [];
   let selectedId = null;
   let detail = null;
+  let schoolForms = [];
 
   function isAdmin() { const u = API.getUser(); return u && u.role === 'admin'; }
 
@@ -13,7 +14,10 @@ const SchoolsPage = (() => {
     try { schools = await API.getSchools(); } catch (e) { schools = []; }
     if (isAdmin()) { try { team = await API.getTeam(); } catch (e) { team = []; } }
     if (selectedId) {
-      try { detail = await API.getSchool(selectedId); } catch (e) { detail = null; }
+      try {
+        detail = await API.getSchool(selectedId);
+        schoolForms = detail.forms || [];
+      } catch (e) { detail = null; schoolForms = []; }
     }
   }
 
@@ -25,7 +29,10 @@ const SchoolsPage = (() => {
     return `
     <div class="section-header">
       <div><div class="section-title">School Profiles</div><div class="section-sub">${schools.length} schools</div></div>
-      ${isAdmin() ? `<button class="btn btn-primary" data-tip="${TIP.ADD_SCHOOL}" onclick="SchoolsPage.openCreate()"><i class="ti ti-plus"></i> Add School Profile</button>` : ''}
+      ${isAdmin() ? `<div style="display:flex;gap:10px">
+        <button class="btn btn-secondary" onclick="SchoolsPage.openImportCSV()"><i class="ti ti-file-import"></i> Import CSV</button>
+        <button class="btn btn-primary" data-tip="${TIP.ADD_SCHOOL}" onclick="SchoolsPage.openCreate()"><i class="ti ti-plus"></i> Add School</button>
+      </div>` : ''}
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px">
       ${schools.map(s => {
@@ -115,6 +122,31 @@ const SchoolsPage = (() => {
         <div class="stat-card ${hasIssues ? 'a' : 'g'}"><div class="stat-label">Open Issues</div><div class="stat-val" style="color:${hasIssues ? 'var(--amber)' : 'var(--green)'}">${openCount}</div></div>
       </div>
     </div>
+
+    ${schoolForms.length ? `
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="card-title" style="margin:0">Form-Level Breakdown</div>
+        ${isAdmin() ? `<button class="btn btn-secondary btn-sm" onclick="SchoolsPage.openEditForms(${s.id})"><i class="ti ti-edit"></i> Edit</button>` : ''}
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Form</th><th style="text-align:center">Students</th><th style="text-align:center">Tablets</th><th style="text-align:center">Ratio</th></tr></thead>
+        <tbody>${schoolForms.map(f => {
+          const ratio = f.tablets > 0 ? (f.students / f.tablets).toFixed(1) : '—';
+          const ratioColor = f.tablets > 0 && f.students / f.tablets > 3 ? 'var(--red)' : f.tablets > 0 && f.students / f.tablets > 2 ? 'var(--amber)' : 'var(--green)';
+          return `<tr>
+            <td style="font-weight:500">${esc(f.form_name)}</td>
+            <td style="text-align:center">${f.students}</td>
+            <td style="text-align:center">${f.tablets}</td>
+            <td style="text-align:center;color:${ratioColor};font-weight:500">${ratio}${ratio !== '—' ? ':1' : ''}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>
+    </div>` : (isAdmin() ? `
+    <div class="card" style="margin-bottom:16px;padding:16px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:13px;color:var(--text3)"><i class="ti ti-school" style="vertical-align:-2px;margin-right:6px"></i>No form-level data yet</div>
+      <button class="btn btn-secondary btn-sm" onclick="SchoolsPage.openEditForms(${s.id})"><i class="ti ti-plus"></i> Add Form Data</button>
+    </div>` : '')}
 
     <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin:4px 2px 11px">Key Contacts</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:18px">
@@ -276,5 +308,181 @@ const SchoolsPage = (() => {
     } catch (e) { showToast(e.error || 'Could not delete school'); }
   }
 
-  return { load, render, select, back, openCreate, openEdit, submitCreate, submitEdit, remove };
+  // --- Form-Level Editing ---
+  function openEditForms(schoolId) {
+    const existing = schoolForms.length ? schoolForms : [
+      { form_name: 'Form 1', students: 0, tablets: 0 },
+      { form_name: 'Form 2', students: 0, tablets: 0 },
+      { form_name: 'Form 3', students: 0, tablets: 0 },
+      { form_name: 'Form 4', students: 0, tablets: 0 }
+    ];
+    const body = `
+      <div style="margin-bottom:12px;font-size:12px;color:var(--text3)">Set the number of students and tablets for each form/class level.</div>
+      <div id="forms-list" style="display:flex;flex-direction:column;gap:8px">
+        ${existing.map((f, i) => formRow(f, i)).join('')}
+      </div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="SchoolsPage.addFormRow()"><i class="ti ti-plus"></i> Add Form</button>`;
+    const footer = `
+      <button class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
+      <button class="btn btn-primary" id="forms-submit" onclick="SchoolsPage.submitForms(${schoolId})"><i class="ti ti-check"></i> Save</button>`;
+    Modal.open('Form-Level Breakdown', body, footer);
+  }
+
+  function formRow(f, i) {
+    return `<div class="form-row" style="display:flex;gap:10px;align-items:center">
+      <input type="text" class="frm-name" value="${esc(f.form_name || '')}" placeholder="Form name" style="flex:1.2;min-width:100px">
+      <input type="number" class="frm-students" value="${f.students || 0}" min="0" placeholder="Students" style="flex:1;min-width:80px">
+      <input type="number" class="frm-tablets" value="${f.tablets || 0}" min="0" placeholder="Tablets" style="flex:1;min-width:80px">
+      <button class="btn btn-secondary btn-sm" style="padding:4px 8px;color:var(--red)" onclick="this.parentElement.remove()"><i class="ti ti-x"></i></button>
+    </div>`;
+  }
+
+  function addFormRow() {
+    const list = document.getElementById('forms-list');
+    if (!list) return;
+    const div = document.createElement('div');
+    div.innerHTML = formRow({ form_name: '', students: 0, tablets: 0 }, list.children.length);
+    list.appendChild(div.firstElementChild);
+  }
+
+  async function submitForms(schoolId) {
+    const rows = document.querySelectorAll('#forms-list .form-row');
+    const forms = [];
+    rows.forEach(row => {
+      const name = row.querySelector('.frm-name').value.trim();
+      const students = parseInt(row.querySelector('.frm-students').value) || 0;
+      const tablets = parseInt(row.querySelector('.frm-tablets').value) || 0;
+      if (name) forms.push({ form_name: name, students, tablets });
+    });
+    const btn = document.getElementById('forms-submit');
+    btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Saving...';
+    try {
+      await API.saveSchoolForms(schoolId, forms);
+      Modal.close(); showToast('Form data saved');
+      await load(); App.render();
+    } catch (e) {
+      showToast(e.error || 'Could not save form data');
+      btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Save';
+    }
+  }
+
+  // --- CSV Bulk Import ---
+  function openImportCSV() {
+    const body = `
+      <div style="margin-bottom:14px;font-size:13px;color:var(--text2)">
+        Upload a CSV file with school data. The first row must be headers.
+      </div>
+      <div style="margin-bottom:14px">
+        <button class="btn btn-secondary btn-sm" onclick="SchoolsPage.downloadTemplate()"><i class="ti ti-download"></i> Download CSV Template</button>
+      </div>
+      <div class="form-group">
+        <label>Select CSV File</label>
+        <input type="file" id="csv-file" accept=".csv" style="padding:8px">
+      </div>
+      <div id="csv-preview" style="display:none;margin-top:12px">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px">PREVIEW</div>
+        <div id="csv-preview-content" style="max-height:200px;overflow-y:auto;font-size:12px;background:var(--bg3);border-radius:8px;padding:10px;border:1px solid var(--border)"></div>
+      </div>`;
+    const footer = `
+      <button class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
+      <button class="btn btn-primary" id="csv-submit" onclick="SchoolsPage.submitCSV()"><i class="ti ti-file-import"></i> Import</button>`;
+    Modal.open('Import Schools from CSV', body, footer, true);
+
+    setTimeout(() => {
+      const fileInput = document.getElementById('csv-file');
+      if (fileInput) fileInput.addEventListener('change', previewCSV);
+    }, 100);
+  }
+
+  function downloadTemplate() {
+    const headers = 'name,region,isp,tablets,students,contact_name,contact_role,contact_phone,contact_email,form_1_students,form_1_tablets,form_2_students,form_2_tablets,form_3_students,form_3_tablets,form_4_students,form_4_tablets';
+    const example = 'Kilema Secondary,Rombo,Vodacom,120,450,John Doe,Head Teacher,+255712345678,john@school.tz,120,30,110,30,115,30,105,30';
+    const csv = headers + '\n' + example;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'schools_import_template.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function previewCSV(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target.result;
+      const lines = text.trim().split('\n');
+      const preview = document.getElementById('csv-preview');
+      const content = document.getElementById('csv-preview-content');
+      if (!preview || !content) return;
+      preview.style.display = 'block';
+      const count = lines.length - 1;
+      content.innerHTML = `<div style="margin-bottom:8px;font-weight:500;color:var(--text)">${count} school${count !== 1 ? 's' : ''} found</div>` +
+        lines.slice(0, 6).map((l, i) => `<div style="color:${i === 0 ? 'var(--accent)' : 'var(--text2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i === 0 ? '<b>' : ''}${esc(l)}${i === 0 ? '</b>' : ''}</div>`).join('') +
+        (lines.length > 6 ? `<div style="color:var(--text3)">... and ${lines.length - 6} more</div>` : '');
+    };
+    reader.readAsText(file);
+  }
+
+  function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+    return lines.slice(1).filter(l => l.trim()).map(line => {
+      const values = line.split(',').map(v => v.trim());
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = values[i] || ''; });
+
+      const school = {
+        name: obj.name || obj.school_name || '',
+        zone: obj.region || obj.zone || '',
+        isp: obj.isp || '',
+        tablets: obj.tablets || '0',
+        students: obj.students || '0',
+        contact_name: obj.contact_name || '',
+        contact_role: obj.contact_role || '',
+        contact_phone: obj.contact_phone || '',
+        contact_email: obj.contact_email || '',
+        it_name: obj.it_name || '',
+        it_email: obj.it_email || '',
+        coordinator_name: obj.coordinator_name || '',
+        coordinator_email: obj.coordinator_email || '',
+        forms: []
+      };
+
+      for (let i = 1; i <= 6; i++) {
+        const st = parseInt(obj[`form_${i}_students`]) || 0;
+        const tb = parseInt(obj[`form_${i}_tablets`]) || 0;
+        if (st || tb) school.forms.push({ form_name: `Form ${i}`, students: st, tablets: tb });
+      }
+
+      return school;
+    });
+  }
+
+  async function submitCSV() {
+    const fileInput = document.getElementById('csv-file');
+    if (!fileInput || !fileInput.files[0]) { showToast('Please select a CSV file'); return; }
+    const btn = document.getElementById('csv-submit');
+    btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Importing...';
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const parsed = parseCSV(ev.target.result);
+        if (!parsed.length) { showToast('No valid data found in CSV'); btn.disabled = false; btn.innerHTML = '<i class="ti ti-file-import"></i> Import'; return; }
+        const result = await API.bulkImportSchools(parsed);
+        Modal.close();
+        showToast(`Imported ${result.created} school${result.created !== 1 ? 's' : ''}${result.errors.length ? ` (${result.errors.length} errors)` : ''}`);
+        await load(); App.render();
+      } catch (e) {
+        showToast(e.error || 'Import failed');
+        btn.disabled = false; btn.innerHTML = '<i class="ti ti-file-import"></i> Import';
+      }
+    };
+    reader.readAsText(fileInput.files[0]);
+  }
+
+  return { load, render, select, back, openCreate, openEdit, submitCreate, submitEdit, remove,
+    openEditForms, addFormRow, submitForms, openImportCSV, downloadTemplate, submitCSV };
 })();

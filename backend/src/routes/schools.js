@@ -8,6 +8,9 @@ const router = express.Router();
 
 router.use(authenticate);
 
+// CSV Bulk Import (before /:id routes)
+router.post('/bulk-import', authorize('admin'), schoolController.bulkImport);
+
 router.get('/', authorize('admin', 'subadmin', 'school'), schoolController.getAll);
 router.get('/:id', authorize('admin', 'subadmin', 'school'), schoolController.getById);
 
@@ -33,5 +36,9 @@ router.patch('/:id/assign', [
 ], schoolController.reassignAdmin);
 
 router.delete('/:id', authorize('admin'), schoolController.remove);
+
+// Form-level breakdown
+router.get('/:id/forms', authorize('admin', 'subadmin', 'school'), schoolController.getForms);
+router.put('/:id/forms', authorize('admin'), schoolController.saveForms);
 
 module.exports = router;

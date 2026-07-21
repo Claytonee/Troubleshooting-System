@@ -153,6 +153,17 @@ async function applyExtensions(db) {
   // --- User profile extensions (avatar, bio) ---
   await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)");
   await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT");
+
+  // --- School form-level breakdown (students & tablets per form/class) ---
+  await db.query(`CREATE TABLE IF NOT EXISTS school_forms (
+    id SERIAL PRIMARY KEY,
+    school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    form_name VARCHAR(50) NOT NULL,
+    students INTEGER DEFAULT 0,
+    tablets INTEGER DEFAULT 0,
+    UNIQUE(school_id, form_name)
+  )`);
+  await db.query('CREATE INDEX IF NOT EXISTS idx_school_forms_school ON school_forms (school_id)');
 }
 
 module.exports = { applyExtensions, SLA_TARGET_HOURS };

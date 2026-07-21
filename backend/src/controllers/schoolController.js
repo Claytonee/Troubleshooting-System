@@ -69,7 +69,12 @@ async function getById(req, res, next) {
       [school.id]
     );
 
-    res.json({ ...school, errors, checkins, communications: comms });
+    const [forms] = await pool.query(
+      'SELECT * FROM school_forms WHERE school_id = ? ORDER BY form_name',
+      [school.id]
+    );
+
+    res.json({ ...school, errors, checkins, communications: comms, forms });
   } catch (err) { next(err); }
 }
 
@@ -159,4 +164,100 @@ async function reassignAdmin(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getById, create, update, remove, reassignAdmin };
+// --- Form-level breakdown ---
+async function getForms(req, res, next) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM school_forms WHERE school_id = ? ORDER BY form_name',
+      [req.params.id]
+    );
+    res.json(rows);
+  } catch (err) { next(err); }
+}
+
+async function saveForms(req, res, next) {
+  try {
+    const { forms } = req.body;
+    if (!Array.isArray(forms)) return res.status(400).json({ error: 'forms array is required' });
+
+    await pool.query('DELETE FROM school_forms WHERE school_id = ?', [req.params.id]);
+
+    let totalStudents = 0, totalTablets = 0;
+    for (const f of forms) {
+      if (!f.form_name) continue;
+      const students = parseInt(f.students, 10) || 0;
+      const tablets = parseInt(f.tablets, 10) || 0;
+      totalStudents += students;
+      totalTablets += tablets;
+      await pool.query(
+        'INSERT INTO school_forms (school_id, form_name, students, tablets) VALUES (?, ?, ?, ?)',
+        [req.params.id, f.form_name, students, tablets]
+      );
+    }
+
+    await pool.query('UPDATE schools SET students = ?, tablets = ? WHERE id = ?',
+      [totalStudents, totalTablets, req.params.id]);
+
+    res.json({ message: 'Form data saved', totalStudents, totalTablets });
+  } catch (err) { next(err); }
+}
+
+// --- CSV Bulk Import ---
+async function bulkImport(req, res, next) {
+  try {
+    const { schools: rows } = req.body;
+    if (!Array.isArray(rows) || !rows.length) {
+      return res.status(400).json({ error: 'No school data provided' });
+    }
+
+    const results = { created: 0, errors: [] };
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row.name) {
+        results.errors.push({ row: i + 1, error: 'School name is required' });
+        continue;
+      }
+      try {
+        const code = await uniqueCode(row.name);
+        const [result] = await pool.query(
+          `INSERT INTO schools (code, name, zone, students, tablets, routers,
+            contact_name, contact_role, contact_phone, contact_email,
+            it_name, it_email, coordinator_name, coordinator_email,
+            lrs_ip, isp, assigned_admin_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [code, row.name, row.zone || row.region || null,
+            parseInt(row.students) || 0, parseInt(row.tablets) || 0, parseInt(row.routers) || 0,
+            row.contact_name || null, row.contact_role || null,
+            row.contact_phone || null, row.contact_email || null,
+            row.it_name || null, row.it_email || null,
+            row.coordinator_name || null, row.coordinator_email || null,
+            row.lrs_ip || '192.168.0.10', row.isp || null, null]
+        );
+
+        if (row.forms && Array.isArray(row.forms)) {
+          for (const f of row.forms) {
+            if (!f.form_name) continue;
+            await pool.query(
+              'INSERT INTO school_forms (school_id, form_name, students, tablets) VALUES (?, ?, ?, ?) ON CONFLICT (school_id, form_name) DO UPDATE SET students = EXCLUDED.students, tablets = EXCLUDED.tablets',
+              [result.insertId, f.form_name, parseInt(f.students) || 0, parseInt(f.tablets) || 0]
+            );
+          }
+        }
+
+        results.created++;
+      } catch (e) {
+        results.errors.push({ row: i + 1, error: e.message || 'Database error' });
+      }
+    }
+
+    await logAudit({
+      actor: req.user, ip: req.ip, action: 'school.bulk_import', entityType: 'school',
+      summary: `Bulk imported ${results.created} schools`, meta: { total: rows.length, errors: results.errors.length }
+    });
+
+    res.json(results);
+  } catch (err) { next(err); }
+}
+
+module.exports = { getAll, getById, create, update, remove, reassignAdmin, getForms, saveForms, bulkImport };
