@@ -56,6 +56,30 @@ Cards (`.card`, `.stat-card`, `.alert-banner`) get a scroll-reveal animation on 
 - IntersectionObserver adds `.visible` when element enters viewport
 - CSS transitions from `opacity:0; translateY(12px)` to visible
 
+**Nested containers caveat:** The observer uses `root: .main`. Cards inside nested grids/tabs may NOT trigger. Any page with in-page navigation (tabs, sidebar sections) MUST implement `afterRender()` to force `.visible`:
+```javascript
+function afterRender() {
+  const el = document.getElementById('my-content');
+  if (el) el.querySelectorAll('.card').forEach(c => c.classList.add('reveal', 'visible'));
+}
+```
+
+### In-Page Navigation (Tabs / Sidebar Sections)
+Pages with internal navigation MUST swap content in-place — never call `App.render()` on tab/section click (causes flicker, sidebar disappears). Pattern:
+```javascript
+function setSection(id) {
+  activeSection = id;
+  const contentEl = document.getElementById('page-content');
+  const navEl = document.getElementById('page-nav');
+  if (contentEl && navEl) {
+    contentEl.innerHTML = getContent(id);
+    navEl.innerHTML = buildNav();
+    contentEl.querySelectorAll('.card').forEach(c => c.classList.add('reveal', 'visible'));
+  } else {
+    App.render(); // fallback for first load only
+  }
+}
+
 ### Stat Cards (NOT glassmorphism)
 Use the flat `.stat-card` class with colored left border stripe:
 ```html
