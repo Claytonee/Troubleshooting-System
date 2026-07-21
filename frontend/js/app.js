@@ -184,14 +184,19 @@ const ErrorDetailModal = (() => {
         ${csatBlock}`;
 
       const user = API.getUser();
+      const isAdminUser = user && user.role === 'admin';
       const canEscalate = e.status !== 'resolved' && e.escalation_level !== 'platform' && user && user.role === 'school';
       const canResolve = e.status !== 'resolved';
+      const canAssign = isAdminUser && e.status !== 'resolved';
 
       let footer = '';
-      if (canResolve || canEscalate) {
+      if (canResolve || canEscalate || canAssign) {
         footer += '<div style="display:flex;gap:10px;width:100%;align-items:center">';
         if (canEscalate) {
           footer += `<button class="btn btn-danger btn-sm" style="display:inline-flex;align-items:center;gap:6px" data-tip="Escalate to OE · Forward this error to Opportunity Education platform team for immediate support and resolution" data-tip-color="red" onclick="ErrorDetailModal.escalate(${e.id})"><i class="ti ti-arrow-up-right"></i> Escalate to OE</button>`;
+        }
+        if (canAssign) {
+          footer += `<button class="btn btn-secondary btn-sm" style="display:inline-flex;align-items:center;gap:6px" onclick="ErrorDetailModal.openAssign(${e.id})"><i class="ti ti-user-share"></i> Assign</button>`;
         }
         footer += '<div style="flex:1"></div>';
         if (canResolve) {
@@ -271,7 +276,46 @@ const ErrorDetailModal = (() => {
     } catch (e) { showToast('Could not submit feedback'); }
   }
 
-  return { open, resolve, escalate, submitEscalation, rate };
+  async function openAssign(id) {
+    let team = [];
+    try { team = await API.getTeam(); } catch (e) {}
+    const items = team.map(t => ({ value: t.id, label: t.full_name, tag: t.zone || '' }));
+    const body = `
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:13px;color:var(--text2)">Select a sub-admin (field engineer) to handle this error.</div>
+        <div class="form-group">
+          <label>Assign to</label>
+          ${Dropdown.render('assign-to', 'Select sub-admin', items)}
+        </div>
+        <div class="form-group">
+          <label>Note (optional)</label>
+          <textarea id="assign-note" rows="2" placeholder="Instructions or context for the assignee..." style="font-size:13px"></textarea>
+        </div>
+      </div>`;
+    const footer = `
+      <button class="btn btn-secondary" onclick="ErrorDetailModal.open(${id})">Cancel</button>
+      <button class="btn btn-primary" id="assign-submit" onclick="ErrorDetailModal.submitAssign(${id})"><i class="ti ti-user-share"></i> Assign</button>`;
+    Modal.open('Assign Error', body, footer);
+  }
+
+  async function submitAssign(id) {
+    const assignedTo = Dropdown.getValue('assign-to');
+    if (!assignedTo) { showToast('Please select a sub-admin'); return; }
+    const note = document.getElementById('assign-note') ? document.getElementById('assign-note').value.trim() : '';
+    const btn = document.getElementById('assign-submit');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Assigning...'; }
+    try {
+      await API.assignError(id, { assigned_to: assignedTo, note });
+      Modal.close();
+      showToast('Error assigned successfully');
+      await App.loadAndRender();
+    } catch (e) {
+      showToast(e.error || 'Assignment failed');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-user-share"></i> Assign'; }
+    }
+  }
+
+  return { open, resolve, escalate, submitEscalation, rate, openAssign, submitAssign };
 })();
 
 // Initialize on load

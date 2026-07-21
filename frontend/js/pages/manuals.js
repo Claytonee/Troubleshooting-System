@@ -288,7 +288,7 @@ const ManualsPage = (() => {
     </div>`;
     const footer = `
       <button class="btn btn-secondary" onclick="Modal.close()">Close</button>
-      <a class="btn btn-secondary" href="${esc(url)}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Open in new tab</a>
+      <button class="btn btn-secondary" onclick="ManualsPage.openInNewTab(${id})"><i class="ti ti-external-link"></i> Open in new tab</button>
       <button class="btn btn-primary" onclick="ManualsPage.download(${id})"><i class="ti ti-download"></i> Download</button>`;
     Modal.open(manual.title, meta + content, footer, true);
     const box = document.getElementById('modal-box');
@@ -352,5 +352,26 @@ const ManualsPage = (() => {
     } catch (e) { showToast('Delete failed'); }
   }
 
-  return { load, render, setFilter, openUpload, setUploadMode, submitUpload, download, preview, remove };
+  async function openInNewTab(id) {
+    const manual = manuals.find(m => m.id === id);
+    if (!manual) return;
+    const url = manual.stored_filename;
+    const kind = previewKind(manual.file_type);
+    if (kind === 'image' || kind === 'video' || kind === 'audio') {
+      window.open(url, '_blank');
+      return;
+    }
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('fetch failed');
+      const buf = await res.arrayBuffer();
+      const mimeType = manual.file_type || 'application/octet-stream';
+      const blobUrl = URL.createObjectURL(new Blob([buf], { type: mimeType }));
+      window.open(blobUrl, '_blank');
+    } catch (e) {
+      window.open(url, '_blank');
+    }
+  }
+
+  return { load, render, setFilter, openUpload, setUploadMode, submitUpload, download, preview, remove, openInNewTab };
 })();

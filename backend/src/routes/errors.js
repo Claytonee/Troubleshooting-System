@@ -43,6 +43,8 @@ router.post('/:id/updates', [
   validate
 ], errorController.addUpdate);
 
+router.patch('/:id/assign', authorize('admin'), errorController.assignError);
+
 router.post('/:id/escalate', authorize('school', 'teacher'), errorController.escalateToAdmin);
 
 router.delete('/:id', authorize('admin'), errorController.remove);

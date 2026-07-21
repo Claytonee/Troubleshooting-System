@@ -450,4 +450,39 @@ async function escalateToAdmin(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getById, create, update, updateStatus, addUpdate, remove, getStats, exportErrors, submitCsat, escalateToAdmin };
+async function assignError(req, res, next) {
+  try {
+    const { assigned_to, note } = req.body;
+    if (!assigned_to) return res.status(400).json({ error: 'assigned_to is required' });
+
+    const [error] = await pool.query('SELECT * FROM errors WHERE id = ?', [req.params.id]);
+    if (!error.length) return res.status(404).json({ error: 'Error not found' });
+
+    await pool.query('UPDATE errors SET assigned_to = ?, status = ? WHERE id = ?',
+      [assigned_to, error[0].status === 'open' ? 'progress' : error[0].status, req.params.id]);
+
+    const [assignee] = await pool.query('SELECT full_name FROM users WHERE id = ?', [assigned_to]);
+    const assigneeName = assignee.length ? assignee[0].full_name : 'Unknown';
+
+    if (note) {
+      await pool.query(
+        'INSERT INTO error_updates (error_id, note, recorded_by, created_at) VALUES (?, ?, ?, NOW())',
+        [req.params.id, `Assigned to ${assigneeName}. ${note}`, req.user.full_name || req.user.username]
+      );
+    } else {
+      await pool.query(
+        'INSERT INTO error_updates (error_id, note, recorded_by, created_at) VALUES (?, ?, ?, NOW())',
+        [req.params.id, `Assigned to ${assigneeName}`, req.user.full_name || req.user.username]
+      );
+    }
+
+    await logAudit({
+      actor: req.user, ip: req.ip, action: 'error.assigned', entityType: 'error', entityId: req.params.id,
+      summary: `Assigned error ${error[0].error_code} to ${assigneeName}`, meta: { assigned_to }
+    });
+
+    res.json({ message: `Error assigned to ${assigneeName}` });
+  } catch (err) { next(err); }
+}
+
+module.exports = { getAll, getById, create, update, updateStatus, addUpdate, remove, getStats, exportErrors, submitCsat, escalateToAdmin, assignError };
