@@ -167,6 +167,24 @@ async function applyExtensions(db) {
   await q('ALTER TABLE weekly_checkins ADD COLUMN IF NOT EXISTS checkin_date DATE');
   await q('UPDATE weekly_checkins SET checkin_date = created_at::date WHERE checkin_date IS NULL');
 
+  // Older production tables may predate the UNIQUE (school_id, week_number, term)
+  // constraint that the check-in upsert (ON CONFLICT) relies on — add it as a
+  // unique index when no unique constraint/index exists on the table yet.
+  try {
+    const [uq] = await db.query(
+      `SELECT 1 FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid
+       WHERE t.relname = 'weekly_checkins' AND c.contype = 'u'`);
+    const [ix] = await db.query(
+      `SELECT 1 FROM pg_indexes WHERE tablename = 'weekly_checkins' AND indexname = 'uq_checkins_school_week_term'`);
+    if (!uq.length && !ix.length) {
+      await db.query('CREATE UNIQUE INDEX uq_checkins_school_week_term ON weekly_checkins (school_id, week_number, term)');
+      console.log('  Added unique index on weekly_checkins (school_id, week_number, term)');
+    }
+  } catch (e) {
+    console.error('  weekly_checkins unique index step FAILED:', e.message);
+    failed++;
+  }
+
   // --- User profile extensions (avatar, bio) ---
   await q("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)");
   await q("ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT");
