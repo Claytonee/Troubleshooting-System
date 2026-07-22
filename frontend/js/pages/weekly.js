@@ -91,6 +91,9 @@ const WeeklyPage = (() => {
     return `
     <div class="section-header">
       <div><div class="section-title">Weekly Check-Ins</div><div class="section-sub">${year} · Week ${selectedWeek} of 52 — structured weekly support visit per school</div></div>
+      <div style="display:flex;gap:10px">
+        ${['admin', 'subadmin'].includes((API.getUser() || {}).role) ? `<button class="btn btn-secondary btn-sm" data-tip="${TIP.EXPORT_CSV}" onclick="WeeklyPage.exportCsv()"><i class="ti ti-download"></i> Export</button>` : ''}
+      </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
       ${weekSelector}
@@ -109,6 +112,28 @@ const WeeklyPage = (() => {
   function setWeek(w) {
     selectedWeek = Math.min(52, Math.max(1, parseInt(w) || 1));
     App.render();
+  }
+
+  function exportCsv() {
+    if (!checkins.length) { showToast('No check-ins to export'); return; }
+    const zones = {};
+    schools.forEach(s => { zones[s.id] = s.zone || ''; });
+    const cell = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const dateOnly = iso => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d)) return '';
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+    const header = ['School', 'Zone', 'Week', 'Year/Term', 'Check-In Date', 'Overall Status', 'Connectivity', 'Tablets', 'Platform', 'Power', 'Checked By', 'Note'];
+    const rows = [...checkins]
+      .sort((a, b) => (a.week_number - b.week_number) || String(a.school_name || '').localeCompare(String(b.school_name || '')))
+      .map(c => [c.school_name, zones[c.school_id], c.week_number, c.term, dateOnly(c.checkin_date || c.created_at),
+        c.status, c.connectivity, c.tablets, c.platform, c.power, c.checked_by, c.note].map(cell).join(','));
+    // BOM so Google Sheets / Excel read UTF-8 correctly
+    const csv = String.fromCharCode(0xFEFF) + [header.map(cell).join(',')].concat(rows).join('\r\n');
+    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `weekly-checkins-${new Date().getFullYear()}.csv`);
+    showToast('Downloaded — open the file in Google Sheets');
   }
 
   function openCheckin(schoolId) {
@@ -181,5 +206,5 @@ const WeeklyPage = (() => {
     Modal.open('Check-In Details', body, '<button class="btn btn-secondary" onclick="Modal.close()">Close</button>');
   }
 
-  return { load, render, setWeek, openCheckin, submitCheckin, viewCheckin };
+  return { load, render, setWeek, exportCsv, openCheckin, submitCheckin, viewCheckin };
 })();
