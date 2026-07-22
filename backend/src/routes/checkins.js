@@ -14,7 +14,7 @@ router.get('/school/:schoolId', checkinController.getBySchool);
 
 router.post('/', [
   body('school_id').isInt().withMessage('School ID is required'),
-  body('week_number').isInt({ min: 1, max: 12 }).withMessage('Week number must be between 1 and 12'),
+  body('week_number').isInt({ min: 1, max: 52 }).withMessage('Week number must be between 1 and 52'),
   body('status').isIn(['green', 'amber', 'red']).withMessage('Status must be green, amber, or red'),
   validate
 ], checkinController.createOrUpdate);

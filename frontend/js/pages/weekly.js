@@ -1,6 +1,6 @@
 const WeeklyPage = (() => {
   let schools = [], checkins = [];
-  let selectedWeek = 4;
+  let selectedWeek = 0; // 0 = not chosen yet; defaults to the current week of the year on first render
 
   async function load() {
     try {
@@ -14,7 +14,10 @@ const WeeklyPage = (() => {
   }
 
   function getCheckin(schoolId, week) {
-    return checkins.find(c => c.school_id === schoolId && c.week_number === week);
+    // Prefer this year's record; fall back to older term-based rows so past data stays visible.
+    const yr = String(new Date().getFullYear());
+    const matches = checkins.filter(c => c.school_id === schoolId && c.week_number === week);
+    return matches.find(c => c.term === yr) || matches[0];
   }
 
   function fmtDay(iso) {
@@ -29,10 +32,40 @@ const WeeklyPage = (() => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  function render() {
-    const weeks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  // ISO week number (Mon-based) of a date.
+  function weekOfYear(d = new Date()) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7) + 3);
+    const firstThu = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+    firstThu.setUTCDate(firstThu.getUTCDate() - ((firstThu.getUTCDay() + 6) % 7) + 3);
+    return 1 + Math.round((date - firstThu) / (7 * 86400000));
+  }
 
-    const weekTabs = weeks.map(w => `<button class="chip ${w === selectedWeek ? 'chip-active' : ''}" onclick="WeeklyPage.setWeek(${w})">W${w}</button>`).join('');
+  // "12 Jan – 18 Jan" range for an ISO week of the given year.
+  function weekRange(week, year) {
+    const jan4 = new Date(Date.UTC(year, 0, 4));
+    const monday = new Date(jan4);
+    monday.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7) + (week - 1) * 7);
+    const sunday = new Date(monday);
+    sunday.setUTCDate(monday.getUTCDate() + 6);
+    const f = d => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', timeZone: 'UTC' });
+    return `${f(monday)} – ${f(sunday)}`;
+  }
+
+  function render() {
+    const year = new Date().getFullYear();
+    const currentWeek = Math.min(52, Math.max(1, weekOfYear()));
+    if (!selectedWeek) selectedWeek = currentWeek;
+
+    const weekItems = [];
+    for (let w = 1; w <= 52; w++) {
+      weekItems.push({ value: w, label: `Week ${w}`, desc: weekRange(w, year), tag: w === currentWeek ? 'Now' : '' });
+    }
+    const weekSelector = `
+      <button class="btn btn-secondary btn-sm" onclick="WeeklyPage.setWeek(${selectedWeek - 1})" ${selectedWeek <= 1 ? 'disabled style="opacity:.4;cursor:default"' : ''} title="Previous week"><i class="ti ti-chevron-left"></i></button>
+      <div style="width:270px">${Dropdown.render('wk-select', `Week ${selectedWeek} <span style="color:var(--text3);font-weight:400">· ${weekRange(selectedWeek, year)}</span>`, weekItems, { defaultValue: String(selectedWeek), onSelect: "WeeklyPage.setWeek(parseInt(Dropdown.getValue('wk-select')))" })}</div>
+      <button class="btn btn-secondary btn-sm" onclick="WeeklyPage.setWeek(${selectedWeek + 1})" ${selectedWeek >= 52 ? 'disabled style="opacity:.4;cursor:default"' : ''} title="Next week"><i class="ti ti-chevron-right"></i></button>
+      ${selectedWeek !== currentWeek ? `<button class="btn btn-secondary btn-sm" onclick="WeeklyPage.setWeek(${currentWeek})"><i class="ti ti-calendar-pin"></i> This Week</button>` : ''}`;
 
     const schoolRows = schools.map(s => {
       const c = getCheckin(s.id, selectedWeek);
@@ -57,10 +90,10 @@ const WeeklyPage = (() => {
 
     return `
     <div class="section-header">
-      <div><div class="section-title">Weekly Check-Ins</div><div class="section-sub">Term 2 · 2026 — structured weekly support visit per school</div></div>
+      <div><div class="section-title">Weekly Check-Ins</div><div class="section-sub">${year} · Week ${selectedWeek} of 52 — structured weekly support visit per school</div></div>
     </div>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-      ${weekTabs}
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      ${weekSelector}
       <span style="margin-left:auto;font-size:12px;color:var(--text3)">${doneCount}/${totalCount} complete</span>
     </div>
     <div class="card">
@@ -74,7 +107,7 @@ const WeeklyPage = (() => {
   }
 
   function setWeek(w) {
-    selectedWeek = w;
+    selectedWeek = Math.min(52, Math.max(1, parseInt(w) || 1));
     App.render();
   }
 
@@ -111,7 +144,7 @@ const WeeklyPage = (() => {
     const data = {
       school_id: schoolId,
       week_number: selectedWeek,
-      term: 'Term 2 · 2026',
+      term: String(new Date().getFullYear()),
       checkin_date: dateVal,
       status: Dropdown.getValue('ci-status') || 'green',
       connectivity: Dropdown.getValue('ci-conn') || 'ok',

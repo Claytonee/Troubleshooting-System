@@ -49,11 +49,19 @@ async function getDashboard(req, res) {
       LIMIT 6
     `, params);
 
+    // Current ISO week (Mon-based) + year term — matches the frontend's 52-week selector.
+    const nowD = new Date();
+    const wd = new Date(Date.UTC(nowD.getFullYear(), nowD.getMonth(), nowD.getDate()));
+    wd.setUTCDate(wd.getUTCDate() - ((wd.getUTCDay() + 6) % 7) + 3);
+    const firstThu = new Date(Date.UTC(wd.getUTCFullYear(), 0, 4));
+    firstThu.setUTCDate(firstThu.getUTCDate() - ((firstThu.getUTCDay() + 6) % 7) + 3);
+    const currentWeek = Math.min(52, Math.max(1, 1 + Math.round((wd - firstThu) / (7 * 86400000))));
+
     const [checkinStats] = await pool.query(`
       SELECT COUNT(*) as done FROM weekly_checkins wc
       JOIN schools s ON wc.school_id = s.id
-      WHERE wc.week_number = 4 AND wc.term = 'Term 2 · 2026' ${schoolFilter ? schoolFilter.replace('WHERE', 'AND') : ''}
-    `, params);
+      WHERE wc.week_number = ? AND wc.term = ? ${schoolFilter ? schoolFilter.replace('WHERE', 'AND') : ''}
+    `, [currentWeek, String(nowD.getFullYear()), ...params]);
 
     const [categoryBreakdown] = await pool.query(`
       SELECT e.category, COUNT(*) as count
@@ -66,7 +74,7 @@ async function getDashboard(req, res) {
       schools_healthy: healthySchools[0].count,
       errors: errorStats[0],
       recent_errors: recentErrors,
-      checkins: { done: checkinStats[0].count, total: schoolCount[0].count, current_week: 4 },
+      checkins: { done: checkinStats[0].done, total: schoolCount[0].count, current_week: currentWeek },
       category_breakdown: categoryBreakdown
     });
   } catch (err) {
