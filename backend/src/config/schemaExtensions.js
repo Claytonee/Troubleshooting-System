@@ -150,6 +150,10 @@ async function applyExtensions(db) {
   await db.query('ALTER TABLE errors ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMP');
   await db.query('ALTER TABLE errors ADD COLUMN IF NOT EXISTS reported_by_user_id INTEGER');
 
+  // --- Weekly check-ins: actual visit date (chosen by the user, not just the week) ---
+  await db.query('ALTER TABLE weekly_checkins ADD COLUMN IF NOT EXISTS checkin_date DATE');
+  await db.query('UPDATE weekly_checkins SET checkin_date = created_at::date WHERE checkin_date IS NULL');
+
   // --- User profile extensions (avatar, bio) ---
   await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)");
   await db.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT");

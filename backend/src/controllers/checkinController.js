@@ -47,7 +47,7 @@ async function getBySchool(req, res, next) {
 
 async function createOrUpdate(req, res, next) {
   try {
-    const { school_id, week_number, term, status, connectivity, tablets, platform, power, note, checked_by } = req.body;
+    const { school_id, week_number, term, status, connectivity, tablets, platform, power, note, checked_by, checkin_date } = req.body;
 
     if (!school_id || !week_number) return res.status(400).json({ error: 'school_id and week_number are required.' });
 
@@ -55,13 +55,17 @@ async function createOrUpdate(req, res, next) {
       return res.status(403).json({ error: 'You can only submit check-ins for your own school.' });
     }
 
+    // Validate checkin_date (YYYY-MM-DD); fall back to today when absent/invalid.
+    const dateOk = typeof checkin_date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(checkin_date);
+
     await pool.query(`
-      INSERT INTO weekly_checkins (school_id, week_number, term, status, connectivity, tablets, platform, power, note, checked_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO weekly_checkins (school_id, week_number, term, status, connectivity, tablets, platform, power, note, checked_by, checkin_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?::date, CURRENT_DATE))
       ON CONFLICT (school_id, week_number, term) DO UPDATE SET
         status=EXCLUDED.status, connectivity=EXCLUDED.connectivity, tablets=EXCLUDED.tablets,
-        platform=EXCLUDED.platform, power=EXCLUDED.power, note=EXCLUDED.note, checked_by=EXCLUDED.checked_by
-    `, [school_id, week_number, term || 'Term 2 · 2026', status || 'green', connectivity || 'ok', tablets || 'ok', platform || 'ok', power || 'ok', note || null, checked_by || req.user.full_name]);
+        platform=EXCLUDED.platform, power=EXCLUDED.power, note=EXCLUDED.note, checked_by=EXCLUDED.checked_by,
+        checkin_date=EXCLUDED.checkin_date
+    `, [school_id, week_number, term || 'Term 2 · 2026', status || 'green', connectivity || 'ok', tablets || 'ok', platform || 'ok', power || 'ok', note || null, checked_by || req.user.full_name, dateOk ? checkin_date : null]);
 
     res.status(201).json({ message: 'Check-in recorded successfully.' });
   } catch (err) { next(err); }

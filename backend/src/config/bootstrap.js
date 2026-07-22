@@ -49,7 +49,8 @@ async function bootstrap() {
     status VARCHAR(10) NOT NULL DEFAULT 'green' CHECK (status IN ('green','amber','red')),
     connectivity VARCHAR(10) DEFAULT 'ok', tablets VARCHAR(10) DEFAULT 'ok',
     platform VARCHAR(10) DEFAULT 'ok', power VARCHAR(10) DEFAULT 'ok',
-    note TEXT, checked_by VARCHAR(200), created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW(),
+    note TEXT, checked_by VARCHAR(200), checkin_date DATE,
+    created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW(),
     UNIQUE (school_id, week_number, term)
   )`);
 

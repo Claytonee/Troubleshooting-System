@@ -17,6 +17,18 @@ const WeeklyPage = (() => {
     return checkins.find(c => c.school_id === schoolId && c.week_number === week);
   }
 
+  function fmtDay(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d)) return '—';
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   function render() {
     const weeks = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -34,6 +46,7 @@ const WeeklyPage = (() => {
         </div></td>
         <td>${esc(s.contact_name || '—')}</td>
         <td><span class="badge ${status === 'green' ? 'badge-green' : status === 'amber' ? 'badge-amber' : status === 'red' ? 'badge-red' : 'badge-gray'}">${label}</span></td>
+        <td>${c ? fmtDay(c.checkin_date || c.created_at) : '—'}</td>
         <td>${c ? esc(c.note || '—') : '—'}</td>
         <td>${!c ? `<button class="btn btn-primary btn-sm" data-tip="${TIP.CHECKIN}" onclick="WeeklyPage.openCheckin(${s.id})"><i class="ti ti-clipboard-check"></i> Check-In</button>` : `<button class="btn btn-secondary btn-sm" onclick="WeeklyPage.viewCheckin(${s.id})"><i class="ti ti-eye"></i> View</button>`}</td>
       </tr>`;
@@ -53,7 +66,7 @@ const WeeklyPage = (() => {
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>School</th><th>Contact</th><th>Status</th><th>Note</th><th>Action</th></tr></thead>
+          <thead><tr><th>School</th><th>Contact</th><th>Status</th><th>Date</th><th>Note</th><th>Action</th></tr></thead>
           <tbody>${schoolRows}</tbody>
         </table>
       </div>
@@ -80,7 +93,7 @@ const WeeklyPage = (() => {
     const body = `
       <div class="form-grid">
         <div class="form-group"><label>School</label><input type="text" value="${esc(school?.name || '')}" disabled></div>
-        <div class="form-group"><label>Week</label><input type="text" value="Week ${selectedWeek}" disabled></div>
+        <div class="form-group"><label>Check-In Date <span style="color:var(--text3);font-weight:400">(Week ${selectedWeek})</span></label><input type="date" id="ci-date" value="${todayStr()}" max="${todayStr()}"></div>
         <div class="form-group"><label>Connectivity</label>${Dropdown.render('ci-conn', 'OK', statusOpts, { defaultValue: 'ok' })}</div>
         <div class="form-group"><label>Tablets</label>${Dropdown.render('ci-tab', 'OK', statusOpts, { defaultValue: 'ok' })}</div>
         <div class="form-group"><label>Platform</label>${Dropdown.render('ci-plat', 'OK', statusOpts, { defaultValue: 'ok' })}</div>
@@ -93,10 +106,13 @@ const WeeklyPage = (() => {
   }
 
   async function submitCheckin(schoolId) {
+    const dateVal = (document.getElementById('ci-date')?.value || '').trim();
+    if (!dateVal) { showToast('Please select the check-in date'); return; }
     const data = {
       school_id: schoolId,
       week_number: selectedWeek,
       term: 'Term 2 · 2026',
+      checkin_date: dateVal,
       status: Dropdown.getValue('ci-status') || 'green',
       connectivity: Dropdown.getValue('ci-conn') || 'ok',
       tablets: Dropdown.getValue('ci-tab') || 'ok',
@@ -120,6 +136,7 @@ const WeeklyPage = (() => {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
         <div><strong>School:</strong> ${esc(school?.name || '')}</div>
         <div><strong>Week:</strong> ${selectedWeek}</div>
+        <div><strong>Date:</strong> ${fmtDay(c.checkin_date || c.created_at)}</div>
         <div><strong>Status:</strong> <span class="badge badge-${c.status}">${c.status}</span></div>
         <div><strong>Checked by:</strong> ${esc(c.checked_by || '—')}</div>
         <div><strong>Connectivity:</strong> ${c.connectivity}</div>

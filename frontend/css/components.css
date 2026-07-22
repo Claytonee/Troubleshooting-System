@@ -70,6 +70,9 @@ input, select, textarea { background: var(--bg3); border: 1px solid var(--border
 input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 textarea { resize: vertical; min-height: 60px; height: auto; }
 select option { background: var(--bg3); }
+input[type="date"] { color-scheme: dark; cursor: pointer; }
+input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: .65; }
+input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 
 /* Buttons */
 .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; font-family: var(--font); }
