@@ -78,12 +78,18 @@ async function bootstrap() {
   )`);
 
   // Auto-update updated_at (replaces MySQL's ON UPDATE CURRENT_TIMESTAMP).
-  await pool.query(`CREATE OR REPLACE FUNCTION set_updated_at() RETURNS trigger AS $$
-    BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$ LANGUAGE plpgsql`);
-  for (const t of ['users', 'schools', 'errors', 'weekly_checkins', 'troubleshooting_guides', 'settings']) {
-    await pool.query(`CREATE OR REPLACE TRIGGER trg_${t}_updated BEFORE UPDATE ON ${t} FOR EACH ROW EXECUTE FUNCTION set_updated_at()`);
+  // Non-fatal: a trigger/permission issue must not block schema extensions below.
+  try {
+    await pool.query(`CREATE OR REPLACE FUNCTION set_updated_at() RETURNS trigger AS $$
+      BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$ LANGUAGE plpgsql`);
+    for (const t of ['users', 'schools', 'errors', 'weekly_checkins', 'troubleshooting_guides', 'settings']) {
+      await pool.query(`CREATE OR REPLACE TRIGGER trg_${t}_updated BEFORE UPDATE ON ${t} FOR EACH ROW EXECUTE FUNCTION set_updated_at()`);
+    }
+  } catch (e) {
+    console.error('  Trigger setup warning (non-fatal):', e.message);
   }
 
+  try {
   await pool.query(`INSERT INTO settings (setting_key, setting_value) VALUES
     ('brand_name','Quest Forward Tanzania'),('brand_short','QF'),('brand_subtitle','Technical Support'),
     ('brand_logo_url',''),('brand_color','#FFAE00'),('loader_text','Loading system...')
@@ -157,6 +163,9 @@ async function bootstrap() {
       }
     }
     console.log('  Check-ins seeded');
+  }
+  } catch (e) {
+    console.error('  Seed warning (non-fatal):', e.message);
   }
 
   await applyExtensions(pool);

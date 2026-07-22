@@ -130,6 +130,7 @@ async function autoMigrate() {
     console.log('  Database: migrated OK');
   } catch (e) {
     console.error('  Database migration warning:', e.message);
+    console.error(e.stack);
   }
 }
 
