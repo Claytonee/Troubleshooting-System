@@ -233,6 +233,10 @@ MAX_FILE_SIZE=104857600
 | 9 | Analytics | #analytics | Admin | SLA compliance, errors by school/category |
 | 10 | Sub-Admins | #team | Admin | Manage field engineers, assign schools |
 | 11 | Branding | #branding | Admin | Customize system name, logo, colors |
+| 12 | Tablet Inventory | #inventory | All | Device CRUD, stats, CSV import/export, history |
+| 13 | Approvals | #approvals | Admin | School admin registration approval |
+| 14 | Teachers | #teachers | School | Teacher management + registration links |
+| 15 | Help / User Guide | #help | School | Support documentation with sidebar nav |
 
 ## File Upload System (Cloudinary)
 

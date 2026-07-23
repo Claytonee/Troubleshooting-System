@@ -1,7 +1,7 @@
 # Quest Forward Tanzania — Technical Support System
-## Complete System Documentation v2.0
+## Complete System Documentation v3.0
 
-*Last updated: July 2026*
+*Last updated: 23 July 2026*
 
 ---
 
@@ -16,10 +16,14 @@ The QFT Technical Support System is a web-based platform that enables Opportunit
 - **Weekly Health Monitoring** — Structured weekly check-ins per school (connectivity, tablets, platform, power)
 - **Knowledge Base** — Step-by-step troubleshooting guides for common problems
 - **Resource Library** — Upload and share user manuals, training videos, documents (via Cloudinary CDN)
+- **Tablet Inventory Management** — Full device lifecycle: register, assign to students, track status, CSV import/export, history audit trail
 - **Role-Based Access** — Four-tier permissions (Platform Admin > Sub-Admin > School Admin > Teacher)
 - **Teacher Self-Registration** — Link-based registration with approval workflow
 - **Tiered Escalation** — Teacher → School Admin → Platform Admin escalation chain
 - **Multi-View Dashboard** — Role-specific dashboards with customized data
+- **Error Assignment** — Admin can assign errors to sub-admins from error detail
+- **Admin Notifications** — School admin profile changes trigger admin alerts
+- **School Form-Level Data** — Track students and tablets per form (Form 1-4)
 
 ---
 
@@ -82,9 +86,12 @@ users (1)──────(N) errors
               ├──(N) weekly_checkins
               ├──(N) communications
               ├──(N) teacher_registration_links
+              ├──(N) school_forms (form-level breakdown)
+              ├──(N) tablets (1)──(N) tablet_history
               └──(N) manuals (via uploaded_by)
 
 registration_requests (pending school admin sign-ups)
+admin_notifications (persistent admin alerts)
 audit_log (all mutating actions)
 settings (key-value store)
 troubleshooting_guides (standalone)
@@ -293,6 +300,61 @@ notifications (bell icon alerts)
 | rejection_reason | TEXT | Reason if rejected |
 | created_at | TIMESTAMP | Submission date |
 
+#### `tablets`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Unique identifier |
+| school_id | INT FK→schools | Owning school |
+| serial_number | VARCHAR(100) | Device serial (unique per school) |
+| asset_tag | VARCHAR(50) | Human-readable tag (e.g., MTK-T-001) |
+| form | VARCHAR(20) | Form 1 / Form 2 / Form 3 / Form 4 |
+| stream | VARCHAR(10) | A / B / C |
+| model | VARCHAR(200) | Device model (e.g., Amazon Fire HD 10) |
+| year_first_used | INT | Year device entered service |
+| status | VARCHAR(20) | Working / Needs Setup / In Repair / Faulty / Lost/Missing |
+| student_name | VARCHAR(200) | Assigned student |
+| admission_no | VARCHAR(100) | Student admission number |
+| last_checked | DATE | Last physical check date |
+| notes | TEXT | Free-text notes |
+| assigned_at | TIMESTAMP | When student was assigned |
+| created_at | TIMESTAMP | Record creation |
+| updated_at | TIMESTAMP | Last modification |
+| UNIQUE | (school_id, serial_number) | No duplicate serials within school |
+
+#### `tablet_history`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Unique identifier |
+| tablet_id | INT FK→tablets | Parent device |
+| action | VARCHAR(50) | created / status_change / assigned |
+| old_value | VARCHAR(200) | Previous state |
+| new_value | VARCHAR(200) | New state |
+| actor_name | VARCHAR(200) | Who performed the action |
+| note | TEXT | Context/reason |
+| created_at | TIMESTAMP | When it happened |
+
+#### `school_forms`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Unique identifier |
+| school_id | INT FK→schools | Parent school |
+| form_name | VARCHAR(50) | Form 1 / Form 2 / Form 3 / Form 4 |
+| students | INT DEFAULT 0 | Number of students in form |
+| tablets | INT DEFAULT 0 | Number of tablets for form |
+| UNIQUE | (school_id, form_name) | One entry per form per school |
+
+#### `admin_notifications`
+| Column | Type | Description |
+|--------|------|-------------|
+| id | SERIAL PK | Unique identifier |
+| target_role | VARCHAR(20) | Recipient role (default 'admin') |
+| type | VARCHAR(50) | Notification type (e.g., school_contact_update) |
+| title | VARCHAR(300) | Short title |
+| message | TEXT | Full message body |
+| meta | JSONB | Structured metadata |
+| is_read | BOOLEAN DEFAULT false | Read/unread state |
+| created_at | TIMESTAMP | When created |
+
 ---
 
 ## 4. API Reference
@@ -397,6 +459,20 @@ Authorization: Bearer <jwt_token>
 | POST | /generate-link | Yes | school | Generate teacher registration link |
 | GET | /links | Yes | school | List registration links |
 | DELETE | /teacher/:id | Yes | school | Delete/deactivate teacher |
+
+#### Tablet Inventory (`/api/inventory`)
+| Method | Path | Auth | Role | Description |
+|--------|------|------|------|-------------|
+| GET | / | Yes | any | List devices (school role scoped to own school; supports ?status, ?form, ?search, ?school_id) |
+| GET | /stats | Yes | any | Summary stats: total, working, faulty, in_repair, lost, assigned, by_form |
+| GET | /export | Yes | any | Download CSV export of all devices |
+| GET | /:id | Yes | any | Device detail + full history log |
+| POST | / | Yes | any | Add single device (serial_number required) |
+| PUT | /:id | Yes | any | Update device fields; auto-logs status/assignment changes |
+| PATCH | /:id/assign | Yes | any | Assign/unassign student to device |
+| PATCH | /:id/status | Yes | any | Change device status with optional note |
+| POST | /bulk-import | Yes | admin/subadmin/school | Import array of devices (upsert by serial_number) |
+| DELETE | /:id | Yes | admin/subadmin | Remove device from inventory |
 
 #### Settings (`/api/settings`)
 | Method | Path | Auth | Role | Description |
@@ -640,6 +716,7 @@ frontend/
         ├── audit.js          # Audit log viewer (admin only)
         ├── approvals.js      # School admin registration approvals (admin only)
         ├── teachers.js       # Teacher management (school admin only)
+        ├── inventory.js      # Tablet inventory management (all roles)
         ├── chat.js           # AI help assistant
         ├── help.js           # Help & support page (school only)
         ├── search.js         # Global search
@@ -814,5 +891,107 @@ Sample data seeded to demonstrate system capabilities.
 | 13 | Approvals | #approvals | admin only | School admin registration |
 | 14 | Teachers | #teachers | school only | Teacher management + links |
 | 15 | Help | #help | school only | Support & documentation |
+| 16 | Tablet Inventory | #inventory | All | Device management, status tracking, CSV import/export |
 
 *"staff" = admin + subadmin + school (NOT teacher)*
+
+---
+
+## 15. Tablet Inventory Management Module
+
+### Overview
+A complete device lifecycle management system for school tablets. Tracks every device from registration through assignment, maintenance, and retirement.
+
+### Device Statuses
+| Status | Color | Meaning |
+|--------|-------|---------|
+| Working | Green | Fully operational, in use |
+| Needs Setup | Amber | Awaiting initial configuration |
+| In Repair | Amber | Under maintenance |
+| Faulty | Red | Defective, needs replacement |
+| Lost/Missing | Purple | Cannot be located |
+
+### Features
+
+#### Stats Dashboard
+Five stat cards showing real-time fleet health:
+- Working count + fleet health percentage
+- Faulty, In Repair, Lost/Missing counts
+- Assigned vs total ratio
+
+#### Device Table
+- Sortable by asset tag
+- Filterable by: school (admin), status, form, free-text search
+- Columns: Asset Tag, Serial, Model, Form, Status, Student, Last Checked
+- Click row for full device detail
+
+#### Device Detail Modal
+- Info table with all fields (colored icons per field type)
+- Full history timeline (created, status changes, assignments)
+- Quick actions: Edit, Change Status
+
+#### Add/Edit Device
+- 2-column grid form (600px wide modal)
+- Fields: serial (required), asset tag, model, year, form, stream, status, last checked
+- Student assignment section: name + admission number
+- Notes textarea
+
+#### CSV Bulk Import
+- Upload CSV file with auto-column mapping
+- Smart header matching (e.g., "Serial" matches serial_number)
+- Preview before import (first 10 rows shown)
+- Upsert logic: existing serials updated, new ones created
+- Template download button
+
+#### CSV Export
+- Downloads all devices (filtered by current school if applicable)
+- Headers: serial_number, asset_tag, form, stream, model, year_first_used, status, student_name, admission_no, last_checked, notes
+
+#### History / Audit Trail
+Every device change is logged in `tablet_history`:
+- Device creation
+- Status changes (with optional note/reason)
+- Student assignment changes
+- Actor name + timestamp on every entry
+
+### Access Control
+| Role | Can Do |
+|------|--------|
+| Admin | View all schools, CRUD any device, delete, bulk import |
+| Sub-Admin | View assigned schools, CRUD, delete, bulk import |
+| School Admin | View own school only, CRUD, bulk import |
+| Teacher | View own school only (read-only planned) |
+
+### File Structure
+```
+backend/
+  src/controllers/inventoryController.js  — CRUD, stats, bulk import, export
+  src/routes/inventory.js                 — 10 REST endpoints
+  src/config/schemaExtensions.js          — tablets + tablet_history DDL
+frontend/
+  js/pages/inventory.js                   — Full page with modals
+```
+
+---
+
+## 16. Recent Features (July 2026)
+
+### Error Assignment (Admin → Sub-Admin)
+- Admin can assign any error to a sub-admin from the error detail modal
+- Auto-moves status from "open" → "progress" on assignment
+- Adds audit trail entry and update note
+
+### School Profile Enhancements
+- **Form-level breakdown:** Track students + tablets per Form 1-4
+- **CSV bulk import:** Import schools from CSV file
+- **School admin self-edit:** School role can edit own profile (phone, email, contact)
+- **Admin notifications:** Contact changes by school admins trigger admin alerts
+- **Compact sticky header:** School profile detail has fixed hero card
+
+### Resource Library — Open in New Tab
+- Cloudinary raw resources (PDF, DOCX) now open inline via blob URL
+- Previously forced download due to Cloudinary Content-Disposition headers
+
+### User Guide — In-Place Navigation
+- Sidebar sections swap content without full page re-render
+- Cards use afterRender() pattern to force scroll-reveal visibility
