@@ -31,80 +31,76 @@ const InventoryPage = (() => {
 
     return `
   <div class="section-header">
-    <div>
-      <div class="section-title">Tablet Inventory</div>
-      <div class="section-sub">${total} devices${isAdmin() && filters.school_id ? ' (filtered)' : ''}</div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="width:38px;height:38px;border-radius:10px;background:rgba(79,124,255,.12);display:flex;align-items:center;justify-content:center"><i class="ti ti-device-tablet" style="font-size:20px;color:var(--accent)"></i></div>
+      <div>
+        <div class="section-title" style="margin:0">Tablet Inventory</div>
+        <div class="section-sub" style="margin:0">${total} devices · ${healthPct}% fleet health</div>
+      </div>
     </div>
-    <div style="display:flex;gap:10px">
-      <button class="btn btn-ghost" onclick="InventoryPage.openImport()"><i class="ti ti-upload"></i> Import CSV</button>
-      <button class="btn btn-ghost" onclick="InventoryPage.exportCsv()"><i class="ti ti-download"></i> Export</button>
-      <button class="btn btn-primary" onclick="InventoryPage.openAdd()"><i class="ti ti-plus"></i> Add Device</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="stats-grid" style="display:flex;gap:6px;margin:0">
+        <div style="padding:4px 10px;border-radius:6px;background:rgba(45,217,138,.1);font-size:11px;font-weight:600;color:var(--green)">${working} <span style="font-weight:400;opacity:.7">OK</span></div>
+        <div style="padding:4px 10px;border-radius:6px;background:rgba(255,82,99,.1);font-size:11px;font-weight:600;color:var(--red)">${faulty} <span style="font-weight:400;opacity:.7">Faulty</span></div>
+        <div style="padding:4px 10px;border-radius:6px;background:rgba(245,166,35,.1);font-size:11px;font-weight:600;color:var(--amber)">${inRepair} <span style="font-weight:400;opacity:.7">Repair</span></div>
+        <div style="padding:4px 10px;border-radius:6px;background:rgba(155,125,255,.1);font-size:11px;font-weight:600;color:var(--purple)">${lostMissing} <span style="font-weight:400;opacity:.7">Lost</span></div>
+      </div>
+      <button class="btn btn-ghost" onclick="InventoryPage.openImport()" title="Import CSV"><i class="ti ti-upload"></i></button>
+      <button class="btn btn-ghost" onclick="InventoryPage.exportCsv()" title="Export"><i class="ti ti-download"></i></button>
+      <button class="btn btn-primary" onclick="InventoryPage.openAdd()"><i class="ti ti-plus"></i> Add</button>
     </div>
   </div>
 
-  <div class="stats-grid reveal">
-    <div class="stat-card g"><div class="stat-label">Working</div><div class="stat-val" style="color:var(--green)">${working}</div><div class="stat-sub">${healthPct}% fleet health</div></div>
-    <div class="stat-card r"><div class="stat-label">Faulty</div><div class="stat-val" style="color:var(--red)">${faulty}</div><div class="stat-sub">Needs replacement</div></div>
-    <div class="stat-card a"><div class="stat-label">In Repair</div><div class="stat-val" style="color:var(--amber)">${inRepair}</div><div class="stat-sub">Being fixed</div></div>
-    <div class="stat-card"><div class="stat-label">Lost/Missing</div><div class="stat-val" style="color:var(--purple)">${lostMissing}</div><div class="stat-sub">Unaccounted</div></div>
-    <div class="stat-card t"><div class="stat-label">Assigned</div><div class="stat-val" style="color:var(--teal)">${assigned}</div><div class="stat-sub">of ${total} devices</div></div>
+  <div style="padding:12px 20px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    ${isAdmin() ? `<select id="inv-school" onchange="InventoryPage.filterSchool(this.value)" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
+      <option value="">All Schools</option>
+      ${schools.map(sc => `<option value="${sc.id}" ${filters.school_id == sc.id ? 'selected' : ''}>${sc.name}</option>`).join('')}
+    </select>` : ''}
+    <select id="inv-status" onchange="InventoryPage.filterStatus(this.value)" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
+      <option value="">All Statuses</option>
+      <option value="Working" ${filters.status==='Working'?'selected':''}>Working</option>
+      <option value="Needs Setup" ${filters.status==='Needs Setup'?'selected':''}>Needs Setup</option>
+      <option value="In Repair" ${filters.status==='In Repair'?'selected':''}>In Repair</option>
+      <option value="Faulty" ${filters.status==='Faulty'?'selected':''}>Faulty</option>
+      <option value="Lost/Missing" ${filters.status==='Lost/Missing'?'selected':''}>Lost/Missing</option>
+    </select>
+    <select id="inv-form" onchange="InventoryPage.filterForm(this.value)" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
+      <option value="">All Forms</option>
+      <option value="Form 1" ${filters.form==='Form 1'?'selected':''}>Form 1</option>
+      <option value="Form 2" ${filters.form==='Form 2'?'selected':''}>Form 2</option>
+      <option value="Form 3" ${filters.form==='Form 3'?'selected':''}>Form 3</option>
+      <option value="Form 4" ${filters.form==='Form 4'?'selected':''}>Form 4</option>
+    </select>
+    <input type="text" id="inv-search" placeholder="Search serial, tag, student..." value="${filters.search}" onkeyup="InventoryPage.debounceSearch(this.value)" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;flex:1;min-width:180px">
   </div>
 
-  <div class="card reveal" style="margin-top:16px">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
-      ${isAdmin() ? `<select id="inv-school" onchange="InventoryPage.filterSchool(this.value)" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
-        <option value="">All Schools</option>
-        ${schools.map(s => `<option value="${s.id}" ${filters.school_id == s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
-      </select>` : ''}
-      <select id="inv-status" onchange="InventoryPage.filterStatus(this.value)" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
-        <option value="">All Statuses</option>
-        <option value="Working" ${filters.status==='Working'?'selected':''}>Working</option>
-        <option value="Needs Setup" ${filters.status==='Needs Setup'?'selected':''}>Needs Setup</option>
-        <option value="In Repair" ${filters.status==='In Repair'?'selected':''}>In Repair</option>
-        <option value="Faulty" ${filters.status==='Faulty'?'selected':''}>Faulty</option>
-        <option value="Lost/Missing" ${filters.status==='Lost/Missing'?'selected':''}>Lost/Missing</option>
-      </select>
-      <select id="inv-form" onchange="InventoryPage.filterForm(this.value)" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
-        <option value="">All Forms</option>
-        <option value="Form 1" ${filters.form==='Form 1'?'selected':''}>Form 1</option>
-        <option value="Form 2" ${filters.form==='Form 2'?'selected':''}>Form 2</option>
-        <option value="Form 3" ${filters.form==='Form 3'?'selected':''}>Form 3</option>
-        <option value="Form 4" ${filters.form==='Form 4'?'selected':''}>Form 4</option>
-      </select>
-      <input type="text" id="inv-search" placeholder="Search serial, tag, student..." value="${filters.search}" onkeyup="InventoryPage.debounceSearch(this.value)" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;flex:1;min-width:180px">
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Asset Tag</th>
-            <th>Serial Number</th>
-            <th>Model</th>
-            <th>Form</th>
-            <th>Status</th>
-            <th>Student</th>
-            <th>Last Checked</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          ${devices.length ? devices.map(d => `
-          <tr onclick="InventoryPage.openDetail(${d.id})" style="cursor:pointer">
-            <td style="font-family:var(--font-mono);font-size:12px">${d.asset_tag || '-'}</td>
-            <td style="font-family:var(--font-mono);font-size:12px">${d.serial_number}</td>
-            <td style="font-size:12px">${d.model || '-'}</td>
-            <td style="font-size:12px">${d.form || '-'}</td>
-            <td>${statusBadge(d.status)}</td>
-            <td style="font-size:12px">${d.student_name || '<span style="color:var(--text3)">Unassigned</span>'}</td>
-            <td style="font-size:12px;color:var(--text3)">${d.last_checked ? new Date(d.last_checked).toLocaleDateString() : 'Never'}</td>
-            <td>
-              <button class="btn-icon" onclick="event.stopPropagation();InventoryPage.openEdit(${d.id})" title="Edit"><i class="ti ti-pencil"></i></button>
-            </td>
-          </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text3)">No devices found</td></tr>'}
-        </tbody>
-      </table>
-    </div>
+  <div style="padding:14px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+    ${devices.length ? devices.map(d => deviceCard(d)).join('') : '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text3)"><i class="ti ti-device-tablet-off" style="font-size:40px;opacity:.4;display:block;margin-bottom:10px"></i>No devices found</div>'}
   </div>`;
+  }
+
+  function deviceCard(d) {
+    const statusColors = { 'Working': 'green', 'Needs Setup': 'amber', 'In Repair': 'amber', 'Faulty': 'red', 'Lost/Missing': 'purple' };
+    const borderColor = `var(--${statusColors[d.status] || 'accent'})`;
+    return `<div class="card reveal" onclick="InventoryPage.openDetail(${d.id})" style="cursor:pointer;border-left:3px solid ${borderColor};padding:14px 16px;transition:all .15s" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div>
+          <div style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--text)">${d.asset_tag || d.serial_number}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${d.serial_number}${d.model ? ' · ' + d.model : ''}</div>
+        </div>
+        ${statusBadge(d.status)}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="display:flex;align-items:center;gap:6px">
+          <i class="ti ti-user" style="font-size:13px;color:var(--text3)"></i>
+          <span style="font-size:12px;color:${d.student_name ? 'var(--text)' : 'var(--text3)'}">${d.student_name || 'Unassigned'}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${d.form ? `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--text3)">${d.form}${d.stream ? ' ' + d.stream : ''}</span>` : ''}
+          <button class="btn-icon" onclick="event.stopPropagation();InventoryPage.openEdit(${d.id})" title="Edit" style="width:24px;height:24px"><i class="ti ti-pencil" style="font-size:13px"></i></button>
+        </div>
+      </div>
+    </div>`;
   }
 
   function afterRender() {
