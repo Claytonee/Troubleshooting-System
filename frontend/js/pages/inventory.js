@@ -276,9 +276,9 @@ const InventoryPage = (() => {
             </div>`).join('')}
           </div>
         </div>` : ''}
-        <div style="display:flex;gap:10px;margin-top:14px">
-          <button class="btn btn-ghost" onclick="InventoryPage.openEdit(${d.id})" style="flex:1"><i class="ti ti-pencil"></i> Edit</button>
-          <button class="btn btn-ghost" onclick="InventoryPage.openStatusChange(${d.id},'${d.status}')" style="flex:1"><i class="ti ti-refresh"></i> Change Status</button>
+        <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+          <button class="btn" onclick="InventoryPage.openEdit(${d.id})" style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px"><i class="ti ti-pencil"></i> Edit</button>
+          <button class="btn" onclick="InventoryPage.openStatusChange(${d.id},'${d.status}')" style="padding:8px 16px;font-size:12px;background:rgba(54,217,204,.12);color:var(--teal);border:1px solid rgba(54,217,204,.25);border-radius:8px"><i class="ti ti-refresh"></i> Change Status</button>
         </div>
       `, '', true);
     } catch (err) { Toast.show('Failed to load device details', 'error'); }
