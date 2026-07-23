@@ -52,25 +52,22 @@ const InventoryPage = (() => {
   </div>
 
   <div style="position:sticky;top:52px;z-index:9;background:rgba(15,17,23,0.95);backdrop-filter:blur(12px);padding:10px 20px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)">
-    ${isAdmin() ? `<select id="inv-school" onchange="InventoryPage.filterSchool(this.value)" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:11px;max-width:160px">
-      <option value="">All Schools</option>
-      ${schools.map(sc => `<option value="${sc.id}" ${filters.school_id == sc.id ? 'selected' : ''}>${sc.name}</option>`).join('')}
-    </select>` : ''}
-    <select id="inv-status" onchange="InventoryPage.filterStatus(this.value)" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:11px;max-width:120px">
-      <option value="">All Statuses</option>
-      <option value="Working" ${filters.status==='Working'?'selected':''}>Working</option>
-      <option value="Needs Setup" ${filters.status==='Needs Setup'?'selected':''}>Needs Setup</option>
-      <option value="In Repair" ${filters.status==='In Repair'?'selected':''}>In Repair</option>
-      <option value="Faulty" ${filters.status==='Faulty'?'selected':''}>Faulty</option>
-      <option value="Lost/Missing" ${filters.status==='Lost/Missing'?'selected':''}>Lost/Missing</option>
-    </select>
-    <select id="inv-form" onchange="InventoryPage.filterForm(this.value)" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:11px;max-width:100px">
-      <option value="">All Forms</option>
-      <option value="Form 1" ${filters.form==='Form 1'?'selected':''}>Form 1</option>
-      <option value="Form 2" ${filters.form==='Form 2'?'selected':''}>Form 2</option>
-      <option value="Form 3" ${filters.form==='Form 3'?'selected':''}>Form 3</option>
-      <option value="Form 4" ${filters.form==='Form 4'?'selected':''}>Form 4</option>
-    </select>
+    ${isAdmin() ? Dropdown.render('inv-school', 'All Schools', [{value:'',label:'All Schools'},...schools.map(sc => ({value:sc.id,label:sc.name,tag:sc.zone||''}))], {defaultValue: filters.school_id, onSelect: "InventoryPage.onSchoolSelect()"}) : ''}
+    ${Dropdown.render('inv-status', 'All Statuses', [
+      {value:'',label:'All Statuses'},
+      {value:'Working',label:'Working',tag:'●'},
+      {value:'Needs Setup',label:'Needs Setup',tag:'●'},
+      {value:'In Repair',label:'In Repair',tag:'●'},
+      {value:'Faulty',label:'Faulty',tag:'●'},
+      {value:'Lost/Missing',label:'Lost/Missing',tag:'●'}
+    ], {defaultValue: filters.status, onSelect: "InventoryPage.onStatusSelect()"})}
+    ${Dropdown.render('inv-form', 'All Forms', [
+      {value:'',label:'All Forms'},
+      {value:'Form 1',label:'Form 1'},
+      {value:'Form 2',label:'Form 2'},
+      {value:'Form 3',label:'Form 3'},
+      {value:'Form 4',label:'Form 4'}
+    ], {defaultValue: filters.form, onSelect: "InventoryPage.onFormSelect()"})}
     <div style="flex:1;position:relative">
       <i class="ti ti-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text3)"></i>
       <input type="text" id="inv-search" placeholder="Search serial, tag, student..." value="${filters.search}" onkeyup="InventoryPage.debounceSearch(this.value)" style="width:100%;padding:6px 10px 6px 30px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:11px">
@@ -124,6 +121,9 @@ const InventoryPage = (() => {
   function filterStatus(val) { filters.status = val; reload(); }
   function filterForm(val) { filters.form = val; reload(); }
   function filterSchool(val) { filters.school_id = val; reload(); }
+  function onSchoolSelect() { filters.school_id = Dropdown.getValue('inv-school') || ''; reload(); }
+  function onStatusSelect() { filters.status = Dropdown.getValue('inv-status') || ''; reload(); }
+  function onFormSelect() { filters.form = Dropdown.getValue('inv-form') || ''; reload(); }
 
   async function reload() {
     await load();
@@ -451,5 +451,6 @@ const InventoryPage = (() => {
     openStatusChange, submitStatus, confirmDelete,
     openImport, downloadTemplate, previewCsv, submitImport, exportCsv,
     filterStatus, filterForm, filterSchool, debounceSearch,
+    onSchoolSelect, onStatusSelect, onFormSelect,
   };
 })();
