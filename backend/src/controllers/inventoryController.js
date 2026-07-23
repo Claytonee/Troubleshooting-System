@@ -11,6 +11,10 @@ async function getAll(req, res, next) {
     if (req.user.role === 'school') {
       conditions.push('t.school_id = ?');
       params.push(req.user.school_id);
+    } else if (req.user.role === 'subadmin') {
+      conditions.push('t.school_id IN (SELECT id FROM schools WHERE assigned_admin_id = ?)');
+      params.push(req.user.id);
+      if (req.query.school_id) { conditions.push('t.school_id = ?'); params.push(req.query.school_id); }
     } else if (req.query.school_id) {
       conditions.push('t.school_id = ?');
       params.push(req.query.school_id);
@@ -39,6 +43,9 @@ async function getStats(req, res, next) {
     if (req.user.role === 'school') {
       schoolFilter = 'WHERE school_id = ?';
       params.push(req.user.school_id);
+    } else if (req.user.role === 'subadmin') {
+      schoolFilter = 'WHERE school_id IN (SELECT id FROM schools WHERE assigned_admin_id = ?)';
+      params.push(req.user.id);
     } else if (req.query.school_id) {
       schoolFilter = 'WHERE school_id = ?';
       params.push(req.query.school_id);
@@ -74,6 +81,10 @@ async function getById(req, res, next) {
     if (req.user.role === 'school' && rows[0].school_id !== req.user.school_id) {
       return res.status(403).json({ error: 'Access denied' });
     }
+    if (req.user.role === 'subadmin') {
+      const [allowed] = await pool.query('SELECT id FROM schools WHERE id = ? AND assigned_admin_id = ?', [rows[0].school_id, req.user.id]);
+      if (!allowed.length) return res.status(403).json({ error: 'Access denied' });
+    }
 
     const [history] = await pool.query(
       'SELECT * FROM tablet_history WHERE tablet_id = ? ORDER BY created_at DESC LIMIT 50',
@@ -93,6 +104,11 @@ async function create(req, res, next) {
 
     const sid = req.user.role === 'school' ? req.user.school_id : school_id;
     if (!sid) return res.status(400).json({ error: 'School is required' });
+
+    if (req.user.role === 'subadmin') {
+      const [allowed] = await pool.query('SELECT id FROM schools WHERE id = ? AND assigned_admin_id = ?', [sid, req.user.id]);
+      if (!allowed.length) return res.status(403).json({ error: 'You can only add devices to your assigned schools' });
+    }
 
     const [result] = await pool.query(
       `INSERT INTO tablets (school_id, serial_number, asset_tag, form, stream, model,
@@ -126,6 +142,10 @@ async function update(req, res, next) {
 
     if (req.user.role === 'school' && old.school_id !== req.user.school_id) {
       return res.status(403).json({ error: 'Access denied' });
+    }
+    if (req.user.role === 'subadmin') {
+      const [allowed] = await pool.query('SELECT id FROM schools WHERE id = ? AND assigned_admin_id = ?', [old.school_id, req.user.id]);
+      if (!allowed.length) return res.status(403).json({ error: 'Access denied' });
     }
 
     await pool.query(
@@ -161,6 +181,11 @@ async function assignDevice(req, res, next) {
     const [current] = await pool.query('SELECT * FROM tablets WHERE id = ?', [req.params.id]);
     if (!current.length) return res.status(404).json({ error: 'Device not found' });
 
+    if (req.user.role === 'subadmin') {
+      const [allowed] = await pool.query('SELECT id FROM schools WHERE id = ? AND assigned_admin_id = ?', [current[0].school_id, req.user.id]);
+      if (!allowed.length) return res.status(403).json({ error: 'Access denied' });
+    }
+
     await pool.query(
       'UPDATE tablets SET student_name=?, admission_no=?, assigned_at=NOW(), updated_at=NOW() WHERE id=?',
       [student_name || null, admission_no || null, req.params.id]
@@ -185,6 +210,11 @@ async function changeStatus(req, res, next) {
     const [current] = await pool.query('SELECT * FROM tablets WHERE id = ?', [req.params.id]);
     if (!current.length) return res.status(404).json({ error: 'Device not found' });
 
+    if (req.user.role === 'subadmin') {
+      const [allowed] = await pool.query('SELECT id FROM schools WHERE id = ? AND assigned_admin_id = ?', [current[0].school_id, req.user.id]);
+      if (!allowed.length) return res.status(403).json({ error: 'Access denied' });
+    }
+
     await pool.query('UPDATE tablets SET status=?, updated_at=NOW() WHERE id=?', [status, req.params.id]);
 
     await pool.query(
@@ -206,6 +236,11 @@ async function bulkImport(req, res, next) {
 
     const sid = req.user.role === 'school' ? req.user.school_id : school_id;
     if (!sid) return res.status(400).json({ error: 'School is required' });
+
+    if (req.user.role === 'subadmin') {
+      const [allowed] = await pool.query('SELECT id FROM schools WHERE id = ? AND assigned_admin_id = ?', [sid, req.user.id]);
+      if (!allowed.length) return res.status(403).json({ error: 'You can only import devices to your assigned schools' });
+    }
 
     const results = { created: 0, updated: 0, errors: [] };
 
@@ -257,13 +292,18 @@ async function exportDevices(req, res, next) {
   try {
     let query = 'SELECT * FROM tablets';
     const params = [];
+    const conditions = [];
     if (req.user.role === 'school') {
-      query += ' WHERE school_id = ?';
+      conditions.push('school_id = ?');
       params.push(req.user.school_id);
+    } else if (req.user.role === 'subadmin') {
+      conditions.push('school_id IN (SELECT id FROM schools WHERE assigned_admin_id = ?)');
+      params.push(req.user.id);
     } else if (req.query.school_id) {
-      query += ' WHERE school_id = ?';
+      conditions.push('school_id = ?');
       params.push(req.query.school_id);
     }
+    if (conditions.length) query += ' WHERE ' + conditions.join(' AND ');
     query += ' ORDER BY asset_tag ASC';
     const [rows] = await pool.query(query, params);
 
@@ -283,6 +323,12 @@ async function exportDevices(req, res, next) {
 
 async function remove(req, res, next) {
   try {
+    if (req.user.role === 'subadmin') {
+      const [device] = await pool.query('SELECT school_id FROM tablets WHERE id = ?', [req.params.id]);
+      if (!device.length) return res.status(404).json({ error: 'Device not found' });
+      const [allowed] = await pool.query('SELECT id FROM schools WHERE id = ? AND assigned_admin_id = ?', [device[0].school_id, req.user.id]);
+      if (!allowed.length) return res.status(403).json({ error: 'Access denied' });
+    }
     const [result] = await pool.query('DELETE FROM tablets WHERE id = ?', [req.params.id]);
     if (!result.affectedRows) return res.status(404).json({ error: 'Device not found' });
     res.json({ message: 'Device removed' });

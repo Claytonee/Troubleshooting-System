@@ -53,7 +53,7 @@ const Router = (() => {
     if (!isAdmin && adminPages.includes(currentPage)) navigate('dashboard');
     if (!isSchool && schoolPages.includes(currentPage)) navigate('dashboard');
     if (!isStaff && staffPages.includes(currentPage)) navigate('dashboard');
-    if (isAdmin && currentPage === 'chat') navigate('dashboard');
+    if ((isAdmin || role === 'subadmin') && currentPage === 'chat') navigate('dashboard');
 
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === currentPage));
   }
