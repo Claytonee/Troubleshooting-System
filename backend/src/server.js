@@ -23,6 +23,7 @@ const commRoutes = require('./routes/communications');
 const settingsRoutes = require('./routes/settings');
 const aiChatRoutes = require('./routes/aiChat');
 const registrationRoutes = require('./routes/registration');
+const inventoryRoutes = require('./routes/inventory');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -108,6 +109,7 @@ app.use('/api/communications', commRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/ai', aiChatRoutes);
 app.use('/api/register', registrationRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

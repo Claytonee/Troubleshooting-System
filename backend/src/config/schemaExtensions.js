@@ -202,6 +202,42 @@ async function applyExtensions(db) {
   )`);
   await q('CREATE INDEX IF NOT EXISTS idx_admin_notif_read ON admin_notifications (is_read, created_at DESC)');
 
+  // --- Tablet Inventory Module ---
+  await q(`CREATE TABLE IF NOT EXISTS tablets (
+    id SERIAL PRIMARY KEY,
+    school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    serial_number VARCHAR(100) NOT NULL,
+    asset_tag VARCHAR(50),
+    form VARCHAR(20),
+    stream VARCHAR(10),
+    model VARCHAR(200),
+    year_first_used INTEGER,
+    status VARCHAR(20) NOT NULL DEFAULT 'Working',
+    student_name VARCHAR(200),
+    admission_no VARCHAR(100),
+    last_checked DATE,
+    notes TEXT,
+    assigned_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(school_id, serial_number)
+  )`);
+  await q('CREATE INDEX IF NOT EXISTS idx_tablets_school ON tablets (school_id)');
+  await q('CREATE INDEX IF NOT EXISTS idx_tablets_status ON tablets (status)');
+  await q('CREATE INDEX IF NOT EXISTS idx_tablets_form ON tablets (school_id, form)');
+
+  await q(`CREATE TABLE IF NOT EXISTS tablet_history (
+    id SERIAL PRIMARY KEY,
+    tablet_id INTEGER NOT NULL REFERENCES tablets(id) ON DELETE CASCADE,
+    action VARCHAR(50) NOT NULL,
+    old_value VARCHAR(200),
+    new_value VARCHAR(200),
+    actor_name VARCHAR(200),
+    note TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`);
+  await q('CREATE INDEX IF NOT EXISTS idx_tablet_history_tablet ON tablet_history (tablet_id)');
+
   // --- School form-level breakdown (students & tablets per form/class) ---
   await q(`CREATE TABLE IF NOT EXISTS school_forms (
     id SERIAL PRIMARY KEY,

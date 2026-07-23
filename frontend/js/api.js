@@ -145,6 +145,21 @@ const API = (() => {
       if (!res.ok) throw { status: res.status };
       return res.blob();
     },
+    getInventory: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/inventory' + (qs ? '?' + qs : '')); },
+    getInventoryStats: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/inventory/stats' + (qs ? '?' + qs : '')); },
+    getDevice: (id) => request('GET', `/inventory/${id}`),
+    createDevice: (data) => request('POST', '/inventory', data),
+    updateDevice: (id, data) => request('PUT', `/inventory/${id}`, data),
+    assignDevice: (id, data) => request('PATCH', `/inventory/${id}/assign`, data),
+    changeDeviceStatus: (id, data) => request('PATCH', `/inventory/${id}/status`, data),
+    bulkImportDevices: (data) => request('POST', '/inventory/bulk-import', data),
+    deleteDevice: (id) => request('DELETE', `/inventory/${id}`),
+    exportInventoryCsv: async (params = {}) => {
+      const qs = new URLSearchParams(params).toString();
+      const res = await fetch(BASE + '/inventory/export' + (qs ? '?' + qs : ''), { headers: { 'Authorization': `Bearer ${getToken()}` } });
+      if (!res.ok) throw { status: res.status };
+      return res.blob();
+    },
     initSessionMonitor,
   };
 })();
