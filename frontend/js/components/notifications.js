@@ -84,6 +84,35 @@ const Notifications = (() => {
         }
       }
 
+      // Sub-admin: assigned errors
+      if (user.role === 'subadmin') {
+        const assignRes = await fetch('/api/schools/notifications', { headers });
+        if (assignRes.ok) {
+          const notifs = await assignRes.json();
+          notifs.filter(n => !n.is_read && n.type === 'error_assigned').forEach(n => {
+            const meta = typeof n.meta === 'string' ? JSON.parse(n.meta) : n.meta;
+            items.push({
+              type: 'error_assigned',
+              icon: 'ti-alert-circle',
+              color: 'var(--amber)',
+              title: n.title,
+              sub: `${n.message ? truncate(n.message, 50) : ''} · ${timeAgo(n.created_at)}`,
+              notifId: n.id,
+              action: () => {
+                close();
+                fetch(`/api/schools/notifications/${n.id}/read`, { method: 'PATCH', headers });
+                if (meta && meta.error_id) {
+                  Router.navigate('tracker');
+                  App.loadAndRender().then(() => {
+                    if (typeof ErrorDetailModal !== 'undefined') ErrorDetailModal.open(meta.error_id);
+                  });
+                }
+              }
+            });
+          });
+        }
+      }
+
       // School admin: pending teacher approvals
       if (user.role === 'school') {
         const res = await fetch('/api/register/teacher-approvals/pending', { headers });

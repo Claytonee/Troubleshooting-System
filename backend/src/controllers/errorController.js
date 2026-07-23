@@ -476,6 +476,13 @@ async function assignError(req, res, next) {
       );
     }
 
+    await pool.query(
+      `INSERT INTO admin_notifications (target_role, type, title, message, meta) VALUES (?, ?, ?, ?, ?)`,
+      ['subadmin', 'error_assigned', `Error ${error[0].error_code} assigned to you`,
+        `${req.user.full_name || 'Admin'} assigned "${error[0].title}" to you${note ? '. Note: ' + note : ''}`,
+        JSON.stringify({ error_id: req.params.id, error_code: error[0].error_code, assigned_to })]
+    );
+
     await logAudit({
       actor: req.user, ip: req.ip, action: 'error.assigned', entityType: 'error', entityId: req.params.id,
       summary: `Assigned error ${error[0].error_code} to ${assigneeName}`, meta: { assigned_to }
