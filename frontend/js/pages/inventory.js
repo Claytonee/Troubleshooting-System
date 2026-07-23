@@ -157,7 +157,7 @@ const InventoryPage = (() => {
         <div class="form-group"><label>Notes</label><textarea id="dev-notes" rows="2"></textarea></div>
         <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px">Add Device</button>
       </form>
-    `, { width: 600 });
+    `, '', true);
   }
 
   async function submitAdd(e) {
@@ -218,7 +218,7 @@ const InventoryPage = (() => {
           ${isAdmin() ? `<button type="button" class="btn btn-danger" onclick="InventoryPage.confirmDelete(${id})">Delete</button>` : ''}
         </div>
       </form>
-    `, { width: 600 });
+    `, '', true);
   }
 
   async function submitEdit(e, id) {
@@ -280,7 +280,7 @@ const InventoryPage = (() => {
           <button class="btn btn-ghost" onclick="InventoryPage.openEdit(${d.id})" style="flex:1"><i class="ti ti-pencil"></i> Edit</button>
           <button class="btn btn-ghost" onclick="InventoryPage.openStatusChange(${d.id},'${d.status}')" style="flex:1"><i class="ti ti-refresh"></i> Change Status</button>
         </div>
-      `, { width: 600 });
+      `, '', true);
     } catch (err) { Toast.show('Failed to load device details', 'error'); }
   }
 
@@ -342,7 +342,7 @@ const InventoryPage = (() => {
         </div>
         <button class="btn btn-primary" onclick="InventoryPage.submitImport()" style="width:100%;margin-top:12px"><i class="ti ti-upload"></i> Import All</button>
       </div>
-    `, { width: 600 });
+    `, '', true);
   }
 
   function downloadTemplate() {
