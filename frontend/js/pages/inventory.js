@@ -51,31 +51,31 @@ const InventoryPage = (() => {
     </div>
   </div>
 
-  <div style="position:sticky;top:52px;z-index:9;background:rgba(15,17,23,0.95);backdrop-filter:blur(12px);padding:10px 20px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)">
-    ${isAdmin() ? Dropdown.render('inv-school', 'All Schools', [{value:'',label:'All Schools'},...schools.map(sc => ({value:sc.id,label:sc.name,tag:sc.zone||''}))], {defaultValue: filters.school_id, onSelect: "InventoryPage.onSchoolSelect()"}) : ''}
-    ${Dropdown.render('inv-status', 'All Statuses', [
+  <div style="position:sticky;top:52px;z-index:100;background:rgba(15,17,23,0.95);backdrop-filter:blur(12px);padding:10px 20px;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--border)">
+    ${isAdmin() ? `<div style="min-width:200px">${Dropdown.render('inv-school', 'All Schools', [{value:'',label:'All Schools'},...schools.map(sc => ({value:sc.id,label:sc.name,tag:sc.zone||''}))], {defaultValue: filters.school_id, onSelect: "InventoryPage.onSchoolSelect()"})}</div>` : ''}
+    <div style="min-width:150px">${Dropdown.render('inv-status', 'All Statuses', [
       {value:'',label:'All Statuses'},
-      {value:'Working',label:'Working',tag:'●'},
-      {value:'Needs Setup',label:'Needs Setup',tag:'●'},
-      {value:'In Repair',label:'In Repair',tag:'●'},
-      {value:'Faulty',label:'Faulty',tag:'●'},
-      {value:'Lost/Missing',label:'Lost/Missing',tag:'●'}
-    ], {defaultValue: filters.status, onSelect: "InventoryPage.onStatusSelect()"})}
-    ${Dropdown.render('inv-form', 'All Forms', [
+      {value:'Working',label:'Working'},
+      {value:'Needs Setup',label:'Needs Setup'},
+      {value:'In Repair',label:'In Repair'},
+      {value:'Faulty',label:'Faulty'},
+      {value:'Lost/Missing',label:'Lost/Missing'}
+    ], {defaultValue: filters.status, onSelect: "InventoryPage.onStatusSelect()"})}</div>
+    <div style="min-width:130px">${Dropdown.render('inv-form', 'All Forms', [
       {value:'',label:'All Forms'},
       {value:'Form 1',label:'Form 1'},
       {value:'Form 2',label:'Form 2'},
       {value:'Form 3',label:'Form 3'},
       {value:'Form 4',label:'Form 4'}
-    ], {defaultValue: filters.form, onSelect: "InventoryPage.onFormSelect()"})}
-    <div style="flex:1;position:relative">
+    ], {defaultValue: filters.form, onSelect: "InventoryPage.onFormSelect()"})}</div>
+    <div style="flex:1;position:relative;min-width:160px">
       <i class="ti ti-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text3)"></i>
-      <input type="text" id="inv-search" placeholder="Search serial, tag, student..." value="${filters.search}" onkeyup="InventoryPage.debounceSearch(this.value)" style="width:100%;padding:6px 10px 6px 30px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:11px">
+      <input type="text" id="inv-search" placeholder="Search serial, tag, student..." value="${filters.search}" onkeyup="InventoryPage.debounceSearch(this.value)" style="width:100%;padding:7px 10px 7px 30px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:12px">
     </div>
     <span style="font-size:11px;color:var(--text3);white-space:nowrap">${devices.length} shown</span>
   </div>
 
-  <div style="padding:14px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+  <div style="padding:14px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px">
     ${devices.length ? devices.map(d => deviceCard(d)).join('') : '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text3)"><i class="ti ti-device-tablet-off" style="font-size:40px;opacity:.4;display:block;margin-bottom:10px"></i>No devices found</div>'}
   </div>`;
   }
@@ -83,23 +83,20 @@ const InventoryPage = (() => {
   function deviceCard(d) {
     const statusColors = { 'Working': 'green', 'Needs Setup': 'amber', 'In Repair': 'amber', 'Faulty': 'red', 'Lost/Missing': 'purple' };
     const borderColor = `var(--${statusColors[d.status] || 'accent'})`;
-    return `<div class="card reveal" onclick="InventoryPage.openDetail(${d.id})" style="cursor:pointer;border-left:3px solid ${borderColor};padding:14px 16px;transition:all .15s" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div>
-          <div style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--text)">${d.asset_tag || d.serial_number}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">${d.serial_number}${d.model ? ' · ' + d.model : ''}</div>
+    return `<div class="card reveal" onclick="InventoryPage.openDetail(${d.id})" style="cursor:pointer;border-left:3px solid ${borderColor};padding:12px 14px;transition:all .15s;overflow:hidden" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text);white-space:nowrap">${d.asset_tag || d.serial_number}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          ${d.form ? `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--text3)">${d.form}${d.stream ? ' '+d.stream : ''}</span>` : ''}
+          ${statusBadge(d.status)}
         </div>
-        ${statusBadge(d.status)}
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="display:flex;align-items:center;gap:6px">
-          <i class="ti ti-user" style="font-size:13px;color:var(--text3)"></i>
-          <span style="font-size:12px;color:${d.student_name ? 'var(--text)' : 'var(--text3)'}">${d.student_name || 'Unassigned'}</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div style="min-width:0;flex:1">
+          <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.serial_number}${d.model ? ' · ' + d.model : ''}</div>
+          <div style="font-size:12px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${d.student_name ? 'var(--text2)' : 'var(--text3)'}"><i class="ti ti-user" style="font-size:12px;margin-right:4px"></i>${d.student_name || 'Unassigned'}${d.admission_no ? ' · ' + d.admission_no : ''}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          ${d.form ? `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--text3)">${d.form}${d.stream ? ' ' + d.stream : ''}</span>` : ''}
-          <button class="btn-icon" onclick="event.stopPropagation();InventoryPage.openEdit(${d.id})" title="Edit" style="width:24px;height:24px"><i class="ti ti-pencil" style="font-size:13px"></i></button>
-        </div>
+        <button class="btn-icon" onclick="event.stopPropagation();InventoryPage.openEdit(${d.id})" title="Edit" style="width:26px;height:26px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px"></i></button>
       </div>
     </div>`;
   }
