@@ -125,6 +125,38 @@ Display entity metadata (email, phone, username, dates) in a modern bordered tab
 ```
 **Icon colors:** Email=accent, Phone=green, Username=purple, Date=amber, Location=teal, Role=red
 
+### Dual-Column Info Table (Entity Detail Modals)
+For entity detail views (device, school, user) showing many fields compactly — 4-column layout (label-value-label-value):
+```html
+<table style="width:100%;border-collapse:separate;border-spacing:0;background:var(--bg3);border-radius:10px;border:1px solid var(--border);overflow:hidden">
+  <tr>
+    <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)">
+      <i class="ti ti-hash" style="font-size:13px;color:var(--accent)"></i>Asset Tag</span></td>
+    <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">MTK-T-001</td>
+    <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)">
+      <i class="ti ti-barcode" style="font-size:13px;color:var(--teal)"></i>Serial</span></td>
+    <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text);font-family:var(--font-mono)">G0K1AB100001</td>
+  </tr>
+  <tr><td colspan="4" style="padding:0;height:1px;background:var(--border)"></td></tr>
+</table>
+```
+- Two label-value pairs per row (4 columns), separator `<tr>` between rows
+- Each label has a colored icon (varies by field type)
+- Full-span notes/long-text: last row can use `colspan="3"` on value
+- Use for: modals showing entity metadata (tablets, schools, users, errors)
+
+### Modal Action Buttons
+Action buttons at bottom of detail modals use this pattern:
+```html
+<div style="display:flex;gap:8px;margin-top:14px;justify-content:space-between">
+  <button style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px">Edit</button>
+  <button style="padding:8px 16px;font-size:12px;background:rgba(54,217,204,.12);color:var(--teal);border:1px solid rgba(54,217,204,.25);border-radius:8px">Action</button>
+</div>
+```
+- Primary action (Edit) = left, secondary = right (`justify-content:space-between`)
+- Compact size, NO full-width stretch
+- Color tints: blue/accent for edit, teal for secondary, amber for warning actions
+
 ### Page Structure Template
 Every page render function MUST follow this structure:
 ```javascript
