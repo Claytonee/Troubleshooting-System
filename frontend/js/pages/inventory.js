@@ -51,12 +51,12 @@ const InventoryPage = (() => {
     </div>
   </div>
 
-  <div style="padding:12px 20px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-    ${isAdmin() ? `<select id="inv-school" onchange="InventoryPage.filterSchool(this.value)" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
+  <div style="position:sticky;top:52px;z-index:9;background:rgba(15,17,23,0.95);backdrop-filter:blur(12px);padding:10px 20px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)">
+    ${isAdmin() ? `<select id="inv-school" onchange="InventoryPage.filterSchool(this.value)" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:11px;max-width:160px">
       <option value="">All Schools</option>
       ${schools.map(sc => `<option value="${sc.id}" ${filters.school_id == sc.id ? 'selected' : ''}>${sc.name}</option>`).join('')}
     </select>` : ''}
-    <select id="inv-status" onchange="InventoryPage.filterStatus(this.value)" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
+    <select id="inv-status" onchange="InventoryPage.filterStatus(this.value)" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:11px;max-width:120px">
       <option value="">All Statuses</option>
       <option value="Working" ${filters.status==='Working'?'selected':''}>Working</option>
       <option value="Needs Setup" ${filters.status==='Needs Setup'?'selected':''}>Needs Setup</option>
@@ -64,14 +64,18 @@ const InventoryPage = (() => {
       <option value="Faulty" ${filters.status==='Faulty'?'selected':''}>Faulty</option>
       <option value="Lost/Missing" ${filters.status==='Lost/Missing'?'selected':''}>Lost/Missing</option>
     </select>
-    <select id="inv-form" onchange="InventoryPage.filterForm(this.value)" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px">
+    <select id="inv-form" onchange="InventoryPage.filterForm(this.value)" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:11px;max-width:100px">
       <option value="">All Forms</option>
       <option value="Form 1" ${filters.form==='Form 1'?'selected':''}>Form 1</option>
       <option value="Form 2" ${filters.form==='Form 2'?'selected':''}>Form 2</option>
       <option value="Form 3" ${filters.form==='Form 3'?'selected':''}>Form 3</option>
       <option value="Form 4" ${filters.form==='Form 4'?'selected':''}>Form 4</option>
     </select>
-    <input type="text" id="inv-search" placeholder="Search serial, tag, student..." value="${filters.search}" onkeyup="InventoryPage.debounceSearch(this.value)" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;flex:1;min-width:180px">
+    <div style="flex:1;position:relative">
+      <i class="ti ti-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text3)"></i>
+      <input type="text" id="inv-search" placeholder="Search serial, tag, student..." value="${filters.search}" onkeyup="InventoryPage.debounceSearch(this.value)" style="width:100%;padding:6px 10px 6px 30px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:11px">
+    </div>
+    <span style="font-size:11px;color:var(--text3);white-space:nowrap">${devices.length} shown</span>
   </div>
 
   <div style="padding:14px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
