@@ -5,7 +5,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 
 /* Layout — Fixed topbar + fixed sidebar + scrollable main */
 .app { display: grid; grid-template-columns: 230px 1fr; grid-template-rows: 56px 1fr; min-height: 100vh; }
-.topbar { grid-column: 1/-1; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 14px; z-index: 40; position: fixed; top: 0; left: 0; right: 0; height: 56px; }
+.topbar { grid-column: 1/-1; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 14px; z-index: 200; position: fixed; top: 0; left: 0; right: 0; height: 56px; }
 .sidebar { position: fixed; top: 56px; left: 0; bottom: 0; width: 230px; background: var(--bg2); border-right: 1px solid var(--border); padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; z-index: 30; }
 .main { grid-column: 2; margin-top: 56px; overflow-y: auto; height: calc(100vh - 56px); padding: 24px 28px 60px; scroll-behavior: smooth; }
 
