@@ -3,97 +3,84 @@ const pool = require('./database');
 const { applyExtensions } = require('./schemaExtensions');
 
 /**
- * Create the full schema (PostgreSQL), apply feature extensions, and seed
+ * Create the full schema (MySQL), apply feature extensions, and seed
  * demo data + the default admin if the database is empty. Idempotent — safe
  * to run on every server start (server.js) and via `npm run migrate`/`seed`.
  */
 async function bootstrap() {
   await pool.query(`CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY, username VARCHAR(100) NOT NULL UNIQUE, email VARCHAR(255) NOT NULL UNIQUE,
+    id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(100) NOT NULL UNIQUE, email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL, full_name VARCHAR(200) NOT NULL,
-    role VARCHAR(20) NOT NULL DEFAULT 'school' CHECK (role IN ('admin','subadmin','school')),
+    role VARCHAR(20) NOT NULL DEFAULT 'school',
     phone VARCHAR(50), zone VARCHAR(100), color VARCHAR(50) DEFAULT '#4f7cff', title VARCHAR(200),
-    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active','onsite','remote','inactive')), school_id INTEGER,
-    created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+    status VARCHAR(20) DEFAULT 'active', school_id INT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS schools (
-    id SERIAL PRIMARY KEY, code VARCHAR(50) NOT NULL UNIQUE, name VARCHAR(200) NOT NULL,
-    zone VARCHAR(100), students INTEGER DEFAULT 0, tablets INTEGER DEFAULT 0, routers INTEGER DEFAULT 0,
+    id INT AUTO_INCREMENT PRIMARY KEY, code VARCHAR(50) NOT NULL UNIQUE, name VARCHAR(200) NOT NULL,
+    zone VARCHAR(100), students INT DEFAULT 0, tablets INT DEFAULT 0, routers INT DEFAULT 0,
     contact_name VARCHAR(200), contact_role VARCHAR(100), contact_phone VARCHAR(50), contact_email VARCHAR(255),
     it_name VARCHAR(200), it_email VARCHAR(255), coordinator_name VARCHAR(200), coordinator_email VARCHAR(255),
-    lrs_ip VARCHAR(50) DEFAULT '192.168.0.10', isp VARCHAR(100), assigned_admin_id INTEGER,
-    created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+    lrs_ip VARCHAR(50) DEFAULT '192.168.0.10', isp VARCHAR(100), assigned_admin_id INT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS errors (
-    id SERIAL PRIMARY KEY, error_code VARCHAR(20) NOT NULL UNIQUE, title VARCHAR(300) NOT NULL,
-    description TEXT, school_id INTEGER NOT NULL,
-    category VARCHAR(20) NOT NULL CHECK (category IN ('Connectivity','Hardware','Platform','Power','Accounts','Other')),
+    id INT AUTO_INCREMENT PRIMARY KEY, error_code VARCHAR(20) NOT NULL UNIQUE, title VARCHAR(300) NOT NULL,
+    description TEXT, school_id INT NOT NULL,
+    category VARCHAR(20) NOT NULL,
     subcategory VARCHAR(200),
-    priority VARCHAR(10) NOT NULL DEFAULT 'medium' CHECK (priority IN ('critical','high','medium','low')),
-    status VARCHAR(12) NOT NULL DEFAULT 'open' CHECK (status IN ('open','progress','escalated','resolved')), assigned_to INTEGER,
+    priority VARCHAR(10) NOT NULL DEFAULT 'medium',
+    status VARCHAR(12) NOT NULL DEFAULT 'open', assigned_to INT,
     reporter_name VARCHAR(200), reporter_role VARCHAR(100), reporter_contact VARCHAR(100),
-    location VARCHAR(200), affected_devices VARCHAR(300), hours_open NUMERIC(10,1) DEFAULT 0,
-    resolved_at TIMESTAMP, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+    location VARCHAR(200), affected_devices VARCHAR(300), hours_open DECIMAL(10,1) DEFAULT 0,
+    resolved_at DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS error_updates (
-    id SERIAL PRIMARY KEY, error_id INTEGER NOT NULL, update_type VARCHAR(100),
-    note TEXT NOT NULL, recorded_by VARCHAR(200), created_at TIMESTAMP DEFAULT NOW()
+    id INT AUTO_INCREMENT PRIMARY KEY, error_id INT NOT NULL, update_type VARCHAR(100),
+    note TEXT NOT NULL, recorded_by VARCHAR(200), created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS weekly_checkins (
-    id SERIAL PRIMARY KEY, school_id INTEGER NOT NULL, week_number INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY, school_id INT NOT NULL, week_number INT NOT NULL,
     term VARCHAR(50) NOT NULL DEFAULT 'Term 2 · 2026',
-    status VARCHAR(10) NOT NULL DEFAULT 'green' CHECK (status IN ('green','amber','red')),
+    status VARCHAR(10) NOT NULL DEFAULT 'green',
     connectivity VARCHAR(10) DEFAULT 'ok', tablets VARCHAR(10) DEFAULT 'ok',
     platform VARCHAR(10) DEFAULT 'ok', power VARCHAR(10) DEFAULT 'ok',
     note TEXT, checked_by VARCHAR(200), checkin_date DATE,
-    created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE (school_id, week_number, term)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_checkin (school_id, week_number, term)
   )`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS communications (
-    id SERIAL PRIMARY KEY, school_id INTEGER NOT NULL, recorded_by VARCHAR(200),
-    note TEXT NOT NULL, created_at TIMESTAMP DEFAULT NOW()
+    id INT AUTO_INCREMENT PRIMARY KEY, school_id INT NOT NULL, recorded_by VARCHAR(200),
+    note TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS troubleshooting_guides (
-    id SERIAL PRIMARY KEY, title VARCHAR(300) NOT NULL, category VARCHAR(100),
-    icon VARCHAR(100) DEFAULT 'ti-tools', steps JSONB NOT NULL, is_custom BOOLEAN DEFAULT FALSE,
-    created_by INTEGER, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+    id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(300) NOT NULL, category VARCHAR(100),
+    icon VARCHAR(100) DEFAULT 'ti-tools', steps JSON NOT NULL, is_custom TINYINT(1) DEFAULT 0,
+    created_by INT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS manuals (
-    id SERIAL PRIMARY KEY, title VARCHAR(300) NOT NULL, original_filename VARCHAR(300),
-    stored_filename VARCHAR(300), file_type VARCHAR(100), file_size INTEGER DEFAULT 0,
+    id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(300) NOT NULL, original_filename VARCHAR(300),
+    stored_filename VARCHAR(300), file_type VARCHAR(100), file_size INT DEFAULT 0,
     category VARCHAR(100) DEFAULT 'General', uploaded_by VARCHAR(200) DEFAULT 'System Admin',
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS settings (
-    id SERIAL PRIMARY KEY, setting_key VARCHAR(100) NOT NULL UNIQUE,
-    setting_value TEXT, updated_at TIMESTAMP DEFAULT NOW()
+    id INT AUTO_INCREMENT PRIMARY KEY, setting_key VARCHAR(100) NOT NULL UNIQUE,
+    setting_value TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )`);
 
-  // Auto-update updated_at (replaces MySQL's ON UPDATE CURRENT_TIMESTAMP).
-  // Non-fatal: a trigger/permission issue must not block schema extensions below.
   try {
-    await pool.query(`CREATE OR REPLACE FUNCTION set_updated_at() RETURNS trigger AS $$
-      BEGIN NEW.updated_at = NOW(); RETURN NEW; END; $$ LANGUAGE plpgsql`);
-    for (const t of ['users', 'schools', 'errors', 'weekly_checkins', 'troubleshooting_guides', 'settings']) {
-      await pool.query(`CREATE OR REPLACE TRIGGER trg_${t}_updated BEFORE UPDATE ON ${t} FOR EACH ROW EXECUTE FUNCTION set_updated_at()`);
-    }
-  } catch (e) {
-    console.error('  Trigger setup warning (non-fatal):', e.message);
-  }
-
-  try {
-  await pool.query(`INSERT INTO settings (setting_key, setting_value) VALUES
+  await pool.query(`INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
     ('brand_name','Quest Forward Tanzania'),('brand_short','QF'),('brand_subtitle','Technical Support'),
-    ('brand_logo_url',''),('brand_color','#FFAE00'),('loader_text','Loading system...')
-    ON CONFLICT (setting_key) DO NOTHING`);
+    ('brand_logo_url',''),('brand_color','#FFAE00'),('loader_text','Loading system...')`);
 
   const [existing] = await pool.query('SELECT id FROM users WHERE username = ?', ['admin']);
   if (!existing.length) {
@@ -155,11 +142,11 @@ async function bootstrap() {
     for (const code of schoolCodes) {
       for (let w = 1; w <= 3; w++) {
         const statuses = ['green', 'green', 'amber'];
-        const status = statuses[(w + code.length) % 3];
+        const st = statuses[(w + code.length) % 3];
         await pool.query(
-          `INSERT INTO weekly_checkins (school_id, week_number, term, status, connectivity, tablets, platform, power, note, checked_by)
-           VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT (school_id, week_number, term) DO NOTHING`,
-          [s[code], w, 'Term 2 · 2026', status, 'ok', 'ok', 'ok', 'ok', w === 1 ? 'Term start setup verified.' : 'Routine weekly check.', 'Field Team']);
+          `INSERT IGNORE INTO weekly_checkins (school_id, week_number, term, status, connectivity, tablets, platform, power, note, checked_by)
+           VALUES (?,?,?,?,?,?,?,?,?,?)`,
+          [s[code], w, 'Term 2 · 2026', st, 'ok', 'ok', 'ok', 'ok', w === 1 ? 'Term start setup verified.' : 'Routine weekly check.', 'Field Team']);
       }
     }
     console.log('  Check-ins seeded');
@@ -169,13 +156,6 @@ async function bootstrap() {
   }
 
   await applyExtensions(pool);
-
-  // Fix sequences after seeding (ensures SERIAL nextval > max existing id)
-  const seqTables = ['users', 'schools', 'errors', 'error_updates', 'weekly_checkins',
-    'troubleshooting_guides', 'manuals', 'settings', 'audit_log'];
-  for (const t of seqTables) {
-    try { await pool.query(`SELECT setval('${t}_id_seq', COALESCE((SELECT MAX(id) FROM ${t}), 1))`); } catch (e) {}
-  }
 }
 
 module.exports = { bootstrap };

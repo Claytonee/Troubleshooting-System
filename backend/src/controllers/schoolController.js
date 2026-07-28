@@ -270,7 +270,7 @@ async function bulkImport(req, res, next) {
           for (const f of row.forms) {
             if (!f.form_name) continue;
             await pool.query(
-              'INSERT INTO school_forms (school_id, form_name, students, tablets) VALUES (?, ?, ?, ?) ON CONFLICT (school_id, form_name) DO UPDATE SET students = EXCLUDED.students, tablets = EXCLUDED.tablets',
+              'INSERT INTO school_forms (school_id, form_name, students, tablets) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE students = VALUES(students), tablets = VALUES(tablets)',
               [result.insertId, f.form_name, parseInt(f.students) || 0, parseInt(f.tablets) || 0]
             );
           }
@@ -294,10 +294,17 @@ async function bulkImport(req, res, next) {
 // --- Admin Notifications ---
 async function getNotifications(req, res, next) {
   try {
-    const [rows] = await pool.query(
-      'SELECT * FROM admin_notifications WHERE target_role = ? ORDER BY created_at DESC LIMIT 50',
-      ['admin']
-    );
+    let query, params;
+    if (req.user.role === 'admin') {
+      query = 'SELECT * FROM admin_notifications WHERE target_role = ? ORDER BY created_at DESC LIMIT 50';
+      params = ['admin'];
+    } else if (req.user.role === 'subadmin') {
+      query = `SELECT * FROM admin_notifications WHERE target_role = 'subadmin' AND CAST(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.assigned_to')) AS UNSIGNED) = ? ORDER BY created_at DESC LIMIT 50`;
+      params = [req.user.id];
+    } else {
+      return res.json([]);
+    }
+    const [rows] = await pool.query(query, params);
     res.json(rows);
   } catch (err) { next(err); }
 }

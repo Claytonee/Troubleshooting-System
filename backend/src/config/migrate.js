@@ -4,7 +4,7 @@ const pool = require('./database');
 
 (async () => {
   try {
-    console.log('Connecting to PostgreSQL...');
+    console.log('Connecting to MySQL...');
     await bootstrap();
     console.log('All tables created + extensions applied. Migration complete.');
     await pool.end();

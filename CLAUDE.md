@@ -23,12 +23,12 @@ All schema changes MUST be **additive and backward-compatible** so a new deploy 
 - `bootstrap.js` only seeds when tables are **empty** — it must never overwrite or reset existing data.
 
 ## Stack
-- **Backend:** Node.js + Express, **PostgreSQL** (migrated from MySQL June 2026), JWT auth
+- **Backend:** Node.js + Express, **MySQL/MariaDB** (via mysql2), JWT auth
 - **Frontend:** Vanilla JS SPA, hash-based routing, no framework (served by the Express backend)
-- **File Storage:** Cloudinary (cloud CDN — Render has no persistent disk)
-- **Hosting:** Render web service (auto-deploy from `main`) + **Render Managed PostgreSQL**
-- **DB access:** `backend/src/config/database.js` is a `pg` pool with a mysql2-compatible wrapper (`?`→`$n`, auto `RETURNING id`). Schema + seed in `backend/src/config/bootstrap.js`, run automatically on startup. Connection via `DATABASE_URL` (prod) or `DB_*` vars; `DB_SSL` toggles SSL.
-- **Remote:** `origin` = GitLab (`claytonecurth/Troubleshooting-System`). Push: `git push origin <branch>`
+- **File Storage:** Cloudinary (cloud CDN)
+- **Hosting:** DirectAdmin (mkatolikikiganjani.com) — Node.js app + MySQL database
+- **DB access:** `backend/src/config/database.js` is a `mysql2/promise` pool. Schema + seed in `backend/src/config/bootstrap.js`, run automatically on startup. Connection via `DATABASE_URL` (prod) or `DB_*` vars (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME).
+- **Remote:** `origin` = GitHub (`Claytonee/Troubleshooting-System`), `gitlab` = GitLab (`claytonecurth/Troubleshooting-System`). Push both.
 
 ## UI Architecture Rules
 
@@ -238,9 +238,13 @@ return `
 - File uploads go to Cloudinary (not local disk)
 - Rate limiting: 20 req/15min login, 200 req/15min general API
 
-## Environment Variables (Production)
+## Environment Variables (Production — DirectAdmin)
 ```
-DATABASE_URL=mysql://user:pass@host:port/db
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=mkatolik_qft
+DB_PASSWORD=your_db_password
+DB_NAME=mkatolik_qft_support
 JWT_SECRET=your_jwt_secret
 JWT_EXPIRES_IN=7d
 NODE_ENV=production

@@ -13,7 +13,7 @@ async function search(req, res, next) {
     const [guides] = await pool.query(
       `SELECT id, title, category, icon, 'guide' AS type
        FROM troubleshooting_guides
-       WHERE title ILIKE ? OR steps::text ILIKE ? OR category ILIKE ?
+       WHERE title LIKE ? OR CAST(steps AS CHAR) LIKE ? OR category LIKE ?
        ORDER BY title LIMIT 25`,
       [like, like, like]
     );
@@ -21,7 +21,7 @@ async function search(req, res, next) {
     const [resources] = await pool.query(
       `SELECT id, title, category, file_type, stored_filename AS url, 'resource' AS type
        FROM manuals
-       WHERE title ILIKE ? OR original_filename ILIKE ? OR category ILIKE ?
+       WHERE title LIKE ? OR original_filename LIKE ? OR category LIKE ?
        ORDER BY created_at DESC LIMIT 25`,
       [like, like, like]
     );

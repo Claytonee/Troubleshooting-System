@@ -1,16 +1,12 @@
 /**
- * Idempotent schema extensions (audit log, SLA, CSAT) for PostgreSQL.
+ * Idempotent schema extensions (audit log, SLA, CSAT) for MySQL.
  * Safe to run on every startup. Called from server.js autoMigrate() and config/migrate.js.
- * `db` is the shared pool from config/database.js (mysql2-compatible wrapper).
+ * `db` is the shared pool from config/database.js (mysql2/promise).
  */
 
-// SLA response/resolution target in HOURS, per priority.
 const SLA_TARGET_HOURS = { critical: 4, high: 24, medium: 72, low: 168 };
 
 async function applyExtensions(db) {
-  // Every step runs independently — one failed statement must never block the
-  // rest, otherwise a single bad step on production silently skips later
-  // ALTERs and the app crashes at runtime on missing columns.
   let failed = 0;
   const q = async (sql, params) => {
     try { await db.query(sql, params); }
@@ -21,233 +17,209 @@ async function applyExtensions(db) {
     }
   };
 
-  // --- Audit log (Tier 1 #5) ---
+  // --- Audit log ---
   await q(`CREATE TABLE IF NOT EXISTS audit_log (
-    id SERIAL PRIMARY KEY,
-    actor_id INTEGER,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    actor_id INT,
     actor_name VARCHAR(200),
     actor_role VARCHAR(50),
     action VARCHAR(80) NOT NULL,
     entity_type VARCHAR(60) NOT NULL,
     entity_id VARCHAR(60),
     summary VARCHAR(500),
-    meta JSONB,
+    meta JSON,
     ip VARCHAR(60),
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
-  await q('CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log (entity_type, entity_id)');
-  await q('CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log (created_at)');
+  await q('CREATE INDEX idx_audit_entity ON audit_log (entity_type, entity_id)');
+  await q('CREATE INDEX idx_audit_created ON audit_log (created_at)');
 
-  // --- SLA tracking on errors (Tier 1 #2) ---
-  await q('ALTER TABLE errors ADD COLUMN IF NOT EXISTS sla_due_at TIMESTAMP');
-  await q('ALTER TABLE errors ADD COLUMN IF NOT EXISTS first_response_at TIMESTAMP');
-  await q('ALTER TABLE errors ADD COLUMN IF NOT EXISTS sla_breach_notified SMALLINT DEFAULT 0');
+  // --- SLA tracking on errors ---
+  await q('ALTER TABLE errors ADD COLUMN sla_due_at DATETIME NULL');
+  await q('ALTER TABLE errors ADD COLUMN first_response_at DATETIME NULL');
+  await q('ALTER TABLE errors ADD COLUMN sla_breach_notified SMALLINT DEFAULT 0');
 
-  // Backfill SLA due dates for rows that don't have one yet.
+  // Backfill SLA due dates
   for (const [priority, hours] of Object.entries(SLA_TARGET_HOURS)) {
     await q(
-      'UPDATE errors SET sla_due_at = created_at + make_interval(hours => ?) WHERE priority = ? AND sla_due_at IS NULL',
+      'UPDATE errors SET sla_due_at = DATE_ADD(created_at, INTERVAL ? HOUR) WHERE priority = ? AND sla_due_at IS NULL',
       [hours, priority]
     );
   }
 
-  // --- CSAT feedback on errors (Tier 1 #6) ---
-  await q('ALTER TABLE errors ADD COLUMN IF NOT EXISTS csat_rating SMALLINT');
-  await q('ALTER TABLE errors ADD COLUMN IF NOT EXISTS csat_comment TEXT');
-  await q('ALTER TABLE errors ADD COLUMN IF NOT EXISTS csat_token VARCHAR(64)');
+  // --- CSAT feedback on errors ---
+  await q('ALTER TABLE errors ADD COLUMN csat_rating SMALLINT NULL');
+  await q('ALTER TABLE errors ADD COLUMN csat_comment TEXT NULL');
+  await q('ALTER TABLE errors ADD COLUMN csat_token VARCHAR(64) NULL');
 
-  // --- Extended school profile (contact email, IT personnel, coordinator) ---
-  await q('ALTER TABLE schools ADD COLUMN IF NOT EXISTS contact_email VARCHAR(255)');
-  await q('ALTER TABLE schools ADD COLUMN IF NOT EXISTS it_name VARCHAR(200)');
-  await q('ALTER TABLE schools ADD COLUMN IF NOT EXISTS it_email VARCHAR(255)');
-  await q('ALTER TABLE schools ADD COLUMN IF NOT EXISTS coordinator_name VARCHAR(200)');
-  await q('ALTER TABLE schools ADD COLUMN IF NOT EXISTS coordinator_email VARCHAR(255)');
+  // --- Extended school profile ---
+  await q('ALTER TABLE schools ADD COLUMN contact_email VARCHAR(255) NULL');
+  await q('ALTER TABLE schools ADD COLUMN it_name VARCHAR(200) NULL');
+  await q('ALTER TABLE schools ADD COLUMN it_email VARCHAR(255) NULL');
+  await q('ALTER TABLE schools ADD COLUMN coordinator_name VARCHAR(200) NULL');
+  await q('ALTER TABLE schools ADD COLUMN coordinator_email VARCHAR(255) NULL');
 
-  // --- AI Chat (self-service troubleshooting assistant) ---
+  // --- AI Chat ---
   await q(`CREATE TABLE IF NOT EXISTS ai_chats (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
     title VARCHAR(300) DEFAULT 'New Chat',
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_ai_chats_user (user_id)
   )`);
-  await q('CREATE INDEX IF NOT EXISTS idx_ai_chats_user ON ai_chats (user_id)');
 
   await q(`CREATE TABLE IF NOT EXISTS ai_chat_messages (
-    id SERIAL PRIMARY KEY,
-    chat_id INTEGER NOT NULL REFERENCES ai_chats(id) ON DELETE CASCADE,
-    role VARCHAR(20) NOT NULL CHECK (role IN ('user','assistant')),
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    chat_id INT NOT NULL,
+    role VARCHAR(20) NOT NULL,
     content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_ai_messages_chat (chat_id),
+    FOREIGN KEY (chat_id) REFERENCES ai_chats(id) ON DELETE CASCADE
   )`);
-  await q('CREATE INDEX IF NOT EXISTS idx_ai_messages_chat ON ai_chat_messages (chat_id)');
 
   // --- Self-Registration & Approval System ---
   await q(`CREATE TABLE IF NOT EXISTS registration_requests (
-    id SERIAL PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(200) NOT NULL,
     email VARCHAR(255) NOT NULL,
     phone VARCHAR(50),
     password_hash VARCHAR(255) NOT NULL,
-    school_id INTEGER NOT NULL,
+    school_id INT NOT NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'school',
     title VARCHAR(200),
     status VARCHAR(20) NOT NULL DEFAULT 'pending',
-    reviewed_by INTEGER,
-    reviewed_at TIMESTAMP,
+    reviewed_by INT,
+    reviewed_at DATETIME,
     rejection_reason TEXT,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_reg_requests_status (status),
+    INDEX idx_reg_requests_email (email)
   )`);
-  await q('CREATE INDEX IF NOT EXISTS idx_reg_requests_status ON registration_requests (status)');
-  await q('CREATE INDEX IF NOT EXISTS idx_reg_requests_email ON registration_requests (email)');
 
   // --- Teacher Registration Links ---
   await q(`CREATE TABLE IF NOT EXISTS registration_links (
-    id SERIAL PRIMARY KEY,
-    school_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    school_id INT NOT NULL,
     token VARCHAR(100) NOT NULL UNIQUE,
-    created_by INTEGER NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    max_uses INTEGER DEFAULT 50,
-    use_count INTEGER DEFAULT 0,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT NOW()
+    created_by INT NOT NULL,
+    expires_at DATETIME NOT NULL,
+    max_uses INT DEFAULT 50,
+    use_count INT DEFAULT 0,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_reg_links_token (token)
   )`);
-  await q('CREATE INDEX IF NOT EXISTS idx_reg_links_token ON registration_links (token)');
 
   // --- Registration Appeals ---
   await q(`CREATE TABLE IF NOT EXISTS registration_appeals (
-    id SERIAL PRIMARY KEY,
-    request_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    request_id INT NOT NULL,
     full_name VARCHAR(200) NOT NULL,
     email VARCHAR(255) NOT NULL,
     phone VARCHAR(50),
     message TEXT NOT NULL,
     status VARCHAR(20) DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
-  // --- Teachers table (links user to school with extra metadata) ---
+  // --- Teachers table ---
   await q(`CREATE TABLE IF NOT EXISTS teachers (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER UNIQUE,
-    school_id INTEGER NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT UNIQUE,
+    school_id INT NOT NULL,
     subject VARCHAR(200),
     employee_id VARCHAR(50),
     status VARCHAR(20) DEFAULT 'active',
     registered_via VARCHAR(20) DEFAULT 'link',
-    approved_by INTEGER,
-    approved_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    approved_by INT,
+    approved_at DATETIME,
+    rejection_reason TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_teachers_school (school_id),
+    INDEX idx_teachers_user (user_id)
   )`);
-  await q('CREATE INDEX IF NOT EXISTS idx_teachers_school ON teachers (school_id)');
-  await q('CREATE INDEX IF NOT EXISTS idx_teachers_user ON teachers (user_id)');
-  await q("ALTER TABLE teachers ADD COLUMN IF NOT EXISTS rejection_reason TEXT");
 
-  // --- Add approval_status to users (existing users = approved) ---
-  await q("ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) DEFAULT 'approved'");
+  // --- User extensions ---
+  await q("ALTER TABLE users ADD COLUMN approval_status VARCHAR(20) DEFAULT 'approved'");
+  await q("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500) NULL");
+  await q("ALTER TABLE users ADD COLUMN bio TEXT NULL");
 
-  // --- Add teacher role to users CHECK constraint ---
-  // PostgreSQL: drop old constraint and add new one that includes 'teacher'
-  await q(`DO $$ BEGIN
-    ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
-    ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin','subadmin','school','teacher'));
-  EXCEPTION WHEN others THEN NULL;
-  END $$`);
+  // --- Escalation fields on errors ---
+  await q("ALTER TABLE errors ADD COLUMN escalation_level VARCHAR(20) DEFAULT 'school'");
+  await q('ALTER TABLE errors ADD COLUMN escalated_by INT NULL');
+  await q('ALTER TABLE errors ADD COLUMN escalated_at DATETIME NULL');
+  await q('ALTER TABLE errors ADD COLUMN reported_by_user_id INT NULL');
 
-  // --- Add escalation fields to errors ---
-  await q("ALTER TABLE errors ADD COLUMN IF NOT EXISTS escalation_level VARCHAR(20) DEFAULT 'school'");
-  await q('ALTER TABLE errors ADD COLUMN IF NOT EXISTS escalated_by INTEGER');
-  await q('ALTER TABLE errors ADD COLUMN IF NOT EXISTS escalated_at TIMESTAMP');
-  await q('ALTER TABLE errors ADD COLUMN IF NOT EXISTS reported_by_user_id INTEGER');
+  // --- Weekly check-ins: checkin_date ---
+  await q('ALTER TABLE weekly_checkins ADD COLUMN checkin_date DATE NULL');
+  await q('UPDATE weekly_checkins SET checkin_date = DATE(created_at) WHERE checkin_date IS NULL');
 
-  // --- Weekly check-ins: actual visit date (chosen by the user, not just the week) ---
-  await q('ALTER TABLE weekly_checkins ADD COLUMN IF NOT EXISTS checkin_date DATE');
-  await q('UPDATE weekly_checkins SET checkin_date = created_at::date WHERE checkin_date IS NULL');
-
-  // Older production tables may predate the UNIQUE (school_id, week_number, term)
-  // constraint that the check-in upsert (ON CONFLICT) relies on — add it as a
-  // unique index when no unique constraint/index exists on the table yet.
-  try {
-    const [uq] = await db.query(
-      `SELECT 1 FROM pg_constraint c JOIN pg_class t ON t.oid = c.conrelid
-       WHERE t.relname = 'weekly_checkins' AND c.contype = 'u'`);
-    const [ix] = await db.query(
-      `SELECT 1 FROM pg_indexes WHERE tablename = 'weekly_checkins' AND indexname = 'uq_checkins_school_week_term'`);
-    if (!uq.length && !ix.length) {
-      await db.query('CREATE UNIQUE INDEX uq_checkins_school_week_term ON weekly_checkins (school_id, week_number, term)');
-      console.log('  Added unique index on weekly_checkins (school_id, week_number, term)');
-    }
-  } catch (e) {
-    console.error('  weekly_checkins unique index step FAILED:', e.message);
-    failed++;
-  }
-
-  // --- User profile extensions (avatar, bio) ---
-  await q("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500)");
-  await q("ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT");
-
-  // --- Admin notifications (persistent in-app notifications) ---
+  // --- Admin notifications ---
   await q(`CREATE TABLE IF NOT EXISTS admin_notifications (
-    id SERIAL PRIMARY KEY,
+    id INT AUTO_INCREMENT PRIMARY KEY,
     target_role VARCHAR(20) DEFAULT 'admin',
     type VARCHAR(50) NOT NULL,
     title VARCHAR(300) NOT NULL,
     message TEXT,
-    meta JSONB,
-    is_read BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT NOW()
+    meta JSON,
+    is_read TINYINT(1) DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_admin_notif_read (is_read, created_at)
   )`);
-  await q('CREATE INDEX IF NOT EXISTS idx_admin_notif_read ON admin_notifications (is_read, created_at DESC)');
 
   // --- Tablet Inventory Module ---
   await q(`CREATE TABLE IF NOT EXISTS tablets (
-    id SERIAL PRIMARY KEY,
-    school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    school_id INT NOT NULL,
     serial_number VARCHAR(100) NOT NULL,
     asset_tag VARCHAR(50),
     form VARCHAR(20),
     stream VARCHAR(10),
     model VARCHAR(200),
-    year_first_used INTEGER,
+    year_first_used INT,
     status VARCHAR(20) NOT NULL DEFAULT 'Working',
     student_name VARCHAR(200),
     admission_no VARCHAR(100),
     last_checked DATE,
     notes TEXT,
-    assigned_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE(school_id, serial_number)
+    assigned_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_tablet (school_id, serial_number),
+    INDEX idx_tablets_school (school_id),
+    INDEX idx_tablets_status (status),
+    INDEX idx_tablets_form (school_id, form),
+    FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE
   )`);
-  await q('CREATE INDEX IF NOT EXISTS idx_tablets_school ON tablets (school_id)');
-  await q('CREATE INDEX IF NOT EXISTS idx_tablets_status ON tablets (status)');
-  await q('CREATE INDEX IF NOT EXISTS idx_tablets_form ON tablets (school_id, form)');
 
   await q(`CREATE TABLE IF NOT EXISTS tablet_history (
-    id SERIAL PRIMARY KEY,
-    tablet_id INTEGER NOT NULL REFERENCES tablets(id) ON DELETE CASCADE,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tablet_id INT NOT NULL,
     action VARCHAR(50) NOT NULL,
     old_value VARCHAR(200),
     new_value VARCHAR(200),
     actor_name VARCHAR(200),
     note TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_tablet_history_tablet (tablet_id),
+    FOREIGN KEY (tablet_id) REFERENCES tablets(id) ON DELETE CASCADE
   )`);
-  await q('CREATE INDEX IF NOT EXISTS idx_tablet_history_tablet ON tablet_history (tablet_id)');
 
-  // --- School form-level breakdown (students & tablets per form/class) ---
+  // --- School form-level breakdown ---
   await q(`CREATE TABLE IF NOT EXISTS school_forms (
-    id SERIAL PRIMARY KEY,
-    school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    school_id INT NOT NULL,
     form_name VARCHAR(50) NOT NULL,
-    students INTEGER DEFAULT 0,
-    tablets INTEGER DEFAULT 0,
-    UNIQUE(school_id, form_name)
+    students INT DEFAULT 0,
+    tablets INT DEFAULT 0,
+    UNIQUE KEY uq_school_form (school_id, form_name),
+    INDEX idx_school_forms_school (school_id),
+    FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE
   )`);
-  await q('CREATE INDEX IF NOT EXISTS idx_school_forms_school ON school_forms (school_id)');
 
   if (failed) console.error(`  schemaExtensions: ${failed} step(s) failed — see errors above.`);
 }

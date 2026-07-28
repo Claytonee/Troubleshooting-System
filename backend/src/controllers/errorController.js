@@ -66,7 +66,7 @@ function buildErrorFilters(req) {
   if (req.query.category) { conditions.push('e.category = ?'); params.push(req.query.category); }
   if (req.query.school_id) { conditions.push('e.school_id = ?'); params.push(req.query.school_id); }
   if (req.query.search) {
-    conditions.push('(e.title ILIKE ? OR e.error_code ILIKE ? OR s.name ILIKE ?)');
+    conditions.push('(e.title LIKE ? OR e.error_code LIKE ? OR s.name LIKE ?)');
     const term = `%${req.query.search}%`;
     params.push(term, term, term);
   }
@@ -166,7 +166,7 @@ async function create(req, res, next) {
     // Derive next code from the highest numeric code (not last-inserted row),
     // so seeded data with non-sequential ids can't cause a duplicate code.
     const [mx] = await pool.query(
-      "SELECT MAX(CAST(SUBSTRING(error_code FROM 5) AS INTEGER)) AS maxnum FROM errors WHERE error_code LIKE 'QFT-%'"
+      "SELECT MAX(CAST(SUBSTRING(error_code, 5) AS UNSIGNED)) AS maxnum FROM errors WHERE error_code LIKE 'QFT-%'"
     );
     const seq = ((mx[0] && mx[0].maxnum) ? mx[0].maxnum : 240) + 1;
     const errorCode = `QFT-0${seq}`;
@@ -182,7 +182,7 @@ async function create(req, res, next) {
 
     const [result] = await pool.query(
       `INSERT INTO errors (error_code, title, description, school_id, category, subcategory, priority, status, assigned_to, reporter_name, reporter_role, reporter_contact, location, affected_devices, sla_due_at, escalation_level, reported_by_user_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, NOW() + make_interval(hours => ?), ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? HOUR), ?, ?)`,
       [errorCode, title, description, school_id, category, subcategory || null, prio, assignedTo, reporter_name || null, reporter_role || null, reporter_contact || null, location || null, affected_devices || null, slaHours, escalationLevel, req.user.id]
     );
 
@@ -218,7 +218,7 @@ async function update(req, res, next) {
     // Recompute SLA due date relative to original creation when priority changes.
     await pool.query(
       `UPDATE errors SET title=?, description=?, category=?, subcategory=?, priority=?, status=?, assigned_to=?, location=?, affected_devices=?,
-         sla_due_at = created_at + make_interval(hours => ?),
+         sla_due_at = DATE_ADD(created_at, INTERVAL ? HOUR),
          resolved_at=COALESCE(?, resolved_at)
        WHERE id=?`,
       [title, description, category, subcategory, priority, status, assigned_to || null, location, affected_devices, slaHours, resolvedAt, req.params.id]
@@ -381,7 +381,7 @@ async function getStats(req, res, next) {
         SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved,
         SUM(CASE WHEN priority = 'critical' AND status != 'resolved' THEN 1 ELSE 0 END) as critical_open,
         SUM(CASE WHEN status != 'resolved' AND sla_due_at IS NOT NULL AND sla_due_at < NOW() THEN 1 ELSE 0 END) as sla_breached,
-        SUM(CASE WHEN status = 'resolved' AND resolved_at >= NOW() - INTERVAL '24 hours' THEN 1 ELSE 0 END) as resolved_24h,
+        SUM(CASE WHEN status = 'resolved' AND resolved_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 ELSE 0 END) as resolved_24h,
         SUM(CASE WHEN csat_rating IS NOT NULL THEN 1 ELSE 0 END) as csat_responses,
         ROUND(AVG(csat_rating), 2) as csat_avg
       FROM errors e WHERE 1=1 ${schoolFilter}

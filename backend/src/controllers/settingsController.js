@@ -21,7 +21,7 @@ async function update(req, res, next) {
     for (const [key, value] of Object.entries(updates)) {
       if (!allowed.includes(key)) continue;
       await pool.query(
-        'INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value, updated_at = NOW()',
+        'INSERT INTO settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value), updated_at = NOW()',
         [key, value]
       );
     }

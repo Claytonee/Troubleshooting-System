@@ -23,7 +23,7 @@ async function getAll(req, res, next) {
     if (req.query.status) { conditions.push('t.status = ?'); params.push(req.query.status); }
     if (req.query.form) { conditions.push('t.form = ?'); params.push(req.query.form); }
     if (req.query.search) {
-      conditions.push("(t.serial_number ILIKE ? OR t.asset_tag ILIKE ? OR t.student_name ILIKE ?)");
+      conditions.push("(t.serial_number LIKE ? OR t.asset_tag LIKE ? OR t.student_name LIKE ?)");
       const s = `%${req.query.search}%`;
       params.push(s, s, s);
     }
@@ -53,14 +53,14 @@ async function getStats(req, res, next) {
 
     const [totals] = await pool.query(`SELECT
       COUNT(*) as total,
-      COUNT(*) FILTER (WHERE status = 'Working') as working,
-      COUNT(*) FILTER (WHERE status = 'Needs Setup') as needs_setup,
-      COUNT(*) FILTER (WHERE status = 'In Repair') as in_repair,
-      COUNT(*) FILTER (WHERE status = 'Faulty') as faulty,
-      COUNT(*) FILTER (WHERE status = 'Lost/Missing') as lost_missing,
-      COUNT(*) FILTER (WHERE student_name IS NOT NULL AND student_name != '') as assigned,
-      COUNT(*) FILTER (WHERE student_name IS NULL OR student_name = '') as unassigned,
-      COUNT(*) FILTER (WHERE last_checked < CURRENT_DATE - INTERVAL '30 days' OR last_checked IS NULL) as overdue_check
+      SUM(CASE WHEN status = 'Working' THEN 1 ELSE 0 END) as working,
+      SUM(CASE WHEN status = 'Needs Setup' THEN 1 ELSE 0 END) as needs_setup,
+      SUM(CASE WHEN status = 'In Repair' THEN 1 ELSE 0 END) as in_repair,
+      SUM(CASE WHEN status = 'Faulty' THEN 1 ELSE 0 END) as faulty,
+      SUM(CASE WHEN status = 'Lost/Missing' THEN 1 ELSE 0 END) as lost_missing,
+      SUM(CASE WHEN student_name IS NOT NULL AND student_name != '' THEN 1 ELSE 0 END) as assigned,
+      SUM(CASE WHEN student_name IS NULL OR student_name = '' THEN 1 ELSE 0 END) as unassigned,
+      SUM(CASE WHEN last_checked < DATE_SUB(CURDATE(), INTERVAL 30 DAY) OR last_checked IS NULL THEN 1 ELSE 0 END) as overdue_check
       FROM tablets ${schoolFilter}`, params);
 
     const [byForm] = await pool.query(`SELECT form, status, COUNT(*) as count
@@ -126,7 +126,7 @@ async function create(req, res, next) {
 
     res.status(201).json({ id: result.insertId, message: 'Device added' });
   } catch (err) {
-    if (err.code === '23505') return res.status(409).json({ error: 'Serial number already exists for this school' });
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Serial number already exists for this school' });
     next(err);
   }
 }
