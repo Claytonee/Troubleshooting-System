@@ -116,6 +116,27 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });
 });
 
+// GitHub webhook auto-deploy
+const crypto = require('crypto');
+const { execSync } = require('child_process');
+app.post('/api/deploy', express.json({ limit: '1mb' }), (req, res) => {
+  const secret = process.env.DEPLOY_SECRET || '';
+  if (secret) {
+    const sig = 'sha256=' + crypto.createHmac('sha256', secret).update(JSON.stringify(req.body)).digest('hex');
+    if (req.headers['x-hub-signature-256'] !== sig) return res.status(403).json({ error: 'Invalid signature' });
+  }
+  try {
+    const appRoot = path.join(__dirname, '..', '..');
+    execSync('git pull origin main', { cwd: appRoot, timeout: 30000 });
+    execSync('npm install --production', { cwd: path.join(appRoot, 'backend'), timeout: 60000 });
+    res.json({ status: 'deployed', timestamp: new Date().toISOString() });
+    setTimeout(() => process.exit(0), 1000);
+  } catch (e) {
+    console.error('Deploy failed:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Serve frontend for non-API routes
 app.get('*', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
