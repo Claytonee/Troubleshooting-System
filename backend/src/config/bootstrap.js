@@ -109,8 +109,9 @@ async function bootstrap() {
       ('oldmoshi','Old Moshi Sec.','Moshi Rural',310,44,2,'Ms. Grace Mollel','Head Teacher','+255 712 000 106','192.168.0.10','Vodacom Fibre',?),
       ('machame','Machame Secondary','Hai',260,38,2,'Mr. Frank Mushi','IT Coordinator','+255 712 000 107','192.168.0.10','Airtel',?),
       ('uru','Uru Secondary','Moshi Rural',180,24,1,'Ms. Tatu Hassan','Quest Coordinator','+255 712 000 108','192.168.0.10','TTCL',?),
-      ('pasua','Pasua Secondary','Moshi Urban',290,42,2,'Ms. Salma Juma','Quest Coordinator','+255 712 000 111','192.168.0.10','TTCL Fibre',?)
-    `, [u.thassan, u.knjoro, u.famani, u.knjoro, u.famani, u.knjoro, u.famani, u.knjoro, u.knjoro]);
+      ('pasua','Pasua Secondary','Moshi Urban',290,42,2,'Ms. Salma Juma','Quest Coordinator','+255 712 000 111','192.168.0.10','TTCL Fibre',?),
+      ('mtakuja','Mtakuja Secondary','Moshi Rural',190,190,2,'IT Lead','IT Coordinator','+255 700 000 000','192.168.0.10','Vodacom',?)
+    `, [u.thassan, u.knjoro, u.famani, u.knjoro, u.famani, u.knjoro, u.famani, u.knjoro, u.knjoro, u.knjoro]);
     console.log('  Schools seeded');
 
     const [schools] = await pool.query('SELECT id, code FROM schools');
