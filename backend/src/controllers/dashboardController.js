@@ -45,7 +45,7 @@ async function getDashboard(req, res) {
       s.name as school_name
       FROM errors e JOIN schools s ON e.school_id = s.id
       WHERE e.status != 'resolved' ${errorFilter}
-      ORDER BY array_position(ARRAY['critical','high','medium','low'], e.priority), e.created_at DESC
+      ORDER BY FIELD(e.priority, 'critical', 'high', 'medium', 'low'), e.created_at DESC
       LIMIT 6
     `, params);
 
