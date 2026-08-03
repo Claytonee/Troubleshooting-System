@@ -18,6 +18,22 @@ async function ensureCsatToken(errorId) {
 // SQL fragment: 1 when an unresolved error is past its SLA due date.
 const SLA_BREACH_SELECT = `CASE WHEN e.status != 'resolved' AND e.sla_due_at IS NOT NULL AND e.sla_due_at < NOW() THEN 1 ELSE 0 END AS sla_breached`;
 
+// Tenant access check for a single error row. Returns true if `user` may view/modify it.
+// admin: any · school: own school · teacher: own-reported · subadmin: schools assigned to them.
+async function userCanAccessError(user, errorRow) {
+  if (!errorRow) return false;
+  if (user.role === 'admin') return true;
+  if (user.role === 'school') return errorRow.school_id === user.school_id;
+  if (user.role === 'teacher') return errorRow.reported_by_user_id === user.id;
+  if (user.role === 'subadmin') {
+    const [allowed] = await pool.query(
+      'SELECT id FROM schools WHERE id = ? AND assigned_admin_id = ?', [errorRow.school_id, user.id]
+    );
+    return allowed.length > 0;
+  }
+  return false;
+}
+
 // Email recipients for an error: the assigned engineer + any school-admin accounts of that school.
 async function getRecipients(errorId) {
   const [rows] = await pool.query(`
@@ -139,10 +155,7 @@ async function getById(req, res, next) {
 
     if (!rows.length) return res.status(404).json({ error: 'Error not found.' });
 
-    if (req.user.role === 'school' && rows[0].school_id !== req.user.school_id) {
-      return res.status(403).json({ error: 'Access denied.' });
-    }
-    if (req.user.role === 'teacher' && rows[0].reported_by_user_id !== req.user.id) {
+    if (!(await userCanAccessError(req.user, rows[0]))) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
@@ -212,6 +225,10 @@ async function update(req, res, next) {
     const prev = await getErrorRow(req.params.id);
     if (!prev) return res.status(404).json({ error: 'Error not found.' });
 
+    if (!(await userCanAccessError(req.user, prev))) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
     const resolvedAt = status === 'resolved' ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null;
     const slaHours = targetHours(priority);
 
@@ -249,10 +266,7 @@ async function updateStatus(req, res, next) {
     const prev = await getErrorRow(req.params.id);
     if (!prev) return res.status(404).json({ error: 'Error not found.' });
 
-    if (req.user.role === 'school' && prev.school_id !== req.user.school_id) {
-      return res.status(403).json({ error: 'Access denied.' });
-    }
-    if (req.user.role === 'teacher' && prev.reported_by_user_id !== req.user.id) {
+    if (!(await userCanAccessError(req.user, prev))) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
@@ -309,17 +323,10 @@ async function addUpdate(req, res, next) {
     const { update_type, note, recorded_by } = req.body;
     if (!note) return res.status(400).json({ error: 'Note is required.' });
 
-    if (req.user.role === 'school') {
-      const row = await getErrorRow(req.params.id);
-      if (row && row.school_id !== req.user.school_id) {
-        return res.status(403).json({ error: 'Access denied.' });
-      }
-    }
-    if (req.user.role === 'teacher') {
-      const row = await getErrorRow(req.params.id);
-      if (row && row.reported_by_user_id !== req.user.id) {
-        return res.status(403).json({ error: 'Access denied.' });
-      }
+    const target = await getErrorRow(req.params.id);
+    if (!target) return res.status(404).json({ error: 'Error not found.' });
+    if (!(await userCanAccessError(req.user, target))) {
+      return res.status(403).json({ error: 'Access denied.' });
     }
 
     await pool.query(
