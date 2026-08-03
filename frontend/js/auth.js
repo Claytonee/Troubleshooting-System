@@ -365,7 +365,7 @@ const Auth = (() => {
         </div>
         <div class="form-group">
           <label>New Password</label>
-          <input type="password" id="cp-new" placeholder="At least 6 characters">
+          <input type="password" id="cp-new" placeholder="At least 8 characters">
         </div>
         <div class="form-group">
           <label>Confirm New Password</label>
@@ -384,13 +384,65 @@ const Auth = (() => {
     const confirm = document.getElementById('cp-confirm').value;
 
     if (!current || !newPw) { showToast('Please fill in all fields'); return; }
-    if (newPw.length < 6) { showToast('Password must be at least 6 characters'); return; }
+    if (newPw.length < 8) { showToast('Password must be at least 8 characters'); return; }
     if (newPw !== confirm) { showToast('Passwords do not match'); return; }
 
     try {
       await API.changePassword({ current_password: current, new_password: newPw });
       Modal.close();
       showToast('Password changed successfully');
+    } catch (e) {
+      showToast(e.error || 'Failed to change password');
+    }
+  }
+
+  // Forced first-login password change: the account was seeded with a default
+  // password (must_change_password = 1). The modal cannot be dismissed until a
+  // new password is set; the current password is prefilled from the login form.
+  function showForcedPasswordChange(currentPw) {
+    const body = `
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:13px;color:var(--text2);background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.25);border-radius:8px;padding:10px 12px">
+          <i class="ti ti-shield-lock" style="color:var(--amber);margin-right:6px"></i>
+          For security you must set a new password before continuing.
+        </div>
+        <div class="form-group">
+          <label>Current Password</label>
+          <input type="password" id="fp-current" value="${esc(currentPw || '')}" placeholder="Enter current password">
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" id="fp-new" placeholder="At least 8 characters">
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <input type="password" id="fp-confirm" placeholder="Repeat new password">
+        </div>
+      </div>`;
+    const footer = `
+      <button class="btn btn-primary" onclick="Auth.submitForcedPasswordChange()"><i class="ti ti-check"></i> Set Password &amp; Continue</button>`;
+    Modal.open('Set a New Password', body, footer);
+    Modal.lock();
+  }
+
+  async function submitForcedPasswordChange() {
+    const current = document.getElementById('fp-current').value;
+    const newPw = document.getElementById('fp-new').value;
+    const confirm = document.getElementById('fp-confirm').value;
+
+    if (!current || !newPw) { showToast('Please fill in all fields'); return; }
+    if (newPw.length < 8) { showToast('Password must be at least 8 characters'); return; }
+    if (newPw !== confirm) { showToast('Passwords do not match'); return; }
+
+    try {
+      await API.changePassword({ current_password: current, new_password: newPw });
+      const user = API.getUser();
+      if (user) { user.must_change_password = false; API.setUser(user); }
+      Modal.unlock();
+      Modal.close();
+      showToast('Password updated');
+      showApp();
+      App.init();
     } catch (e) {
       showToast(e.error || 'Failed to change password');
     }
@@ -417,8 +469,12 @@ const Auth = (() => {
       const data = await API.login(username, password);
       API.setToken(data.token);
       API.setUser(data.user);
-      showApp();
-      App.init();
+      if (data.user.must_change_password) {
+        showForcedPasswordChange(password);
+      } else {
+        showApp();
+        App.init();
+      }
     } catch (err) {
       if (err.error === 'pending_approval' || err.error === 'registration_rejected') {
         RegisterPage.showStatus(err.error, err.request_id, err.email, err.rejection_reason);
@@ -480,5 +536,5 @@ const Auth = (() => {
     $('register-content').innerHTML = RegisterPage.render();
   }
 
-  return { init, showLogin, showApp, logout, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, switchRole, toggleRoleDrop, filterRoleDrop, selectRole, goRegister, _switchToEditProfile, _saveProfile, _onAvatarFile };
+  return { init, showLogin, showApp, logout, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, showForcedPasswordChange, submitForcedPasswordChange, switchRole, toggleRoleDrop, filterRoleDrop, selectRole, goRegister, _switchToEditProfile, _saveProfile, _onAvatarFile };
 })();

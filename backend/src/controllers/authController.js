@@ -31,7 +31,7 @@ async function login(req, res, next) {
     }
 
     const [rows] = await pool.query(
-      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, password_hash, school_id, approval_status, avatar_url, bio FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)',
+      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, password_hash, school_id, approval_status, avatar_url, bio, must_change_password FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)',
       [username, username]
     );
 
@@ -118,7 +118,8 @@ async function login(req, res, next) {
         school_id: user.school_id,
         school_name,
         avatar_url: user.avatar_url || null,
-        bio: user.bio || null
+        bio: user.bio || null,
+        must_change_password: !!user.must_change_password
       }
     });
   } catch (err) { next(err); }
@@ -215,18 +216,20 @@ async function changePassword(req, res, next) {
     if (!current_password || !new_password) {
       return res.status(400).json({ error: 'Current and new password are required.' });
     }
-    if (new_password.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+    if (new_password.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters.' });
     }
 
     const [rows] = await pool.query('SELECT password_hash FROM users WHERE id = ?', [req.user.id]);
+    if (!rows.length) return res.status(404).json({ error: 'User not found.' });
     const valid = await bcrypt.compare(current_password, rows[0].password_hash);
     if (!valid) {
       return res.status(401).json({ error: 'Current password is incorrect.' });
     }
 
-    const newHash = await bcrypt.hash(new_password, 10);
-    await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [newHash, req.user.id]);
+    const newHash = await bcrypt.hash(new_password, 12);
+    // Clear the forced-change flag once the user picks their own password.
+    await pool.query('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?', [newHash, req.user.id]);
 
     res.json({ message: 'Password changed successfully.' });
   } catch (err) { next(err); }

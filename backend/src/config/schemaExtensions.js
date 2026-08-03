@@ -147,6 +147,7 @@ async function applyExtensions(db) {
   await q("ALTER TABLE users ADD COLUMN approval_status VARCHAR(20) DEFAULT 'approved'");
   await q("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500) NULL");
   await q("ALTER TABLE users ADD COLUMN bio TEXT NULL");
+  await q("ALTER TABLE users ADD COLUMN must_change_password TINYINT DEFAULT 0");
 
   // --- Escalation fields on errors ---
   await q("ALTER TABLE errors ADD COLUMN escalation_level VARCHAR(20) DEFAULT 'school'");
