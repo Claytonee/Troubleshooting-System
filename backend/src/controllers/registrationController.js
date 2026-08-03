@@ -1,15 +1,6 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
 const pool = require('../config/database');
-
-function generateToken(user) {
-  return jwt.sign(
-    { id: user.id, role: user.role, username: user.username },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-  );
-}
 
 async function getSchoolsList(req, res, next) {
   try {
@@ -82,14 +73,10 @@ async function getRegistrationStatus(req, res, next) {
 
     const request = rows[0];
 
-    if (request.status === 'approved') {
-      const [user] = await pool.query('SELECT id, username, role FROM users WHERE email = ?', [email]);
-      if (user.length) {
-        const token = generateToken(user[0]);
-        return res.json({ status: 'approved', token, user: user[0] });
-      }
-    }
-
+    // SECURITY: never mint a session token from this unauthenticated endpoint.
+    // It is polled with just an id + email; issuing a JWT on 'approved' let
+    // anyone who knew a staff email enumerate ids and hijack the account.
+    // Approved users must log in with their password.
     res.json({
       status: request.status,
       rejection_reason: request.rejection_reason || null,
