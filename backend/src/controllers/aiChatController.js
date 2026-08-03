@@ -103,32 +103,38 @@ function parseEventStream(stream, onDelta, onDone, onError) {
   stream.on('error', onError);
 }
 
-async function getChats(req, res) {
-  const [chats] = await pool.query(
-    'SELECT id, title, created_at, updated_at FROM ai_chats WHERE user_id = ? ORDER BY updated_at DESC',
-    [req.user.id]
-  );
-  res.json(chats);
+async function getChats(req, res, next) {
+  try {
+    const [chats] = await pool.query(
+      'SELECT id, title, created_at, updated_at FROM ai_chats WHERE user_id = ? ORDER BY updated_at DESC',
+      [req.user.id]
+    );
+    res.json(chats);
+  } catch (err) { next(err); }
 }
 
-async function getChat(req, res) {
-  const [chats] = await pool.query('SELECT * FROM ai_chats WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
-  if (!chats.length) return res.status(404).json({ error: 'Chat not found' });
+async function getChat(req, res, next) {
+  try {
+    const [chats] = await pool.query('SELECT * FROM ai_chats WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+    if (!chats.length) return res.status(404).json({ error: 'Chat not found' });
 
-  const [messages] = await pool.query(
-    'SELECT id, role, content, created_at FROM ai_chat_messages WHERE chat_id = ? ORDER BY created_at ASC',
-    [req.params.id]
-  );
-  res.json({ ...chats[0], messages });
+    const [messages] = await pool.query(
+      'SELECT id, role, content, created_at FROM ai_chat_messages WHERE chat_id = ? ORDER BY created_at ASC',
+      [req.params.id]
+    );
+    res.json({ ...chats[0], messages });
+  } catch (err) { next(err); }
 }
 
-async function deleteChat(req, res) {
-  const [result] = await pool.query('DELETE FROM ai_chats WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
-  if (result.affectedRows === 0) return res.status(404).json({ error: 'Chat not found' });
-  res.json({ success: true });
+async function deleteChat(req, res, next) {
+  try {
+    const [result] = await pool.query('DELETE FROM ai_chats WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Chat not found' });
+    res.json({ success: true });
+  } catch (err) { next(err); }
 }
 
-async function sendMessage(req, res) {
+async function sendMessage(req, res, next) {
   const { message, chat_id } = req.body;
   if (!message || !message.trim()) return res.status(400).json({ error: 'Message is required' });
 
@@ -138,28 +144,34 @@ async function sendMessage(req, res) {
 
   let chatId = chat_id;
 
-  if (!chatId) {
-    const [result] = await pool.query(
-      'INSERT INTO ai_chats (user_id, title) VALUES (?, ?)',
-      [req.user.id, message.substring(0, 80)]
+  // Everything up to flushHeaders() may fail on a DB error; route those to the
+  // Express error handler. Once the SSE stream is open, errors are reported as
+  // SSE 'error' frames instead (headers are already sent).
+  try {
+    if (!chatId) {
+      const [result] = await pool.query(
+        'INSERT INTO ai_chats (user_id, title) VALUES (?, ?)',
+        [req.user.id, message.substring(0, 80)]
+      );
+      chatId = result.insertId;
+    } else {
+      const [chats] = await pool.query('SELECT id FROM ai_chats WHERE id = ? AND user_id = ?', [chatId, req.user.id]);
+      if (!chats.length) return res.status(404).json({ error: 'Chat not found' });
+    }
+
+    await pool.query(
+      'INSERT INTO ai_chat_messages (chat_id, role, content) VALUES (?, ?, ?)',
+      [chatId, 'user', message.trim()]
     );
-    chatId = result.insertId;
-  } else {
-    const [chats] = await pool.query('SELECT id FROM ai_chats WHERE id = ? AND user_id = ?', [chatId, req.user.id]);
-    if (!chats.length) return res.status(404).json({ error: 'Chat not found' });
-  }
 
-  await pool.query(
-    'INSERT INTO ai_chat_messages (chat_id, role, content) VALUES (?, ?, ?)',
-    [chatId, 'user', message.trim()]
-  );
+    var [history] = await pool.query(
+      'SELECT role, content FROM ai_chat_messages WHERE chat_id = ? ORDER BY created_at ASC',
+      [chatId]
+    );
 
-  const [history] = await pool.query(
-    'SELECT role, content FROM ai_chat_messages WHERE chat_id = ? ORDER BY created_at ASC',
-    [chatId]
-  );
+    var { guidesText, manualsText } = await getKnowledgeContext();
+  } catch (err) { return next(err); }
 
-  const { guidesText, manualsText } = await getKnowledgeContext();
   const systemPrompt = SYSTEM_PROMPT
     .replace('{GUIDES_CONTEXT}', guidesText || 'No guides available.')
     .replace('{MANUALS_CONTEXT}', manualsText || 'No manuals available.');
@@ -189,13 +201,15 @@ async function sendMessage(req, res) {
         res.write(`data: ${JSON.stringify({ type: 'delta', text })}\n\n`);
       },
       async () => {
-        if (fullResponse) {
-          await pool.query(
-            'INSERT INTO ai_chat_messages (chat_id, role, content) VALUES (?, ?, ?)',
-            [chatId, 'assistant', fullResponse]
-          );
-          await pool.query('UPDATE ai_chats SET updated_at = NOW() WHERE id = ?', [chatId]);
-        }
+        try {
+          if (fullResponse) {
+            await pool.query(
+              'INSERT INTO ai_chat_messages (chat_id, role, content) VALUES (?, ?, ?)',
+              [chatId, 'assistant', fullResponse]
+            );
+            await pool.query('UPDATE ai_chats SET updated_at = NOW() WHERE id = ?', [chatId]);
+          }
+        } catch (e) { /* persistence failed; still close the stream cleanly below */ }
         res.write(`data: ${JSON.stringify({ type: 'done', chat_id: chatId })}\n\n`);
         res.write('data: [DONE]\n\n');
         res.end();
