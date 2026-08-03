@@ -106,7 +106,7 @@ async function getTeacherDashboard(req, res) {
       'SELECT name, zone FROM schools WHERE id = ?', [schoolId]
     );
 
-    const [guidesCount] = await pool.query('SELECT COUNT(*) as count FROM guides');
+    const [guidesCount] = await pool.query('SELECT COUNT(*) as count FROM troubleshooting_guides');
 
     res.json({
       type: 'teacher',

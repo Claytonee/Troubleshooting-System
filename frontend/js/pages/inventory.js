@@ -179,9 +179,9 @@ const InventoryPage = (() => {
     try {
       await API.createDevice(data);
       Modal.close();
-      Toast.show('Device added successfully', 'success');
+      showToast('Device added successfully', 'success');
       reload();
-    } catch (err) { Toast.show(err.error || 'Failed to add device', 'error'); }
+    } catch (err) { showToast(err.error || 'Failed to add device', 'error'); }
   }
 
   function openEdit(id) {
@@ -239,9 +239,9 @@ const InventoryPage = (() => {
     try {
       await API.updateDevice(id, data);
       Modal.close();
-      Toast.show('Device updated', 'success');
+      showToast('Device updated', 'success');
       reload();
-    } catch (err) { Toast.show(err.error || 'Failed to update', 'error'); }
+    } catch (err) { showToast(err.error || 'Failed to update', 'error'); }
   }
 
   async function openDetail(id) {
@@ -281,7 +281,7 @@ const InventoryPage = (() => {
           <button class="btn" onclick="InventoryPage.openStatusChange(${d.id},'${d.status}')" style="padding:8px 16px;font-size:12px;background:rgba(54,217,204,.12);color:var(--teal);border:1px solid rgba(54,217,204,.25);border-radius:8px"><i class="ti ti-refresh"></i> Change Status</button>
         </div>
       `, '', true);
-    } catch (err) { Toast.show('Failed to load device details', 'error'); }
+    } catch (err) { showToast('Failed to load device details', 'error'); }
   }
 
   function historyLabel(h) {
@@ -311,18 +311,18 @@ const InventoryPage = (() => {
         note: document.getElementById('st-note').value.trim()
       });
       Modal.close();
-      Toast.show('Status updated', 'success');
+      showToast('Status updated', 'success');
       reload();
-    } catch (err) { Toast.show(err.error || 'Failed to update status', 'error'); }
+    } catch (err) { showToast(err.error || 'Failed to update status', 'error'); }
   }
 
   function confirmDelete(id) {
     if (confirm('Are you sure you want to permanently delete this device from inventory?')) {
       API.deleteDevice(id).then(() => {
         Modal.close();
-        Toast.show('Device removed', 'success');
+        showToast('Device removed', 'success');
         reload();
-      }).catch(err => Toast.show(err.error || 'Failed to delete', 'error'));
+      }).catch(err => showToast(err.error || 'Failed to delete', 'error'));
     }
   }
 
@@ -422,9 +422,9 @@ const InventoryPage = (() => {
     try {
       const res = await API.bulkImportDevices(data);
       Modal.close();
-      Toast.show(`Imported: ${res.created} new, ${res.updated} updated${res.errors?.length ? `, ${res.errors.length} errors` : ''}`, 'success');
+      showToast(`Imported: ${res.created} new, ${res.updated} updated${res.errors?.length ? `, ${res.errors.length} errors` : ''}`, 'success');
       reload();
-    } catch (err) { Toast.show(err.error || 'Import failed', 'error'); }
+    } catch (err) { showToast(err.error || 'Import failed', 'error'); }
   }
 
   async function exportCsv() {
@@ -436,8 +436,8 @@ const InventoryPage = (() => {
       a.href = URL.createObjectURL(blob);
       a.download = 'tablet_inventory.csv';
       a.click();
-      Toast.show('Export downloaded', 'success');
-    } catch (err) { Toast.show('Export failed', 'error'); }
+      showToast('Export downloaded', 'success');
+    } catch (err) { showToast('Export failed', 'error'); }
   }
 
   function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
