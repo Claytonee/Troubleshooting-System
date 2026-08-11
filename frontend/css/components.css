@@ -115,10 +115,10 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; width: 480px; max-width: 100%; max-height: 90vh; cursor: default; display: flex; flex-direction: column; overflow: hidden; }
 .modal.wide { width: 600px; }
 .modal.preview { width: min(1080px, 95vw); }
-.modal-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
 .modal-header h3, .modal-header div { font-size: 15px; }
 .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; min-height: 0; }
-.modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; overflow: visible; position: relative; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; }
 
 /* School card */
 .school-card { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all .15s; }
@@ -394,7 +394,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .reg-select-text { font-size: 13px; color: var(--text3); display: flex; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .reg-select-text.selected { color: var(--text); }
 .reg-select-arrow { color: var(--text3); flex-shrink: 0; transition: transform .2s; }
-.reg-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 100; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2); overflow: hidden; animation: dropIn .15s ease; }
+.reg-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 9999; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2); overflow: hidden; animation: dropIn .15s ease; }
 .reg-dropdown.drop-up { top: auto; bottom: calc(100% + 4px); }
 .reg-dropdown.drop-side { top: 0; left: calc(100% + 40px); right: auto; width: 280px; bottom: auto; }
 @keyframes dropIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }

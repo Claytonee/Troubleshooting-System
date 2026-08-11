@@ -176,18 +176,35 @@ const Dropdown = (() => {
       dd.style.display = 'block';
       dd.classList.remove('drop-up', 'drop-side');
       openId = id;
-      // Allow dropdown to escape modal overflow
-      const modalBody = dd.closest('.modal-body');
-      if (modalBody) modalBody.style.overflow = 'visible';
-      const card = dd.closest('.card') || modalBody || dd.closest('.form-grid');
-      const cardRect = card ? card.getBoundingClientRect() : null;
-      const spaceRight = cardRect ? window.innerWidth - cardRect.right : 0;
-      if (spaceRight > 290) {
-        dd.classList.add('drop-side');
+      const trigger = document.getElementById(id + '-trigger');
+      const triggerRect = trigger ? trigger.getBoundingClientRect() : null;
+      const inModal = !!dd.closest('.modal');
+
+      if (inModal && triggerRect) {
+        dd.style.position = 'fixed';
+        dd.style.width = triggerRect.width + 'px';
+        dd.style.left = triggerRect.left + 'px';
+        if (window.innerHeight - triggerRect.bottom < 220) {
+          dd.style.top = 'auto';
+          dd.style.bottom = (window.innerHeight - triggerRect.top + 4) + 'px';
+        } else {
+          dd.style.top = (triggerRect.bottom + 4) + 'px';
+          dd.style.bottom = 'auto';
+        }
       } else {
-        const trigger = document.getElementById(id + '-trigger');
-        const rect = trigger ? trigger.getBoundingClientRect() : { bottom: 0 };
-        if (window.innerHeight - rect.bottom < 220) dd.classList.add('drop-up');
+        dd.style.position = '';
+        dd.style.width = '';
+        dd.style.left = '';
+        dd.style.top = '';
+        dd.style.bottom = '';
+        const card = dd.closest('.card') || dd.closest('.form-grid');
+        const cardRect = card ? card.getBoundingClientRect() : null;
+        const spaceRight = cardRect ? window.innerWidth - cardRect.right : 0;
+        if (spaceRight > 290) {
+          dd.classList.add('drop-side');
+        } else if (triggerRect && window.innerHeight - triggerRect.bottom < 220) {
+          dd.classList.add('drop-up');
+        }
       }
       const input = dd.querySelector('input[type="text"]');
       if (input) { input.value = ''; filter(id, ''); input.focus(); }
@@ -196,11 +213,12 @@ const Dropdown = (() => {
 
   function closeAll() {
     document.querySelectorAll('.reg-dropdown').forEach(d => {
-      if (d.style.display !== 'none') {
-        const mb = d.closest('.modal-body');
-        if (mb) mb.style.overflow = '';
-      }
       d.style.display = 'none';
+      d.style.position = '';
+      d.style.width = '';
+      d.style.left = '';
+      d.style.top = '';
+      d.style.bottom = '';
     });
     openId = null;
   }
