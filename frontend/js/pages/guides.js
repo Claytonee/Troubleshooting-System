@@ -401,6 +401,11 @@ const GuidesPage = (() => {
     }
   }
 
+  function afterRender() {
+    const main = document.querySelector('.main');
+    if (main) main.querySelectorAll('.reveal').forEach(c => c.classList.add('visible'));
+  }
+
   function renderEmptyState() {
     return `<div class="card reveal" style="padding:50px 20px;text-align:center">
       <i class="ti ti-file-search" style="font-size:36px;color:var(--text3);display:block;margin-bottom:10px"></i>
@@ -409,5 +414,5 @@ const GuidesPage = (() => {
     </div>`;
   }
 
-  return { load, render, setCategory, setSearch, selectGuide, toggleGuide: selectGuide, toggleStep, resetProgress, openAdd, openEdit, onCategorySelect, addStepRow, removeStepRow, submitForm, escalate };
+  return { load, render, afterRender, setCategory, setSearch, selectGuide, toggleGuide: selectGuide, toggleStep, resetProgress, openAdd, openEdit, onCategorySelect, addStepRow, removeStepRow, submitForm, escalate };
 })();
