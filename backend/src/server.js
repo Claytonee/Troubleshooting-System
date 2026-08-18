@@ -90,7 +90,7 @@ if (process.env.NODE_ENV !== 'test') {
 // (the SPA has no build step / content hashing, so aggressive caching = stale UI).
 app.use(express.static(path.join(__dirname, '..', '..', 'frontend'), {
   setHeaders: (res, filePath) => {
-    if (/\.(js|css|html)$/i.test(filePath)) res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    if (/\.(js|css|html)$/i.test(filePath)) res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   }
 }));
 
