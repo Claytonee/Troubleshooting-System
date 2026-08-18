@@ -56,12 +56,12 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
   .topbar { padding: 0 12px; gap: 8px; }
   .topbar-search { display: none !important; }
   .role-switch { display: none !important; }
-  .main { padding: 20px 12px 60px; }
+  .main { padding: 20px 14px 60px; }
   .stats-grid { grid-template-columns: 1fr; gap: 10px; }
   .stat-card { padding: 12px; }
   .stat-val { font-size: 22px; }
   .card { padding: 14px; }
-  .section-header { margin: -20px -12px 14px; padding: 20px 12px 10px; top: -20px; }
+  .section-header { margin: -20px -14px 14px; padding: 28px 14px 10px; top: -20px; }
   .section-title { font-size: 16px; }
   .section-sub { font-size: 12px; }
   .btn { padding: 8px 14px; font-size: 12px; }

@@ -574,7 +574,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .manual-card-inner { flex-wrap: wrap; }
   .manual-actions { width: 100%; justify-content: flex-start; gap: 6px; margin-top: 4px; }
   .manual-actions button { padding: 6px 8px !important; }
-  .tracker-sticky-header { margin: -20px -12px 14px; padding: 20px 12px 12px; }
+  .tracker-sticky-header { margin: -20px -14px 14px; padding: 28px 14px 12px; }
   .tracker-search { width: 100%; }
   .chip-group { gap: 4px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
   .chip { font-size: 11px; padding: 4px 9px; white-space: nowrap; flex-shrink: 0; }
@@ -586,7 +586,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .inv-grid { padding: 8px 10px; gap: 6px; }
   .inv-header-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
   .inv-header-actions .btn { font-size: 11px; padding: 5px 10px; }
-  .section-header { padding-left: 12px; padding-right: 12px; }
+  .section-header { padding-left: 14px; padding-right: 14px; }
   .section-header > div:last-child { width: 100%; }
   .section-header .btn { font-size: 11px; padding: 5px 10px; }
   .detail-info-table tr { display: flex; flex-wrap: wrap; }
