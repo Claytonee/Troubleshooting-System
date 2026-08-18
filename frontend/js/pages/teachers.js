@@ -53,12 +53,12 @@ const TeachersPage = (() => {
   function renderTeachers() {
     if (!Array.isArray(teachers) || !teachers.length) return '<div class="empty-state">No teachers registered yet</div>';
     return `<div class="table-wrap"><table>
-      <thead><tr><th>Name</th><th>Email</th><th>Subject</th><th>Status</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Name</th><th class="hide-mobile">Email</th><th class="hide-mobile">Subject</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>
         ${teachers.map(t => `<tr>
           <td><strong>${esc(t.full_name)}</strong></td>
-          <td>${esc(t.email)}</td>
-          <td>${esc(t.subject || '—')}</td>
+          <td class="hide-mobile">${esc(t.email)}</td>
+          <td class="hide-mobile">${esc(t.subject || '—')}</td>
           <td><span class="badge-${t.status === 'active' ? 'green' : t.status === 'suspended' ? 'red' : 'gray'}">${t.status}</span></td>
           <td>
             ${t.status === 'active' ? `<button class="btn-icon" data-tip="${TIP.SUSPEND}" onclick="TeachersPage.updateStatus(${t.id},'suspended')"><i class="ti ti-ban"></i></button>` : ''}

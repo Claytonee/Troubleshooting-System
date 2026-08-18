@@ -35,8 +35,8 @@ const TrackerPage = (() => {
     <div class="tracker-sticky-header">
       <div class="section-header" style="position:static;margin:0;padding:0 0 14px;background:none;backdrop-filter:none">
         <div><div class="section-title">Error Tracker</div><div class="section-sub">All reported issues</div></div>
-        <div style="display:flex;gap:10px;align-items:center">
-          <input type="text" placeholder="Search errors…" style="width:200px" id="search-input" value="${esc(search)}" oninput="TrackerPage.setSearch(this.value)">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input type="text" placeholder="Search errors…" class="tracker-search" id="search-input" value="${esc(search)}" oninput="TrackerPage.setSearch(this.value)">
           ${API.getUser() && ['admin','subadmin'].includes(API.getUser().role) ? `<button class="btn btn-secondary btn-sm" data-tip="${TIP.EXPORT_CSV}" onclick="TrackerPage.exportCsv()"><i class="ti ti-download"></i> Export</button>` : ''}
           <button class="btn btn-primary btn-sm" onclick="Router.navigate('report');App.loadAndRender()"><i class="ti ti-plus"></i> New</button>
         </div>
@@ -46,7 +46,7 @@ const TrackerPage = (() => {
       </div>
     </div>
     <div class="card" style="padding:0"><div class="table-wrap"><table>
-      <thead><tr><th>ID</th><th>Error / School</th><th>Category</th><th>Priority</th><th>Status</th><th>Assigned</th><th>Reported</th><th>Action</th></tr></thead>
+      <thead><tr><th>ID</th><th>Error / School</th><th class="hide-mobile">Category</th><th>Priority</th><th>Status</th><th class="hide-mobile">Assigned</th><th class="hide-mobile">Reported</th><th>Action</th></tr></thead>
       <tbody id="error-tbody"></tbody>
     </table></div></div>`;
   }
@@ -73,11 +73,11 @@ const TrackerPage = (() => {
       return `<tr style="cursor:pointer" onclick="ErrorDetailModal.open(${e.id})">
         <td><span class="error-id">${e.error_code}</span></td>
         <td><span style="font-weight:500;font-size:13px">${esc(e.title)}</span><br><span style="font-size:11px;color:var(--text3)">${esc(e.school_name)}</span></td>
-        <td><span style="font-size:12px;color:var(--text2)"><i class="ti ${(CAT_META[e.category] || CAT_META.Other).ic}" style="color:${(CAT_META[e.category] || CAT_META.Other).color};font-size:13px;vertical-align:-2px;margin-right:4px"></i>${e.category}</span></td>
+        <td class="hide-mobile"><span style="font-size:12px;color:var(--text2)"><i class="ti ${(CAT_META[e.category] || CAT_META.Other).ic}" style="color:${(CAT_META[e.category] || CAT_META.Other).color};font-size:13px;vertical-align:-2px;margin-right:4px"></i>${e.category}</span></td>
         <td><span class="badge ${pri.badge}">${pri.label}</span></td>
         <td><span class="badge ${stat.badge}">${stat.label}</span></td>
-        <td style="font-size:12px;color:var(--text2)">${e.assigned_name ? esc(e.assigned_name) : '<span style="color:var(--text3)">Unassigned</span>'}</td>
-        <td style="font-size:12px">
+        <td class="hide-mobile" style="font-size:12px;color:var(--text2)">${e.assigned_name ? esc(e.assigned_name) : '<span style="color:var(--text3)">Unassigned</span>'}</td>
+        <td class="hide-mobile" style="font-size:12px">
           <div style="color:var(--text2);font-weight:500">${e.created_at ? fmtDate(e.created_at) : '—'}</div>
           <div style="color:${breach ? 'var(--red)' : 'var(--text3)'};margin-top:2px">${ageStr(e.hours_open)}${breach ? ' <i class="ti ti-alert-triangle" style="font-size:11px"></i>' : ''}</div>
         </td>

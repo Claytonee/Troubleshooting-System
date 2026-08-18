@@ -50,8 +50,8 @@ const HelpPage = (() => {
         <div class="section-sub">Mwongozo wa Matumizi &mdash; School Admin</div>
       </div>
     </div>
-    <div class="help-layout" style="display:grid;grid-template-columns:200px 1fr;gap:16px;align-items:start">
-      <div id="help-nav" class="card" style="position:sticky;top:76px;padding:10px 8px">
+    <div class="help-layout">
+      <div id="help-nav" class="card help-nav" style="position:sticky;top:76px;padding:10px 8px">
         ${buildNav()}
       </div>
       <div id="help-content">
@@ -101,7 +101,7 @@ const HelpPage = (() => {
 
       <div class="card" style="padding:16px;margin-bottom:12px">
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Features Zako</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div class="help-features-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
           <div style="background:var(--bg3);border-radius:6px;padding:10px 12px"><strong>Dashboard</strong> — Hali ya shule kwa muhtasari</div>
           <div style="background:var(--bg3);border-radius:6px;padding:10px 12px"><strong>Report Error</strong> — Tuma tatizo jipya</div>
           <div style="background:var(--bg3);border-radius:6px;padding:10px 12px"><strong>Error Tracker</strong> — Fuatilia matatizo yote</div>

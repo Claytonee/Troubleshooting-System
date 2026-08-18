@@ -519,6 +519,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .followup-layout { display: grid; grid-template-columns: 1fr 340px; }
 .teachers-link-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; }
 .manuals-stats { grid-template-columns: repeat(4, 1fr); }
+.help-layout { display: grid; grid-template-columns: 200px 1fr; gap: 16px; align-items: start; }
+.tracker-search { width: 200px; }
+.tracker-sticky-header { position: sticky; top: -24px; z-index: 10; padding: 24px 0 12px; margin: -24px -28px 16px; padding-left: 28px; padding-right: 28px; background: rgba(15,17,23,0.88); backdrop-filter: blur(12px); }
 
 @media (max-width: 920px) {
   .two-col { grid-template-columns: 1fr; }
@@ -531,6 +534,10 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .followup-layout { grid-template-columns: 1fr; }
   .teachers-link-stats { grid-template-columns: 1fr 1fr 1fr; }
   .manuals-stats { grid-template-columns: repeat(2, 1fr); }
+  .help-layout { grid-template-columns: 1fr; }
+  .help-nav { position: static !important; }
+  .tracker-search { width: 100%; min-width: 140px; flex: 1; }
+  .tracker-sticky-header { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
   .inv-toolbar { padding: 10px 14px; flex-wrap: wrap; }
   .inv-toolbar > div { min-width: 0 !important; flex: 1 1 auto; }
   .inv-grid { padding: 10px 14px; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -558,9 +565,18 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .followup-layout { grid-template-columns: 1fr; }
   .teachers-link-stats { grid-template-columns: 1fr; }
   .manuals-stats { grid-template-columns: 1fr 1fr; }
+  .stats-grid { grid-template-columns: 1fr 1fr !important; gap: 8px; }
   .stat-card { padding: 12px; }
   .stat-val { font-size: 22px; }
   .hide-mobile { display: none !important; }
+  .btn-label { display: none !important; }
+  .help-features-grid { grid-template-columns: 1fr !important; }
+  .manual-actions { gap: 6px; }
+  .manual-actions button { padding: 6px 8px !important; }
+  .tracker-sticky-header { margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; }
+  .tracker-search { width: 100%; }
+  .chip-group { gap: 4px; }
+  .chip { font-size: 11px; padding: 4px 9px; }
   .inv-toolbar { flex-direction: column; align-items: stretch; padding: 8px 10px; }
   .inv-grid { padding: 8px 10px; gap: 6px; }
   .inv-header-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
