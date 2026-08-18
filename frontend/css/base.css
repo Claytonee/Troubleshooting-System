@@ -61,7 +61,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
   .stat-card { padding: 12px; }
   .stat-val { font-size: 22px; }
   .card { padding: 14px; }
-  .section-header { margin: -20px -14px 14px; padding: 28px 14px 10px; top: -20px; }
+  .section-header { margin: -20px -14px 14px; padding: 40px 14px 10px; top: -20px; }
   .section-title { font-size: 16px; }
   .section-sub { font-size: 12px; }
   .btn { padding: 8px 14px; font-size: 12px; }

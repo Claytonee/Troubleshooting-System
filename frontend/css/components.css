@@ -574,7 +574,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .manual-card-inner { flex-wrap: wrap; }
   .manual-actions { width: 100%; justify-content: flex-start; gap: 6px; margin-top: 4px; }
   .manual-actions button { padding: 6px 8px !important; }
-  .tracker-sticky-header { margin: -20px -14px 14px; padding: 28px 14px 12px; }
+  .tracker-sticky-header { margin: -20px -14px 14px; padding: 40px 14px 12px; }
   .tracker-search { width: 100%; }
   .chip-group { gap: 4px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
   .chip { font-size: 11px; padding: 4px 9px; white-space: nowrap; flex-shrink: 0; }
