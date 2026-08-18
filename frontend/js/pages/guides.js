@@ -152,76 +152,108 @@ const GuidesPage = (() => {
 
     return `
     <div id="guide-detail">
-      <button class="btn btn-sm reveal" onclick="GuidesPage.selectGuide(null)" style="margin-bottom:14px;gap:5px"><i class="ti ti-arrow-left" style="font-size:13px"></i> All Guides</button>
-
-      <div class="card reveal" style="padding:24px;border-left:4px solid ${m.color}">
-        <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:20px">
-          <div style="width:48px;height:48px;background:${m.color}30;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <i class="ti ${g.icon || m.icon}" style="color:#fff;font-size:24px"></i>
-          </div>
-          <div style="flex:1">
-            <div style="font-weight:600;font-size:16px;color:var(--text1);margin-bottom:6px">${esc(g.title)}</div>
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-              <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:${m.color}22;color:${m.color};font-weight:500">${esc(g.category)}</span>
-              <span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:3px"><i class="ti ti-list-numbers" style="font-size:12px"></i>${g.steps.length} steps</span>
-              <span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:3px"><i class="ti ti-clock" style="font-size:12px"></i>${readTime} min read</span>
-              ${done.length > 0 ? `<span style="font-size:11px;color:var(--green);font-weight:500">${pct}% complete</span>` : ''}
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;flex-shrink:0">
-            ${isAdmin ? `<button class="btn btn-secondary btn-sm" data-tip="${TIP.EDIT_GUIDE}" onclick="GuidesPage.openEdit(${g.id})" style="font-size:11px;gap:5px"><i class="ti ti-pencil" style="font-size:12px"></i> Edit</button>` : ''}
-            ${done.length > 0 ? `<button class="btn btn-sm" data-tip="${TIP.RESET_PROGRESS}" onclick="GuidesPage.resetProgress(${g.id})" style="font-size:11px"><i class="ti ti-refresh" style="font-size:12px"></i> Reset</button>` : ''}
-          </div>
-        </div>
-
-        ${allDone ? `<div style="padding:12px 16px;background:rgba(45,217,138,0.06);border:1px solid rgba(45,217,138,0.15);border-radius:8px;margin-bottom:20px;display:flex;align-items:center;gap:10px">
-          <i class="ti ti-circle-check-filled" style="color:var(--green);font-size:20px"></i>
-          <div><div style="font-size:13px;font-weight:500;color:var(--green)">Issue resolved</div><div style="font-size:11px;color:var(--text3)">All steps completed successfully</div></div>
-        </div>` : ''}
-
-        ${done.length > 0 && !allDone ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px"><div style="flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--green);border-radius:2px;transition:width .3s"></div></div><span style="font-size:11px;color:var(--text3);white-space:nowrap">${done.length} of ${g.steps.length}</span></div>` : ''}
-
-        <div style="margin-bottom:8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3)">Resolution Steps</div>
-
-        <div style="position:relative;padding-left:18px">
-          <div style="position:absolute;left:14px;top:16px;bottom:16px;width:2px;background:var(--border);border-radius:1px"></div>
-          ${g.steps.map((step, i) => {
-            const isChecked = done.includes(i);
-            const isNext = !isChecked && (i === 0 || done.includes(i - 1));
-            return `<div style="position:relative;display:flex;align-items:flex-start;gap:14px;padding:10px 12px;margin:2px 0;border-radius:8px;cursor:pointer;transition:background .15s;background:${isNext ? m.color + '08' : 'transparent'}" onclick="GuidesPage.toggleStep(${g.id},${i})" onmouseover="if(!${isNext})this.style.background='var(--bg3)'" onmouseout="if(!${isNext})this.style.background='transparent'">
-              <div style="position:relative;z-index:1;width:28px;height:28px;border-radius:50%;border:2px solid ${isChecked ? 'var(--green)' : isNext ? m.color : 'var(--border)'};background:${isChecked ? 'var(--green)' : 'var(--bg2)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s">
-                ${isChecked ? '<i class="ti ti-check" style="color:#fff;font-size:13px"></i>' : `<span style="font-size:11px;font-weight:700;color:${isNext ? m.color : 'var(--text3)'}">${i + 1}</span>`}
-              </div>
-              <div style="flex:1;padding-top:4px">
-                <div style="font-size:13px;line-height:1.6;color:${isChecked ? 'var(--text3)' : 'var(--text1)'};${isChecked ? 'text-decoration:line-through' : ''}${isNext ? ';font-weight:500' : ''}">${esc(step)}</div>
-                ${isNext ? `<div style="font-size:10px;color:${m.color};margin-top:3px;font-weight:500;display:flex;align-items:center;gap:3px"><i class="ti ti-player-play-filled" style="font-size:9px"></i>Current step</div>` : ''}
-              </div>
-              ${isChecked ? '<i class="ti ti-check" style="color:var(--green);font-size:14px;margin-top:5px"></i>' : ''}
-            </div>`;
-          }).join('')}
-        </div>
-
-        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-sm" id="guide-escalate-btn" data-tip="${TIP.ESCALATE_ISSUE}" onclick="GuidesPage.escalate(${g.id})" style="gap:5px"><i class="ti ti-alert-triangle" style="font-size:13px;color:var(--amber)"></i> Escalate Issue</button>
-          <div style="margin-left:auto;font-size:11px;color:var(--text3)">Still stuck? Report for engineer follow-up</div>
-        </div>
+      <div class="reveal" style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+        <button class="btn btn-sm" onclick="GuidesPage.selectGuide(null)" style="gap:5px"><i class="ti ti-arrow-left" style="font-size:13px"></i> Back</button>
+        <span style="font-size:11px;color:var(--text3)">/ ${esc(g.category)} / ${esc(g.title)}</span>
       </div>
 
-      ${related.length ? `
-      <div style="margin-top:16px">
-        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:8px">Related Guides</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
-          ${related.map(r => {
-            const rm = getMeta(r.category);
-            return `<div class="card reveal" style="padding:14px 16px;cursor:pointer;border-left:3px solid ${rm.color}" onclick="GuidesPage.selectGuide(${r.id})">
-              <div style="display:flex;align-items:center;gap:10px">
-                <div style="width:32px;height:32px;background:${rm.color}30;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${r.icon || rm.icon}" style="color:#fff;font-size:15px"></i></div>
-                <div><div style="font-size:12px;font-weight:500;color:var(--text1)">${esc(r.title)}</div><div style="font-size:10px;color:var(--text3)">${r.steps.length} steps</div></div>
+      <div class="guide-detail-grid reveal">
+        <!-- Main content -->
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px">
+            <div style="width:38px;height:38px;background:${m.color}20;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <i class="ti ${g.icon || m.icon}" style="color:${m.color};font-size:18px"></i>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:14px;color:var(--text1);line-height:1.3">${esc(g.title)}</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                <span style="font-size:10px;padding:2px 7px;border-radius:4px;background:${m.color}15;color:${m.color};font-weight:500">${esc(g.category)}</span>
+                <span style="font-size:10px;color:var(--text3)"><i class="ti ti-list-numbers" style="font-size:10px"></i> ${g.steps.length} steps</span>
+                <span style="font-size:10px;color:var(--text3)"><i class="ti ti-clock" style="font-size:10px"></i> ${readTime} min</span>
               </div>
-            </div>`;
-          }).join('')}
+            </div>
+            ${isAdmin ? `<button class="btn btn-secondary btn-sm" onclick="GuidesPage.openEdit(${g.id})" style="font-size:11px;gap:4px"><i class="ti ti-pencil" style="font-size:12px"></i> Edit</button>` : ''}
+          </div>
+
+          ${allDone ? `<div style="padding:10px 22px;background:rgba(45,217,138,0.05);border-bottom:1px solid rgba(45,217,138,0.12);display:flex;align-items:center;gap:8px">
+            <i class="ti ti-circle-check-filled" style="color:var(--green);font-size:16px"></i>
+            <span style="font-size:12px;font-weight:500;color:var(--green)">All steps completed — issue resolved</span>
+          </div>` : ''}
+
+          <div style="padding:16px 22px">
+            ${g.steps.map((step, i) => {
+              const isChecked = done.includes(i);
+              const isNext = !isChecked && (i === 0 || done.includes(i - 1));
+              return `<div style="display:flex;align-items:center;gap:12px;padding:9px 10px;margin:1px 0;border-radius:6px;cursor:pointer;transition:background .12s;background:${isNext ? m.color + '08' : 'transparent'}" onclick="GuidesPage.toggleStep(${g.id},${i})" onmouseover="this.style.background='${isNext ? m.color + '10' : 'var(--bg3)'}'" onmouseout="this.style.background='${isNext ? m.color + '08' : 'transparent'}'">
+                <div style="width:24px;height:24px;border-radius:50%;border:2px solid ${isChecked ? 'var(--green)' : isNext ? m.color : 'var(--border)'};background:${isChecked ? 'var(--green)' : 'var(--bg1)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s">
+                  ${isChecked ? '<i class="ti ti-check" style="color:#fff;font-size:11px"></i>' : `<span style="font-size:10px;font-weight:700;color:${isNext ? m.color : 'var(--text3)'}">${i + 1}</span>`}
+                </div>
+                <div style="flex:1;font-size:13px;color:${isChecked ? 'var(--text3)' : 'var(--text1)'};${isChecked ? 'text-decoration:line-through' : ''}${isNext ? 'font-weight:500' : ''}">${esc(step)}</div>
+                ${isNext ? `<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:${m.color}18;color:${m.color};font-weight:600;text-transform:uppercase;letter-spacing:.3px">Next</span>` : ''}
+              </div>`;
+            }).join('')}
+          </div>
+
+          <div style="padding:12px 22px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
+            <button class="btn btn-sm" id="guide-escalate-btn" onclick="GuidesPage.escalate(${g.id})" style="gap:4px;font-size:11px"><i class="ti ti-alert-triangle" style="font-size:12px;color:var(--amber)"></i> Escalate</button>
+            <span style="font-size:10px;color:var(--text3);margin-left:auto">Still stuck? Escalate for engineer follow-up</span>
+          </div>
         </div>
-      </div>` : ''}
+
+        <!-- Sidebar -->
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <!-- Progress card -->
+          <div class="card" style="padding:16px">
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:10px">Progress</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="position:relative;width:44px;height:44px;flex-shrink:0">
+                <svg viewBox="0 0 36 36" style="width:44px;height:44px;transform:rotate(-90deg)">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="var(--border)" stroke-width="3"/>
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="${allDone ? 'var(--green)' : m.color}" stroke-width="3" stroke-dasharray="${pct * 0.94} 100" stroke-linecap="round"/>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:${allDone ? 'var(--green)' : 'var(--text1)'}">${pct}%</div>
+              </div>
+              <div>
+                <div style="font-size:18px;font-weight:600;color:var(--text1)">${done.length}<span style="font-size:12px;color:var(--text3);font-weight:400">/${g.steps.length}</span></div>
+                <div style="font-size:10px;color:var(--text3)">steps done</div>
+              </div>
+            </div>
+            ${done.length > 0 ? `<button class="btn btn-sm" onclick="GuidesPage.resetProgress(${g.id})" style="width:100%;justify-content:center;font-size:11px;gap:4px"><i class="ti ti-refresh" style="font-size:12px"></i> Reset Progress</button>` : `<div style="font-size:11px;color:var(--text3);text-align:center;padding:4px 0">Click steps to mark complete</div>`}
+          </div>
+
+          <!-- Info card -->
+          <div class="card" style="padding:16px">
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:10px">Info</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:11px;color:var(--text3)">Category</span>
+                <span style="font-size:11px;font-weight:500;color:${m.color}">${esc(g.category)}</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:11px;color:var(--text3)">Difficulty</span>
+                <span style="font-size:11px;font-weight:500;color:var(--text1)">${g.steps.length <= 3 ? 'Easy' : g.steps.length <= 6 ? 'Medium' : 'Advanced'}</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:11px;color:var(--text3)">Est. Time</span>
+                <span style="font-size:11px;font-weight:500;color:var(--text1)">${readTime} min</span>
+              </div>
+            </div>
+          </div>
+
+          ${related.length ? `
+          <!-- Related -->
+          <div class="card" style="padding:16px">
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:10px">Related Guides</div>
+            ${related.map(r => {
+              const rm = getMeta(r.category);
+              return `<div style="display:flex;align-items:center;gap:9px;padding:8px;margin:0 -8px;border-radius:6px;cursor:pointer;transition:background .12s" onclick="GuidesPage.selectGuide(${r.id})" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+                <div style="width:28px;height:28px;background:${rm.color}20;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="ti ${r.icon || rm.icon}" style="color:${rm.color};font-size:13px"></i></div>
+                <div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:500;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.title)}</div><div style="font-size:9px;color:var(--text3)">${r.steps.length} steps</div></div>
+              </div>`;
+            }).join('')}
+          </div>` : ''}
+        </div>
+      </div>
     </div>`;
   }
 
