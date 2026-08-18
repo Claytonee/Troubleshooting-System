@@ -571,12 +571,17 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .hide-mobile { display: none !important; }
   .btn-label { display: none !important; }
   .help-features-grid { grid-template-columns: 1fr !important; }
-  .manual-actions { gap: 6px; }
+  .manual-card-inner { flex-wrap: wrap; }
+  .manual-actions { width: 100%; justify-content: flex-start; gap: 6px; margin-top: 4px; }
   .manual-actions button { padding: 6px 8px !important; }
   .tracker-sticky-header { margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; }
   .tracker-search { width: 100%; }
-  .chip-group { gap: 4px; }
-  .chip { font-size: 11px; padding: 4px 9px; }
+  .chip-group { gap: 4px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+  .chip { font-size: 11px; padding: 4px 9px; white-space: nowrap; flex-shrink: 0; }
+  .alert-banner { flex-wrap: wrap; }
+  .alert-banner-text { min-width: 0; }
+  .tab-row { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; gap: 0; }
+  .tab-btn { white-space: nowrap; flex-shrink: 0; padding: 7px 12px; }
   .inv-toolbar { flex-direction: column; align-items: stretch; padding: 8px 10px; }
   .inv-grid { padding: 8px 10px; gap: 6px; }
   .inv-header-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }

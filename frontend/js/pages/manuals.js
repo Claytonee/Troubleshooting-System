@@ -78,8 +78,8 @@ const ManualsPage = (() => {
     const fileCards = filtered.length ? filtered.map(m => {
       const icon = getFileIcon(m.file_type);
       const type = getFileType(m.file_type);
-      return `<div class="card" style="padding:16px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:14px">
+      return `<div class="card manual-card" style="padding:16px;margin-bottom:12px">
+        <div class="manual-card-inner" style="display:flex;align-items:center;gap:14px">
           <div style="width:42px;height:42px;border-radius:10px;background:${icon.color}15;display:flex;align-items:center;justify-content:center;flex-shrink:0">
             <i class="ti ${icon.ic}" style="font-size:20px;color:${icon.color}"></i>
           </div>
