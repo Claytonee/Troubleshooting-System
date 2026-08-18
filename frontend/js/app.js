@@ -22,6 +22,7 @@ const App = (() => {
     approvals: ApprovalsPage,
     teachers: TeachersPage,
     inventory: InventoryPage,
+    lrs: LRSPage,
   };
 
   async function init() {

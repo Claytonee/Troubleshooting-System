@@ -160,6 +160,16 @@ const API = (() => {
       if (!res.ok) throw { status: res.status };
       return res.blob();
     },
+
+    // LRS Inventory (admin-only)
+    getLRS: () => request('GET', '/lrs'),
+    getLRSStats: () => request('GET', '/lrs/stats'),
+    getLRSDevice: (id) => request('GET', `/lrs/${id}`),
+    createLRS: (data) => request('POST', '/lrs', data),
+    updateLRS: (id, data) => request('PUT', `/lrs/${id}`, data),
+    changeLRSStatus: (id, data) => request('PATCH', `/lrs/${id}/status`, data),
+    deleteLRS: (id) => request('DELETE', `/lrs/${id}`),
+
     initSessionMonitor,
   };
 })();

@@ -3,7 +3,7 @@
  * Handles page navigation with hash-based routing for persistence
  */
 const Router = (() => {
-  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'manuals', 'analytics', 'schooladmins', 'branding', 'audit', 'search', 'chat', 'help', 'approvals', 'teachers', 'inventory'];
+  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'manuals', 'analytics', 'schooladmins', 'branding', 'audit', 'search', 'chat', 'help', 'approvals', 'teachers', 'inventory', 'lrs'];
 
   function getPageFromHash() {
     const hash = window.location.hash.replace('#', '');
@@ -46,7 +46,7 @@ const Router = (() => {
     document.querySelectorAll('[data-role="staff"]').forEach(el => el.classList.toggle('nav-hidden', !isStaff));
     document.querySelectorAll('[data-role="no-admin"]').forEach(el => el.classList.toggle('nav-hidden', isAdmin));
 
-    const adminPages = ['analytics', 'schooladmins', 'branding', 'audit', 'approvals'];
+    const adminPages = ['analytics', 'schooladmins', 'branding', 'audit', 'approvals', 'lrs'];
     const schoolPages = ['help', 'teachers'];
     const staffPages = ['tracker', 'followup', 'weekly', 'schools'];
 

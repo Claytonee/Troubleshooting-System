@@ -221,6 +221,51 @@ async function applyExtensions(db) {
     FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE
   )`);
 
+  // --- LRS Inventory Module (admin-only) ---
+  await q(`CREATE TABLE IF NOT EXISTS lrs_devices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    school_id INT NOT NULL,
+    asset_tag VARCHAR(50),
+    hostname VARCHAR(100),
+    serial_number VARCHAR(100),
+    device_model VARCHAR(200),
+    ip_address VARCHAR(50) NOT NULL,
+    mac_address VARCHAR(50),
+    port INT DEFAULT 3000,
+    connection_type VARCHAR(20) DEFAULT 'ethernet',
+    os_version VARCHAR(100),
+    lrs_version VARCHAR(100),
+    storage_gb INT,
+    ram_gb INT,
+    power_type VARCHAR(50) DEFAULT 'adapter',
+    status VARCHAR(20) NOT NULL DEFAULT 'Online',
+    sync_status VARCHAR(20) DEFAULT 'Synced',
+    last_sync DATETIME,
+    last_heartbeat DATETIME,
+    records_pending INT DEFAULT 0,
+    uptime_hours INT DEFAULT 0,
+    notes TEXT,
+    installed_at DATE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_lrs_school (school_id),
+    INDEX idx_lrs_status (status),
+    FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE
+  )`);
+
+  await q(`CREATE TABLE IF NOT EXISTS lrs_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    lrs_id INT NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    old_value VARCHAR(200),
+    new_value VARCHAR(200),
+    actor_name VARCHAR(200),
+    note TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_lrs_history_lrs (lrs_id),
+    FOREIGN KEY (lrs_id) REFERENCES lrs_devices(id) ON DELETE CASCADE
+  )`);
+
   if (failed) console.error(`  schemaExtensions: ${failed} step(s) failed — see errors above.`);
 }
 

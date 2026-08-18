@@ -217,9 +217,19 @@ return `
 - Hover effects: subtle only — `transition: all .15s`
 - No bounce, no elastic, no heavy transforms
 
-### Responsive Breakpoints
-- `920px`: Sidebar collapses to mobile drawer, grids become single-column
-- `520px`: Stats grid becomes single column, tighter padding
+### Responsive Breakpoints (4 mandatory)
+Every page/feature MUST be tested and functional at all 4 breakpoints:
+- `>1200px` (Desktop): Full multi-column layouts, inline stats
+- `920px` (Tablet Landscape): Sidebar collapses to mobile drawer, grids reduce columns, toolbars wrap
+- `768px` (Tablet Portrait): 2-col grids become 1-col, section headers stack vertically, stat badges go 2x2
+- `520px` (Mobile): Single column everything, stacked toolbars, full-width cards, smaller padding/fonts
+
+**Rules:**
+- Use CSS classes (not inline styles) for any layout that needs to adapt
+- Add `@media` rules in `components.css` for each new page/component
+- Grids: use `auto-fill` with `minmax()` on desktop, explicit column counts at smaller breakpoints
+- Modals: `max-width: 100%; padding` reduces on mobile
+- Never ship a feature without verifying all 4 breakpoints
 
 ### Data Display Patterns
 - **Progress bars:** `.progress` (6px height) + `.progress-fill` with inline color
