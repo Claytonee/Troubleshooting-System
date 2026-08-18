@@ -558,6 +558,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .lrs-header-stats { grid-template-columns: 1fr 1fr; }
   .lrs-header-stats > div { font-size: 10px !important; padding: 3px 6px !important; }
   .lrs-toolbar { padding: 8px 10px; flex-direction: column; align-items: stretch; }
-  .section-header { flex-direction: column; align-items: flex-start !important; gap: 10px; }
-  .section-header .lrs-header-actions { width: 100%; justify-content: space-between; }
+  .lrs-header-actions { flex-wrap: wrap; width: 100%; }
+  .lrs-header-actions .btn { order: 2; margin-top: 4px; }
+  .lrs-header-actions .lrs-header-stats { order: 1; width: 100%; }
 }
