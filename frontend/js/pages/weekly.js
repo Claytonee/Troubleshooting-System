@@ -63,7 +63,7 @@ const WeeklyPage = (() => {
     }
     const weekSelector = `
       <button class="btn btn-secondary btn-sm" onclick="WeeklyPage.setWeek(${selectedWeek - 1})" ${selectedWeek <= 1 ? 'disabled style="opacity:.4;cursor:default"' : ''} title="Previous week"><i class="ti ti-chevron-left"></i></button>
-      <div style="width:270px">${Dropdown.render('wk-select', `Week ${selectedWeek} <span style="color:var(--text3);font-weight:400">· ${weekRange(selectedWeek, year)}</span>`, weekItems, { defaultValue: String(selectedWeek), onSelect: "WeeklyPage.setWeek(parseInt(Dropdown.getValue('wk-select')))" })}</div>
+      <div style="flex:1;min-width:180px;max-width:270px">${Dropdown.render('wk-select', `Week ${selectedWeek} <span style="color:var(--text3);font-weight:400">· ${weekRange(selectedWeek, year)}</span>`, weekItems, { defaultValue: String(selectedWeek), onSelect: "WeeklyPage.setWeek(parseInt(Dropdown.getValue('wk-select')))" })}</div>
       <button class="btn btn-secondary btn-sm" onclick="WeeklyPage.setWeek(${selectedWeek + 1})" ${selectedWeek >= 52 ? 'disabled style="opacity:.4;cursor:default"' : ''} title="Next week"><i class="ti ti-chevron-right"></i></button>
       ${selectedWeek !== currentWeek ? `<button class="btn btn-secondary btn-sm" onclick="WeeklyPage.setWeek(${currentWeek})"><i class="ti ti-calendar-pin"></i> This Week</button>` : ''}`;
 
@@ -77,10 +77,10 @@ const WeeklyPage = (() => {
           <span class="dot ${dot}"></span>
           <div><div style="font-weight:500">${esc(s.name)}</div><div style="font-size:11px;color:var(--text3)">${esc(s.zone || '')}</div></div>
         </div></td>
-        <td>${esc(s.contact_name || '—')}</td>
+        <td class="hide-mobile">${esc(s.contact_name || '—')}</td>
         <td><span class="badge ${status === 'green' ? 'badge-green' : status === 'amber' ? 'badge-amber' : status === 'red' ? 'badge-red' : 'badge-gray'}">${label}</span></td>
-        <td>${c ? fmtDay(c.checkin_date || c.created_at) : '—'}</td>
-        <td>${c ? esc(c.note || '—') : '—'}</td>
+        <td class="hide-mobile">${c ? fmtDay(c.checkin_date || c.created_at) : '—'}</td>
+        <td class="hide-mobile">${c ? esc(c.note || '—') : '—'}</td>
         <td>${!c ? `<button class="btn btn-primary btn-sm" data-tip="${TIP.CHECKIN}" onclick="WeeklyPage.openCheckin(${s.id})"><i class="ti ti-clipboard-check"></i> Check-In</button>` : `<button class="btn btn-secondary btn-sm" onclick="WeeklyPage.viewCheckin(${s.id})"><i class="ti ti-eye"></i> View</button>`}</td>
       </tr>`;
     }).join('');
@@ -102,7 +102,7 @@ const WeeklyPage = (() => {
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>School</th><th>Contact</th><th>Status</th><th>Date</th><th>Note</th><th>Action</th></tr></thead>
+          <thead><tr><th>School</th><th class="hide-mobile">Contact</th><th>Status</th><th class="hide-mobile">Date</th><th class="hide-mobile">Note</th><th>Action</th></tr></thead>
           <tbody>${schoolRows}</tbody>
         </table>
       </div>

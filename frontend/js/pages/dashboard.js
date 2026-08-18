@@ -45,7 +45,7 @@ const DashboardPage = (() => {
       return `<tr style="cursor:pointer" onclick="ErrorDetailModal.open(${e.id})">
         <td><span class="dot ${pri.dot}"></span></td>
         <td><span style="font-size:12px;font-weight:500">${esc(e.title)}</span><br><span class="error-id">${e.error_code}</span></td>
-        <td style="font-size:12px;color:var(--text2)">${esc(e.school_name)}</td>
+        <td class="hide-mobile" style="font-size:12px;color:var(--text2)">${esc(e.school_name)}</td>
         <td><span class="badge ${stat.badge}">${stat.label}</span></td>
         <td style="font-size:12px;color:${breach ? 'var(--red)' : 'var(--text3)'}">${ageStr(e.hours_open)}</td></tr>`;
     }).join('') || '<tr><td colspan="5"><div class="empty" style="padding:20px 0"><i class="ti ti-circle-check"></i>No active errors</div></td></tr>';
@@ -80,7 +80,7 @@ const DashboardPage = (() => {
     <div class="card">
       <div class="card-title">Active Priorities <a style="font-size:11px;color:var(--accent);cursor:pointer;text-transform:none;letter-spacing:0" onclick="Router.navigate('tracker');App.loadAndRender()">View all</a></div>
       <div class="table-wrap"><table>
-        <thead><tr><th></th><th>Error</th><th>School</th><th>Status</th><th>Age</th></tr></thead>
+        <thead><tr><th></th><th>Error</th><th class="hide-mobile">School</th><th>Status</th><th>Age</th></tr></thead>
         <tbody>${errorRows}</tbody>
       </table></div>
     </div>

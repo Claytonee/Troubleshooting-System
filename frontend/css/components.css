@@ -535,7 +535,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .inv-toolbar > div { min-width: 0 !important; flex: 1 1 auto; }
   .inv-grid { padding: 10px 14px; grid-template-columns: 1fr 1fr; gap: 8px; }
   .inv-header-actions { flex-wrap: wrap; }
-  .inv-header-stats { order: 1; width: 100%; }
+  .inv-header-stats { order: -1; width: 100%; margin-bottom: 4px; }
   .section-header { flex-wrap: wrap; gap: 10px; padding-left: 16px; padding-right: 16px; }
   .approval-item { flex-direction: column; align-items: flex-start; gap: 10px; }
   .sa-row { flex-wrap: wrap; gap: 8px; }
@@ -553,13 +553,14 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .inv-toolbar > div { min-width: 0 !important; flex: 1; }
 }
 @media (max-width: 520px) {
-  .school-detail-stats { grid-template-columns: 1fr; }
+  .school-detail-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
   .branding-layout { grid-template-columns: 1fr; }
   .followup-layout { grid-template-columns: 1fr; }
   .teachers-link-stats { grid-template-columns: 1fr; }
   .manuals-stats { grid-template-columns: 1fr 1fr; }
   .stat-card { padding: 12px; }
   .stat-val { font-size: 22px; }
+  .hide-mobile { display: none !important; }
   .inv-toolbar { flex-direction: column; align-items: stretch; padding: 8px 10px; }
   .inv-grid { padding: 8px 10px; gap: 6px; }
   .inv-header-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
