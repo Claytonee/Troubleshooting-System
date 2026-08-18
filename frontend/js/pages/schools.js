@@ -112,7 +112,7 @@ const SchoolsPage = (() => {
       </div>
     </div>
 
-    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+    <div class="stats-grid school-detail-stats" style="gap:12px;margin-bottom:16px">
       <div class="stat-card"><div class="stat-label">Students</div><div class="stat-val">${s.students || 0}</div></div>
       <div class="stat-card t"><div class="stat-label">Tablets</div><div class="stat-val" style="color:var(--teal)">${s.tablets || 0}</div></div>
       <div class="stat-card"><div class="stat-label">Routers</div><div class="stat-val">${s.routers || 0}</div></div>

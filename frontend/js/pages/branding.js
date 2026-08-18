@@ -18,7 +18,7 @@ const BrandingPage = (() => {
       <div><div class="section-title">Branding & Appearance</div><div class="section-sub">Customize how the system looks for all users</div></div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 360px;gap:24px;align-items:start">
+    <div class="branding-layout" style="gap:24px;align-items:start">
       <div class="card">
         <div class="card-title">System Identity</div>
         <div class="form-grid" style="gap:18px">

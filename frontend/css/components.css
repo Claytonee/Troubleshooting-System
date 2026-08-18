@@ -506,6 +506,32 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .sa-search { width: 100%; max-width: 360px; padding: 7px 12px; }
 .sa-list { flex: 1; min-height: 0; overflow-y: auto; background: var(--bg2); border: 1px solid var(--border); border-top: none; border-radius: 0 0 10px 10px; padding: 12px 16px; }
 
+/* Page-specific responsive layouts */
+.school-detail-stats { grid-template-columns: repeat(4, 1fr); }
+.branding-layout { display: grid; grid-template-columns: 1fr 360px; }
+.followup-layout { display: grid; grid-template-columns: 1fr 340px; }
+.teachers-link-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+.manuals-stats { grid-template-columns: repeat(4, 1fr); }
+
+@media (max-width: 920px) {
+  .school-detail-stats { grid-template-columns: repeat(2, 1fr); }
+  .branding-layout { grid-template-columns: 1fr; }
+  .followup-layout { grid-template-columns: 1fr; }
+  .teachers-link-stats { grid-template-columns: 1fr 1fr 1fr; }
+  .manuals-stats { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .school-detail-stats { grid-template-columns: repeat(2, 1fr); }
+  .teachers-link-stats { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 520px) {
+  .school-detail-stats { grid-template-columns: 1fr; }
+  .branding-layout { grid-template-columns: 1fr; }
+  .followup-layout { grid-template-columns: 1fr; }
+  .teachers-link-stats { grid-template-columns: 1fr; }
+  .manuals-stats { grid-template-columns: 1fr 1fr; }
+}
+
 /* LRS Inventory Responsive */
 .lrs-header-stats { display: flex; gap: 6px; }
 .lrs-header-actions { display: flex; gap: 8px; align-items: center; }

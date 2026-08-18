@@ -114,7 +114,7 @@ const TeachersPage = (() => {
             <code style="flex:1;font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fullUrl}</code>
             ${active ? `<button class="btn-icon" data-tip="${TIP.COPY_LINK}" onclick="TeachersPage.copyLink('${l.token}')" style="flex-shrink:0"><i class="ti ti-copy"></i></button>` : ''}
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:${active ? '12px' : '0'}">
+          <div class="teachers-link-stats" style="gap:12px;margin-bottom:${active ? '12px' : '0'}">
             <div>
               <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Usage</div>
               <div style="font-size:14px;font-weight:600;color:var(--text)">${l.use_count}<span style="font-size:11px;color:var(--text3);font-weight:400">/${l.max_uses}</span></div>

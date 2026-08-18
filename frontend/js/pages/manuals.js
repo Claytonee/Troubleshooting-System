@@ -112,7 +112,7 @@ const ManualsPage = (() => {
       ${isAdmin ? `<button data-tip="${TIP.UPLOAD}" class="btn btn-primary" onclick="ManualsPage.openUpload()"><i class="ti ti-upload"></i> Upload Resource</button>` : ''}
     </div>
 
-    <div class="stats-grid" style="grid-template-columns:repeat(4, 1fr)">
+    <div class="stats-grid manuals-stats">
       <div class="stat-card"><div class="stat-label">Total Files</div><div class="stat-val">${stats.total}</div><div class="stat-sub">all categories</div></div>
       <div class="stat-card a"><div class="stat-label">Documents</div><div class="stat-val" style="color:var(--amber)">${stats.docs}</div><div class="stat-sub">PDF, PPT, DOC, XLS</div></div>
       <div class="stat-card t"><div class="stat-label">Media</div><div class="stat-val" style="color:var(--teal)">${stats.media}</div><div class="stat-sub">images, video, audio</div></div>
