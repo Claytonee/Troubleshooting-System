@@ -587,7 +587,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .inv-header-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
   .inv-header-actions .btn { font-size: 11px; padding: 5px 10px; }
   .section-header { padding-left: 14px; padding-right: 14px; }
-  .section-header > div:last-child { width: 100%; }
+  .section-header > div:last-child { width: 100%; justify-content: center; }
   .section-header .btn { font-size: 11px; padding: 5px 10px; }
   .detail-info-table tr { display: flex; flex-wrap: wrap; }
   .detail-info-table tr td { flex: 1 1 50%; box-sizing: border-box; }
