@@ -137,6 +137,13 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 /* Grid layouts */
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.report-layout { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+.inv-toolbar { position: sticky; top: 52px; z-index: 100; background: rgba(15,17,23,0.95); backdrop-filter: blur(12px); padding: 10px 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+.inv-grid { padding: 14px 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; }
+.inv-header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.inv-header-stats { display: flex; gap: 6px; flex-wrap: wrap; }
+.detail-info-table td { padding: 9px 12px; font-size: 13px; }
+.detail-info-table td:nth-child(odd) { white-space: nowrap; }
 
 /* Alert banner */
 .alert-banner { display: flex; align-items: center; gap: 12px; background: rgba(255,82,99,0.08); border: 1px solid rgba(255,82,99,0.2); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 20px; }
@@ -514,15 +521,36 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .manuals-stats { grid-template-columns: repeat(4, 1fr); }
 
 @media (max-width: 920px) {
+  .two-col { grid-template-columns: 1fr; }
+  .three-col { grid-template-columns: 1fr 1fr; }
+  .report-layout { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-grid .form-group.full { grid-column: 1; }
   .school-detail-stats { grid-template-columns: repeat(2, 1fr); }
   .branding-layout { grid-template-columns: 1fr; }
   .followup-layout { grid-template-columns: 1fr; }
   .teachers-link-stats { grid-template-columns: 1fr 1fr 1fr; }
   .manuals-stats { grid-template-columns: repeat(2, 1fr); }
+  .inv-toolbar { padding: 10px 14px; flex-wrap: wrap; }
+  .inv-toolbar > div { min-width: 0 !important; flex: 1 1 auto; }
+  .inv-grid { padding: 10px 14px; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .inv-header-actions { flex-wrap: wrap; }
+  .inv-header-stats { order: 1; width: 100%; }
+  .section-header { flex-wrap: wrap; gap: 10px; padding-left: 16px; padding-right: 16px; }
+  .approval-item { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .sa-row { flex-wrap: wrap; gap: 8px; }
+  .sa-row > div[style*="min-width:160px"] { min-width: 0 !important; width: 100%; }
+  .sa-row > div[style*="min-width:140px"] { min-width: 0 !important; width: 100%; }
+  .sa-page { margin: -24px -28px -60px !important; padding: 24px 14px 0 !important; }
+  .sa-toolbar { padding: 10px 12px; }
+  .sa-search { max-width: 100% !important; }
 }
 @media (max-width: 768px) {
+  .three-col { grid-template-columns: 1fr; }
   .school-detail-stats { grid-template-columns: repeat(2, 1fr); }
   .teachers-link-stats { grid-template-columns: 1fr 1fr; }
+  .inv-grid { grid-template-columns: 1fr; }
+  .inv-toolbar > div { min-width: 0 !important; flex: 1; }
 }
 @media (max-width: 520px) {
   .school-detail-stats { grid-template-columns: 1fr; }
@@ -530,6 +558,20 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .followup-layout { grid-template-columns: 1fr; }
   .teachers-link-stats { grid-template-columns: 1fr; }
   .manuals-stats { grid-template-columns: 1fr 1fr; }
+  .stat-card { padding: 12px; }
+  .stat-val { font-size: 22px; }
+  .inv-toolbar { flex-direction: column; align-items: stretch; padding: 8px 10px; }
+  .inv-grid { padding: 8px 10px; gap: 6px; }
+  .inv-header-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .inv-header-actions .btn { font-size: 11px; padding: 5px 10px; }
+  .section-header { padding-left: 12px; padding-right: 12px; }
+  .section-header > div:last-child { width: 100%; }
+  .section-header .btn { font-size: 11px; padding: 5px 10px; }
+  .detail-info-table tr { display: flex; flex-wrap: wrap; }
+  .detail-info-table tr td { flex: 1 1 50%; box-sizing: border-box; }
+  .detail-info-table tr td[colspan] { flex: 1 1 100%; }
+  .sa-row > div[style*="display:flex"][style*="flex-shrink"] { width: 100%; }
+  .sa-list { padding: 8px 10px; }
 }
 
 /* LRS Inventory Responsive */

@@ -38,8 +38,8 @@ const InventoryPage = (() => {
         <div class="section-sub" style="margin:0">${total} devices · ${healthPct}% fleet health</div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <div class="stats-grid" style="display:flex;gap:6px;margin:0">
+    <div class="inv-header-actions">
+      <div class="inv-header-stats">
         <div style="padding:4px 10px;border-radius:6px;background:rgba(45,217,138,.1);font-size:11px;font-weight:600;color:var(--green)">${working} <span style="font-weight:400;opacity:.7">OK</span></div>
         <div style="padding:4px 10px;border-radius:6px;background:rgba(255,82,99,.1);font-size:11px;font-weight:600;color:var(--red)">${faulty} <span style="font-weight:400;opacity:.7">Faulty</span></div>
         <div style="padding:4px 10px;border-radius:6px;background:rgba(245,166,35,.1);font-size:11px;font-weight:600;color:var(--amber)">${inRepair} <span style="font-weight:400;opacity:.7">Repair</span></div>
@@ -51,7 +51,7 @@ const InventoryPage = (() => {
     </div>
   </div>
 
-  <div style="position:sticky;top:52px;z-index:100;background:rgba(15,17,23,0.95);backdrop-filter:blur(12px);padding:10px 20px;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--border)">
+  <div class="inv-toolbar">
     ${isAdmin() ? `<div style="min-width:200px">${Dropdown.render('inv-school', 'All Schools', [{value:'',label:'All Schools'},...schools.map(sc => ({value:sc.id,label:sc.name,tag:sc.zone||''}))], {defaultValue: filters.school_id, onSelect: "InventoryPage.onSchoolSelect()"})}</div>` : ''}
     <div style="min-width:150px">${Dropdown.render('inv-status', 'All Statuses', [
       {value:'',label:'All Statuses'},
@@ -75,7 +75,7 @@ const InventoryPage = (() => {
     <span style="font-size:11px;color:var(--text3);white-space:nowrap">${devices.length} shown</span>
   </div>
 
-  <div style="padding:14px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px">
+  <div class="inv-grid">
     ${devices.length ? devices.map(d => deviceCard(d)).join('') : '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--text3)"><i class="ti ti-device-tablet-off" style="font-size:40px;opacity:.4;display:block;margin-bottom:10px"></i>No devices found</div>'}
   </div>`;
   }
@@ -249,8 +249,8 @@ const InventoryPage = (() => {
       const d = await API.getDevice(id);
       const history = d.history || [];
       Modal.open('Device Detail', `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
-          <table style="width:100%;border-collapse:separate;border-spacing:0;background:var(--bg3);border-radius:10px;border:1px solid var(--border);overflow:hidden;grid-column:1/-1">
+        <div>
+          <table class="detail-info-table" style="width:100%;border-collapse:separate;border-spacing:0;background:var(--bg3);border-radius:10px;border:1px solid var(--border);overflow:hidden">
             <tr><td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-hash" style="font-size:13px;color:var(--accent)"></i>Asset Tag</span></td><td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${esc(d.asset_tag||'-')}</td>
                 <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-barcode" style="font-size:13px;color:var(--teal)"></i>Serial</span></td><td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text);font-family:var(--font-mono)">${esc(d.serial_number)}</td></tr>
             <tr><td colspan="4" style="padding:0;height:1px;background:var(--border)"></td></tr>

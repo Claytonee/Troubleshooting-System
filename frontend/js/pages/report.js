@@ -49,7 +49,7 @@ const ReportPage = (() => {
       <div class="section-title">Report a Technical Error</div>
       <div class="section-sub">Submit a new issue for tracking and resolution</div>
     </div></div>
-    <div class="report-layout" style="display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start">
+    <div class="report-layout">
       <div class="card">
         <div class="form-grid">
           <div class="form-group"><label>Reporting School *</label>${schoolField}</div>
