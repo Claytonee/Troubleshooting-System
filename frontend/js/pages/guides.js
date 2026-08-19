@@ -152,12 +152,12 @@ const GuidesPage = (() => {
 
     return `
     <div id="guide-detail">
-      <div class="guide-breadcrumb reveal">
+      <div class="guide-breadcrumb">
         <button onclick="GuidesPage.selectGuide(null)" style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-arrow-left" style="font-size:13px"></i> All Guides</button>
         <span style="font-size:11px;color:var(--text3)">/ ${esc(g.category)} / ${esc(g.title)}</span>
       </div>
 
-      <div class="guide-detail-grid reveal">
+      <div class="guide-detail-grid">
         <!-- Main content -->
         <div class="card" style="padding:0;overflow:hidden">
           <div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px">
