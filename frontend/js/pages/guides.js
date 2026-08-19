@@ -152,8 +152,8 @@ const GuidesPage = (() => {
 
     return `
     <div id="guide-detail">
-      <div class="reveal" style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-        <button class="btn btn-sm" onclick="GuidesPage.selectGuide(null)" style="gap:5px"><i class="ti ti-arrow-left" style="font-size:13px"></i> Back</button>
+      <div class="guide-breadcrumb reveal">
+        <button onclick="GuidesPage.selectGuide(null)" style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-arrow-left" style="font-size:13px"></i> All Guides</button>
         <span style="font-size:11px;color:var(--text3)">/ ${esc(g.category)} / ${esc(g.title)}</span>
       </div>
 
@@ -172,7 +172,7 @@ const GuidesPage = (() => {
                 <span style="font-size:10px;color:var(--text3)"><i class="ti ti-clock" style="font-size:10px"></i> ${readTime} min</span>
               </div>
             </div>
-            ${isAdmin ? `<button class="btn btn-secondary btn-sm" onclick="GuidesPage.openEdit(${g.id})" style="font-size:11px;gap:4px"><i class="ti ti-pencil" style="font-size:12px"></i> Edit</button>` : ''}
+            ${isAdmin ? `<button onclick="GuidesPage.openEdit(${g.id})" style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-pencil" style="font-size:12px"></i> Edit</button>` : ''}
           </div>
 
           ${allDone ? `<div style="padding:10px 22px;background:rgba(45,217,138,0.05);border-bottom:1px solid rgba(45,217,138,0.12);display:flex;align-items:center;gap:8px">
@@ -195,13 +195,13 @@ const GuidesPage = (() => {
           </div>
 
           <div style="padding:12px 22px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
-            <button class="btn btn-sm" id="guide-escalate-btn" onclick="GuidesPage.escalate(${g.id})" style="gap:4px;font-size:11px"><i class="ti ti-alert-triangle" style="font-size:12px;color:var(--amber)"></i> Escalate</button>
+            <button id="guide-escalate-btn" onclick="GuidesPage.escalate(${g.id})" style="padding:8px 16px;font-size:12px;background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-alert-triangle" style="font-size:12px"></i> Escalate</button>
             <span style="font-size:10px;color:var(--text3);margin-left:auto">Still stuck? Escalate for engineer follow-up</span>
           </div>
         </div>
 
         <!-- Sidebar -->
-        <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="guide-sidebar">
           <!-- Progress card -->
           <div class="card" style="padding:16px">
             <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:10px">Progress</div>
@@ -218,7 +218,7 @@ const GuidesPage = (() => {
                 <div style="font-size:10px;color:var(--text3)">steps done</div>
               </div>
             </div>
-            ${done.length > 0 ? `<button class="btn btn-sm" onclick="GuidesPage.resetProgress(${g.id})" style="width:100%;justify-content:center;font-size:11px;gap:4px"><i class="ti ti-refresh" style="font-size:12px"></i> Reset Progress</button>` : `<div style="font-size:11px;color:var(--text3);text-align:center;padding:4px 0">Click steps to mark complete</div>`}
+            ${done.length > 0 ? `<button onclick="GuidesPage.resetProgress(${g.id})" style="width:100%;padding:7px 12px;font-size:11px;background:rgba(54,217,204,.1);color:var(--teal);border:1px solid rgba(54,217,204,.2);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px"><i class="ti ti-refresh" style="font-size:12px"></i> Reset Progress</button>` : `<div style="font-size:11px;color:var(--text3);text-align:center;padding:4px 0">Click steps to mark complete</div>`}
           </div>
 
           <!-- Info card -->
