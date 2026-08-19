@@ -13,6 +13,7 @@ const App = (() => {
     troubleshoot: GuidesPage,
     manuals: ManualsPage,
     analytics: AnalyticsPage,
+    team: TeamPage,
     schooladmins: SchoolAdminsPage,
     branding: BrandingPage,
     audit: AuditPage,
