@@ -78,69 +78,6 @@ const Auth = (() => {
     const ddRole = document.getElementById('dd-role-badge');
     if (ddRole) ddRole.textContent = roleLabel;
 
-    populateRoleSwitch();
-  }
-
-  async function populateRoleSwitch() {
-    const list = document.getElementById('role-select-list');
-    if (!list) return;
-    const user = API.getUser();
-    if (!user || user.role !== 'admin') {
-      const sw = document.getElementById('role-switch');
-      if (sw) sw.style.display = 'none';
-      return;
-    }
-    try {
-      const team = await API.getTeam();
-      let html = `<div class="reg-dropdown-item" data-value="admin::" onclick="Auth.selectRole('admin::','System Admin (all)')"><span class="reg-dropdown-name">System Admin (all)</span><span class="reg-dropdown-zone">Admin</span></div>`;
-      if (team && team.length) {
-        team.forEach(t => { html += `<div class="reg-dropdown-item" data-value="subadmin::${t.id}" onclick="Auth.selectRole('subadmin::${t.id}','${esc(t.full_name)}')"><span class="reg-dropdown-name">${esc(t.full_name)}</span><span class="reg-dropdown-zone">${esc(t.zone || 'Sub-Admin')}</span></div>`; });
-      }
-      list.innerHTML = html;
-    } catch (e) {
-      list.innerHTML = `<div class="reg-dropdown-item" data-value="admin::" onclick="Auth.selectRole('admin::','System Admin (all)')"><span class="reg-dropdown-name">System Admin (all)</span></div>`;
-    }
-  }
-
-  function toggleRoleDrop(e) {
-    e.stopPropagation();
-    const dd = document.getElementById('role-select-dd');
-    if (!dd) return;
-    const isOpen = dd.style.display !== 'none';
-    dd.style.display = isOpen ? 'none' : 'block';
-    if (!isOpen) {
-      const input = dd.querySelector('input[type="text"]');
-      if (input) { input.value = ''; filterRoleDrop(''); input.focus(); }
-      setTimeout(() => {
-        const close = (ev) => {
-          if (!dd.contains(ev.target) && ev.target.id !== 'role-select-trigger') {
-            dd.style.display = 'none';
-            document.removeEventListener('click', close);
-          }
-        };
-        document.addEventListener('click', close);
-      }, 0);
-    }
-  }
-
-  function filterRoleDrop(q) {
-    const list = document.getElementById('role-select-list');
-    if (!list) return;
-    const query = q.toLowerCase();
-    list.querySelectorAll('.reg-dropdown-item').forEach(item => {
-      item.style.display = item.textContent.toLowerCase().includes(query) ? 'flex' : 'none';
-    });
-  }
-
-  function selectRole(val, label) {
-    const text = document.getElementById('role-select-text');
-    if (text) text.textContent = label;
-    document.getElementById('role-select-dd').style.display = 'none';
-    switchRole(val);
-  }
-
-  function switchRole(val) {
-    App.loadAndRender();
   }
 
   function toggleProfileMenu() {
@@ -480,5 +417,5 @@ const Auth = (() => {
     $('register-content').innerHTML = RegisterPage.render();
   }
 
-  return { init, showLogin, showApp, logout, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, switchRole, toggleRoleDrop, filterRoleDrop, selectRole, goRegister, _switchToEditProfile, _saveProfile, _onAvatarFile };
+  return { init, showLogin, showApp, logout, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, goRegister, _switchToEditProfile, _saveProfile, _onAvatarFile };
 })();

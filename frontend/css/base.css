@@ -55,7 +55,6 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 @media (max-width: 520px) {
   .topbar { padding: 0 12px; gap: 8px; }
   .topbar-search { display: none !important; }
-  .role-switch { display: none !important; }
   .main { padding: 20px 14px 60px; }
   .stats-grid { grid-template-columns: 1fr; gap: 10px; }
   .stat-card { padding: 12px; }

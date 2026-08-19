@@ -69,22 +69,6 @@
           onkeydown="if(event.key==='Enter'){SearchPage.run(this.value)}"
           style="padding:7px 10px 7px 30px;width:220px;border-radius:8px">
       </div>
-      <div class="role-switch" id="role-switch" title="Switch role view">
-        <i class="ti ti-user-cog" style="font-size:14px"></i>
-        <div id="role-select-wrap" style="position:relative">
-          <div class="reg-select" id="role-select-trigger" onclick="Auth.toggleRoleDrop(event)" style="padding:5px 10px;min-width:160px">
-            <span class="reg-select-text selected" id="role-select-text" style="font-size:12px">System Admin</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="reg-select-arrow"><path d="M6 9l6 6 6-6"/></svg>
-          </div>
-          <div class="reg-dropdown" id="role-select-dd" style="display:none;min-width:200px">
-            <div class="reg-dropdown-search">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              <input type="text" placeholder="Search..." oninput="Auth.filterRoleDrop(this.value)">
-            </div>
-            <div class="reg-dropdown-list" id="role-select-list"></div>
-          </div>
-        </div>
-      </div>
       <div class="notif-wrapper" id="notif-wrapper">
         <div class="notif-bell" onclick="Notifications.toggle()">
           <i class="ti ti-bell" style="font-size:20px;color:var(--text2);cursor:pointer"></i>
