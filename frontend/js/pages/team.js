@@ -75,8 +75,9 @@ const TeamPage = (() => {
         </tr>
       </table>
 
-      <div style="display:flex;gap:8px;margin-top:14px;justify-content:space-between">
+      <div style="display:flex;gap:8px;margin-top:14px;justify-content:space-between;flex-wrap:wrap">
         <button onclick="TeamPage.openEdit(${t.id})" style="padding:7px 14px;font-size:11px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-pencil" style="font-size:12px"></i> Edit</button>
+        <button onclick="TeamPage.resetPassword(${t.id})" style="padding:7px 14px;font-size:11px;background:rgba(245,166,35,.08);color:var(--amber);border:1px solid rgba(245,166,35,.2);border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-key" style="font-size:12px"></i> Reset Pass</button>
         <button onclick="TeamPage.remove(${t.id})" style="padding:7px 14px;font-size:11px;background:rgba(255,82,99,.08);color:var(--red);border:1px solid rgba(255,82,99,.2);border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-trash" style="font-size:12px"></i> Remove</button>
       </div>
     </div>`;
@@ -193,6 +194,37 @@ const TeamPage = (() => {
     }
   }
 
+  function resetPassword(id) {
+    const t = team.find(x => x.id === id);
+    if (!t) return;
+    const body = `<div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:13px;color:var(--text2)">Reset password for <strong>${esc(t.full_name)}</strong></div>
+      <div class="form-group">
+        <label>New Password</label>
+        <input type="text" id="tm-reset-pw" placeholder="Leave blank for default (changeme123)">
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">The sub-admin should change this on next login</div>
+      </div>
+    </div>`;
+    const footer = `
+      <button onclick="Modal.close()" style="padding:8px 16px;font-size:12px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:8px;cursor:pointer">Cancel</button>
+      <button id="tm-reset-btn" onclick="TeamPage.doResetPassword(${id})" style="padding:8px 16px;font-size:12px;background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-key" style="font-size:12px"></i> Reset Password</button>`;
+    Modal.open('Reset Password', body, footer);
+  }
+
+  async function doResetPassword(id) {
+    const password = document.getElementById('tm-reset-pw').value.trim();
+    const btn = document.getElementById('tm-reset-btn');
+    btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Resetting...';
+    try {
+      const res = await API.resetTeamPassword(id, password || undefined);
+      Modal.close();
+      showToast(`Password reset to: ${res.password || 'changeme123'}`);
+    } catch (e) {
+      showToast(e.error || 'Could not reset password');
+      btn.disabled = false; btn.innerHTML = '<i class="ti ti-key" style="font-size:12px"></i> Reset Password';
+    }
+  }
+
   async function remove(id) {
     const t = team.find(x => x.id === id);
     if (!t) return;
@@ -211,5 +243,5 @@ const TeamPage = (() => {
     if (main) main.querySelectorAll('.reveal').forEach(c => c.classList.add('visible'));
   }
 
-  return { load, render, afterRender, openAdd, openEdit, submitAdd, submitEdit, remove };
+  return { load, render, afterRender, openAdd, openEdit, submitAdd, submitEdit, resetPassword, doResetPassword, remove };
 })();

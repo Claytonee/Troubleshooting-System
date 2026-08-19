@@ -110,6 +110,7 @@ const API = (() => {
     createTeamMember: (data) => request('POST', '/team', data),
     updateTeamMember: (id, data) => request('PUT', `/team/${id}`, data),
     removeTeamMember: (id, reassignTo) => request('DELETE', `/team/${id}`, { reassign_to: reassignTo }),
+    resetTeamPassword: (id, password) => request('PATCH', `/team/${id}/reset-password`, { password }),
     getSchoolAdmins: () => request('GET', '/school-admins'),
     getSchoolAdmin: (id) => request('GET', `/school-admins/${id}`),
     createSchoolAdmin: (data) => request('POST', '/school-admins', data),

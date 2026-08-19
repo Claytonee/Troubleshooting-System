@@ -112,4 +112,21 @@ async function assignSchools(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getById, create, update, remove, assignSchools };
+async function resetPassword(req, res, next) {
+  try {
+    const { password } = req.body;
+    const newPass = password || 'changeme123';
+    const hash = await bcrypt.hash(newPass, 10);
+    const [result] = await pool.query('UPDATE users SET password_hash = ? WHERE id = ? AND role = ?', [hash, req.params.id, 'subadmin']);
+    if (!result.affectedRows) return res.status(404).json({ error: 'Sub-admin not found.' });
+
+    await logAudit({
+      actor: req.user, ip: req.ip, action: 'sub_admin.password_reset', entityType: 'sub_admin', entityId: req.params.id,
+      summary: `Reset password for sub-admin #${req.params.id}`
+    });
+
+    res.json({ message: 'Password reset successfully.', password: newPass });
+  } catch (err) { next(err); }
+}
+
+module.exports = { getAll, getById, create, update, remove, assignSchools, resetPassword };

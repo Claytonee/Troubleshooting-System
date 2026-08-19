@@ -29,6 +29,8 @@ router.patch('/:id/schools', [
   validate
 ], teamController.assignSchools);
 
+router.patch('/:id/reset-password', teamController.resetPassword);
+
 router.delete('/:id', teamController.remove);
 
 module.exports = router;
