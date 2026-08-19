@@ -24,7 +24,7 @@ const TeamPage = (() => {
         <div class="section-title">Sub-Admins</div>
         <div class="section-sub">Field engineers · ${team.length} members</div>
       </div>
-      <button onclick="TeamPage.openAdd()" style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-plus" style="font-size:13px"></i> Add Sub-Admin</button>
+      <button data-tip="Add Sub-Admin · Create a new field engineer account and assign them to a region" onclick="TeamPage.openAdd()" style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-plus" style="font-size:13px"></i> Add Sub-Admin</button>
     </div>
 
     ${!team.length ? emptyState() : `
@@ -76,9 +76,9 @@ const TeamPage = (() => {
       </table>
 
       <div style="display:flex;gap:8px;margin-top:14px;justify-content:space-between;flex-wrap:wrap">
-        <button onclick="TeamPage.openEdit(${t.id})" style="padding:7px 14px;font-size:11px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-pencil" style="font-size:12px"></i> Edit</button>
-        <button onclick="TeamPage.resetPassword(${t.id})" style="padding:7px 14px;font-size:11px;background:rgba(245,166,35,.08);color:var(--amber);border:1px solid rgba(245,166,35,.2);border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-key" style="font-size:12px"></i> Reset Pass</button>
-        <button onclick="TeamPage.remove(${t.id})" style="padding:7px 14px;font-size:11px;background:rgba(255,82,99,.08);color:var(--red);border:1px solid rgba(255,82,99,.2);border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-trash" style="font-size:12px"></i> Remove</button>
+        <button data-tip="Edit · Update this sub-admin's name, email, zone, or title" onclick="TeamPage.openEdit(${t.id})" style="padding:7px 14px;font-size:11px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-pencil" style="font-size:12px"></i> Edit</button>
+        <button data-tip="Reset Password · Generate a new password for this sub-admin to share with them" data-tip-color="amber" onclick="TeamPage.resetPassword(${t.id})" style="padding:7px 14px;font-size:11px;background:rgba(245,166,35,.08);color:var(--amber);border:1px solid rgba(245,166,35,.2);border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-key" style="font-size:12px"></i> Reset Pass</button>
+        <button data-tip="Remove · Permanently delete this sub-admin and unassign their schools" data-tip-color="red" onclick="TeamPage.remove(${t.id})" style="padding:7px 14px;font-size:11px;background:rgba(255,82,99,.08);color:var(--red);border:1px solid rgba(255,82,99,.2);border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-trash" style="font-size:12px"></i> Remove</button>
       </div>
     </div>`;
   }
