@@ -73,6 +73,18 @@ const GuidesPage = (() => {
     const user = API.getUser();
     const isAdmin = user && user.role === 'admin';
 
+    if (selected) {
+      return `
+      <div class="section-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onclick="GuidesPage.selectGuide(null)" style="padding:7px 14px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-arrow-left" style="font-size:13px"></i> All Guides</button>
+          <span style="font-size:11px;color:var(--text3)">/ ${esc(selected.category)} / ${esc(selected.title)}</span>
+        </div>
+        ${isAdmin ? `<button onclick="GuidesPage.openEdit(${selected.id})" style="padding:7px 14px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-pencil" style="font-size:12px"></i> Edit</button>` : ''}
+      </div>
+      ${renderDetailView(selected)}`;
+    }
+
     return `
     <div class="section-header">
       <div>
@@ -81,8 +93,7 @@ const GuidesPage = (() => {
       </div>
       ${isAdmin ? `<button class="btn btn-primary" data-tip="${TIP.ADD_GUIDE}" onclick="GuidesPage.openAdd()"><i class="ti ti-plus"></i> Add Guide</button>` : ''}
     </div>
-
-    ${selected ? renderDetailView(selected) : renderListView(categories, filtered)}`;
+    ${renderListView(categories, filtered)}`;
   }
 
   function renderListView(categories, filtered) {
@@ -152,11 +163,6 @@ const GuidesPage = (() => {
 
     return `
     <div id="guide-detail">
-      <div class="guide-breadcrumb">
-        <button onclick="GuidesPage.selectGuide(null)" style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-arrow-left" style="font-size:13px"></i> All Guides</button>
-        <span style="font-size:11px;color:var(--text3)">/ ${esc(g.category)} / ${esc(g.title)}</span>
-      </div>
-
       <div class="guide-detail-grid">
         <!-- Main content -->
         <div class="card" style="padding:0;overflow:hidden">
@@ -172,7 +178,6 @@ const GuidesPage = (() => {
                 <span style="font-size:10px;color:var(--text3)"><i class="ti ti-clock" style="font-size:10px"></i> ${readTime} min</span>
               </div>
             </div>
-            ${isAdmin ? `<button onclick="GuidesPage.openEdit(${g.id})" style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-pencil" style="font-size:12px"></i> Edit</button>` : ''}
           </div>
 
           ${allDone ? `<div style="padding:10px 22px;background:rgba(45,217,138,0.05);border-bottom:1px solid rgba(45,217,138,0.12);display:flex;align-items:center;gap:8px">

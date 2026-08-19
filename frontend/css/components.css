@@ -521,7 +521,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .manuals-stats { grid-template-columns: repeat(4, 1fr); }
 .help-layout { display: grid; grid-template-columns: 200px 1fr; gap: 16px; align-items: start; }
 .guide-detail-grid { display: grid; grid-template-columns: 1fr 240px; gap: 14px; align-items: start; }
-.guide-breadcrumb { display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 8; padding: 10px 0; margin-bottom: 6px; background: var(--bg); }
 .guide-sidebar { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 50px; }
 .tracker-search { width: 200px; }
 .tracker-sticky-header { position: sticky; top: -24px; z-index: 10; padding: 24px 0 12px; margin: -24px -28px 16px; padding-left: 28px; padding-right: 28px; background: rgba(15,17,23,0.88); backdrop-filter: blur(12px); }
