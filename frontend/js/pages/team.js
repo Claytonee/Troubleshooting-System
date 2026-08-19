@@ -3,18 +3,18 @@
  */
 const TeamPage = (() => {
   let team = [];
-  let zones = [];
+  const REGIONS = [
+    'Arusha', 'Dar es Salaam', 'Dodoma', 'Geita', 'Iringa', 'Kagera', 'Katavi',
+    'Kigoma', 'Kilimanjaro', 'Lindi', 'Manyara', 'Mara', 'Mbeya', 'Morogoro',
+    'Mtwara', 'Mwanza', 'Njombe', 'Pemba Kaskazini', 'Pemba Kusini', 'Pwani',
+    'Rukwa', 'Ruvuma', 'Shinyanga', 'Simiyu', 'Singida', 'Songwe', 'Tabora',
+    'Tanga', 'Unguja Kaskazini', 'Unguja Kusini', 'Unguja Mjini Magharibi', 'Remote / HQ'
+  ];
 
   function isAdmin() { const u = API.getUser(); return u && u.role === 'admin'; }
 
   async function load() {
     try { team = await API.getTeam(); } catch (e) { team = []; }
-    try {
-      const schools = await API.getSchools();
-      const schoolZones = schools.map(s => s.zone).filter(Boolean);
-      const teamZones = team.map(t => t.zone).filter(Boolean);
-      zones = [...new Set([...schoolZones, ...teamZones, 'HQ', 'Remote / HQ'])].sort();
-    } catch (e) { zones = ['HQ', 'Remote / HQ']; }
   }
 
   function render() {
@@ -129,7 +129,7 @@ const TeamPage = (() => {
       </div>
       <div class="form-group">
         <label>Zone / Location</label>
-        ${Dropdown.render('tm-zone', 'Select zone...', zones.map(z => ({ value: z, label: z })), { defaultValue: isEdit ? (t.zone || '') : '' })}
+        ${Dropdown.render('tm-zone', 'Select region...', REGIONS.map(z => ({ value: z, label: z })), { defaultValue: isEdit ? (t.zone || '') : '' })}
       </div>
       <div class="form-group">
         <label>Title</label>
