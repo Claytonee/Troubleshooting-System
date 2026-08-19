@@ -3,11 +3,18 @@
  */
 const TeamPage = (() => {
   let team = [];
+  let zones = [];
 
   function isAdmin() { const u = API.getUser(); return u && u.role === 'admin'; }
 
   async function load() {
     try { team = await API.getTeam(); } catch (e) { team = []; }
+    try {
+      const schools = await API.getSchools();
+      const schoolZones = schools.map(s => s.zone).filter(Boolean);
+      const teamZones = team.map(t => t.zone).filter(Boolean);
+      zones = [...new Set([...schoolZones, ...teamZones, 'HQ', 'Remote / HQ'])].sort();
+    } catch (e) { zones = ['HQ', 'Remote / HQ']; }
   }
 
   function render() {
@@ -122,7 +129,7 @@ const TeamPage = (() => {
       </div>
       <div class="form-group">
         <label>Zone / Location</label>
-        <input type="text" id="tm-zone" placeholder="e.g. Moshi Zone" value="${isEdit ? esc(t.zone || '') : ''}">
+        ${Dropdown.render('tm-zone', 'Select zone...', zones.map(z => ({ value: z, label: z })), { defaultValue: isEdit ? (t.zone || '') : '' })}
       </div>
       <div class="form-group">
         <label>Title</label>
@@ -141,7 +148,7 @@ const TeamPage = (() => {
     const username = document.getElementById('tm-username').value.trim();
     const email = document.getElementById('tm-email').value.trim();
     const phone = document.getElementById('tm-phone').value.trim();
-    const zone = document.getElementById('tm-zone').value.trim();
+    const zone = Dropdown.getValue('tm-zone') || '';
     const title = document.getElementById('tm-title').value.trim();
     const password = document.getElementById('tm-password').value.trim();
 
@@ -166,7 +173,7 @@ const TeamPage = (() => {
     const full_name = document.getElementById('tm-name').value.trim();
     const email = document.getElementById('tm-email').value.trim();
     const phone = document.getElementById('tm-phone').value.trim();
-    const zone = document.getElementById('tm-zone').value.trim();
+    const zone = Dropdown.getValue('tm-zone') || '';
     const title = document.getElementById('tm-title').value.trim();
 
     if (!full_name || !email) { showToast('Name and email are required'); return; }
