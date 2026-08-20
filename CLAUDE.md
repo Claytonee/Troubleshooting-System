@@ -243,7 +243,9 @@ Every page/feature MUST be tested and functional at all 4 breakpoints:
 - Auto-migration on startup (for Render free tier without shell)
 - Demo data seeding when schools table is empty
 - JWT in Authorization header, 7-day expiry
-- Role-based access: admin > subadmin > school
+- Role-based access: admin > subadmin > school > teacher
+- Sub-admin accounts are created by admin via #team page; **default password: `changeme123`** (when none specified)
+- Admin can reset a sub-admin's password via PATCH /api/team/:id/reset-password
 - API prefix: `/api/` (auth, errors, schools, checkins, team, settings, dashboard, communications, guides, manuals)
 - File uploads go to Cloudinary (not local disk)
 - Rate limiting: 20 req/15min login, 200 req/15min general API

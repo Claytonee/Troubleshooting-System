@@ -412,7 +412,11 @@ Authorization: Bearer <jwt_token>
 | GET | /:id | Yes | any | Sub-admin detail |
 | POST | / | Yes | admin | Create sub-admin |
 | PUT | /:id | Yes | admin | Update profile |
+| PATCH | /:id/reset-password | Yes | admin | Reset sub-admin password |
+| PATCH | /:id/schools | Yes | admin | Assign schools to sub-admin |
 | DELETE | /:id | Yes | admin | Remove |
+
+**Default Password:** When a sub-admin is created without specifying a password, the system assigns `changeme123` as the default. The admin should share this with the sub-admin, who must change it on first login via Profile > Change Password.
 
 #### Check-Ins (`/api/checkins`)
 | Method | Path | Auth | Role | Description |
