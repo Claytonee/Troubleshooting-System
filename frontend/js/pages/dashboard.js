@@ -270,7 +270,7 @@ const DashboardPage = (() => {
       <div class="section-title">${greeting}, ${esc((user.full_name || '').split(' ')[0])}</div>
       <div class="section-sub">${urgentCount > 0 ? `<span style="color:var(--amber)">${urgentCount} urgent</span> · ` : ''}${queueCount} in queue · Week ${checkins.current_week || ''}</div>
     </div>
-    <div style="display:flex;gap:10px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px" onclick="Router.navigate('tracker');App.loadAndRender()"><i class="ti ti-list-check" style="font-size:13px"></i> All Errors</button>
       <button style="padding:8px 16px;font-size:12px;background:rgba(54,217,204,.12);color:var(--teal);border:1px solid rgba(54,217,204,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px" onclick="Router.navigate('schools');App.loadAndRender()"><i class="ti ti-school" style="font-size:13px"></i> My Schools</button>
     </div>

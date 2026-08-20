@@ -633,9 +633,14 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .sa-layout { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 768px) {
-  .sa-metrics { grid-template-columns: 1fr !important; }
+  .sa-metrics { grid-template-columns: 1fr 1fr !important; }
+  .sa-metrics > div { padding: 14px !important; gap: 12px !important; }
+  .sa-metrics > div svg { width: 48px !important; height: 48px !important; }
+  .sa-layout { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 520px) {
-  .sa-task-card { padding: 12px !important; }
-  .sa-metrics > div { padding: 14px !important; }
+  .sa-metrics { grid-template-columns: 1fr !important; }
+  .sa-metrics > div { padding: 12px !important; }
+  .sa-task-card { padding: 10px 12px !important; }
+  .sa-task-card > div:last-child { flex-wrap: wrap; }
 }
