@@ -36,7 +36,7 @@ const Notifications = (() => {
           pending.forEach(r => {
             items.push({
               type: 'approval',
-              icon: 'ti-user-plus',
+              icon: 'ti ti-user-plus',
               color: 'var(--amber)',
               title: `${r.full_name} wants to register`,
               sub: `${r.school_name || 'Unknown school'} · ${timeAgo(r.created_at)}`,
@@ -52,7 +52,7 @@ const Notifications = (() => {
           appeals.filter(a => a.status === 'pending').forEach(a => {
             items.push({
               type: 'appeal',
-              icon: 'ti-message-report',
+              icon: 'ti ti-message-report',
               color: 'var(--purple)',
               title: `Appeal from ${a.full_name}`,
               sub: `"${truncate(a.message, 40)}" · ${timeAgo(a.created_at)}`,
@@ -68,7 +68,7 @@ const Notifications = (() => {
           notifs.filter(n => !n.is_read).forEach(n => {
             items.push({
               type: 'contact_update',
-              icon: 'ti-address-book',
+              icon: 'ti ti-address-book',
               color: 'var(--teal)',
               title: n.title,
               sub: `${n.message} · ${timeAgo(n.created_at)}`,
@@ -93,7 +93,7 @@ const Notifications = (() => {
             const meta = typeof n.meta === 'string' ? JSON.parse(n.meta) : n.meta;
             items.push({
               type: 'error_assigned',
-              icon: 'ti-alert-circle',
+              icon: 'ti ti-alert-circle',
               color: 'var(--amber)',
               title: n.title,
               sub: `${n.message ? truncate(n.message, 50) : ''} · ${timeAgo(n.created_at)}`,
@@ -121,7 +121,7 @@ const Notifications = (() => {
           pending.forEach(t => {
             items.push({
               type: 'teacher',
-              icon: 'ti-users-group',
+              icon: 'ti ti-users-group',
               color: 'var(--teal)',
               title: `${t.full_name} wants to join`,
               sub: `Teacher registration · ${timeAgo(t.created_at)}`,
@@ -139,7 +139,7 @@ const Notifications = (() => {
         if (crit > 0) {
           items.push({
             type: 'critical',
-            icon: 'ti-alert-triangle',
+            icon: 'ti ti-alert-triangle',
             color: 'var(--red)',
             title: `${crit} critical error${crit > 1 ? 's' : ''} open`,
             sub: 'Requires immediate attention',
