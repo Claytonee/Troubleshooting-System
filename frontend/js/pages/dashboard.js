@@ -13,6 +13,7 @@ const DashboardPage = (() => {
     if (!data) return '<div class="empty"><i class="ti ti-loader"></i>Loading dashboard...</div>';
 
     if (data.type === 'teacher') return renderTeacher();
+    if (data.type === 'subadmin') return renderSubadmin();
 
     const { schools_total, schools_healthy, errors, recent_errors, checkins, category_breakdown } = data;
     const user = API.getUser();
@@ -164,6 +165,95 @@ const DashboardPage = (() => {
       <div style="font-size:14px;font-weight:500;margin-bottom:6px">Resource Library</div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Manuals, guides, and reference documents</div>
       <button class="btn btn-secondary btn-sm" onclick="Router.navigate('manuals');App.loadAndRender()">Browse Resources</button>
+    </div>
+  </div>`;
+  }
+
+  function renderSubadmin() {
+    const user = API.getUser();
+    const { my_queue, stats, my_schools, recent_activity, checkins } = data;
+    const queueCount = parseInt(stats.queue_count) || 0;
+    const dueSoon = parseInt(stats.due_soon) || 0;
+    const overdue = parseInt(stats.overdue) || 0;
+    const resolvedWeek = parseInt(stats.resolved_week) || 0;
+    const schoolCount = my_schools.length;
+    const checkinDone = checkins.done || 0;
+    const checkinTotal = checkins.total || 0;
+
+    const queueRows = (my_queue || []).map(e => {
+      const pri = PRI[e.priority] || PRI.medium;
+      const stat = STAT[e.status] || STAT.open;
+      const breach = e.sla_breached == 1;
+      const minsLeft = e.sla_minutes_left;
+      let slaLabel = '';
+      if (breach) slaLabel = `<span style="color:var(--red);font-weight:500">OVERDUE</span>`;
+      else if (minsLeft != null && minsLeft <= 120) slaLabel = `<span style="color:var(--amber);font-weight:500">${Math.max(0, Math.round(minsLeft / 60))}h left</span>`;
+      else if (minsLeft != null) slaLabel = `<span style="color:var(--text3)">${Math.round(minsLeft / 60)}h left</span>`;
+      else slaLabel = `<span style="color:var(--text3)">${ageStr(e.hours_open)}</span>`;
+
+      return `<tr style="cursor:pointer" onclick="ErrorDetailModal.open(${e.id})">
+        <td><span class="dot ${pri.dot}"></span></td>
+        <td><span style="font-size:12px;font-weight:500">${esc(e.title)}</span><br><span class="error-id">${e.error_code}</span></td>
+        <td class="hide-mobile" style="font-size:12px;color:var(--text2)">${esc(e.school_name)}</td>
+        <td><span class="badge ${stat.badge}">${stat.label}</span></td>
+        <td style="font-size:11px">${slaLabel}</td></tr>`;
+    }).join('') || '<tr><td colspan="5"><div class="empty" style="padding:30px 0"><i class="ti ti-circle-check" style="font-size:24px;color:var(--green);margin-bottom:8px"></i><div style="font-size:13px;color:var(--text2)">No errors in your queue</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Errors assigned to you will appear here</div></div></td></tr>';
+
+    const schoolList = (my_schools || []).map(s => {
+      const health = s.critical_errors > 0 ? 'var(--red)' : s.open_errors > 0 ? 'var(--amber)' : 'var(--green)';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="Router.navigate('schools');App.loadAndRender()">
+        <span style="width:8px;height:8px;border-radius:50%;background:${health};flex-shrink:0"></span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:500;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.name)}</div>
+          <div style="font-size:10px;color:var(--text3)">${esc(s.zone || '')}</div>
+        </div>
+        <span style="font-size:11px;color:${s.open_errors > 0 ? 'var(--amber)' : 'var(--text3)'}">${s.open_errors} open</span>
+      </div>`;
+    }).join('') || '<div class="empty" style="padding:20px 0;font-size:12px"><i class="ti ti-school" style="font-size:20px;color:var(--text3);margin-bottom:6px"></i><div>No schools assigned yet</div></div>';
+
+    const activityList = (recent_activity || []).map(a => {
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text3)">${esc(a.recorded_by)} · <span class="error-id">${a.error_code}</span> · ${relTime(a.created_at)}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px">${esc((a.note || '').substring(0, 80))}${(a.note || '').length > 80 ? '...' : ''}</div>
+      </div>`;
+    }).join('') || '<div class="empty" style="padding:20px 0;font-size:12px"><div>No recent activity</div></div>';
+
+    return `
+  <div class="section-header">
+    <div>
+      <div class="section-title">My Dashboard</div>
+      <div class="section-sub">Field Engineer · ${esc(user.full_name || '')}</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px" onclick="Router.navigate('tracker');App.loadAndRender()"><i class="ti ti-list-check" style="font-size:13px"></i> Error Tracker</button>
+    </div>
+  </div>
+
+  <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+    <div class="stat-card r"><div class="stat-label">My Queue</div><div class="stat-val" style="color:var(--red)">${queueCount}</div><div class="stat-sub">errors assigned to me</div></div>
+    <div class="stat-card a"><div class="stat-label">${overdue > 0 ? 'Overdue' : 'Due Soon'}</div><div class="stat-val" style="color:var(--amber)">${overdue > 0 ? overdue : dueSoon}</div><div class="stat-sub">${overdue > 0 ? 'SLA breached — act now' : 'within 2 hours'}</div></div>
+    <div class="stat-card g"><div class="stat-label">Resolved (7d)</div><div class="stat-val" style="color:var(--green)">${resolvedWeek}</div><div class="stat-sub">this week</div></div>
+    <div class="stat-card t"><div class="stat-label">My Schools</div><div class="stat-val" style="color:var(--teal)">${schoolCount}</div><div class="stat-sub">${checkinDone}/${checkinTotal} checked in</div></div>
+  </div>
+
+  <div class="two-col" style="align-items:start">
+    <div class="card">
+      <div class="card-title">My Error Queue <a style="font-size:11px;color:var(--accent);cursor:pointer;text-transform:none;letter-spacing:0" onclick="Router.navigate('tracker');App.loadAndRender()">View all</a></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th></th><th>Error</th><th class="hide-mobile">School</th><th>Status</th><th>SLA</th></tr></thead>
+        <tbody>${queueRows}</tbody>
+      </table></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-title">My Schools</div>
+        <div style="display:flex;flex-direction:column">${schoolList}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Recent Activity</div>
+        <div style="display:flex;flex-direction:column">${activityList}</div>
+      </div>
     </div>
   </div>`;
   }

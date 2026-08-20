@@ -2,20 +2,18 @@ const pool = require('../config/database');
 
 async function getDashboard(req, res) {
   try {
-    // Teacher-specific dashboard
     if (req.user.role === 'teacher') {
       return getTeacherDashboard(req, res);
+    }
+    if (req.user.role === 'subadmin') {
+      return getSubadminDashboard(req, res);
     }
 
     let schoolFilter = '';
     let errorFilter = '';
     const params = [];
 
-    if (req.user.role === 'subadmin') {
-      schoolFilter = 'WHERE s.assigned_admin_id = ?';
-      errorFilter = 'AND e.school_id IN (SELECT id FROM schools WHERE assigned_admin_id = ?)';
-      params.push(req.user.id);
-    } else if (req.user.role === 'school') {
+    if (req.user.role === 'school') {
       schoolFilter = 'WHERE s.id = ?';
       errorFilter = 'AND e.school_id = ?';
       params.push(req.user.school_id);
@@ -117,6 +115,78 @@ async function getTeacherDashboard(req, res) {
     });
   } catch (err) {
     console.error('Teacher dashboard error:', err.message);
+    res.status(500).json({ error: 'Failed to load dashboard.' });
+  }
+}
+
+async function getSubadminDashboard(req, res) {
+  try {
+    const userId = req.user.id;
+
+    // My queue: errors assigned directly to me
+    const [myQueue] = await pool.query(`
+      SELECT e.id, e.error_code, e.title, e.priority, e.status, e.hours_open, e.created_at, e.sla_due_at,
+      CASE WHEN e.sla_due_at IS NOT NULL AND e.sla_due_at < NOW() THEN 1 ELSE 0 END AS sla_breached,
+      TIMESTAMPDIFF(MINUTE, NOW(), e.sla_due_at) AS sla_minutes_left,
+      s.name as school_name
+      FROM errors e JOIN schools s ON e.school_id = s.id
+      WHERE e.assigned_to = ? AND e.status != 'resolved'
+      ORDER BY FIELD(e.priority, 'critical', 'high', 'medium', 'low'), e.sla_due_at ASC
+    `, [userId]);
+
+    // Personal stats
+    const [stats] = await pool.query(`
+      SELECT
+        SUM(CASE WHEN e.status != 'resolved' AND e.assigned_to = ? THEN 1 ELSE 0 END) as queue_count,
+        SUM(CASE WHEN e.status != 'resolved' AND e.assigned_to = ? AND e.sla_due_at IS NOT NULL AND e.sla_due_at < DATE_ADD(NOW(), INTERVAL 2 HOUR) AND e.sla_due_at > NOW() THEN 1 ELSE 0 END) as due_soon,
+        SUM(CASE WHEN e.status != 'resolved' AND e.assigned_to = ? AND e.sla_due_at IS NOT NULL AND e.sla_due_at < NOW() THEN 1 ELSE 0 END) as overdue,
+        SUM(CASE WHEN e.assigned_to = ? AND e.status = 'resolved' AND e.resolved_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as resolved_week,
+        SUM(CASE WHEN e.assigned_to = ? AND e.status = 'resolved' THEN 1 ELSE 0 END) as total_resolved
+      FROM errors e WHERE e.assigned_to = ?
+    `, [userId, userId, userId, userId, userId, userId]);
+
+    // My schools with health status
+    const [mySchools] = await pool.query(`
+      SELECT s.id, s.name, s.code, s.zone,
+        (SELECT COUNT(*) FROM errors e WHERE e.school_id = s.id AND e.status != 'resolved') as open_errors,
+        (SELECT COUNT(*) FROM errors e WHERE e.school_id = s.id AND e.status != 'resolved' AND e.priority IN ('critical','high')) as critical_errors
+      FROM schools s WHERE s.assigned_admin_id = ?
+      ORDER BY critical_errors DESC, open_errors DESC, s.name ASC
+    `, [userId]);
+
+    // Recent activity on my errors
+    const [recentActivity] = await pool.query(`
+      SELECT eu.note, eu.recorded_by, eu.created_at, e.error_code, e.title
+      FROM error_updates eu
+      JOIN errors e ON eu.error_id = e.id
+      WHERE e.assigned_to = ?
+      ORDER BY eu.created_at DESC LIMIT 5
+    `, [userId]);
+
+    // Check-ins for my schools
+    const nowD = new Date();
+    const wd = new Date(Date.UTC(nowD.getFullYear(), nowD.getMonth(), nowD.getDate()));
+    wd.setUTCDate(wd.getUTCDate() - ((wd.getUTCDay() + 6) % 7) + 3);
+    const firstThu = new Date(Date.UTC(wd.getUTCFullYear(), 0, 4));
+    firstThu.setUTCDate(firstThu.getUTCDate() - ((firstThu.getUTCDay() + 6) % 7) + 3);
+    const currentWeek = Math.min(52, Math.max(1, 1 + Math.round((wd - firstThu) / (7 * 86400000))));
+
+    const [checkinStats] = await pool.query(`
+      SELECT COUNT(*) as done FROM weekly_checkins wc
+      JOIN schools s ON wc.school_id = s.id
+      WHERE wc.week_number = ? AND wc.term = ? AND s.assigned_admin_id = ?
+    `, [currentWeek, String(nowD.getFullYear()), userId]);
+
+    res.json({
+      type: 'subadmin',
+      my_queue: myQueue,
+      stats: stats[0],
+      my_schools: mySchools,
+      recent_activity: recentActivity,
+      checkins: { done: checkinStats[0].done, total: mySchools.length, current_week: currentWeek }
+    });
+  } catch (err) {
+    console.error('Subadmin dashboard error:', err.message);
     res.status(500).json({ error: 'Failed to load dashboard.' });
   }
 }
