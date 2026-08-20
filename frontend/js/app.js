@@ -20,6 +20,7 @@ const App = (() => {
     search: SearchPage,
     chat: ChatPage,
     help: HelpPage,
+    fieldguide: FieldGuidePage,
     approvals: ApprovalsPage,
     teachers: TeachersPage,
     inventory: InventoryPage,
