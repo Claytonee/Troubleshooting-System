@@ -176,83 +176,173 @@ const DashboardPage = (() => {
     const dueSoon = parseInt(stats.due_soon) || 0;
     const overdue = parseInt(stats.overdue) || 0;
     const resolvedWeek = parseInt(stats.resolved_week) || 0;
+    const totalResolved = parseInt(stats.total_resolved) || 0;
+    const resolvedSla = parseInt(stats.resolved_within_sla) || 0;
+    const totalWithSla = parseInt(stats.total_with_sla) || 0;
+    const slaPct = totalWithSla > 0 ? Math.round(resolvedSla / totalWithSla * 100) : 100;
     const schoolCount = my_schools.length;
     const checkinDone = checkins.done || 0;
     const checkinTotal = checkins.total || 0;
+    const checkinPct = checkinTotal > 0 ? Math.round(checkinDone / checkinTotal * 100) : 0;
 
-    const queueRows = (my_queue || []).map(e => {
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const urgentCount = overdue + dueSoon;
+
+    // Priority task cards
+    const taskCards = (my_queue || []).slice(0, 5).map(e => {
       const pri = PRI[e.priority] || PRI.medium;
-      const stat = STAT[e.status] || STAT.open;
       const breach = e.sla_breached == 1;
       const minsLeft = e.sla_minutes_left;
-      let slaLabel = '';
-      if (breach) slaLabel = `<span style="color:var(--red);font-weight:500">OVERDUE</span>`;
-      else if (minsLeft != null && minsLeft <= 120) slaLabel = `<span style="color:var(--amber);font-weight:500">${Math.max(0, Math.round(minsLeft / 60))}h left</span>`;
-      else if (minsLeft != null) slaLabel = `<span style="color:var(--text3)">${Math.round(minsLeft / 60)}h left</span>`;
-      else slaLabel = `<span style="color:var(--text3)">${ageStr(e.hours_open)}</span>`;
+      let slaTag = '';
+      let slaBg = '';
+      if (breach) { slaTag = 'OVERDUE'; slaBg = 'var(--red)'; }
+      else if (minsLeft != null && minsLeft <= 120) { slaTag = `${Math.max(0, Math.round(minsLeft / 60))}h left`; slaBg = 'var(--amber)'; }
+      else if (minsLeft != null && minsLeft <= 480) { slaTag = `${Math.round(minsLeft / 60)}h left`; slaBg = 'var(--text3)'; }
+      const priColors = { critical: 'var(--red)', high: 'var(--amber)', medium: 'var(--accent)', low: 'var(--green)' };
+      const priColor = priColors[e.priority] || 'var(--accent)';
 
-      return `<tr style="cursor:pointer" onclick="ErrorDetailModal.open(${e.id})">
-        <td><span class="dot ${pri.dot}"></span></td>
-        <td><span style="font-size:12px;font-weight:500">${esc(e.title)}</span><br><span class="error-id">${e.error_code}</span></td>
-        <td class="hide-mobile" style="font-size:12px;color:var(--text2)">${esc(e.school_name)}</td>
-        <td><span class="badge ${stat.badge}">${stat.label}</span></td>
-        <td style="font-size:11px">${slaLabel}</td></tr>`;
-    }).join('') || '<tr><td colspan="5"><div class="empty" style="padding:30px 0"><i class="ti ti-circle-check" style="font-size:24px;color:var(--green);margin-bottom:8px"></i><div style="font-size:13px;color:var(--text2)">No errors in your queue</div><div style="font-size:11px;color:var(--text3);margin-top:4px">Errors assigned to you will appear here</div></div></td></tr>';
+      return `<div class="sa-task-card" style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ${priColor};border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .15s" onclick="ErrorDetailModal.open(${e.id})">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span class="error-id" style="font-size:11px">${e.error_code}</span>
+          ${slaTag ? `<span style="font-size:9px;padding:2px 7px;border-radius:4px;background:${slaBg}18;color:${slaBg};font-weight:600;letter-spacing:.3px">${slaTag}</span>` : ''}
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--text1);margin-bottom:5px;line-height:1.3">${esc(e.title)}</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3)">
+          <span><i class="ti ti-school" style="font-size:11px;margin-right:3px"></i>${esc(e.school_name)}</span>
+          <span style="color:var(--border)">|</span>
+          <span>${ageStr(e.hours_open)}</span>
+        </div>
+      </div>`;
+    }).join('');
 
-    const schoolList = (my_schools || []).map(s => {
-      const health = s.critical_errors > 0 ? 'var(--red)' : s.open_errors > 0 ? 'var(--amber)' : 'var(--green)';
-      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="Router.navigate('schools');App.loadAndRender()">
-        <span style="width:8px;height:8px;border-radius:50%;background:${health};flex-shrink:0"></span>
+    const emptyQueue = `<div style="text-align:center;padding:40px 20px">
+      <div style="width:56px;height:56px;border-radius:50%;background:rgba(45,217,138,.08);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px">
+        <i class="ti ti-circle-check" style="font-size:28px;color:var(--green)"></i>
+      </div>
+      <div style="font-size:14px;font-weight:500;color:var(--text1);margin-bottom:4px">All clear!</div>
+      <div style="font-size:12px;color:var(--text3)">No errors in your queue right now</div>
+    </div>`;
+
+    // School health cards
+    const schoolCards = (my_schools || []).slice(0, 6).map(s => {
+      const health = s.critical_errors > 0 ? 'red' : s.open_errors > 0 ? 'amber' : 'green';
+      const healthColor = health === 'red' ? 'var(--red)' : health === 'amber' ? 'var(--amber)' : 'var(--green)';
+      const healthLabel = health === 'red' ? 'Critical' : health === 'amber' ? 'Issues' : 'Healthy';
+      return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:10px" onclick="Router.navigate('schools');App.loadAndRender()">
+        <div style="width:36px;height:36px;border-radius:8px;background:${healthColor}12;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="ti ti-building" style="font-size:16px;color:${healthColor}"></i>
+        </div>
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;font-weight:500;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s.name)}</div>
-          <div style="font-size:10px;color:var(--text3)">${esc(s.zone || '')}</div>
+          <div style="font-size:10px;color:var(--text3)">${esc(s.zone || 'No zone')}</div>
         </div>
-        <span style="font-size:11px;color:${s.open_errors > 0 ? 'var(--amber)' : 'var(--text3)'}">${s.open_errors} open</span>
+        <div style="text-align:right">
+          <div style="font-size:11px;font-weight:600;color:${healthColor}">${s.open_errors}</div>
+          <div style="font-size:9px;color:var(--text3)">${healthLabel}</div>
+        </div>
       </div>`;
-    }).join('') || '<div class="empty" style="padding:20px 0;font-size:12px"><i class="ti ti-school" style="font-size:20px;color:var(--text3);margin-bottom:6px"></i><div>No schools assigned yet</div></div>';
+    }).join('');
 
-    const activityList = (recent_activity || []).map(a => {
-      return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
-        <div style="font-size:11px;color:var(--text3)">${esc(a.recorded_by)} · <span class="error-id">${a.error_code}</span> · ${relTime(a.created_at)}</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:3px">${esc((a.note || '').substring(0, 80))}${(a.note || '').length > 80 ? '...' : ''}</div>
+    const emptySchools = `<div style="text-align:center;padding:30px 20px">
+      <i class="ti ti-school" style="font-size:24px;color:var(--text3);margin-bottom:8px"></i>
+      <div style="font-size:12px;color:var(--text3)">No schools assigned yet</div>
+    </div>`;
+
+    // Activity timeline
+    const timeline = (recent_activity || []).map(a => {
+      return `<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:6px;flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-size:12px;color:var(--text2);line-height:1.4">${esc((a.note || '').substring(0, 100))}${(a.note || '').length > 100 ? '...' : ''}</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:3px"><span class="error-id">${a.error_code}</span> · ${esc(a.recorded_by)} · ${relTime(a.created_at)}</div>
+        </div>
       </div>`;
-    }).join('') || '<div class="empty" style="padding:20px 0;font-size:12px"><div>No recent activity</div></div>';
+    }).join('') || '<div style="text-align:center;padding:20px;font-size:12px;color:var(--text3)">No recent activity</div>';
+
+    // SLA ring SVG
+    const slaRingPct = slaPct * 2.136;
+    const slaColor = slaPct >= 80 ? 'var(--green)' : slaPct >= 60 ? 'var(--amber)' : 'var(--red)';
 
     return `
   <div class="section-header">
     <div>
-      <div class="section-title">My Dashboard</div>
-      <div class="section-sub">Field Engineer · ${esc(user.full_name || '')}</div>
+      <div class="section-title">${greeting}, ${esc((user.full_name || '').split(' ')[0])}</div>
+      <div class="section-sub">${urgentCount > 0 ? `<span style="color:var(--amber)">${urgentCount} urgent</span> · ` : ''}${queueCount} in queue · Week ${checkins.current_week || ''}</div>
     </div>
     <div style="display:flex;gap:10px">
-      <button style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px" onclick="Router.navigate('tracker');App.loadAndRender()"><i class="ti ti-list-check" style="font-size:13px"></i> Error Tracker</button>
+      <button style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px" onclick="Router.navigate('tracker');App.loadAndRender()"><i class="ti ti-list-check" style="font-size:13px"></i> All Errors</button>
+      <button style="padding:8px 16px;font-size:12px;background:rgba(54,217,204,.12);color:var(--teal);border:1px solid rgba(54,217,204,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px" onclick="Router.navigate('schools');App.loadAndRender()"><i class="ti ti-school" style="font-size:13px"></i> My Schools</button>
     </div>
   </div>
 
-  <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
-    <div class="stat-card r"><div class="stat-label">My Queue</div><div class="stat-val" style="color:var(--red)">${queueCount}</div><div class="stat-sub">errors assigned to me</div></div>
-    <div class="stat-card a"><div class="stat-label">${overdue > 0 ? 'Overdue' : 'Due Soon'}</div><div class="stat-val" style="color:var(--amber)">${overdue > 0 ? overdue : dueSoon}</div><div class="stat-sub">${overdue > 0 ? 'SLA breached — act now' : 'within 2 hours'}</div></div>
-    <div class="stat-card g"><div class="stat-label">Resolved (7d)</div><div class="stat-val" style="color:var(--green)">${resolvedWeek}</div><div class="stat-sub">this week</div></div>
-    <div class="stat-card t"><div class="stat-label">My Schools</div><div class="stat-val" style="color:var(--teal)">${schoolCount}</div><div class="stat-sub">${checkinDone}/${checkinTotal} checked in</div></div>
+  ${overdue > 0 ? `<div class="alert-banner">
+    <i class="ti ti-clock-exclamation"></i>
+    <div class="alert-banner-text"><strong>${overdue} error${overdue > 1 ? 's' : ''} overdue</strong> — SLA breached, needs immediate action</div>
+    <button style="padding:6px 14px;font-size:11px;background:rgba(255,82,99,.12);color:var(--red);border:1px solid rgba(255,82,99,.25);border-radius:7px;cursor:pointer;white-space:nowrap" onclick="Router.navigate('tracker');App.loadAndRender()">View Now</button>
+  </div>` : ''}
+
+  <div class="sa-metrics" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;align-items:center;gap:16px">
+      <div style="position:relative;width:56px;height:56px;flex-shrink:0">
+        <svg viewBox="0 0 80 80" style="width:100%;height:100%;transform:rotate(-90deg)">
+          <circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg4)" stroke-width="5"/>
+          <circle cx="40" cy="40" r="34" fill="none" stroke="${slaColor}" stroke-width="5" stroke-dasharray="${slaRingPct} 213.6" stroke-linecap="round"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${slaColor}">${slaPct}%</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">SLA Compliance</div>
+        <div style="font-size:13px;font-weight:500;color:var(--text1);margin-top:2px">${resolvedSla}/${totalWithSla} on time</div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;align-items:center;gap:16px">
+      <div style="width:56px;height:56px;border-radius:12px;background:rgba(45,217,138,.08);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i class="ti ti-trophy" style="font-size:24px;color:var(--green)"></i>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Resolved</div>
+        <div style="font-size:22px;font-weight:700;color:var(--green);line-height:1">${resolvedWeek}</div>
+        <div style="font-size:10px;color:var(--text3)">this week · ${totalResolved} total</div>
+      </div>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;align-items:center;gap:16px">
+      <div style="position:relative;width:56px;height:56px;flex-shrink:0">
+        <svg viewBox="0 0 80 80" style="width:100%;height:100%;transform:rotate(-90deg)">
+          <circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg4)" stroke-width="5"/>
+          <circle cx="40" cy="40" r="34" fill="none" stroke="var(--purple)" stroke-width="5" stroke-dasharray="${checkinPct * 2.136} 213.6" stroke-linecap="round"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--purple)">${checkinPct}%</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Check-Ins</div>
+        <div style="font-size:13px;font-weight:500;color:var(--text1);margin-top:2px">${checkinDone}/${checkinTotal} done</div>
+      </div>
+    </div>
   </div>
 
-  <div class="two-col" style="align-items:start">
-    <div class="card">
-      <div class="card-title">My Error Queue <a style="font-size:11px;color:var(--accent);cursor:pointer;text-transform:none;letter-spacing:0" onclick="Router.navigate('tracker');App.loadAndRender()">View all</a></div>
-      <div class="table-wrap"><table>
-        <thead><tr><th></th><th>Error</th><th class="hide-mobile">School</th><th>Status</th><th>SLA</th></tr></thead>
-        <tbody>${queueRows}</tbody>
-      </table></div>
+  <div class="sa-layout" style="display:grid;grid-template-columns:1fr 340px;gap:14px;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card" style="padding:16px 18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:600;color:var(--text1)"><i class="ti ti-urgent" style="font-size:14px;color:var(--red);margin-right:6px"></i>My Queue <span style="font-size:11px;font-weight:400;color:var(--text3)">${queueCount} errors</span></div>
+          <a style="font-size:11px;color:var(--accent);cursor:pointer" onclick="Router.navigate('tracker');App.loadAndRender()">View all →</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">${taskCards || emptyQueue}</div>
+        ${(my_queue || []).length > 5 ? `<div style="text-align:center;padding-top:12px"><a style="font-size:11px;color:var(--accent);cursor:pointer" onclick="Router.navigate('tracker');App.loadAndRender()">+${my_queue.length - 5} more errors →</a></div>` : ''}
+      </div>
     </div>
 
     <div style="display:flex;flex-direction:column;gap:14px">
-      <div class="card">
-        <div class="card-title">My Schools</div>
-        <div style="display:flex;flex-direction:column">${schoolList}</div>
+      <div class="card" style="padding:16px 18px">
+        <div style="font-size:13px;font-weight:600;color:var(--text1);margin-bottom:12px"><i class="ti ti-building" style="font-size:14px;color:var(--teal);margin-right:6px"></i>My Schools <span style="font-size:11px;font-weight:400;color:var(--text3)">${schoolCount}</span></div>
+        <div style="display:flex;flex-direction:column;gap:8px">${schoolCards || emptySchools}</div>
       </div>
-      <div class="card">
-        <div class="card-title">Recent Activity</div>
-        <div style="display:flex;flex-direction:column">${activityList}</div>
+      <div class="card" style="padding:16px 18px">
+        <div style="font-size:13px;font-weight:600;color:var(--text1);margin-bottom:10px"><i class="ti ti-activity" style="font-size:14px;color:var(--purple);margin-right:6px"></i>Recent Activity</div>
+        <div style="display:flex;flex-direction:column">${timeline}</div>
       </div>
     </div>
   </div>`;

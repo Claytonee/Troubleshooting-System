@@ -141,9 +141,11 @@ async function getSubadminDashboard(req, res) {
         SUM(CASE WHEN e.status != 'resolved' AND e.assigned_to = ? AND e.sla_due_at IS NOT NULL AND e.sla_due_at < DATE_ADD(NOW(), INTERVAL 2 HOUR) AND e.sla_due_at > NOW() THEN 1 ELSE 0 END) as due_soon,
         SUM(CASE WHEN e.status != 'resolved' AND e.assigned_to = ? AND e.sla_due_at IS NOT NULL AND e.sla_due_at < NOW() THEN 1 ELSE 0 END) as overdue,
         SUM(CASE WHEN e.assigned_to = ? AND e.status = 'resolved' AND e.resolved_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as resolved_week,
-        SUM(CASE WHEN e.assigned_to = ? AND e.status = 'resolved' THEN 1 ELSE 0 END) as total_resolved
+        SUM(CASE WHEN e.assigned_to = ? AND e.status = 'resolved' THEN 1 ELSE 0 END) as total_resolved,
+        SUM(CASE WHEN e.assigned_to = ? AND e.status = 'resolved' AND e.sla_due_at IS NOT NULL AND e.resolved_at <= e.sla_due_at THEN 1 ELSE 0 END) as resolved_within_sla,
+        SUM(CASE WHEN e.assigned_to = ? AND e.status = 'resolved' AND e.sla_due_at IS NOT NULL THEN 1 ELSE 0 END) as total_with_sla
       FROM errors e WHERE e.assigned_to = ?
-    `, [userId, userId, userId, userId, userId, userId]);
+    `, [userId, userId, userId, userId, userId, userId, userId, userId]);
 
     // My schools with health status
     const [mySchools] = await pool.query(`

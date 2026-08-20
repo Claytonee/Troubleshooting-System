@@ -626,3 +626,16 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .lrs-header-actions .btn { order: 2; margin-top: 4px; }
   .lrs-header-actions .lrs-header-stats { order: 1; width: 100%; }
 }
+
+/* Sub-admin dashboard responsive */
+@media (max-width: 920px) {
+  .sa-metrics { grid-template-columns: 1fr 1fr !important; }
+  .sa-layout { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 768px) {
+  .sa-metrics { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 520px) {
+  .sa-task-card { padding: 12px !important; }
+  .sa-metrics > div { padding: 14px !important; }
+}
