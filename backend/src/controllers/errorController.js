@@ -52,8 +52,8 @@ function buildErrorFilters(req) {
   const params = [];
 
   if (req.user.role === 'subadmin') {
-    conditions.push('s.assigned_admin_id = ?');
-    params.push(req.user.id);
+    conditions.push('(s.assigned_admin_id = ? OR e.assigned_to = ?)');
+    params.push(req.user.id, req.user.id);
   } else if (req.user.role === 'school') {
     conditions.push('s.id = ?');
     params.push(req.user.school_id);
