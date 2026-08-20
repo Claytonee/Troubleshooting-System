@@ -1,10 +1,46 @@
 const crypto = require('crypto');
+const streamifier = require('streamifier');
+const cloudinary = require('../config/cloudinary');
 const pool = require('../config/database');
 const { toCsv } = require('../utils/csv');
 const { logAudit } = require('../services/audit');
 const { notifyErrorEvent } = require('../services/notify');
 const { notifyErrorSms } = require('../services/sms');
 const { targetHours } = require('../services/sla');
+
+function getResourceType(mimetype) {
+  if (mimetype.startsWith('image/')) return 'image';
+  if (mimetype.startsWith('video/') || mimetype.startsWith('audio/')) return 'video';
+  return 'raw';
+}
+
+function uploadToCloudinary(buffer, options) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+      if (result) resolve(result);
+      else reject(error);
+    });
+    streamifier.createReadStream(buffer).pipe(stream);
+  });
+}
+
+async function uploadAttachments(files, errorId, uploadedBy) {
+  const results = [];
+  for (const file of files) {
+    const resourceType = getResourceType(file.mimetype);
+    const cloudResult = await uploadToCloudinary(file.buffer, {
+      resource_type: resourceType,
+      folder: 'qft-errors',
+      public_id: Date.now() + '-' + file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')
+    });
+    await pool.query(
+      'INSERT INTO error_attachments (error_id, original_filename, stored_url, file_type, file_size, resource_type, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [errorId, file.originalname, cloudResult.secure_url, file.mimetype, file.size, resourceType, uploadedBy]
+    );
+    results.push({ url: cloudResult.secure_url, filename: file.originalname, type: file.mimetype });
+  }
+  return results;
+}
 
 // Ensure a resolved error has a CSAT feedback token (for the rating link). Returns the token.
 async function ensureCsatToken(errorId) {
@@ -151,7 +187,12 @@ async function getById(req, res, next) {
       [req.params.id]
     );
 
-    res.json({ ...rows[0], updates });
+    const [attachments] = await pool.query(
+      'SELECT id, original_filename, stored_url, file_type, file_size, resource_type, uploaded_by, created_at FROM error_attachments WHERE error_id = ? ORDER BY created_at ASC',
+      [req.params.id]
+    );
+
+    res.json({ ...rows[0], updates, attachments });
   } catch (err) { next(err); }
 }
 
@@ -201,7 +242,13 @@ async function create(req, res, next) {
       notifyErrorSms('created', row, { phones });
     }
 
-    res.status(201).json({ id: result.insertId, error_code: errorCode, message: 'Error reported successfully.' });
+    // Upload attachments if any
+    let attachments = [];
+    if (req.files && req.files.length > 0) {
+      attachments = await uploadAttachments(req.files, result.insertId, req.user.full_name);
+    }
+
+    res.status(201).json({ id: result.insertId, error_code: errorCode, attachments, message: 'Error reported successfully.' });
   } catch (err) { next(err); }
 }
 
@@ -492,4 +539,18 @@ async function assignError(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getById, create, update, updateStatus, addUpdate, remove, getStats, exportErrors, submitCsat, escalateToAdmin, assignError };
+async function addAttachments(req, res, next) {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded.' });
+    }
+
+    const [error] = await pool.query('SELECT id FROM errors WHERE id = ?', [req.params.id]);
+    if (!error.length) return res.status(404).json({ error: 'Error not found.' });
+
+    const attachments = await uploadAttachments(req.files, req.params.id, req.user.full_name);
+    res.status(201).json({ attachments, message: 'Attachments uploaded.' });
+  } catch (err) { next(err); }
+}
+
+module.exports = { getAll, getById, create, update, updateStatus, addUpdate, remove, getStats, exportErrors, submitCsat, escalateToAdmin, assignError, addAttachments };

@@ -183,6 +183,21 @@ const ErrorDetailModal = (() => {
           ${e.reporter_name ? `<div><div style="color:var(--text3);font-size:11px">REPORTED BY</div>${esc(e.reporter_name)}</div>` : ''}
           ${e.location ? `<div><div style="color:var(--text3);font-size:11px">LOCATION</div>${esc(e.location)}</div>` : ''}
         </div>
+        ${(e.attachments && e.attachments.length) ? `<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:10px">ATTACHMENTS</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+          ${e.attachments.map(a => {
+            if (a.file_type && a.file_type.startsWith('image/')) {
+              return `<a href="${a.stored_url}" target="_blank" style="display:block;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border)"><img src="${a.stored_url}" style="width:100%;height:100%;object-fit:cover" alt="${esc(a.original_filename)}"></a>`;
+            } else if (a.file_type && a.file_type.startsWith('audio/')) {
+              return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:11px"><i class="ti ti-music" style="color:var(--green);margin-right:4px"></i>${esc(a.original_filename)}<audio controls style="display:block;margin-top:6px;height:28px;width:200px"><source src="${a.stored_url}" type="${a.file_type}"></audio></div>`;
+            } else if (a.file_type && a.file_type.startsWith('video/')) {
+              return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px;width:200px"><video controls style="width:100%;border-radius:6px;max-height:120px"><source src="${a.stored_url}" type="${a.file_type}"></video><div style="font-size:10px;color:var(--text3);margin-top:4px">${esc(a.original_filename)}</div></div>`;
+            } else {
+              return `<a href="${a.stored_url}" target="_blank" style="display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--accent);text-decoration:none"><i class="ti ti-file-download"></i>${esc(a.original_filename)}</a>`;
+            }
+          }).join('')}
+          </div>
+        </div>` : ''}
         ${(e.updates && e.updates.length) ? `<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:10px">UPDATES</div>
           ${e.updates.map(u => { let note = u.note || ''; if (e.assigned_to == user.id) { const prefix = 'Assigned to ' + (e.assigned_name || ''); if (note.startsWith(prefix + '.')) note = note.substring(prefix.length + 1).trim(); else if (note === prefix) note = ''; } return `<div style="background:var(--bg3);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:12px"><span style="color:var(--text)">${esc(u.recorded_by)}</span> <span style="color:var(--text3)">· ${relTime(u.created_at)}</span>${note ? `<div style="color:var(--text2);margin-top:4px">${esc(note)}</div>` : ''}</div>`; }).join('')}
         </div>` : ''}

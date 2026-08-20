@@ -266,6 +266,21 @@ async function applyExtensions(db) {
     FOREIGN KEY (lrs_id) REFERENCES lrs_devices(id) ON DELETE CASCADE
   )`);
 
+  // --- Error Attachments ---
+  await q(`CREATE TABLE IF NOT EXISTS error_attachments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    error_id INT NOT NULL,
+    original_filename VARCHAR(300) NOT NULL,
+    stored_url VARCHAR(500) NOT NULL,
+    file_type VARCHAR(100),
+    file_size INT DEFAULT 0,
+    resource_type VARCHAR(20) DEFAULT 'raw',
+    uploaded_by VARCHAR(200),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_err_attach_error (error_id),
+    FOREIGN KEY (error_id) REFERENCES errors(id) ON DELETE CASCADE
+  )`);
+
   if (failed) console.error(`  schemaExtensions: ${failed} step(s) failed — see errors above.`);
 }
 
