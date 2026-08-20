@@ -178,12 +178,12 @@ const ErrorDetailModal = (() => {
           <div style="font-size:12px;color:var(--purple);font-weight:500">Escalated to Opportunity Education Tanzania</div>
         </div>` : ''}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;color:var(--text2)">
-          <div><div style="color:var(--text3);font-size:11px">ASSIGNED TO</div>${e.assigned_to == user.id ? '<span style="color:var(--accent);font-weight:500">You</span>' : esc(e.assigned_name || 'Unassigned')}</div>
+          ${e.assigned_to != user.id ? `<div><div style="color:var(--text3);font-size:11px">ASSIGNED TO</div>${esc(e.assigned_name || 'Unassigned')}</div>` : ''}
           ${e.reporter_name ? `<div><div style="color:var(--text3);font-size:11px">REPORTED BY</div>${esc(e.reporter_name)}</div>` : ''}
           ${e.location ? `<div><div style="color:var(--text3);font-size:11px">LOCATION</div>${esc(e.location)}</div>` : ''}
         </div>
         ${(e.updates && e.updates.length) ? `<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"><div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:10px">UPDATES</div>
-          ${e.updates.map(u => { let note = u.note || ''; if (e.assigned_to == user.id && note.startsWith('Assigned to ' + (e.assigned_name || ''))) note = note.replace('Assigned to ' + e.assigned_name, 'Assigned to you'); return `<div style="background:var(--bg3);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:12px"><span style="color:var(--text)">${esc(u.recorded_by)}</span> <span style="color:var(--text3)">· ${relTime(u.created_at)}</span><div style="color:var(--text2);margin-top:4px">${esc(note)}</div></div>`; }).join('')}
+          ${e.updates.map(u => { let note = u.note || ''; if (e.assigned_to == user.id) { const prefix = 'Assigned to ' + (e.assigned_name || ''); if (note.startsWith(prefix + '.')) note = note.substring(prefix.length + 1).trim(); else if (note === prefix) note = ''; } return `<div style="background:var(--bg3);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:12px"><span style="color:var(--text)">${esc(u.recorded_by)}</span> <span style="color:var(--text3)">· ${relTime(u.created_at)}</span>${note ? `<div style="color:var(--text2);margin-top:4px">${esc(note)}</div>` : ''}</div>`; }).join('')}
         </div>` : ''}
         ${csatBlock}`;
 
