@@ -1,4 +1,11 @@
-require('dotenv').config();
+const path = require('path');
+const envFile = process.env.NODE_ENV && process.env.NODE_ENV !== 'production'
+  ? `.env.${process.env.NODE_ENV}`
+  : '.env';
+require('dotenv').config({ path: path.resolve(__dirname, '..', '..', envFile) });
+if (!require('fs').existsSync(path.resolve(__dirname, '..', '..', envFile))) {
+  require('dotenv').config({ path: path.resolve(__dirname, '..', '..', '.env') });
+}
 
 const mysql = require('mysql2/promise');
 

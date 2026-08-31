@@ -1,10 +1,16 @@
-require('dotenv').config();
+const path = require('path');
+const envFile = process.env.NODE_ENV && process.env.NODE_ENV !== 'production'
+  ? `.env.${process.env.NODE_ENV}`
+  : '.env';
+require('dotenv').config({ path: path.resolve(__dirname, '..', envFile) });
+if (!require('fs').existsSync(path.resolve(__dirname, '..', envFile))) {
+  require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+}
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-const path = require('path');
 
 const errorHandler = require('./middleware/errorHandler');
 
@@ -118,23 +124,42 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });
 });
 
-// GitHub webhook auto-deploy
+// GitHub webhook auto-deploy (environment-aware)
 const crypto = require('crypto');
 const { execSync } = require('child_process');
+const BRANCH_ENV = { 'refs/heads/main': 'main', 'refs/heads/staging': 'staging', 'refs/heads/develop': 'develop' };
+const CURRENT_ENV = process.env.NODE_ENV || 'production';
+const ENV_BRANCH = { production: 'main', staging: 'staging', development: 'develop' };
+
 app.post('/api/deploy', express.json({ limit: '1mb' }), (req, res) => {
-  const secret = process.env.DEPLOY_SECRET || '';
+  const secret = process.env.WEBHOOK_SECRET || process.env.DEPLOY_SECRET || '';
   if (secret) {
     const sig = 'sha256=' + crypto.createHmac('sha256', secret).update(JSON.stringify(req.body)).digest('hex');
     if (req.headers['x-hub-signature-256'] !== sig) return res.status(403).json({ error: 'Invalid signature' });
   }
+
+  const ref = req.body.ref;
+  const pushedBranch = BRANCH_ENV[ref];
+  const myBranch = ENV_BRANCH[CURRENT_ENV] || 'main';
+
+  if (ref && pushedBranch !== myBranch) {
+    return res.json({ status: 'skipped', reason: `Push to ${ref}, this instance tracks ${myBranch}` });
+  }
+
+  const pusher = req.body.pusher?.name || 'unknown';
+  const commitMsg = req.body.head_commit?.message?.split('\n')[0] || '';
+  console.log(`[DEPLOY] Push by ${pusher}: "${commitMsg}" → deploying ${myBranch}`);
+
   try {
     const appRoot = path.join(__dirname, '..', '..');
-    execSync('git pull origin main', { cwd: appRoot, timeout: 30000 });
-    execSync('npm install --production', { cwd: path.join(appRoot, 'backend'), timeout: 60000 });
-    res.json({ status: 'deployed', timestamp: new Date().toISOString() });
+    execSync(`git fetch origin ${myBranch}`, { cwd: appRoot, timeout: 30000 });
+    execSync(`git reset --hard origin/${myBranch}`, { cwd: appRoot, timeout: 30000 });
+    execSync('npm ci --omit=dev', { cwd: path.join(appRoot, 'backend'), timeout: 120000 });
+    console.log(`[DEPLOY] Success — restarting in 1s`);
+    res.json({ status: 'deployed', branch: myBranch, timestamp: new Date().toISOString() });
     setTimeout(() => process.exit(0), 1000);
   } catch (e) {
-    console.error('Deploy failed:', e.message);
+    console.error('[DEPLOY] Failed:', e.message);
     res.status(500).json({ error: e.message });
   }
 });

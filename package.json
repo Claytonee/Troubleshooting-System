@@ -7,6 +7,9 @@
     "start": "cd backend && node src/server.js",
     "install:backend": "cd backend && npm install",
     "migrate": "cd backend && node src/config/migrate.js",
-    "seed": "cd backend && node src/config/seed.js"
+    "seed": "cd backend && node src/config/seed.js",
+    "webhook": "node deploy/webhook-server.js",
+    "start:staging": "cd backend && NODE_ENV=staging node src/server.js",
+    "start:dev": "cd backend && NODE_ENV=development node src/server.js"
   }
 }

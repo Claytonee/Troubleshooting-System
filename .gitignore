@@ -1,5 +1,9 @@
 node_modules/
 .env
+.env.*
+!.env.example
+deploy/*.log
+deploy/.deploy-lock*
 uploads/*
 !uploads/.gitkeep
 *.log
