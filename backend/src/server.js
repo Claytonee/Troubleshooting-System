@@ -37,6 +37,35 @@ const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
 
+// Retired hostnames. troubleshooting.pathfindereducation.or.tz was replaced by
+// support.mkatolikikiganjani.com on 2026-09-08. Both names still resolve here and
+// share a single Passenger application, and there is only one document root, so the
+// old name is refused in the app rather than in .htaccess: LiteSpeed serves a cached
+// .htaccess for the old vhost, which makes any rewrite there unreliable, and editing
+// it risks the name that is actually in use.
+//
+// Host policy only — no effect on routing, auth, UI or data. It MUST stay above the
+// HTTPS redirect, express.static and the SPA catch-all: placed lower, the retired
+// name would keep serving CSS and JS with 200 and only the HTML would 404.
+//
+// Override with RETIRED_HOSTS (comma-separated) to retire another name, or set it
+// empty to serve the old one again.
+const RETIRED_HOSTS = new Set(
+  (process.env.RETIRED_HOSTS === undefined
+    ? 'troubleshooting.pathfindereducation.or.tz'
+    : process.env.RETIRED_HOSTS)
+    .split(',').map(h => h.trim().toLowerCase()).filter(Boolean)
+);
+if (RETIRED_HOSTS.size) {
+  app.use((req, res, next) => {
+    const host = String(req.headers.host || '').split(':')[0].toLowerCase();
+    if (RETIRED_HOSTS.has(host)) {
+      return res.status(404).type('text/plain').send('Not Found');
+    }
+    next();
+  });
+}
+
 // Force HTTPS in production (the DirectAdmin proxy terminates SSL and sets
 // x-forwarded-proto; redirect any plain-http hit back to https).
 if (process.env.NODE_ENV === 'production') {

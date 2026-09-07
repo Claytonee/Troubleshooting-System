@@ -22,7 +22,7 @@ RESTART_FILE="$BACKEND_DIR/tmp/restart.txt"
 LOCK_FILE="$APP_DIR/deploy/.deploy-lock"
 LOG_FILE="$APP_DIR/deploy/deploy.log"
 BACKUP_DIR="$APP_DIR/deploy/backups"
-HEALTH_URL="${HEALTH_URL:-https://troubleshooting.pathfindereducation.or.tz/api/health}"
+HEALTH_URL="${HEALTH_URL:-https://support.mkatolikikiganjani.com/api/health}"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$DEPLOY_ENV] $1" | tee -a "$LOG_FILE"; }
 die() { log "ERROR: $1"; exit 1; }

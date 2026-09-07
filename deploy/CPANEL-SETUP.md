@@ -1,7 +1,11 @@
 # cPanel Deployment — QFT Technical Support System
 
 Live host: **cPanel / CloudLinux on `213.139.204.238`**, serving
-`troubleshooting.pathfindereducation.or.tz`. One Node.js application, one database.
+**`support.mkatolikikiganjani.com`**. One Node.js application, one database.
+
+The document root is the directory `~/troubleshooting.pathfindereducation.or.tz/`, named after the hostname retired on
+2026-09-08 — **filesystem paths keep that name, URLs do not.** The old hostname still resolves here and is answered with
+404 by `RETIRED_HOSTS` in `backend/src/server.js`.
 
 > Rewritten 2026-09-07 after the previous version was tested against the real host and
 > found wrong in six places. The **why** notes below are the reasons — read them before
@@ -164,7 +168,7 @@ The hostname may still point elsewhere; it was a Render custom domain until
 2026-09-07. Test cPanel without touching DNS:
 
 ```bash
-curl --resolve troubleshooting.pathfindereducation.or.tz:443:213.139.204.238 https://troubleshooting.pathfindereducation.or.tz/api/health
+curl --resolve support.mkatolikikiganjani.com:443:213.139.204.238 https://support.mkatolikikiganjani.com/api/health
 ```
 
 `--resolve` is the reliable form. Sending a `Host:` header to `http://<ip>/` can land on
@@ -227,7 +231,7 @@ GitHub → repo → *Settings* → **Webhooks** → *Add webhook*:
 
 | Field | Value |
 |---|---|
-| Payload URL | `https://troubleshooting.pathfindereducation.or.tz/api/deploy` |
+| Payload URL | `https://support.mkatolikikiganjani.com/api/deploy` |
 | Content type | `application/json` |
 | Secret | the same value as `WEBHOOK_SECRET` in `backend/.env` |
 | Events | Just the push event |
@@ -273,10 +277,10 @@ they are not sufficient on their own:
 
 | Check | Proves | Expected |
 |---|---|---|
-| `curl --resolve troubleshooting.pathfindereducation.or.tz:443:213.139.204.238 https://troubleshooting.pathfindereducation.or.tz/` | Express static + new frontend | 200 HTML containing the current `app.js?v=` |
-| `curl --resolve troubleshooting.pathfindereducation.or.tz:443:213.139.204.238 -I https://troubleshooting.pathfindereducation.or.tz/css/components.css` | **Express** is serving static, not LiteSpeed | `cache-control: no-store, no-cache, must-revalidate` — set only by our `setHeaders` (`server.js:121`) — plus `content-type: text/css` |
-| `curl --resolve troubleshooting.pathfindereducation.or.tz:443:213.139.204.238 https://troubleshooting.pathfindereducation.or.tz/lrs` | the SPA catch-all `res.sendFile` | 200 HTML, not 404 |
-| `curl --resolve troubleshooting.pathfindereducation.or.tz:443:213.139.204.238 https://troubleshooting.pathfindereducation.or.tz/api/lrs` | **the backend process actually restarted** | `401 application/json` |
+| `curl --resolve support.mkatolikikiganjani.com:443:213.139.204.238 https://support.mkatolikikiganjani.com/` | Express static + new frontend | 200 HTML containing the current `app.js?v=` |
+| `curl --resolve support.mkatolikikiganjani.com:443:213.139.204.238 -I https://support.mkatolikikiganjani.com/css/components.css` | **Express** is serving static, not LiteSpeed | `cache-control: no-store, no-cache, must-revalidate` — set only by our `setHeaders` (`server.js:121`) — plus `content-type: text/css` |
+| `curl --resolve support.mkatolikikiganjani.com:443:213.139.204.238 https://support.mkatolikikiganjani.com/lrs` | the SPA catch-all `res.sendFile` | 200 HTML, not 404 |
+| `curl --resolve support.mkatolikikiganjani.com:443:213.139.204.238 https://support.mkatolikikiganjani.com/api/lrs` | **the backend process actually restarted** | `401 application/json` |
 
 The last row is the one that matters. `/api/lrs` is a route that exists only in current
 code; an old process falls through to the SPA catch-all and answers **200 text/html**.

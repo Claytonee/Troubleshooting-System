@@ -26,23 +26,31 @@ All schema changes MUST be **additive and backward-compatible** so a new deploy 
 - **Backend:** Node.js + Express, **MySQL/MariaDB** (via mysql2), JWT auth
 - **Frontend:** Vanilla JS SPA, hash-based routing, no framework (served by the Express backend)
 - **File Storage:** Cloudinary (cloud CDN)
-- **Hosting:** cPanel / DirectAdmin (`troubleshooting.pathfindereducation.or.tz`) — Node.js app + MySQL on `localhost` in the same account
+- **Hosting:** cPanel / DirectAdmin — served at **`support.mkatolikikiganjani.com`**, Node.js app + MySQL on `localhost` in the same account. The document root is still the directory `~/troubleshooting.pathfindereducation.or.tz/`, named after the retired hostname; paths keep that name, URLs do not.
 - **DB access:** `backend/src/config/database.js` is a `mysql2/promise` pool. Schema + seed in `backend/src/config/bootstrap.js`, run automatically on startup. Connection via `DB_*` vars (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME) — **or** `DATABASE_URL`, which takes priority and makes every `DB_*` var be ignored (see Deployments).
 - **Remote:** `origin` = GitHub (`Claytonee/Troubleshooting-System`), `gitlab` = GitLab (`claytonecurth/Troubleshooting-System`). Push both.
 
 ## Deployments (two targets, two remotes)
-- **cPanel — `troubleshooting.pathfindereducation.or.tz` — the intended LIVE site (server `213.139.204.238`).** MySQL runs on `localhost` beside the app. Code arrives via the `POST /api/deploy` webhook, which does `git fetch origin` + a fast-forward-only `git reset --hard` + `npm install` in `backend/` + a Passenger restart — so **cPanel tracks the `origin` (GitHub) remote**. The webhook requires `WEBHOOK_SECRET`; with no secret set it refuses to deploy rather than accepting anonymous POSTs.
+- **cPanel — `support.mkatolikikiganjani.com` — the LIVE site (server `213.139.204.238`).** MySQL runs on `localhost` beside the app. Code arrives via the `POST /api/deploy` webhook, which does `git fetch origin` + a fast-forward-only `git reset --hard` + `npm install` in `backend/` + a Passenger restart — so **cPanel tracks the `origin` (GitHub) remote**. The webhook requires `WEBHOOK_SECRET`; with no secret set it refuses to deploy rather than accepting anonymous POSTs.
 - **Render — `troubleshooting-system-j7ln.onrender.com`** — free Node plan, auto-deploys from the **`gitlab`** remote's `main`. Kept as a mirror; it is not the live site. Being external, it cannot reach the cPanel `localhost` MySQL (free Render has no static outbound IP), so it needs its own database or it will answer 503.
 
-**Where the domain actually points (verified 2026-09-07):** the hostname is still a **Render custom domain** —
-`CNAME -> gcp-us-west1-1.origin.onrender.com.cdn.cloudflare.net`, and responses carry `x-render-origin-server: Render`.
-cPanel does not serve it until DNS is repointed to an **A record -> 213.139.204.238** (zone lives at `ns23/ns24.oneway.africa`,
-editable in cPanel Zone Editor) and the custom domain is removed from Render. Never infer the live target from cPanel listing
-the domain, or from `deploy/CPANEL-SETUP.md` — check DNS.
+**Hostnames (as of 2026-09-08).** `support.mkatolikikiganjani.com` is the live name — A record to
+`213.139.204.238`, TTL 300, managed in DirectAdmin, added as a cPanel addon domain whose document root is the existing
+`troubleshooting.pathfindereducation.or.tz` directory. Both names therefore reach **one** Passenger application, one
+database and one uploads directory.
+
+`troubleshooting.pathfindereducation.or.tz` is **retired**: `server.js` answers 404 for it (`RETIRED_HOSTS`, above the
+HTTPS redirect and static handlers so assets do not keep serving). It still resolves here and is still on the certificate,
+so removing it entirely means re-registering the Node app against the new hostname — deliberately deferred. Set
+`RETIRED_HOSTS=` empty to serve it again. It was a Render custom domain until 2026-09-07; that CNAME is gone.
+
+**The webhook payload URL lives on the new hostname.** Retiring a name that the webhook posts to kills deploys — including
+the deploy of the change that retires it. Move the webhook first, then retire. Never infer the live target from cPanel
+listing a domain, or from `deploy/CPANEL-SETUP.md` — check DNS.
 
 **Test cPanel without touching DNS** (works any time, and checks the certificate too):
 ```bash
-curl --resolve troubleshooting.pathfindereducation.or.tz:443:213.139.204.238 https://troubleshooting.pathfindereducation.or.tz/api/health
+curl --resolve support.mkatolikikiganjani.com:443:213.139.204.238 https://support.mkatolikikiganjani.com/api/health
 ```
 `{"status":"ok"}` means the Node app is up; swap in `/api/settings` to check the database. `Server: LiteSpeed` confirms the
 reply came from cPanel, not Render, and a handshake that completes without `--insecure` means the certificate is valid.
