@@ -50,7 +50,7 @@ const ReportPage = (() => {
       <div class="section-sub">Submit a new issue for tracking and resolution</div>
     </div></div>
     <div class="report-layout">
-      <div class="card">
+      <div class="card" style="position:relative;overflow:hidden">
         <div class="form-grid">
           <div class="form-group"><label>Reporting School *</label>${schoolField}</div>
           <div class="form-group"><label>Reported By *</label>${reporterField}</div>
@@ -74,8 +74,22 @@ const ReportPage = (() => {
           </div>
         </div>
         <div style="display:flex;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-          <button class="btn btn-primary" data-tip="${TIP.SUBMIT_REPORT}" onclick="ReportPage.submit()"><i class="ti ti-send"></i> Submit Report</button>
+          <button class="btn btn-primary" id="report-submit-btn" data-tip="${TIP.SUBMIT_REPORT}" onclick="ReportPage.submit()"><i class="ti ti-send"></i> Submit Report</button>
           <button class="btn btn-secondary" onclick="Router.navigate('report');App.loadAndRender()"><i class="ti ti-trash"></i> Clear</button>
+        </div>
+        <div class="upload-overlay" id="upload-overlay">
+          <div class="upload-anim" aria-hidden="true">
+            <svg viewBox="0 0 120 120" role="presentation">
+              <circle class="ua-track" cx="60" cy="60" r="46"></circle>
+              <circle class="ua-arc" cx="60" cy="60" r="46"></circle>
+              <g transform="translate(27.6 26) scale(2.7)" fill="none" vector-effect="non-scaling-stroke">
+                <path class="ua-cloud" d="M7 18a4.6 4.4 0 0 1 0 -9a5 4.5 0 0 1 11 2h1a3.5 3.5 0 0 1 0 7h-1"></path>
+                <g class="ua-arrow"><path d="M9 14.5l3 -3l3 3"></path><path d="M12 11.5l0 6.5"></path></g>
+              </g>
+            </svg>
+          </div>
+          <div class="upload-text">Submitting your report...</div>
+          <div class="upload-sub">Uploading files to cloud</div>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:16px;position:sticky;top:76px;align-self:start">
@@ -156,11 +170,16 @@ const ReportPage = (() => {
     const priority = Dropdown.getValue('f-priority') || 'medium';
     const subcat = Dropdown.getValue('f-subcat');
 
+    const btn = document.getElementById('report-submit-btn');
+    const overlay = document.getElementById('upload-overlay');
+    if (btn) btn.disabled = true;
+    if (overlay) overlay.classList.add('active');
+
     try {
       const formData = new FormData();
       formData.append('title', title);
       formData.append('description', description);
-      formData.append('school_id', parseInt(school_id));
+      formData.append('school_id', school_id);
       formData.append('category', category);
       if (subcat) formData.append('subcategory', subcat);
       formData.append('priority', priority);
@@ -178,7 +197,7 @@ const ReportPage = (() => {
         body: formData
       });
       if (!resp.ok) {
-        const err = await resp.json();
+        const err = await resp.json().catch(() => ({ error: 'Upload failed (status ' + resp.status + ')' }));
         throw err;
       }
       const res = await resp.json();
@@ -188,7 +207,9 @@ const ReportPage = (() => {
       Router.navigate(dest);
       App.loadAndRender();
     } catch (e) {
-      showToast(e.error || 'Failed to submit report');
+      showToast(e.error || e.message || 'Failed to submit report');
+      if (btn) btn.disabled = false;
+      if (overlay) overlay.classList.remove('active');
     }
   }
 
