@@ -3,7 +3,7 @@
 ## Git Workflow (IMPORTANT — auto commit & push)
 - **After completing and verifying EACH feature/fix, automatically commit and push — do not wait to be asked.**
 - Steps every time: stage the relevant files → `git commit` with a clear, descriptive message (end with the `Co-Authored-By: Claude` trailer) → `git push`.
-- Push to the branch currently checked out. Pushing to `main` **auto-deploys to the live Render site**, so only commit code that has been verified/tested.
+- Push to the branch currently checked out, and push **both** remotes — they feed different deployments (see Deployments below). Only commit code that has been verified/tested.
 - Always verify the feature works (syntax check + run/test) **before** committing. Never commit known-broken code.
 - One commit per feature/fix with a focused message; group only tightly-related changes.
 
@@ -26,9 +26,15 @@ All schema changes MUST be **additive and backward-compatible** so a new deploy 
 - **Backend:** Node.js + Express, **MySQL/MariaDB** (via mysql2), JWT auth
 - **Frontend:** Vanilla JS SPA, hash-based routing, no framework (served by the Express backend)
 - **File Storage:** Cloudinary (cloud CDN)
-- **Hosting:** DirectAdmin (mkatolikikiganjani.com) — Node.js app + MySQL database
-- **DB access:** `backend/src/config/database.js` is a `mysql2/promise` pool. Schema + seed in `backend/src/config/bootstrap.js`, run automatically on startup. Connection via `DATABASE_URL` (prod) or `DB_*` vars (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME).
+- **Hosting:** cPanel / DirectAdmin (`troubleshooting.pathfindereducation.or.tz`) — Node.js app + MySQL on `localhost` in the same account
+- **DB access:** `backend/src/config/database.js` is a `mysql2/promise` pool. Schema + seed in `backend/src/config/bootstrap.js`, run automatically on startup. Connection via `DB_*` vars (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME) — **or** `DATABASE_URL`, which takes priority and makes every `DB_*` var be ignored (see Deployments).
 - **Remote:** `origin` = GitHub (`Claytonee/Troubleshooting-System`), `gitlab` = GitLab (`claytonecurth/Troubleshooting-System`). Push both.
+
+## Deployments (two targets, two remotes)
+- **cPanel — `troubleshooting.pathfindereducation.or.tz` — this is the LIVE site.** MySQL runs on `localhost` beside the app. Code arrives via the `POST /api/deploy` webhook, which does `git fetch origin` + `git reset --hard` + `npm ci` + restart — so **cPanel tracks the `origin` (GitHub) remote**. The webhook requires `WEBHOOK_SECRET`; with no secret set it refuses to deploy rather than accepting anonymous POSTs.
+- **Render — `troubleshooting-system-j7ln.onrender.com`** — free Node plan, auto-deploys from the **`gitlab`** remote's `main`. Kept as a mirror; it is not the live site. Being external, it cannot reach the cPanel `localhost` MySQL (free Render has no static outbound IP), so it needs its own database or it will answer 503.
+
+**Connection-string gotcha (this caused a full outage on 2026-09-07):** `DATABASE_URL` overrides every `DB_*` var, and `dotenv` runs without `override`, so variables set in the cPanel Node.js app UI or the Render dashboard beat `backend/.env` on disk. **When repointing the database, delete `DATABASE_URL` from the hosting panel first** — otherwise editing `.env` changes nothing. Startup logs print the target actually in use (credentials masked) plus a `DATABASE UNREACHABLE` diagnostic, so check the log before editing config.
 
 ## UI Architecture Rules
 

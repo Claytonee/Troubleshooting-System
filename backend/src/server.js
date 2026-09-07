@@ -155,9 +155,17 @@ const ENV_BRANCH = { production: 'main', staging: 'staging', development: 'devel
 
 app.post('/api/deploy', express.json({ limit: '1mb' }), (req, res) => {
   const secret = process.env.WEBHOOK_SECRET || process.env.DEPLOY_SECRET || '';
-  if (secret) {
-    const sig = 'sha256=' + crypto.createHmac('sha256', secret).update(JSON.stringify(req.body)).digest('hex');
-    if (req.headers['x-hub-signature-256'] !== sig) return res.status(403).json({ error: 'Invalid signature' });
+  // Fail closed. With no secret configured this endpoint would run
+  // `git reset --hard` + `npm ci` + restart for any anonymous POST.
+  if (!secret) {
+    console.error('[DEPLOY] Rejected: WEBHOOK_SECRET is not set, refusing to deploy unauthenticated');
+    return res.status(503).json({ error: 'Deploy webhook is not configured.' });
+  }
+  const sig = 'sha256=' + crypto.createHmac('sha256', secret).update(JSON.stringify(req.body)).digest('hex');
+  const expected = Buffer.from(sig);
+  const received = Buffer.from(String(req.headers['x-hub-signature-256'] || ''));
+  if (expected.length !== received.length || !crypto.timingSafeEqual(expected, received)) {
+    return res.status(403).json({ error: 'Invalid signature' });
   }
 
   const ref = req.body.ref;
@@ -181,8 +189,9 @@ app.post('/api/deploy', express.json({ limit: '1mb' }), (req, res) => {
     res.json({ status: 'deployed', branch: myBranch, timestamp: new Date().toISOString() });
     setTimeout(() => process.exit(0), 1000);
   } catch (e) {
+    // git/npm output can carry absolute server paths — log it, don't return it.
     console.error('[DEPLOY] Failed:', e.message);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: 'Deploy failed. See server logs.' });
   }
 });
 
@@ -194,6 +203,53 @@ app.get('*', (req, res) => {
 
 // Error handler
 app.use(errorHandler);
+
+/**
+ * Where is the pool actually pointing? DATABASE_URL silently wins over every
+ * DB_* var (see config/database.js), so print the source that is really in use
+ * — with credentials stripped — instead of DB_HOST, which may be ignored.
+ */
+function describeDbTarget() {
+  if (process.env.DATABASE_URL) {
+    try {
+      const u = new URL(process.env.DATABASE_URL);
+      return `${u.hostname}:${u.port || 3306}${u.pathname} (from DATABASE_URL — DB_* vars are ignored)`;
+    } catch {
+      return 'unparseable DATABASE_URL (DB_* vars are ignored)';
+    }
+  }
+  return `${process.env.DB_HOST || 'localhost'}:${process.env.DB_PORT || 3306}/${process.env.DB_NAME || 'qft_support'}`;
+}
+
+/** Connectivity failures, as opposed to a bad query or a schema problem. */
+const DB_UNREACHABLE = {
+  ENOTFOUND: 'the hostname does not resolve — the database may have been deleted, or the host is misspelt',
+  EAI_AGAIN: 'DNS lookup for the database host failed — check the hostname and the server DNS',
+  ECONNREFUSED: 'nothing is listening on that host and port',
+  ETIMEDOUT: 'the connection timed out — check firewall or remote-access rules',
+  EHOSTUNREACH: 'the host is unreachable from this server',
+  ER_ACCESS_DENIED_ERROR: 'the database user or password is wrong, or the user lacks privileges on that database',
+  ER_BAD_DB_ERROR: 'that database name does not exist on the server'
+};
+
+async function checkDatabase() {
+  const pool = require('./config/database');
+  try {
+    await pool.query('SELECT 1');
+    return true;
+  } catch (e) {
+    const why = DB_UNREACHABLE[e.code];
+    console.error('\n  ***  DATABASE UNREACHABLE  ***');
+    console.error(`  Target: ${describeDbTarget()}`);
+    console.error(`  Error:  ${e.code || 'unknown'} — ${why || e.message}`);
+    if (process.env.DATABASE_URL) {
+      console.error('  Note:   DATABASE_URL is set, so DB_HOST/DB_USER/DB_NAME are being IGNORED.');
+      console.error('          To use a local database, unset DATABASE_URL in the hosting panel first.');
+    }
+    console.error('  The site will load but every data request will answer 503 until this is fixed.\n');
+    return false;
+  }
+}
 
 async function autoMigrate() {
   const { bootstrap } = require('./config/bootstrap');
@@ -212,8 +268,8 @@ app.listen(PORT, async () => {
   console.log(`  Server running on http://localhost:${PORT}`);
   console.log(`  API base:         http://localhost:${PORT}/api`);
   console.log(`  Environment:      ${process.env.NODE_ENV || 'development'}`);
-  console.log(`  Database:         ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
-  await autoMigrate();
+  console.log(`  Database:         ${describeDbTarget()}`);
+  if (await checkDatabase()) await autoMigrate();
   console.log(`  ================================================\n`);
 });
 
