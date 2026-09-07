@@ -256,21 +256,27 @@ Every page/feature MUST be tested and functional at all 4 breakpoints:
 - File uploads go to Cloudinary (not local disk)
 - Rate limiting: 20 req/15min login, 200 req/15min general API
 
-## Environment Variables (Production — DirectAdmin)
+## Environment Variables (Production — cPanel)
+Set these in **cPanel → Setup Node.js App → Environment variables**, not in `backend/.env`:
+panel variables win, because `dotenv` runs without `override`.
 ```
 DB_HOST=localhost
 DB_PORT=3306
-DB_USER=mkatolik_qft
+DB_USER=pathfind_claytone
 DB_PASSWORD=your_db_password
-DB_NAME=mkatolik_qft_support
+DB_NAME=pathfind_qft
 JWT_SECRET=your_jwt_secret
 JWT_EXPIRES_IN=7d
 NODE_ENV=production
+WEBHOOK_SECRET=your_webhook_secret        # required — /api/deploy refuses to deploy without it
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
 MAX_FILE_SIZE=104857600
 ```
+**`DATABASE_URL` must NOT be set here.** It overrides every `DB_*` variable above
+(`config/database.js:18`), which is how a deleted Aiven host survived config changes
+and took both deployments down on 2026-09-07.
 
 ## Pages & Features (Complete List)
 
