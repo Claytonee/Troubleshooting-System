@@ -196,6 +196,17 @@ Then:
 > The old CNAME's TTL governs how long stale answers survive, not the new record's, so
 > propagation can outlast the 300s you just set.
 
+> **Lower the TTL a day before you plan to move, not on the day.** The 2026-09-07 move
+> was published with TTL 300, but the CNAME being replaced had been cached with the
+> zone default of 86400, so resolvers kept the old answer for hours: Cloudflare and
+> Quad9 picked up the new address within minutes while Google and OpenDNS were still
+> returning Render more than an hour later. That produces a genuine split brain — some
+> visitors on the new host, some on the old — so make sure **both** targets are in a
+> serviceable state before switching, and remove the old host's claim on the domain
+> only once a public resolver agrees. Read the remaining TTL with
+> `dig +noall +answer @8.8.8.8 <host>` (or `nslookup -debug`) to get a real ETA rather
+> than guessing.
+
 ### 2.7 First login
 
 `bootstrap()` runs on every start, creates the schema when the database is empty, and
