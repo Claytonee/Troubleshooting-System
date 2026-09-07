@@ -256,7 +256,38 @@ cPanel → **Cron Jobs**, every 5 minutes:
 when there is nothing new, holds a lock against concurrent runs, and applies the same
 fast-forward-only guard as the webhook.
 
-### 3.3 Restarting by hand
+### 3.3 Verifying a deploy actually landed
+
+**A `git reset --hard` on its own looks like a successful deploy and is not one.**
+Express reads `frontend/` off disk on every request, so the new `index.html` and its
+`?v=` bumps appear the instant the reset finishes — while the Node process keeps
+running the *old* `server.js` until Passenger respawns it. On 2026-09-07 this cost
+hours: the homepage looked freshly deployed and seven webhook deliveries were blamed on
+a broken secret, when the webhook was fine and the process had simply never restarted.
+
+A manual reset must be followed by a restart (§3.4). `deploy.sh` and `POST /api/deploy`
+both touch the restart file for you.
+
+Then run all four checks — the first two can pass while the deploy has not landed, so
+they are not sufficient on their own:
+
+| Check | Proves | Expected |
+|---|---|---|
+| `curl --resolve troubleshooting.pathfindereducation.or.tz:443:213.139.204.238 https://troubleshooting.pathfindereducation.or.tz/` | Express static + new frontend | 200 HTML containing the current `app.js?v=` |
+| `curl --resolve troubleshooting.pathfindereducation.or.tz:443:213.139.204.238 -I https://troubleshooting.pathfindereducation.or.tz/css/components.css` | **Express** is serving static, not LiteSpeed | `cache-control: no-store, no-cache, must-revalidate` — set only by our `setHeaders` (`server.js:121`) — plus `content-type: text/css` |
+| `curl --resolve troubleshooting.pathfindereducation.or.tz:443:213.139.204.238 https://troubleshooting.pathfindereducation.or.tz/lrs` | the SPA catch-all `res.sendFile` | 200 HTML, not 404 |
+| `curl --resolve troubleshooting.pathfindereducation.or.tz:443:213.139.204.238 https://troubleshooting.pathfindereducation.or.tz/api/lrs` | **the backend process actually restarted** | `401 application/json` |
+
+The last row is the one that matters. `/api/lrs` is a route that exists only in current
+code; an old process falls through to the SPA catch-all and answers **200 text/html**.
+That single difference distinguishes "new code running" from "new files on disk". Pick a
+similarly recent route whenever this one stops being new.
+
+The second row matters for a different reason: after moving the application root, the
+homepage can still be served while `express.static` is dead, so a 200 on `/` alone
+proves nothing. The `no-store` header is the provenance check.
+
+### 3.4 Restarting by hand
 
 ```bash
 touch ~/troubleshooting.pathfindereducation.or.tz/backend/tmp/restart.txt

@@ -153,6 +153,15 @@ const BRANCH_ENV = { 'refs/heads/main': 'main', 'refs/heads/staging': 'staging',
 const CURRENT_ENV = process.env.NODE_ENV || 'production';
 const ENV_BRANCH = { production: 'main', staging: 'staging', development: 'develop' };
 
+// WEBHOOK_SECRET wins over DEPLOY_SECRET in the handler below, so rotating the
+// secret under the *other* name is a silent no-op that leaves the old one live.
+// Both people involved then believe it was rotated. Say so at boot.
+if (process.env.WEBHOOK_SECRET && process.env.DEPLOY_SECRET
+    && process.env.WEBHOOK_SECRET !== process.env.DEPLOY_SECRET) {
+  console.warn('[DEPLOY] WEBHOOK_SECRET and DEPLOY_SECRET are both set and differ — '
+    + 'WEBHOOK_SECRET is the one in use, DEPLOY_SECRET is ignored.');
+}
+
 app.post('/api/deploy', express.json({ limit: '1mb' }), (req, res) => {
   const secret = process.env.WEBHOOK_SECRET || process.env.DEPLOY_SECRET || '';
   // Fail closed. With no secret configured this endpoint would run
