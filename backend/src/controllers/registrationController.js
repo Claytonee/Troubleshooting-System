@@ -1,15 +1,6 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
 const pool = require('../config/database');
-
-function generateToken(user) {
-  return jwt.sign(
-    { id: user.id, role: user.role, username: user.username },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-  );
-}
 
 async function getSchoolsList(req, res, next) {
   try {
@@ -82,14 +73,10 @@ async function getRegistrationStatus(req, res, next) {
 
     const request = rows[0];
 
-    if (request.status === 'approved') {
-      const [user] = await pool.query('SELECT id, username, role FROM users WHERE email = ?', [email]);
-      if (user.length) {
-        const token = generateToken(user[0]);
-        return res.json({ status: 'approved', token, user: user[0] });
-      }
-    }
-
+    // SECURITY: never mint a session token from this unauthenticated endpoint.
+    // It is polled with just an id + email; issuing a JWT on 'approved' let
+    // anyone who knew a staff email enumerate ids and hijack the account.
+    // Approved users must log in with their password.
     res.json({
       status: request.status,
       rejection_reason: request.rejection_reason || null,
@@ -191,10 +178,11 @@ async function getApprovalDetail(req, res, next) {
 }
 
 async function approveRegistration(req, res, next) {
+  const conn = await pool.getConnection();
   try {
     const { id } = req.params;
 
-    const [rows] = await pool.query(
+    const [rows] = await conn.query(
       "SELECT * FROM registration_requests WHERE id = ? AND status IN ('pending', 'rejected')", [id]
     );
     if (!rows.length) {
@@ -205,38 +193,49 @@ async function approveRegistration(req, res, next) {
 
     const username = request.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
     let finalUsername = username;
-    const [existUser] = await pool.query('SELECT id FROM users WHERE username = ?', [username]);
+    const [existUser] = await conn.query('SELECT id FROM users WHERE username = ?', [username]);
     if (existUser.length) {
       finalUsername = username + Math.floor(Math.random() * 999);
     }
 
-    const [userResult] = await pool.query(
+    // Create the account, mark the request approved, resolve appeals and audit
+    // as one atomic unit so a partial failure can't leave an orphaned account
+    // or a "pending" request that already has a user.
+    await conn.beginTransaction();
+
+    const [userResult] = await conn.query(
       `INSERT INTO users (username, email, password_hash, full_name, role, phone, title, school_id, approval_status)
        VALUES (?, ?, ?, ?, 'school', ?, ?, ?, 'approved')`,
       [finalUsername, request.email, request.password_hash, request.full_name,
        request.phone, request.title, request.school_id]
     );
 
-    await pool.query(
+    await conn.query(
       "UPDATE registration_requests SET status = 'approved', reviewed_by = ?, reviewed_at = NOW() WHERE id = ?",
       [req.user.id, id]
     );
 
     // Mark any pending appeals for this request as resolved
-    await pool.query(
+    await conn.query(
       "UPDATE registration_appeals SET status = 'resolved' WHERE request_id = ? AND status = 'pending'",
       [id]
     );
 
-    await pool.query(
+    await conn.query(
       `INSERT INTO audit_log (actor_id, actor_name, actor_role, action, entity_type, entity_id, summary, ip)
        VALUES (?, ?, ?, 'registration.approved', 'user', ?, ?, ?)`,
       [req.user.id, req.user.full_name, req.user.role, userResult.insertId.toString(),
        `Approved school admin registration for ${request.full_name}`, req.ip]
     );
 
+    await conn.commit();
     res.json({ message: 'Registration approved.', user_id: userResult.insertId });
-  } catch (err) { next(err); }
+  } catch (err) {
+    try { await conn.rollback(); } catch (e) {}
+    next(err);
+  } finally {
+    conn.release();
+  }
 }
 
 async function rejectRegistration(req, res, next) {
@@ -402,19 +401,31 @@ async function registerTeacher(req, res, next) {
     const [existingUser] = await pool.query('SELECT id, role, status, approval_status FROM users WHERE LOWER(email) = LOWER(?)', [email]);
     if (existingUser.length) {
       const eu = existingUser[0];
-      // Allow re-registration for rejected/deleted teachers
+      // Allow re-registration for rejected/deleted teachers.
+      // The user update, teacher row replacement and link counter must be
+      // atomic so a failure can't leave an orphan/miscounted state.
       if (eu.role === 'teacher' && (eu.status === 'inactive' || eu.approval_status === 'rejected')) {
         const passwordHash = await bcrypt.hash(password, 12);
-        await pool.query(
-          `UPDATE users SET password_hash = ?, full_name = ?, phone = ?, school_id = ?, status = 'active', approval_status = 'pending', updated_at = NOW() WHERE id = ?`,
-          [passwordHash, full_name, phone || null, link.school_id, eu.id]
-        );
-        await pool.query('DELETE FROM teachers WHERE user_id = ?', [eu.id]);
-        await pool.query(
-          `INSERT INTO teachers (user_id, school_id, subject, employee_id, status, registered_via) VALUES (?, ?, ?, ?, 'pending', 'link')`,
-          [eu.id, link.school_id, subject || null, employee_id || null]
-        );
-        await pool.query('UPDATE registration_links SET use_count = use_count + 1 WHERE id = ?', [link.id]);
+        const conn = await pool.getConnection();
+        try {
+          await conn.beginTransaction();
+          await conn.query(
+            `UPDATE users SET password_hash = ?, full_name = ?, phone = ?, school_id = ?, status = 'active', approval_status = 'pending', updated_at = NOW() WHERE id = ?`,
+            [passwordHash, full_name, phone || null, link.school_id, eu.id]
+          );
+          await conn.query('DELETE FROM teachers WHERE user_id = ?', [eu.id]);
+          await conn.query(
+            `INSERT INTO teachers (user_id, school_id, subject, employee_id, status, registered_via) VALUES (?, ?, ?, ?, 'pending', 'link')`,
+            [eu.id, link.school_id, subject || null, employee_id || null]
+          );
+          await conn.query('UPDATE registration_links SET use_count = use_count + 1 WHERE id = ?', [link.id]);
+          await conn.commit();
+        } catch (err) {
+          try { await conn.rollback(); } catch (e) {}
+          throw err;
+        } finally {
+          conn.release();
+        }
         return res.status(201).json({ message: 'Registration submitted. Awaiting approval from your school administrator.', status: 'pending' });
       }
       return res.status(409).json({ error: 'Email already registered.' });
@@ -423,21 +434,30 @@ async function registerTeacher(req, res, next) {
     const passwordHash = await bcrypt.hash(password, 12);
     const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '') + Math.floor(Math.random() * 99);
 
-    const [userResult] = await pool.query(
-      `INSERT INTO users (username, email, password_hash, full_name, role, phone, school_id, approval_status)
-       VALUES (?, ?, ?, ?, 'teacher', ?, ?, 'pending')`,
-      [username, email, passwordHash, full_name, phone || null, link.school_id]
-    );
-
-    await pool.query(
-      `INSERT INTO teachers (user_id, school_id, subject, employee_id, status, registered_via)
-       VALUES (?, ?, ?, ?, 'pending', 'link')`,
-      [userResult.insertId, link.school_id, subject || null, employee_id || null]
-    );
-
-    await pool.query(
-      'UPDATE registration_links SET use_count = use_count + 1 WHERE id = ?', [link.id]
-    );
+    // New teacher: user + teacher rows + link counter as one atomic unit.
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [userResult] = await conn.query(
+        `INSERT INTO users (username, email, password_hash, full_name, role, phone, school_id, approval_status)
+         VALUES (?, ?, ?, ?, 'teacher', ?, ?, 'pending')`,
+        [username, email, passwordHash, full_name, phone || null, link.school_id]
+      );
+      await conn.query(
+        `INSERT INTO teachers (user_id, school_id, subject, employee_id, status, registered_via)
+         VALUES (?, ?, ?, ?, 'pending', 'link')`,
+        [userResult.insertId, link.school_id, subject || null, employee_id || null]
+      );
+      await conn.query(
+        'UPDATE registration_links SET use_count = use_count + 1 WHERE id = ?', [link.id]
+      );
+      await conn.commit();
+    } catch (err) {
+      try { await conn.rollback(); } catch (e) {}
+      throw err;
+    } finally {
+      conn.release();
+    }
 
     res.status(201).json({
       message: 'Registration submitted. Awaiting approval from your school administrator.',
@@ -587,17 +607,29 @@ async function createTeacher(req, res, next) {
     const passwordHash = await bcrypt.hash(pw, 12);
     const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '') + Math.floor(Math.random() * 99);
 
-    const [userResult] = await pool.query(
-      `INSERT INTO users (username, email, password_hash, full_name, role, phone, school_id, approval_status)
-       VALUES (?, ?, ?, ?, 'teacher', ?, ?, 'approved')`,
-      [username, email, passwordHash, full_name, phone || null, schoolId]
-    );
-
-    const [teacherResult] = await pool.query(
-      `INSERT INTO teachers (user_id, school_id, subject, employee_id, status, registered_via, approved_by, approved_at)
-       VALUES (?, ?, ?, ?, 'active', 'manual', ?, NOW())`,
-      [userResult.insertId, schoolId, subject || null, employee_id || null, req.user.id]
-    );
+    // Create the user + teacher rows atomically so a failure on the second
+    // insert can't leave an orphaned user account with no teacher record.
+    const conn = await pool.getConnection();
+    let teacherResult;
+    try {
+      await conn.beginTransaction();
+      const [userResult] = await conn.query(
+        `INSERT INTO users (username, email, password_hash, full_name, role, phone, school_id, approval_status)
+         VALUES (?, ?, ?, ?, 'teacher', ?, ?, 'approved')`,
+        [username, email, passwordHash, full_name, phone || null, schoolId]
+      );
+      [teacherResult] = await conn.query(
+        `INSERT INTO teachers (user_id, school_id, subject, employee_id, status, registered_via, approved_by, approved_at)
+         VALUES (?, ?, ?, ?, 'active', 'manual', ?, NOW())`,
+        [userResult.insertId, schoolId, subject || null, employee_id || null, req.user.id]
+      );
+      await conn.commit();
+    } catch (err) {
+      try { await conn.rollback(); } catch (e) {}
+      throw err;
+    } finally {
+      conn.release();
+    }
 
     res.status(201).json({
       message: 'Teacher created successfully.',

@@ -14,6 +14,7 @@ async function bootstrap() {
     role VARCHAR(20) NOT NULL DEFAULT 'school',
     phone VARCHAR(50), zone VARCHAR(100), color VARCHAR(50) DEFAULT '#4f7cff', title VARCHAR(200),
     status VARCHAR(20) DEFAULT 'active', school_id INT,
+    must_change_password TINYINT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )`);
 
@@ -84,14 +85,21 @@ async function bootstrap() {
 
   const [existing] = await pool.query('SELECT id FROM users WHERE username = ?', ['admin']);
   if (!existing.length) {
-    const hash = await bcrypt.hash('admin123', 10);
-    await pool.query(`INSERT INTO users (username, email, password_hash, full_name, role, phone, zone, color, title, status) VALUES
-      ('admin','admin@questforward.org',?,'System Administrator','admin','+255 658 000 000','HQ','#4f7cff','System Admin','active'),
-      ('knjoro','knjoro@questforward.org',?,'K. Njoro','subadmin','+255 658 066 983','Moshi Zone','#4f7cff','Senior Engineer · Lead','active'),
-      ('famani','famani@questforward.org',?,'F. Amani','subadmin','+255 754 110 220','Kilema–Kibosho','#2dd98a','Senior Engineer','onsite'),
-      ('thassan','thassan@questforward.org',?,'T. Hassan','subadmin','+255 762 330 440','Rombo','#9b7dff','Senior Engineer','active'),
-      ('cmbowe','cmbowe@questforward.org',?,'Clinton Mbowe','subadmin','+255 715 880 990','Remote / HQ','#36d9cc','IT Officer · Platform','remote')
-    `, [hash, hash, hash, hash, hash]);
+    // Admin password comes from ADMIN_PASSWORD when set; otherwise a well-known
+    // default that MUST be changed on first login (must_change_password = 1).
+    // Seeded staff (subadmins) share the default, so they're forced to change too.
+    const adminPw = process.env.ADMIN_PASSWORD || 'admin123';
+    const usingDefaultAdmin = !process.env.ADMIN_PASSWORD;
+    const adminHash = await bcrypt.hash(adminPw, 12);
+    const staffHash = await bcrypt.hash('admin123', 12);
+    await pool.query(`INSERT INTO users (username, email, password_hash, full_name, role, phone, zone, color, title, status, must_change_password) VALUES
+      ('admin','admin@questforward.org',?,'System Administrator','admin','+255 658 000 000','HQ','#4f7cff','System Admin','active',?),
+      ('knjoro','knjoro@questforward.org',?,'K. Njoro','subadmin','+255 658 066 983','Moshi Zone','#4f7cff','Senior Engineer · Lead','active',1),
+      ('famani','famani@questforward.org',?,'F. Amani','subadmin','+255 754 110 220','Kilema–Kibosho','#2dd98a','Senior Engineer','onsite',1),
+      ('thassan','thassan@questforward.org',?,'T. Hassan','subadmin','+255 762 330 440','Rombo','#9b7dff','Senior Engineer','active',1),
+      ('cmbowe','cmbowe@questforward.org',?,'Clinton Mbowe','subadmin','+255 715 880 990','Remote / HQ','#36d9cc','IT Officer · Platform','remote',1)
+    `, [adminHash, usingDefaultAdmin ? 1 : 0, staffHash, staffHash, staffHash, staffHash]);
+    if (usingDefaultAdmin) console.log('  ⚠ Admin seeded with default password "admin123" — you will be required to change it on first login.');
     console.log('  Users seeded');
   }
 

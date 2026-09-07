@@ -12,14 +12,14 @@ router.get('/stats', ctrl.getStats);
 router.get('/export', ctrl.exportDevices);
 router.get('/:id', ctrl.getById);
 
-router.post('/', [
+router.post('/', authorize('admin', 'subadmin', 'school'), [
   body('serial_number').notEmpty().withMessage('Serial number is required'),
   validate
 ], ctrl.create);
 
-router.put('/:id', ctrl.update);
-router.patch('/:id/assign', ctrl.assignDevice);
-router.patch('/:id/status', [
+router.put('/:id', authorize('admin', 'subadmin', 'school'), ctrl.update);
+router.patch('/:id/assign', authorize('admin', 'subadmin', 'school'), ctrl.assignDevice);
+router.patch('/:id/status', authorize('admin', 'subadmin', 'school'), [
   body('status').isIn(['Working', 'Needs Setup', 'In Repair', 'Faulty', 'Lost/Missing']).withMessage('Invalid status'),
   validate
 ], ctrl.changeStatus);

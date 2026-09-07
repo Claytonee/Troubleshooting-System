@@ -37,7 +37,8 @@ const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
 
-// Force HTTPS in production (Render terminates SSL at the proxy)
+// Force HTTPS in production (the DirectAdmin proxy terminates SSL and sets
+// x-forwarded-proto; redirect any plain-http hit back to https).
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     if (req.headers['x-forwarded-proto'] !== 'https') {
@@ -47,9 +48,30 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Security middleware
+// Security middleware.
+// NOTE on CSP: the SPA relies on inline event handlers (onclick=) and inline
+// style attributes, so script-src/style-src must keep 'unsafe-inline' — that
+// means CSP is defense-in-depth here (it blocks external script origins,
+// object/embed, and <base> hijacking), NOT the primary XSS control. Output
+// escaping via esc() is the primary control. Removing inline handlers later
+// would let us drop 'unsafe-inline' from script-src.
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    useDefaults: false,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdn.jsdelivr.net'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://cdn.jsdelivr.net'],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      mediaSrc: ["'self'", 'https:'],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'self'"],
+      formAction: ["'self'"]
+    }
+  },
   hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));

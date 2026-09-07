@@ -85,16 +85,16 @@ const InventoryPage = (() => {
     const borderColor = `var(--${statusColors[d.status] || 'accent'})`;
     return `<div class="card reveal" onclick="InventoryPage.openDetail(${d.id})" style="cursor:pointer;border-left:3px solid ${borderColor};padding:12px 14px;transition:all .15s;overflow:hidden" onmouseenter="this.style.background='var(--bg3)'" onmouseleave="this.style.background=''">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
-        <div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text);white-space:nowrap">${d.asset_tag || d.serial_number}</div>
+        <div style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--text);white-space:nowrap">${esc(d.asset_tag || d.serial_number)}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          ${d.form ? `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--text3)">${d.form}${d.stream ? ' '+d.stream : ''}</span>` : ''}
+          ${d.form ? `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--text3)">${esc(d.form)}${d.stream ? ' '+esc(d.stream) : ''}</span>` : ''}
           ${statusBadge(d.status)}
         </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <div style="min-width:0;flex:1">
-          <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.serial_number}${d.model ? ' · ' + d.model : ''}</div>
-          <div style="font-size:12px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${d.student_name ? 'var(--text2)' : 'var(--text3)'}"><i class="ti ti-user" style="font-size:12px;margin-right:4px"></i>${d.student_name || 'Unassigned'}${d.admission_no ? ' · ' + d.admission_no : ''}</div>
+          <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.serial_number)}${d.model ? ' · ' + esc(d.model) : ''}</div>
+          <div style="font-size:12px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${d.student_name ? 'var(--text2)' : 'var(--text3)'}"><i class="ti ti-user" style="font-size:12px;margin-right:4px"></i>${d.student_name ? esc(d.student_name) : 'Unassigned'}${d.admission_no ? ' · ' + esc(d.admission_no) : ''}</div>
         </div>
         <button class="btn-icon" onclick="event.stopPropagation();InventoryPage.openEdit(${d.id})" title="Edit" style="width:26px;height:26px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px"></i></button>
       </div>
@@ -179,9 +179,9 @@ const InventoryPage = (() => {
     try {
       await API.createDevice(data);
       Modal.close();
-      Toast.show('Device added successfully', 'success');
+      showToast('Device added successfully', 'success');
       reload();
-    } catch (err) { Toast.show(err.error || 'Failed to add device', 'error'); }
+    } catch (err) { showToast(err.error || 'Failed to add device', 'error'); }
   }
 
   function openEdit(id) {
@@ -239,9 +239,9 @@ const InventoryPage = (() => {
     try {
       await API.updateDevice(id, data);
       Modal.close();
-      Toast.show('Device updated', 'success');
+      showToast('Device updated', 'success');
       reload();
-    } catch (err) { Toast.show(err.error || 'Failed to update', 'error'); }
+    } catch (err) { showToast(err.error || 'Failed to update', 'error'); }
   }
 
   async function openDetail(id) {
@@ -257,7 +257,7 @@ const InventoryPage = (() => {
             <tr><td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-device-tablet" style="font-size:13px;color:var(--purple)"></i>Model</span></td><td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${esc(d.model||'-')}</td>
                 <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-calendar" style="font-size:13px;color:var(--amber)"></i>Year</span></td><td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${d.year_first_used||'-'}</td></tr>
             <tr><td colspan="4" style="padding:0;height:1px;background:var(--border)"></td></tr>
-            <tr><td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-school" style="font-size:13px;color:var(--green)"></i>Form</span></td><td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${d.form||'-'} ${d.stream||''}</td>
+            <tr><td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-school" style="font-size:13px;color:var(--green)"></i>Form</span></td><td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${esc(d.form||'-')} ${esc(d.stream||'')}</td>
                 <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-activity" style="font-size:13px;color:${d.status==='Working'?'var(--green)':'var(--red)'}"></i>Status</span></td><td style="padding:9px 12px;font-weight:500;font-size:13px">${statusBadge(d.status)}</td></tr>
             <tr><td colspan="4" style="padding:0;height:1px;background:var(--border)"></td></tr>
             <tr><td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-user" style="font-size:13px;color:var(--accent)"></i>Student</span></td><td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${esc(d.student_name||'Unassigned')}</td>
@@ -281,14 +281,14 @@ const InventoryPage = (() => {
           <button class="btn" onclick="InventoryPage.openStatusChange(${d.id},'${d.status}')" style="padding:8px 16px;font-size:12px;background:rgba(54,217,204,.12);color:var(--teal);border:1px solid rgba(54,217,204,.25);border-radius:8px"><i class="ti ti-refresh"></i> Change Status</button>
         </div>
       `, '', true);
-    } catch (err) { Toast.show('Failed to load device details', 'error'); }
+    } catch (err) { showToast('Failed to load device details', 'error'); }
   }
 
   function historyLabel(h) {
     if (h.action === 'created') return 'Device added to inventory';
-    if (h.action === 'status_change') return `Status: ${h.old_value} → <strong>${h.new_value}</strong>`;
-    if (h.action === 'assigned') return `Assigned: ${h.old_value} → <strong>${h.new_value}</strong>`;
-    return h.action + (h.note ? ` — ${h.note}` : '');
+    if (h.action === 'status_change') return `Status: ${esc(h.old_value)} → <strong>${esc(h.new_value)}</strong>`;
+    if (h.action === 'assigned') return `Assigned: ${esc(h.old_value)} → <strong>${esc(h.new_value)}</strong>`;
+    return esc(h.action) + (h.note ? ` — ${esc(h.note)}` : '');
   }
 
   function openStatusChange(id, currentStatus) {
@@ -311,18 +311,18 @@ const InventoryPage = (() => {
         note: document.getElementById('st-note').value.trim()
       });
       Modal.close();
-      Toast.show('Status updated', 'success');
+      showToast('Status updated', 'success');
       reload();
-    } catch (err) { Toast.show(err.error || 'Failed to update status', 'error'); }
+    } catch (err) { showToast(err.error || 'Failed to update status', 'error'); }
   }
 
   function confirmDelete(id) {
     if (confirm('Are you sure you want to permanently delete this device from inventory?')) {
       API.deleteDevice(id).then(() => {
         Modal.close();
-        Toast.show('Device removed', 'success');
+        showToast('Device removed', 'success');
         reload();
-      }).catch(err => Toast.show(err.error || 'Failed to delete', 'error'));
+      }).catch(err => showToast(err.error || 'Failed to delete', 'error'));
     }
   }
 
@@ -422,9 +422,9 @@ const InventoryPage = (() => {
     try {
       const res = await API.bulkImportDevices(data);
       Modal.close();
-      Toast.show(`Imported: ${res.created} new, ${res.updated} updated${res.errors?.length ? `, ${res.errors.length} errors` : ''}`, 'success');
+      showToast(`Imported: ${res.created} new, ${res.updated} updated${res.errors?.length ? `, ${res.errors.length} errors` : ''}`, 'success');
       reload();
-    } catch (err) { Toast.show(err.error || 'Import failed', 'error'); }
+    } catch (err) { showToast(err.error || 'Import failed', 'error'); }
   }
 
   async function exportCsv() {
@@ -436,8 +436,8 @@ const InventoryPage = (() => {
       a.href = URL.createObjectURL(blob);
       a.download = 'tablet_inventory.csv';
       a.click();
-      Toast.show('Export downloaded', 'success');
-    } catch (err) { Toast.show('Export failed', 'error'); }
+      showToast('Export downloaded', 'success');
+    } catch (err) { showToast('Export failed', 'error'); }
   }
 
   function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }

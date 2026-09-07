@@ -37,9 +37,23 @@ async function getAll(req, res, next) {
 
 async function getBySchool(req, res, next) {
   try {
+    const schoolId = parseInt(req.params.schoolId, 10);
+
+    // Tenant scoping: a school user may only read their own school; a
+    // subadmin only schools assigned to them; admin may read any.
+    if (req.user.role === 'school' && schoolId !== req.user.school_id) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+    if (req.user.role === 'subadmin') {
+      const [allowed] = await pool.query(
+        'SELECT id FROM schools WHERE id = ? AND assigned_admin_id = ?', [schoolId, req.user.id]
+      );
+      if (!allowed.length) return res.status(403).json({ error: 'Access denied.' });
+    }
+
     const [rows] = await pool.query(
       'SELECT * FROM weekly_checkins WHERE school_id = ? ORDER BY week_number ASC',
-      [req.params.schoolId]
+      [schoolId]
     );
     res.json(rows);
   } catch (err) { next(err); }

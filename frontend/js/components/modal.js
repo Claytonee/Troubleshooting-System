@@ -2,6 +2,8 @@
  * Modal Component
  */
 const Modal = (() => {
+  let locked = false; // when true the modal cannot be dismissed (forced flows)
+
   function open(title, bodyHtml, footerHtml, wide) {
     $('modal-title').textContent = title;
     $('modal-body').innerHTML = bodyHtml;
@@ -13,7 +15,13 @@ const Modal = (() => {
     document.body.style.overflow = 'hidden';
   }
 
+  // Lock/unlock lets callers (e.g. a forced password change) prevent the user
+  // from closing the modal via Escape, overlay click, or a Cancel button.
+  function lock() { locked = true; }
+  function unlock() { locked = false; }
+
   function close() {
+    if (locked) return;
     $('modal').classList.remove('open');
     document.body.style.overflow = '';
   }
@@ -32,5 +40,5 @@ const Modal = (() => {
     });
   }
 
-  return { open, close, init };
+  return { open, close, init, lock, unlock };
 })();

@@ -171,8 +171,8 @@ const Notifications = (() => {
           <i class="${item.icon}"></i>
         </div>
         <div class="notif-item-content">
-          <div class="notif-item-title">${item.title}</div>
-          <div class="notif-item-sub">${item.sub}</div>
+          <div class="notif-item-title">${esc(item.title)}</div>
+          <div class="notif-item-sub">${esc(item.sub)}</div>
         </div>
       </div>
     `).join('');

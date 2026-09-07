@@ -147,6 +147,11 @@ async function applyExtensions(db) {
   await q("ALTER TABLE users ADD COLUMN approval_status VARCHAR(20) DEFAULT 'approved'");
   await q("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500) NULL");
   await q("ALTER TABLE users ADD COLUMN bio TEXT NULL");
+  await q("ALTER TABLE users ADD COLUMN must_change_password TINYINT DEFAULT 0");
+  // Older DBs created users.role as ENUM('admin','subadmin','school'), which
+  // rejects the later 'teacher' role and breaks teacher creation. Widen to
+  // VARCHAR(20) (a superset — safe, idempotent) to match bootstrap.js.
+  await q("ALTER TABLE users MODIFY COLUMN role VARCHAR(20) NOT NULL DEFAULT 'school'");
 
   // --- Escalation fields on errors ---
   await q("ALTER TABLE errors ADD COLUMN escalation_level VARCHAR(20) DEFAULT 'school'");
