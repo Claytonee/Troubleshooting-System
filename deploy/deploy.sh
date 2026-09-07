@@ -81,12 +81,15 @@ set +e
 npm install --omit=dev 2>&1 | tee -a "$LOG_FILE"
 NPM_STATUS=${PIPESTATUS[0]}
 set -e
-[ "$NPM_STATUS" -eq 0 ] || die "npm install exited $NPM_STATUS — see $LOG_FILE"
-# Belt and braces: a zero exit still does not prove the tree is usable.
-if [ ! -e node_modules/express/package.json ]; then
-  die "dependencies missing after npm install (node_modules/express not found) — check the Selector virtualenv"
-fi
-log "dependencies present: $(ls node_modules | wc -l) entries"
+# A refusal exits 1, but that must not abort the deploy: while the application root
+# is the repo root the Selector refuses every npm run, and stopping here would leave
+# new files on disk with the old process still serving them.
+[ "$NPM_STATUS" -eq 0 ] || log "WARNING: npm install exited $NPM_STATUS — see $LOG_FILE"
+# What matters is whether the app can resolve its dependencies. Ask node, so upward
+# resolution is followed exactly as at runtime — express may live in a parent
+# node_modules, which is the case whenever the application root is the repo root.
+node -e "require.resolve('express')" 2>/dev/null   || die "express cannot be resolved from $BACKEND_DIR — dependencies are missing"
+log "dependencies resolve OK"
 
 # ------------------------------------------------------------
 # 4. Config. Deliberately NOT copied from .env.<env>: backend/.env holds the

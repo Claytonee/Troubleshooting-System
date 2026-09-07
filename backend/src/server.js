@@ -225,11 +225,22 @@ app.post('/api/deploy', express.json({ limit: '1mb' }), (req, res) => {
     // owns the application root's node_modules as a symlink into its virtualenv and
     // refuses to work when a real directory of that name sits there.
     // `npm install`, not `npm ci` — ci deletes node_modules first, which fights the
-    // symlink. The wrapper exits non-zero when it refuses (measured: 1), so a throw
-    // here is real; the existence check below then confirms the tree is usable.
-    execSync('npm install --omit=dev', { cwd: backendDir, timeout: 180000, encoding: 'utf8' });
-    if (!fs.existsSync(path.join(backendDir, 'node_modules', 'express', 'package.json'))) {
-      throw new Error('dependencies missing after npm install (node_modules/express not found)');
+    // Selector's symlink. A refusal exits 1 (measured), but that must NOT abort the
+    // deploy: while the application root is the repo root the Selector refuses every
+    // npm run, and aborting here would leave new files on disk with the old process
+    // still serving them — the exact half-state that wasted hours on 2026-09-07.
+    try {
+      execSync('npm install --omit=dev', { cwd: backendDir, timeout: 180000, encoding: 'utf8' });
+    } catch (e) {
+      console.warn('[DEPLOY] npm install failed, continuing to the dependency check:', String(e.message).slice(0, 200));
+    }
+    // What matters is whether the app can resolve its dependencies, not whether npm
+    // succeeded. Ask Node, so upward resolution is followed exactly as at runtime —
+    // express may legitimately live in a parent node_modules.
+    try {
+      require.resolve('express', { paths: [backendDir] });
+    } catch {
+      throw new Error('express cannot be resolved from ' + backendDir + ' — dependencies are missing');
     }
 
     // Ask Passenger to respawn. Its restart file lives inside its application
