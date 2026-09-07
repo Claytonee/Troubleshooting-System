@@ -1,341 +1,256 @@
-# cPanel CI/CD Setup Guide — QFT Technical Support System
+# cPanel Deployment — QFT Technical Support System
 
-## Architecture Overview
+Live host: **cPanel / CloudLinux on `213.139.204.238`**, serving
+`troubleshooting.pathfindereducation.or.tz`. One Node.js application, one database.
+
+> Rewritten 2026-09-07 after the previous version was tested against the real host and
+> found wrong in six places. The **why** notes below are the reasons — read them before
+> "simplifying" a step.
+
+---
+
+## 1. Architecture on this host
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Developer pushes code to GitHub                        │
-│                                                         │
-│  git push origin main      → Production deploy          │
-│  git push origin staging   → Staging deploy             │
-│  git push origin develop   → Development deploy         │
-└────────────┬────────────────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────┐
-│  GitHub Webhook (POST)                                  │
-│  → https://troubleshooting.pathfindereducation.or.tz    │
-│    /webhook (port 9000)                                 │
-└────────────┬────────────────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────┐
-│  Webhook Server (deploy/webhook-server.js)              │
-│  • Verifies GitHub signature                            │
-│  • Maps branch → environment                            │
-│  • Runs deploy-{env}.sh                                 │
-└────────────┬────────────────────────────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────────────────────────────┐
-│  Deploy Script                                          │
-│  1. git pull                                            │
-│  2. npm ci                                              │
-│  3. Copy .env.{environment}                             │
-│  4. Run migrations                                      │
-│  5. Restart Node.js app (Passenger / PM2)               │
-│  6. Health check                                        │
-└─────────────────────────────────────────────────────────┘
+~/troubleshooting.pathfindereducation.or.tz/     <- git checkout, and the subdomain document root
+├── backend/                                     <- PASSENGER APPLICATION ROOT
+│   ├── src/server.js                            <-   startup file
+│   ├── .env                                     <-   the only config the app reads
+│   ├── node_modules -> ~/nodevenv/.../18/...    <-   symlink, managed by CloudLinux
+│   ├── package.json                             <-   the real dependency list (14 deps)
+│   └── tmp/restart.txt                          <-   touch this to restart
+├── frontend/                                    <- served by Express, code-relative
+├── deploy/
+└── package.json                                 <- runner scripts only, ZERO dependencies
 ```
 
-## Environments
+**Why the application root is `backend/`, not the repo root.** CloudLinux NodeJS
+Selector insists on owning the application root's `node_modules` as a symlink into a
+virtualenv, and refuses to run `npm` at all when a real directory of that name sits
+there:
 
-| Environment | Branch   | Database              | Subdomain                                          | Port |
-|-------------|----------|-----------------------|----------------------------------------------------|------|
-| Production  | `main`   | `CPUSER_qft_production` | troubleshooting.pathfindereducation.or.tz          | 3000 |
-| Staging     | `staging`| `CPUSER_qft_staging`    | staging-troubleshooting.pathfindereducation.or.tz  | 3001 |
-| Development | `develop`| `CPUSER_qft_dev`        | dev-troubleshooting.pathfindereducation.or.tz      | 3003 |
-| Testing     | —        | `CPUSER_qft_testing`    | (no web access, CI only)                           | 3002 |
+```
+Cloudlinux NodeJS Selector demands to store node modules for application in
+separate folder (virtual environment) pointed by symlink called "node_modules".
+That's why application should not contain folder/file with such name in application root
+```
 
-> Replace `CPUSER` with your actual cPanel username (e.g., `pathfind`).
+The dependency list lives in `backend/package.json`, so `backend/` has to be the
+application root for `npm install` and the panel's **Run NPM Install** button to work.
+Pointing the application root at the repo root cannot work — the root `package.json`
+declares **zero** dependencies.
 
----
-
-## Step 1: Create MySQL Databases in cPanel
-
-1. Log in to cPanel → **MySQL Databases**
-2. Create 4 databases:
-   - `CPUSER_qft_production` (or keep your existing production DB name)
-   - `CPUSER_qft_staging`
-   - `CPUSER_qft_dev`
-   - `CPUSER_qft_testing`
-3. Create a database user (or use existing):
-   - `CPUSER_qft` with a strong password
-4. Add the user to ALL 4 databases with **ALL PRIVILEGES**
-5. Note down the database names and password
+Moving the application root does **not** break the frontend. `express.static` and the
+SPA fallback both resolve `path.join(__dirname, '..', '..', 'frontend')`, which is
+code-relative, so they still find the repo's `frontend/` whatever Passenger's
+application root is.
 
 ---
 
-## Step 2: Create Subdomains
+## 2. First-time setup
 
-1. cPanel → **Subdomains**
-2. Create:
-   - `staging-troubleshooting` → points to a separate app directory
-   - `dev-troubleshooting` → points to a separate app directory
-3. Each subdomain gets its own Node.js application directory:
-   ```
-   ~/staging-troubleshooting.pathfindereducation.or.tz/
-   ~/dev-troubleshooting.pathfindereducation.or.tz/
-   ```
-
-   OR use the same directory with different Node.js app configurations (recommended — less disk usage).
-
----
-
-## Step 3: Clone Repository on Server
-
-SSH into your server (cPanel → **Terminal** or use SSH client):
+### 2.1 Get the code
 
 ```bash
-# Navigate to your home directory
 cd ~
-
-# Clone for production (if not already done)
-git clone https://github.com/Claytonee/Troubleshooting-System.git troubleshooting-production
-cd troubleshooting-production
-git checkout main
-
-# Clone for staging
-cd ~
-git clone https://github.com/Claytonee/Troubleshooting-System.git troubleshooting-staging
-cd troubleshooting-staging
-git checkout staging
-
-# Clone for development
-cd ~
-git clone https://github.com/Claytonee/Troubleshooting-System.git troubleshooting-dev
-cd troubleshooting-dev
-git checkout develop
+git clone https://github.com/Claytonee/Troubleshooting-System.git troubleshooting.pathfindereducation.or.tz
 ```
+
+The folder name only has to match the subdomain's document root. Nothing in `deploy/`
+hardcodes it — the scripts derive `APP_DIR` from their own location.
+
+### 2.2 Database
+
+cPanel → **MySQL Databases**:
+
+1. Create the database and a user.
+2. **Add User To Database** → grant **ALL PRIVILEGES**. Creating both without linking
+   them produces `ER_ACCESS_DENIED_ERROR`, which reads exactly like a wrong password.
+
+Both names carry the cPanel account prefix (currently `pathfind_`). Use the full
+prefixed names — those are what MySQL knows.
+
+### 2.3 Node.js application
+
+cPanel → **Setup Node.js App** → *Create Application*:
+
+| Field | Value |
+|---|---|
+| Node.js version | 18.x or newer (`backend/package.json` requires `>=18`) |
+| Application mode | Production |
+| **Application root** | `troubleshooting.pathfindereducation.or.tz/backend` |
+| Application URL | `troubleshooting.pathfindereducation.or.tz`, path left empty |
+| **Application startup file** | `src/server.js` — relative to the application root |
+
+Leave **Environment variables** empty and use `backend/.env` (§2.4) instead. Panel
+variables silently override the file, so mixing the two makes the effective config
+impossible to read off disk. Pick one place; this project picks the file.
+
+> **Changing the application root of an existing app** makes cPanel *move* the old
+> root's contents into the new one, and it aborts on any name collision:
+> `shutil.Error: Destination path '.../tmp' already exists`. Move the colliding entries
+> out of the old root first. It also expects the virtualenv at
+> `~/nodevenv/<old app root>/<version>` and fails with `Unable to find app venv folder`
+> if it is not there. Destroying and recreating the application avoids both.
+
+### 2.4 Configuration — `backend/.env`
+
+```
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=<prefixed mysql user>
+DB_PASSWORD=<mysql password>
+DB_NAME=<prefixed database name>
+JWT_SECRET=<openssl rand -hex 32>
+JWT_EXPIRES_IN=7d
+MAX_FILE_SIZE=104857600
+WEBHOOK_SECRET=<openssl rand -hex 32>
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+```
+
+```bash
+chmod 600 ~/troubleshooting.pathfindereducation.or.tz/backend/.env
+```
+
+`NODE_ENV` comes from *Application mode*; do not set it here. **Never set
+`DATABASE_URL`** — it overrides every `DB_*` variable above, and that is how a deleted
+Aiven host survived config changes and took the site down on 2026-09-07.
+
+> **Which `.env` gets read.** Current code resolves the path from `__dirname`
+> (`backend/src/server.js:5`, `backend/src/config/database.js:5`), so it is always
+> **`backend/.env`** — the process working directory is irrelevant. Code at or before
+> `9231be9` (Aug 2026) called bare `dotenv.config()` and so read `<cwd>/.env`, which
+> under Passenger meant the **repo root** `.env`. Upgrading past that commit therefore
+> moves the file the app reads. dotenv says nothing about a missing file, so the app
+> boots with defaults (`localhost`, user `root`, empty password) and fails at the first
+> query with no explanation. **On a host still running the old code, make both files
+> identical before deploying.**
+
+### 2.5 Dependencies
+
+```bash
+source ~/nodevenv/troubleshooting.pathfindereducation.or.tz/backend/18/bin/activate
+cd ~/troubleshooting.pathfindereducation.or.tz/backend
+npm install --omit=dev
+```
+
+or use the panel's **Run NPM Install**. Then confirm it actually worked:
+
+```bash
+ls node_modules/express/package.json
+```
+
+The Selector's `npm` wrapper cannot be trusted to report failure through its exit
+status, so **verify the files exist** rather than checking `$?`. If a pipe is involved,
+`$?` belongs to the last command in the pipe anyway — use `PIPESTATUS`.
+
+Never run `npm` in the repo root. If a real `node_modules` directory already exists
+there — it can be created while the application root is mis-set — delete it once the
+`backend/` install is confirmed. Node's upward module resolution will otherwise quietly
+serve packages from it and mask something missing in `backend/`.
+
+### 2.6 DNS and TLS
+
+The hostname may still point elsewhere; it was a Render custom domain until
+2026-09-07. Test cPanel without touching DNS:
+
+```bash
+curl -H "Host: troubleshooting.pathfindereducation.or.tz" -H "x-forwarded-proto: https" http://213.139.204.238/api/health
+```
+
+`{"status":"ok"}` plus `Server: LiteSpeed` in the headers means the cPanel app is
+healthy. Then:
+
+1. cPanel → **Zone Editor** → replace any `troubleshooting` CNAME with an
+   **A record → `213.139.204.238`** (TTL 300).
+2. Remove the custom domain from the Render service, or it keeps claiming the name.
+3. Wait for propagation, then cPanel → **SSL/TLS Status** → **Run AutoSSL** for the
+   subdomain. This is **not optional**: the app 301-redirects all HTTP to HTTPS, so
+   without a valid certificate every visitor meets a TLS warning. AutoSSL validates
+   over HTTP, so it fails until DNS actually points here.
+
+### 2.7 First login
+
+`bootstrap()` runs on every start, creates the schema when the database is empty, and
+seeds demo data plus an `admin` user with password `admin123` (override with
+`ADMIN_PASSWORD` before the first boot). A password change is forced at first login.
+Seeding only happens when no `admin` user exists, so restarts never touch existing data.
 
 ---
 
-## Step 4: Configure Environment Files
+## 3. Deploying new code
 
-For EACH clone, create the `.env` file in the `backend/` directory:
+### 3.1 Webhook on port 443 (recommended)
 
-### Production (`~/troubleshooting-production/backend/.env`):
-```bash
-cd ~/troubleshooting-production/backend
-nano .env
-# Paste contents from .env.production, fill in real values
+`POST /api/deploy` is part of the app, so it is already covered by the existing
+LiteSpeed certificate.
+
+GitHub → repo → *Settings* → **Webhooks** → *Add webhook*:
+
+| Field | Value |
+|---|---|
+| Payload URL | `https://troubleshooting.pathfindereducation.or.tz/api/deploy` |
+| Content type | `application/json` |
+| Secret | the same value as `WEBHOOK_SECRET` in `backend/.env` |
+| Events | Just the push event |
+
+The endpoint **fails closed**: with no `WEBHOOK_SECRET` set it answers `503` rather
+than accepting anonymous POSTs, and signatures are compared with `timingSafeEqual`. It
+then backs up any server-side edits into `deploy/backups/`, fetches `origin`, refuses
+the push unless the remote commit is a descendant of `HEAD` — so a stale remote cannot
+roll production backwards — resets, installs dependencies in `backend/`, verifies
+`node_modules/express` exists, and touches `backend/tmp/restart.txt`.
+
+> **Do not use `deploy/webhook-server.js` on port 9000.** It is a plain-HTTP Node
+> server while the TLS certificate is terminated by LiteSpeed on 443, so an
+> `https://…:9000/` payload URL cannot complete a handshake — even if the host firewall
+> allowed inbound 9000, which on shared hosting it generally does not.
+
+### 3.2 Cron polling (if inbound webhooks are blocked)
+
+cPanel → **Cron Jobs**, every 5 minutes:
+
+```
+*/5 * * * * ~/troubleshooting.pathfindereducation.or.tz/deploy/deploy-production.sh >> ~/troubleshooting.pathfindereducation.or.tz/deploy/deploy.log 2>&1
 ```
 
-### Staging (`~/troubleshooting-staging/backend/.env`):
+`deploy-production.sh` is a thin wrapper over `deploy/deploy.sh`, which exits early
+when there is nothing new, holds a lock against concurrent runs, and applies the same
+fast-forward-only guard as the webhook.
+
+### 3.3 Restarting by hand
+
 ```bash
-cd ~/troubleshooting-staging/backend
-nano .env
-# Paste contents from .env.staging, fill in real values
+touch ~/troubleshooting.pathfindereducation.or.tz/backend/tmp/restart.txt
 ```
 
-### Development (`~/troubleshooting-dev/backend/.env`):
-```bash
-cd ~/troubleshooting-dev/backend
-nano .env
-# Paste contents from .env.development, fill in real values
-```
+The restart file lives inside **Passenger's application root**, which is `backend/` —
+not the repo root. Never restart with `pkill -f "node.*server.js"`: on shared hosting
+that pattern matches every other Node application owned by the same cPanel user.
 
 ---
 
-## Step 5: Setup Node.js Apps in cPanel
+## 4. Troubleshooting
 
-1. cPanel → **Setup Node.js App**
-2. Create 3 applications:
+| Symptom | Cause |
+|---|---|
+| `Cannot find module 'express'` | `npm install` ran in the repo root, whose `package.json` has no dependencies. Install in `backend/`. |
+| Selector refuses `npm`, mentions a `node_modules` symlink | A real `node_modules` directory exists in the application root. Remove it. |
+| `ER_ACCESS_DENIED_ERROR` | Wrong `DB_PASSWORD`, or the user was never added to the database with ALL PRIVILEGES. |
+| `ER_BAD_DB_ERROR` | `DB_NAME` is missing the account prefix, or names a different database than the one granted. |
+| `ENOTFOUND` on a database host | The database no longer exists — check the hostname with `nslookup` before touching config. |
+| Every API call answers 503 | Startup logged `DATABASE UNREACHABLE`; read the log, it names the target actually in use and translates the driver code. |
+| Config edits have no effect | A panel environment variable is overriding the file, or `DATABASE_URL` is set, or the running code predates `9231be9` and is reading the repo root `.env`. |
+| Site loads but shows a TLS warning | AutoSSL has not issued a certificate for the subdomain since the DNS move. |
+| `shutil.Error: Destination path ... already exists` on Save | Changing an existing app's root; cPanel is moving the old root's contents and hit a name collision. |
 
-### Production App
-- **Node.js version:** 18+
-- **Application mode:** Production
-- **Application root:** `troubleshooting-production`
-- **Application URL:** `troubleshooting.pathfindereducation.or.tz`
-- **Application startup file:** `backend/src/server.js`
-
-### Staging App
-- **Node.js version:** 18+
-- **Application mode:** Production
-- **Application root:** `troubleshooting-staging`
-- **Application URL:** `staging-troubleshooting.pathfindereducation.or.tz`
-- **Application startup file:** `backend/src/server.js`
-- **Environment variables:** `NODE_ENV=staging`, `PORT=3001`
-
-### Development App
-- **Node.js version:** 18+
-- **Application mode:** Development
-- **Application root:** `troubleshooting-dev`
-- **Application URL:** `dev-troubleshooting.pathfindereducation.or.tz`
-- **Application startup file:** `backend/src/server.js`
-- **Environment variables:** `NODE_ENV=development`, `PORT=3003`
-
-3. For each app, click **Run NPM Install** to install dependencies.
-
----
-
-## Step 6: Install Dependencies & Migrate
-
-SSH into the server:
+Startup log:
 
 ```bash
-# Production
-cd ~/troubleshooting-production/backend && npm install && node src/server.js &
-
-# Staging
-cd ~/troubleshooting-staging/backend && npm install && node src/server.js &
-
-# Development
-cd ~/troubleshooting-dev/backend && npm install && node src/server.js &
+tail -40 ~/troubleshooting.pathfindereducation.or.tz/stderr.log
 ```
 
-Each app will auto-migrate its database on first start (bootstrap.js + schemaExtensions.js).
-
----
-
-## Step 7: Setup Webhook Server
-
-The webhook server runs as a separate process that receives GitHub notifications:
-
-```bash
-cd ~/troubleshooting-production/deploy
-
-# Generate a webhook secret
-WEBHOOK_SECRET=$(openssl rand -hex 32)
-echo "Save this secret for GitHub: $WEBHOOK_SECRET"
-
-# Start the webhook server
-WEBHOOK_SECRET=$WEBHOOK_SECRET \
-APP_DIR=~/troubleshooting-production \
-WEBHOOK_PORT=9000 \
-nohup node webhook-server.js >> deploy.log 2>&1 &
-
-echo "Webhook server PID: $!"
-```
-
-### Keep Webhook Alive with Cron
-
-cPanel → **Cron Jobs** → Add:
-```
-*/5 * * * * pgrep -f "webhook-server.js" > /dev/null || cd ~/troubleshooting-production/deploy && WEBHOOK_SECRET=YOUR_SECRET APP_DIR=~/troubleshooting-production WEBHOOK_PORT=9000 nohup node webhook-server.js >> deploy.log 2>&1 &
-```
-
-This checks every 5 minutes if the webhook server is running and restarts it if not.
-
----
-
-## Step 8: Configure GitHub Webhook
-
-1. Go to: **github.com/Claytonee/Troubleshooting-System → Settings → Webhooks**
-2. Click **Add webhook**
-3. Fill in:
-   - **Payload URL:** `https://troubleshooting.pathfindereducation.or.tz:9000/webhook`
-     > If port 9000 is blocked, see "Proxy via cPanel" below
-   - **Content type:** `application/json`
-   - **Secret:** The `WEBHOOK_SECRET` you generated in Step 7
-   - **Which events:** Select **Just the push event**
-   - **Active:** ✅ checked
-4. Click **Add webhook**
-
-### If Port 9000 is Blocked (common on shared hosting)
-
-Create a proxy route in your Express app instead. Add to the production Node.js app:
-
-```bash
-# In cPanel, add a proxy rule:
-# /deploy-webhook → localhost:9000/webhook
-```
-
-Or use the `.htaccess` approach:
-```apache
-# In ~/troubleshooting-production/.htaccess
-RewriteEngine On
-RewriteRule ^webhook$ http://localhost:9000/webhook [P]
-```
-
-Then use `https://troubleshooting.pathfindereducation.or.tz/webhook` as the Payload URL.
-
----
-
-## Step 9: Create Git Branches
-
-On your local machine:
-
-```bash
-# Create staging branch from main
-git checkout main
-git checkout -b staging
-git push origin staging
-
-# Create develop branch from main
-git checkout main
-git checkout -b develop
-git push origin develop
-```
-
----
-
-## Step 10: Test the Pipeline
-
-```bash
-# Test staging deploy
-git checkout staging
-echo "# test" >> README.md
-git add README.md && git commit -m "test: staging deploy"
-git push origin staging
-
-# Check the webhook log on server:
-# tail -f ~/troubleshooting-production/deploy/deploy.log
-```
-
----
-
-## Daily Workflow
-
-```
-Feature Development:
-  develop branch → code & test locally
-       ↓
-  git push origin develop → auto-deploys to dev server
-       ↓ (when ready)
-  git checkout staging && git merge develop
-  git push origin staging → auto-deploys to staging
-       ↓ (after QA approval)
-  git checkout main && git merge staging
-  git push origin main → auto-deploys to PRODUCTION
-```
-
----
-
-## Troubleshooting
-
-### Check webhook server status
-```bash
-curl http://localhost:9000/health
-```
-
-### View deploy logs
-```bash
-tail -50 ~/troubleshooting-production/deploy/deploy.log
-```
-
-### Manual deploy (if webhook fails)
-```bash
-cd ~/troubleshooting-production
-bash deploy/deploy-production.sh
-```
-
-### Restart all apps
-```bash
-# If using Passenger (cPanel default)
-touch ~/troubleshooting-production/tmp/restart.txt
-touch ~/troubleshooting-staging/tmp/restart.txt
-touch ~/troubleshooting-dev/tmp/restart.txt
-```
-
----
-
-## Database Safety Rules
-
-| Action | Dev DB | Testing DB | Staging DB | Production DB |
-|--------|--------|------------|------------|---------------|
-| Reset/wipe | ✅ | ✅ | ⚠️ Ask first | ❌ NEVER |
-| Seed demo data | ✅ | ✅ | ✅ | ❌ |
-| Schema migration | ✅ | ✅ | ✅ | ✅ (additive only) |
-| Drop columns | ✅ | ✅ | ⚠️ | ❌ (expand-contract only) |
-| Backup before change | Optional | No | Yes | ALWAYS |
+A healthy boot prints the database target actually in use, with credentials masked,
+followed by `Database: migrated OK`.

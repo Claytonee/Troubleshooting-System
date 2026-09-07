@@ -31,7 +31,7 @@ All schema changes MUST be **additive and backward-compatible** so a new deploy 
 - **Remote:** `origin` = GitHub (`Claytonee/Troubleshooting-System`), `gitlab` = GitLab (`claytonecurth/Troubleshooting-System`). Push both.
 
 ## Deployments (two targets, two remotes)
-- **cPanel — `troubleshooting.pathfindereducation.or.tz` — the intended LIVE site (server `213.139.204.238`).** MySQL runs on `localhost` beside the app. Code arrives via the `POST /api/deploy` webhook, which does `git fetch origin` + `git reset --hard` + `npm ci` + restart — so **cPanel tracks the `origin` (GitHub) remote**. The webhook requires `WEBHOOK_SECRET`; with no secret set it refuses to deploy rather than accepting anonymous POSTs.
+- **cPanel — `troubleshooting.pathfindereducation.or.tz` — the intended LIVE site (server `213.139.204.238`).** MySQL runs on `localhost` beside the app. Code arrives via the `POST /api/deploy` webhook, which does `git fetch origin` + a fast-forward-only `git reset --hard` + `npm install` in `backend/` + a Passenger restart — so **cPanel tracks the `origin` (GitHub) remote**. The webhook requires `WEBHOOK_SECRET`; with no secret set it refuses to deploy rather than accepting anonymous POSTs.
 - **Render — `troubleshooting-system-j7ln.onrender.com`** — free Node plan, auto-deploys from the **`gitlab`** remote's `main`. Kept as a mirror; it is not the live site. Being external, it cannot reach the cPanel `localhost` MySQL (free Render has no static outbound IP), so it needs its own database or it will answer 503.
 
 **Where the domain actually points (verified 2026-09-07):** the hostname is still a **Render custom domain** —

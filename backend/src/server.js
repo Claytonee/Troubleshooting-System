@@ -156,7 +156,7 @@ const ENV_BRANCH = { production: 'main', staging: 'staging', development: 'devel
 app.post('/api/deploy', express.json({ limit: '1mb' }), (req, res) => {
   const secret = process.env.WEBHOOK_SECRET || process.env.DEPLOY_SECRET || '';
   // Fail closed. With no secret configured this endpoint would run
-  // `git reset --hard` + `npm ci` + restart for any anonymous POST.
+  // `git reset --hard` + `npm install` + restart for any anonymous POST.
   if (!secret) {
     console.error('[DEPLOY] Rejected: WEBHOOK_SECRET is not set, refusing to deploy unauthenticated');
     return res.status(503).json({ error: 'Deploy webhook is not configured.' });
@@ -181,13 +181,57 @@ app.post('/api/deploy', express.json({ limit: '1mb' }), (req, res) => {
   console.log(`[DEPLOY] Push by ${pusher}: "${commitMsg}" → deploying ${myBranch}`);
 
   try {
-    const appRoot = path.join(__dirname, '..', '..');
-    execSync(`git fetch origin ${myBranch}`, { cwd: appRoot, timeout: 30000 });
-    execSync(`git reset --hard origin/${myBranch}`, { cwd: appRoot, timeout: 30000 });
-    execSync('npm ci --omit=dev', { cwd: path.join(appRoot, 'backend'), timeout: 120000 });
-    console.log(`[DEPLOY] Success — restarting in 1s`);
-    res.json({ status: 'deployed', branch: myBranch, timestamp: new Date().toISOString() });
-    setTimeout(() => process.exit(0), 1000);
+    const fs = require('fs');
+    const appRoot = path.join(__dirname, '..', '..');   // the git checkout
+    const backendDir = path.join(appRoot, 'backend');   // Passenger's application root
+    const git = (cmd, opts = {}) => execSync(`git ${cmd}`, { cwd: appRoot, timeout: 30000, encoding: 'utf8', ...opts }).trim();
+
+    // Keep anything hot-fixed directly on the server — the reset below is unforgiving.
+    const dirty = git('status --porcelain');
+    if (dirty) {
+      const dir = path.join(appRoot, 'deploy', 'backups');
+      fs.mkdirSync(dir, { recursive: true });
+      const patch = path.join(dir, `pre-deploy-${new Date().toISOString().replace(/[:.]/g, '-')}.patch`);
+      fs.writeFileSync(patch, git('diff HEAD'));
+      console.log(`[DEPLOY] Saved server-side edits to ${patch}`);
+    }
+
+    git(`fetch origin ${myBranch}`);
+    const target = git(`rev-parse origin/${myBranch}`);
+    if (target === git('rev-parse HEAD')) {
+      console.log('[DEPLOY] Already up to date, nothing to do');
+      return res.json({ status: 'up-to-date', commit: target.slice(0, 7) });
+    }
+    // Never roll production backwards: two remotes feed this repo, and a remote
+    // sitting behind HEAD must not be able to undo newer commits.
+    try {
+      git(`merge-base --is-ancestor HEAD ${target}`);
+    } catch {
+      console.error(`[DEPLOY] Refused: origin/${myBranch} (${target}) is not a descendant of HEAD`);
+      return res.status(409).json({ error: 'Remote is not ahead of the deployed commit.' });
+    }
+    git(`reset --hard ${target}`);
+
+    // Dependencies go in backend/, never the repo root: CloudLinux NodeJS Selector
+    // owns the application root's node_modules as a symlink into its virtualenv and
+    // refuses to work when a real directory of that name sits there.
+    // `npm install`, not `npm ci` — ci deletes node_modules first, which fights the
+    // symlink. The wrapper's exit status is unreliable, so verify the result instead.
+    try {
+      execSync('npm install --omit=dev', { cwd: backendDir, timeout: 180000, encoding: 'utf8' });
+    } catch (e) {
+      console.error('[DEPLOY] npm install reported failure:', e.message);
+    }
+    if (!fs.existsSync(path.join(backendDir, 'node_modules', 'express', 'package.json'))) {
+      throw new Error('dependencies missing after npm install (node_modules/express not found)');
+    }
+
+    // Ask Passenger to respawn. Its restart file lives inside its application
+    // root, so backend/tmp — not the repo root's tmp.
+    fs.mkdirSync(path.join(backendDir, 'tmp'), { recursive: true });
+    fs.writeFileSync(path.join(backendDir, 'tmp', 'restart.txt'), '');
+    console.log(`[DEPLOY] Deployed ${target.slice(0, 7)} — Passenger restart requested`);
+    res.json({ status: 'deployed', branch: myBranch, commit: target.slice(0, 7), timestamp: new Date().toISOString() });
   } catch (e) {
     // git/npm output can carry absolute server paths — log it, don't return it.
     console.error('[DEPLOY] Failed:', e.message);

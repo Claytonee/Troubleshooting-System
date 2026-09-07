@@ -10,3 +10,6 @@ uploads/*
 .DS_Store
 Thumbs.db
 qft_support_system_v6.html
+
+# Backups of server-side edits, written by deploy.sh and /api/deploy before reset
+deploy/backups/

@@ -1,4 +1,15 @@
 #!/usr/bin/env node
+// ============================================================
+// DO NOT USE ON cPanel. Kept only for non-cPanel hosts.
+//
+// This is a plain-HTTP server on port 9000. On the live host the TLS
+// certificate is terminated by LiteSpeed on 443, so an https:// payload URL
+// pointed at 9000 cannot complete a handshake -- and inbound 9000 is normally
+// firewalled on shared hosting anyway.
+//
+// Use POST /api/deploy instead: it is part of the app, so it is already served
+// over the existing certificate on 443. See deploy/CPANEL-SETUP.md section 3.
+// ============================================================
 /**
  * GitHub Webhook Receiver for QFT Technical Support System
  *
