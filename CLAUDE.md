@@ -31,8 +31,22 @@ All schema changes MUST be **additive and backward-compatible** so a new deploy 
 - **Remote:** `origin` = GitHub (`Claytonee/Troubleshooting-System`), `gitlab` = GitLab (`claytonecurth/Troubleshooting-System`). Push both.
 
 ## Deployments (two targets, two remotes)
-- **cPanel — `troubleshooting.pathfindereducation.or.tz` — this is the LIVE site.** MySQL runs on `localhost` beside the app. Code arrives via the `POST /api/deploy` webhook, which does `git fetch origin` + `git reset --hard` + `npm ci` + restart — so **cPanel tracks the `origin` (GitHub) remote**. The webhook requires `WEBHOOK_SECRET`; with no secret set it refuses to deploy rather than accepting anonymous POSTs.
+- **cPanel — `troubleshooting.pathfindereducation.or.tz` — the intended LIVE site (server `213.139.204.238`).** MySQL runs on `localhost` beside the app. Code arrives via the `POST /api/deploy` webhook, which does `git fetch origin` + `git reset --hard` + `npm ci` + restart — so **cPanel tracks the `origin` (GitHub) remote**. The webhook requires `WEBHOOK_SECRET`; with no secret set it refuses to deploy rather than accepting anonymous POSTs.
 - **Render — `troubleshooting-system-j7ln.onrender.com`** — free Node plan, auto-deploys from the **`gitlab`** remote's `main`. Kept as a mirror; it is not the live site. Being external, it cannot reach the cPanel `localhost` MySQL (free Render has no static outbound IP), so it needs its own database or it will answer 503.
+
+**Where the domain actually points (verified 2026-09-07):** the hostname is still a **Render custom domain** —
+`CNAME -> gcp-us-west1-1.origin.onrender.com.cdn.cloudflare.net`, and responses carry `x-render-origin-server: Render`.
+cPanel does not serve it until DNS is repointed to an **A record -> 213.139.204.238** (zone lives at `ns23/ns24.oneway.africa`,
+editable in cPanel Zone Editor) and the custom domain is removed from Render. Never infer the live target from cPanel listing
+the domain, or from `deploy/CPANEL-SETUP.md` — check DNS.
+
+**Test cPanel without touching DNS** (works any time — sends the subdomain Host header straight at the cPanel IP):
+```bash
+curl -H "Host: troubleshooting.pathfindereducation.or.tz" -H "x-forwarded-proto: https" http://213.139.204.238/api/health
+```
+`{"status":"ok"}` means the Node app is up; swap in `/api/settings` to check the database. `Server: LiteSpeed` in the headers
+confirms the reply came from cPanel, not Render. **After moving DNS, run AutoSSL for the subdomain** — the app 301-redirects
+all HTTP to HTTPS, so without a valid cPanel certificate every visitor meets a TLS warning.
 
 **Connection-string gotcha (this caused a full outage on 2026-09-07):** `DATABASE_URL` overrides every `DB_*` var, and `dotenv` runs without `override`, so variables set in the cPanel Node.js app UI or the Render dashboard beat `backend/.env` on disk. **When repointing the database, delete `DATABASE_URL` from the hosting panel first** — otherwise editing `.env` changes nothing. Startup logs print the target actually in use (credentials masked) plus a `DATABASE UNREACHABLE` diagnostic, so check the log before editing config.
 
