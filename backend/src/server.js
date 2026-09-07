@@ -216,12 +216,9 @@ app.post('/api/deploy', express.json({ limit: '1mb' }), (req, res) => {
     // owns the application root's node_modules as a symlink into its virtualenv and
     // refuses to work when a real directory of that name sits there.
     // `npm install`, not `npm ci` — ci deletes node_modules first, which fights the
-    // symlink. The wrapper's exit status is unreliable, so verify the result instead.
-    try {
-      execSync('npm install --omit=dev', { cwd: backendDir, timeout: 180000, encoding: 'utf8' });
-    } catch (e) {
-      console.error('[DEPLOY] npm install reported failure:', e.message);
-    }
+    // symlink. The wrapper exits non-zero when it refuses (measured: 1), so a throw
+    // here is real; the existence check below then confirms the tree is usable.
+    execSync('npm install --omit=dev', { cwd: backendDir, timeout: 180000, encoding: 'utf8' });
     if (!fs.existsSync(path.join(backendDir, 'node_modules', 'express', 'package.json'))) {
       throw new Error('dependencies missing after npm install (node_modules/express not found)');
     }

@@ -142,9 +142,16 @@ or use the panel's **Run NPM Install**. Then confirm it actually worked:
 ls node_modules/express/package.json
 ```
 
-The Selector's `npm` wrapper cannot be trusted to report failure through its exit
-status, so **verify the files exist** rather than checking `$?`. If a pipe is involved,
-`$?` belongs to the last command in the pipe anyway — use `PIPESTATUS`.
+When the Selector's `npm` wrapper refuses, it **exits 1** and prints the reason, so its
+status is worth checking — measured on this host. Read it from `PIPESTATUS` if you pipe
+the output anywhere, or `$?` gives you the last command in the pipe instead. Check that
+the files exist as well: a zero exit does not prove the tree is usable.
+
+The virtualenv path follows the application root, so it changes whenever the root does.
+Destroying an application removes its virtualenv; the one recreated with root
+`…/backend` lives at `~/nodevenv/<checkout>/backend/<version>/`, not
+`~/nodevenv/<checkout>/<version>/`. Activating the wrong one runs a dead virtualenv's
+node, or the system's.
 
 Never run `npm` in the repo root. If a real `node_modules` directory already exists
 there — it can be created while the application root is mis-set — delete it once the
@@ -157,19 +164,37 @@ The hostname may still point elsewhere; it was a Render custom domain until
 2026-09-07. Test cPanel without touching DNS:
 
 ```bash
-curl -H "Host: troubleshooting.pathfindereducation.or.tz" -H "x-forwarded-proto: https" http://213.139.204.238/api/health
+curl --resolve troubleshooting.pathfindereducation.or.tz:443:213.139.204.238 https://troubleshooting.pathfindereducation.or.tz/api/health
 ```
 
-`{"status":"ok"}` plus `Server: LiteSpeed` in the headers means the cPanel app is
-healthy. Then:
+`--resolve` is the reliable form. Sending a `Host:` header to `http://<ip>/` can land on
+the account's default vhost instead (`cgi-sys/defaultwebpage.cgi`), and it tells you
+nothing about the certificate. `{"status":"ok"}` plus `Server: LiteSpeed` in the headers
+means the cPanel app is healthy; a handshake that completes without `--insecure` means
+the certificate is valid too.
+
+Then:
 
 1. cPanel → **Zone Editor** → replace any `troubleshooting` CNAME with an
-   **A record → `213.139.204.238`** (TTL 300).
+   **A record → `213.139.204.238`** (TTL 300). Edit the existing record rather than
+   deleting and re-adding it, so the name is never briefly absent.
 2. Remove the custom domain from the Render service, or it keeps claiming the name.
-3. Wait for propagation, then cPanel → **SSL/TLS Status** → **Run AutoSSL** for the
-   subdomain. This is **not optional**: the app 301-redirects all HTTP to HTTPS, so
-   without a valid certificate every visitor meets a TLS warning. AutoSSL validates
-   over HTTP, so it fails until DNS actually points here.
+3. **Certificate:** on this account the host's Let's Encrypt integration already covers
+   the subdomain, and there is no **SSL/TLS Status** page to run AutoSSL from (the URL
+   404s). Verify with the `--resolve` command above rather than assuming. If a
+   certificate is ever missing, it matters: the app 301-redirects all HTTP to HTTPS, so
+   every visitor would meet a TLS warning.
+
+> **Checking propagation: do not run `getent hosts` or `nslookup` on the cPanel server.**
+> It resolves its own hosted domains locally and will return `213.139.204.238` the moment
+> the zone is edited, whether or not the world can see it. Ask the authoritative
+> nameservers, then a public resolver, and compare:
+> ```bash
+> nslookup troubleshooting.pathfindereducation.or.tz ns23.oneway.africa   # the zone's own answer
+> nslookup troubleshooting.pathfindereducation.or.tz 8.8.8.8              # what the public sees
+> ```
+> The old CNAME's TTL governs how long stale answers survive, not the new record's, so
+> propagation can outlast the 300s you just set.
 
 ### 2.7 First login
 

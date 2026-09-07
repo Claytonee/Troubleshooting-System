@@ -71,12 +71,18 @@ git reset --hard "$TARGET"
 #    node_modules with a symlink into the virtualenv and refuses to operate
 #    when a real directory of that name sits there.
 #
-#    The wrapper's exit status is not trustworthy, so verify the result
-#    instead of believing $?.
+#    Measured on this host: when the wrapper refuses it exits 1 and prints the
+#    reason, so its status IS worth checking — but read it from PIPESTATUS,
+#    because the pipe into tee would otherwise hand us tee's status instead.
 # ------------------------------------------------------------
 cd "$BACKEND_DIR"
 log "installing dependencies in $BACKEND_DIR"
-npm install --omit=dev 2>&1 | tee -a "$LOG_FILE" || true
+set +e
+npm install --omit=dev 2>&1 | tee -a "$LOG_FILE"
+NPM_STATUS=${PIPESTATUS[0]}
+set -e
+[ "$NPM_STATUS" -eq 0 ] || die "npm install exited $NPM_STATUS — see $LOG_FILE"
+# Belt and braces: a zero exit still does not prove the tree is usable.
 if [ ! -e node_modules/express/package.json ]; then
   die "dependencies missing after npm install (node_modules/express not found) — check the Selector virtualenv"
 fi

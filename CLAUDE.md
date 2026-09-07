@@ -40,13 +40,21 @@ cPanel does not serve it until DNS is repointed to an **A record -> 213.139.204.
 editable in cPanel Zone Editor) and the custom domain is removed from Render. Never infer the live target from cPanel listing
 the domain, or from `deploy/CPANEL-SETUP.md` — check DNS.
 
-**Test cPanel without touching DNS** (works any time — sends the subdomain Host header straight at the cPanel IP):
+**Test cPanel without touching DNS** (works any time, and checks the certificate too):
 ```bash
-curl -H "Host: troubleshooting.pathfindereducation.or.tz" -H "x-forwarded-proto: https" http://213.139.204.238/api/health
+curl --resolve troubleshooting.pathfindereducation.or.tz:443:213.139.204.238 https://troubleshooting.pathfindereducation.or.tz/api/health
 ```
-`{"status":"ok"}` means the Node app is up; swap in `/api/settings` to check the database. `Server: LiteSpeed` in the headers
-confirms the reply came from cPanel, not Render. **After moving DNS, run AutoSSL for the subdomain** — the app 301-redirects
-all HTTP to HTTPS, so without a valid cPanel certificate every visitor meets a TLS warning.
+`{"status":"ok"}` means the Node app is up; swap in `/api/settings` to check the database. `Server: LiteSpeed` confirms the
+reply came from cPanel, not Render, and a handshake that completes without `--insecure` means the certificate is valid.
+Prefer `--resolve` over a `Host:` header against `http://<ip>/`, which can land on the account's default vhost
+(`cgi-sys/defaultwebpage.cgi`) and says nothing about TLS. The host's Let's Encrypt integration already covers the
+subdomain and this account has no **SSL/TLS Status** page (that URL 404s), so there is no AutoSSL button to press —
+verify with the command above instead of assuming.
+
+**Never check DNS propagation from the cPanel server.** It resolves its own hosted domains locally and answers
+`213.139.204.238` the moment the zone is edited, whether or not the world can see it. Compare the zone's own answer with a
+public resolver: `nslookup <host> ns23.oneway.africa` versus `nslookup <host> 8.8.8.8`. The **old** record's TTL governs how
+long stale answers survive, not the new one's.
 
 **Connection-string gotcha (this caused a full outage on 2026-09-07):** `DATABASE_URL` overrides every `DB_*` var, and `dotenv` runs without `override`, so variables set in the cPanel Node.js app UI or the Render dashboard beat `backend/.env` on disk. **When repointing the database, delete `DATABASE_URL` from the hosting panel first** — otherwise editing `.env` changes nothing. Startup logs print the target actually in use (credentials masked) plus a `DATABASE UNREACHABLE` diagnostic, so check the log before editing config.
 
