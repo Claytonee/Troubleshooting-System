@@ -105,8 +105,19 @@ const SUBCATS = {
   Other: ['Other issue']
 };
 
+/**
+ * SLA state of one error: 'met' | 'breach' | 'ok' | 'unknown'.
+ *
+ * A resolved error is judged on its own timestamps — closing it a week after
+ * the target is a breach, not a pass. It previously returned 'met' for every
+ * resolved error unconditionally, which made a missed target impossible to see
+ * and left 'breach' reachable only for still-open errors.
+ */
 function slaState(error) {
-  if (error.status === 'resolved') return 'met';
+  if (error.status === 'resolved') {
+    if (!error.resolved_at || !error.sla_due_at) return 'unknown';
+    return new Date(error.resolved_at) <= new Date(error.sla_due_at) ? 'met' : 'breach';
+  }
   // Prefer the authoritative breach flag computed by the backend (sla_due_at vs now).
   if (error.sla_breached != null) return Number(error.sla_breached) ? 'breach' : 'ok';
   // Fallback heuristic for payloads that don't include sla_breached.

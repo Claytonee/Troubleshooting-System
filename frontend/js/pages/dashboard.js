@@ -179,7 +179,9 @@ const DashboardPage = (() => {
     const totalResolved = parseInt(stats.total_resolved) || 0;
     const resolvedSla = parseInt(stats.resolved_within_sla) || 0;
     const totalWithSla = parseInt(stats.total_with_sla) || 0;
-    const slaPct = totalWithSla > 0 ? Math.round(resolvedSla / totalWithSla * 100) : 100;
+    // With nothing measurable this used to claim 100% — a fabricated pass. Show
+    // a dash instead, and only colour the ring once there is something to judge.
+    const slaPct = totalWithSla > 0 ? Math.round(resolvedSla / totalWithSla * 100) : null;
     const schoolCount = my_schools.length;
     const checkinDone = checkins.done || 0;
     const checkinTotal = checkins.total || 0;
@@ -261,8 +263,9 @@ const DashboardPage = (() => {
     }).join('') || '<div style="text-align:center;padding:20px;font-size:12px;color:var(--text3)">No recent activity</div>';
 
     // SLA ring SVG
-    const slaRingPct = slaPct * 2.136;
-    const slaColor = slaPct >= 80 ? 'var(--green)' : slaPct >= 60 ? 'var(--amber)' : 'var(--red)';
+    const slaRingPct = (slaPct || 0) * 2.136;
+    const slaColor = slaPct === null ? 'var(--text3)'
+      : slaPct >= 80 ? 'var(--green)' : slaPct >= 60 ? 'var(--amber)' : 'var(--red)';
 
     return `
   <div class="section-header">
@@ -289,11 +292,11 @@ const DashboardPage = (() => {
           <circle cx="40" cy="40" r="34" fill="none" stroke="var(--bg4)" stroke-width="5"/>
           <circle cx="40" cy="40" r="34" fill="none" stroke="${slaColor}" stroke-width="5" stroke-dasharray="${slaRingPct} 213.6" stroke-linecap="round"/>
         </svg>
-        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${slaColor}">${slaPct}%</div>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:${slaColor}">${slaPct === null ? '&mdash;' : slaPct + '%'}</div>
       </div>
       <div>
         <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">SLA Compliance</div>
-        <div style="font-size:13px;font-weight:500;color:var(--text1);margin-top:2px">${resolvedSla}/${totalWithSla} on time</div>
+        <div style="font-size:13px;font-weight:500;color:var(--text1);margin-top:2px">${totalWithSla > 0 ? `${resolvedSla}/${totalWithSla} on time` : 'nothing timed yet'}</div>
       </div>
     </div>
 

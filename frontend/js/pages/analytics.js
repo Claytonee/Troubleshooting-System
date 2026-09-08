@@ -16,10 +16,21 @@ const AnalyticsPage = (() => {
     const open = parseInt(errStats.open_count) || 0;
     const total = parseInt(errStats.total) || 0;
     const resolved = total - open;
-    const resolveRate = total > 0 ? Math.round(resolved / total * 100) : 100;
     const checkinRate = checkins.total > 0 ? Math.round((checkins.done || 0) / checkins.total * 100) : 0;
-    const slaBreaches = errors.filter(e => slaState(e) === 'breach').length;
-    const slaMet = resolved > 0 ? Math.round((resolved - slaBreaches) / resolved * 100) : 0;
+
+    // SLA compliance comes from the backend, which compares each resolution
+    // against that error own due time. It used to be computed here by
+    // subtracting the count of still-OPEN breaches from the RESOLVED count —
+    // two different populations — which is how this card came to read -200%.
+    const measurable = parseInt(errStats.sla_measurable) || 0;
+    const onTime = parseInt(errStats.sla_on_time) || 0;
+    const unmeasurable = parseInt(errStats.sla_unmeasurable) || 0;
+    const slaMet = measurable > 0 ? Math.round(onTime / measurable * 100) : null;
+    const slaSub = measurable > 0
+      ? `${onTime}/${measurable} resolved on time${unmeasurable ? ` · ${unmeasurable} not timed` : ''}`
+      : unmeasurable > 0
+        ? `${unmeasurable} resolved without a timestamp`
+        : 'nothing resolved yet';
 
     const catBars = (category_breakdown || []).map(c => {
       const m = CAT_META[c.category] || CAT_META.Other;
@@ -42,7 +53,7 @@ const AnalyticsPage = (() => {
 
     <div class="three-col" style="margin-bottom:20px">
       <div class="stat-card"><div class="stat-label">Total Errors Logged</div><div class="stat-val" style="color:var(--accent)">${total}</div><div class="stat-sub">${resolved} resolved</div></div>
-      <div class="stat-card g"><div class="stat-label">SLA Compliance</div><div class="stat-val" style="color:var(--green)">${slaMet}<span style="font-size:18px">%</span></div><div class="stat-sub">resolved within target</div></div>
+      <div class="stat-card g"><div class="stat-label">SLA Compliance</div><div class="stat-val" style="color:var(--green)">${slaMet === null ? '&mdash;' : `${slaMet}<span style="font-size:18px">%</span>`}</div><div class="stat-sub">${slaSub}</div></div>
       <div class="stat-card t"><div class="stat-label">Weekly Check-In Rate</div><div class="stat-val" style="color:var(--teal)">${checkinRate}<span style="font-size:18px">%</span></div><div class="stat-sub">${checkins.done || 0}/${checkins.total || 0} expected</div></div>
     </div>
 

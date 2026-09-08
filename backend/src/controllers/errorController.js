@@ -54,6 +54,23 @@ async function ensureCsatToken(errorId) {
 // SQL fragment: 1 when an unresolved error is past its SLA due date.
 const SLA_BREACH_SELECT = `CASE WHEN e.status != 'resolved' AND e.sla_due_at IS NOT NULL AND e.sla_due_at < NOW() THEN 1 ELSE 0 END AS sla_breached`;
 
+// The errors.hours_open column is written once at insert and never recomputed,
+// so it freezes at the age the row had when it was created. Derive the age from
+// created_at instead — in SQL, so it uses the same clock as sla_due_at. The
+// column is left in place (additive-only schema rule); it is simply not served.
+const HOURS_OPEN_SELECT = `ROUND(TIMESTAMPDIFF(MINUTE, e.created_at, COALESCE(e.resolved_at, NOW())) / 60, 1) AS hours_open_live`;
+
+/**
+ * Serves the derived age as hours_open and drops the helper column, so callers
+ * never see the frozen value. Applied explicitly rather than relying on a
+ * duplicate column name in the SELECT shadowing e.*.
+ */
+function withLiveAge(row) {
+  if (!row) return row;
+  const { hours_open_live, ...rest } = row;
+  return { ...rest, hours_open: hours_open_live != null ? Number(hours_open_live) : row.hours_open };
+}
+
 // Tenant access check for a single error row. Returns true if `user` may view/modify it.
 // admin: any · school: own school · teacher: own-reported · subadmin: schools assigned to them.
 async function userCanAccessError(user, errorRow) {
@@ -131,7 +148,7 @@ async function getAll(req, res, next) {
     let query = `
       SELECT e.*, s.name as school_name, s.code as school_code, s.zone as school_zone,
       u.full_name as assigned_name, u.color as assigned_color,
-      ${SLA_BREACH_SELECT}
+      ${SLA_BREACH_SELECT}, ${HOURS_OPEN_SELECT}
       FROM errors e
       JOIN schools s ON e.school_id = s.id
       LEFT JOIN users u ON e.assigned_to = u.id${where}
@@ -143,7 +160,7 @@ async function getAll(req, res, next) {
     }
 
     const [rows] = await pool.query(query, params);
-    res.json(rows);
+    res.json(rows.map(withLiveAge));
   } catch (err) { next(err); }
 }
 
@@ -154,7 +171,7 @@ async function exportErrors(req, res, next) {
     const [rows] = await pool.query(`
       SELECT e.error_code, e.title, e.category, e.subcategory, e.priority, e.status,
       s.name as school_name, s.zone as school_zone, u.full_name as assigned_name,
-      e.reporter_name, e.hours_open, e.sla_due_at,
+      e.reporter_name, ${HOURS_OPEN_SELECT}, e.sla_due_at,
       ${SLA_BREACH_SELECT}, e.created_at, e.resolved_at
       FROM errors e
       JOIN schools s ON e.school_id = s.id
@@ -167,7 +184,7 @@ async function exportErrors(req, res, next) {
       { key: 'priority', label: 'Priority' }, { key: 'status', label: 'Status' },
       { key: 'school_name', label: 'School' }, { key: 'school_zone', label: 'Zone' },
       { key: 'assigned_name', label: 'Assigned To' }, { key: 'reporter_name', label: 'Reporter' },
-      { key: 'hours_open', label: 'Hours Open' }, { key: 'sla_due_at', label: 'SLA Due' },
+      { key: 'hours_open_live', label: 'Hours Open' }, { key: 'sla_due_at', label: 'SLA Due' },
       { key: 'sla_breached', label: 'SLA Breached' }, { key: 'created_at', label: 'Created' },
       { key: 'resolved_at', label: 'Resolved' }
     ];
@@ -182,7 +199,7 @@ async function getById(req, res, next) {
     const [rows] = await pool.query(`
       SELECT e.*, s.name as school_name, s.code as school_code,
       u.full_name as assigned_name, u.color as assigned_color,
-      ${SLA_BREACH_SELECT}
+      ${SLA_BREACH_SELECT}, ${HOURS_OPEN_SELECT}
       FROM errors e
       JOIN schools s ON e.school_id = s.id
       LEFT JOIN users u ON e.assigned_to = u.id
@@ -205,7 +222,7 @@ async function getById(req, res, next) {
       [req.params.id]
     );
 
-    res.json({ ...rows[0], updates, attachments });
+    res.json({ ...withLiveAge(rows[0]), updates, attachments });
   } catch (err) { next(err); }
 }
 

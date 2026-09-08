@@ -28,7 +28,15 @@ async function getDashboard(req, res) {
         SUM(CASE WHEN e.status = 'progress' THEN 1 ELSE 0 END) as in_progress,
         SUM(CASE WHEN e.priority = 'critical' AND e.status != 'resolved' THEN 1 ELSE 0 END) as critical_open,
         SUM(CASE WHEN e.status != 'resolved' AND e.sla_due_at IS NOT NULL AND e.sla_due_at < NOW() THEN 1 ELSE 0 END) as sla_breached,
-        SUM(CASE WHEN e.status = 'resolved' AND e.resolved_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 ELSE 0 END) as resolved_24h
+        SUM(CASE WHEN e.status = 'resolved' AND e.resolved_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 ELSE 0 END) as resolved_24h,
+        SUM(CASE WHEN e.status = 'resolved' THEN 1 ELSE 0 END) as resolved_count,
+        -- SLA compliance is a property of RESOLVED errors: was each one closed
+        -- before its own due time. A resolution with no resolved_at (or no
+        -- due time) cannot be judged either way, so it is counted separately
+        -- rather than silently scoring as a miss.
+        SUM(CASE WHEN e.status = 'resolved' AND e.resolved_at IS NOT NULL AND e.sla_due_at IS NOT NULL THEN 1 ELSE 0 END) as sla_measurable,
+        SUM(CASE WHEN e.status = 'resolved' AND e.resolved_at IS NOT NULL AND e.sla_due_at IS NOT NULL AND e.resolved_at <= e.sla_due_at THEN 1 ELSE 0 END) as sla_on_time,
+        SUM(CASE WHEN e.status = 'resolved' AND (e.resolved_at IS NULL OR e.sla_due_at IS NULL) THEN 1 ELSE 0 END) as sla_unmeasurable
       FROM errors e WHERE 1=1 ${errorFilter}
     `, params);
 
@@ -38,7 +46,8 @@ async function getDashboard(req, res) {
     const [healthySchools] = await pool.query(`SELECT COUNT(*) as count FROM schools s ${healthyFilter}`, params);
 
     const [recentErrors] = await pool.query(`
-      SELECT e.id, e.error_code, e.title, e.priority, e.status, e.hours_open, e.created_at, e.sla_due_at,
+      SELECT e.id, e.error_code, e.title, e.priority, e.status, e.created_at, e.sla_due_at,
+      ROUND(TIMESTAMPDIFF(MINUTE, e.created_at, COALESCE(e.resolved_at, NOW())) / 60, 1) AS hours_open,
       CASE WHEN e.status != 'resolved' AND e.sla_due_at IS NOT NULL AND e.sla_due_at < NOW() THEN 1 ELSE 0 END AS sla_breached,
       s.name as school_name
       FROM errors e JOIN schools s ON e.school_id = s.id
@@ -95,7 +104,8 @@ async function getTeacherDashboard(req, res) {
     `, [userId]);
 
     const [recentErrors] = await pool.query(`
-      SELECT id, error_code, title, priority, status, category, created_at, hours_open
+      SELECT id, error_code, title, priority, status, category, created_at,
+             ROUND(TIMESTAMPDIFF(MINUTE, created_at, COALESCE(resolved_at, NOW())) / 60, 1) AS hours_open
       FROM errors WHERE reported_by_user_id = ?
       ORDER BY created_at DESC LIMIT 5
     `, [userId]);
@@ -125,7 +135,8 @@ async function getSubadminDashboard(req, res) {
 
     // My queue: errors assigned directly to me
     const [myQueue] = await pool.query(`
-      SELECT e.id, e.error_code, e.title, e.priority, e.status, e.hours_open, e.created_at, e.sla_due_at,
+      SELECT e.id, e.error_code, e.title, e.priority, e.status, e.created_at, e.sla_due_at,
+      ROUND(TIMESTAMPDIFF(MINUTE, e.created_at, COALESCE(e.resolved_at, NOW())) / 60, 1) AS hours_open,
       CASE WHEN e.sla_due_at IS NOT NULL AND e.sla_due_at < NOW() THEN 1 ELSE 0 END AS sla_breached,
       TIMESTAMPDIFF(MINUTE, NOW(), e.sla_due_at) AS sla_minutes_left,
       s.name as school_name
@@ -142,8 +153,8 @@ async function getSubadminDashboard(req, res) {
         SUM(CASE WHEN e.status != 'resolved' AND e.assigned_to = ? AND e.sla_due_at IS NOT NULL AND e.sla_due_at < NOW() THEN 1 ELSE 0 END) as overdue,
         SUM(CASE WHEN e.assigned_to = ? AND e.status = 'resolved' AND e.resolved_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as resolved_week,
         SUM(CASE WHEN e.assigned_to = ? AND e.status = 'resolved' THEN 1 ELSE 0 END) as total_resolved,
-        SUM(CASE WHEN e.assigned_to = ? AND e.status = 'resolved' AND e.sla_due_at IS NOT NULL AND e.resolved_at <= e.sla_due_at THEN 1 ELSE 0 END) as resolved_within_sla,
-        SUM(CASE WHEN e.assigned_to = ? AND e.status = 'resolved' AND e.sla_due_at IS NOT NULL THEN 1 ELSE 0 END) as total_with_sla
+        SUM(CASE WHEN e.assigned_to = ? AND e.status = 'resolved' AND e.resolved_at IS NOT NULL AND e.sla_due_at IS NOT NULL AND e.resolved_at <= e.sla_due_at THEN 1 ELSE 0 END) as resolved_within_sla,
+        SUM(CASE WHEN e.assigned_to = ? AND e.status = 'resolved' AND e.resolved_at IS NOT NULL AND e.sla_due_at IS NOT NULL THEN 1 ELSE 0 END) as total_with_sla
       FROM errors e WHERE e.assigned_to = ?
     `, [userId, userId, userId, userId, userId, userId, userId, userId]);
 
