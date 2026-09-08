@@ -3,7 +3,7 @@
 ## Git Workflow (IMPORTANT — auto commit & push)
 - **After completing and verifying EACH feature/fix, automatically commit and push — do not wait to be asked.**
 - Steps every time: stage the relevant files → `git commit` with a clear, descriptive message (end with the `Co-Authored-By: Claude` trailer) → `git push`.
-- Push to the branch currently checked out, and push **both** remotes — they feed different deployments (see Deployments below). Only commit code that has been verified/tested.
+- Push to the branch currently checked out, and push **`origin` (GitHub) only** — cPanel deploys from it. Do **not** push the `gitlab` remote: it feeds only the non-live Render mirror and its TLS is flaky (user instruction, 2026-09-08). Only commit code that has been verified/tested.
 - Always verify the feature works (syntax check + run/test) **before** committing. Never commit known-broken code.
 - One commit per feature/fix with a focused message; group only tightly-related changes.
 
