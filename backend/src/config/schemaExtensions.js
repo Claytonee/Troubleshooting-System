@@ -205,6 +205,18 @@ async function applyExtensions(db) {
     last_checked DATE,
     notes TEXT,
     assigned_at DATETIME,
+    -- Feature 4: asset lifecycle (docs/features/04-asset-lifecycle.md).
+    -- All nullable and never backfilled: a device with no purchase record is
+    -- "unknown", and is shown as unknown rather than guessed at.
+    purchase_date DATE,
+    purchase_cost DECIMAL(12,2),
+    supplier VARCHAR(200),
+    warranty_expires_on DATE,
+    expected_eol_on DATE,
+    -- Devices bought together and used identically fail together, so a fault
+    -- rate per batch is a stronger signal than per device — and it is the
+    -- number that justifies a warranty claim to a supplier.
+    batch_ref VARCHAR(60),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_tablet (school_id, serial_number),
@@ -213,6 +225,16 @@ async function applyExtensions(db) {
     INDEX idx_tablets_form (school_id, form),
     FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE
   )`);
+
+  // Feature 4 on databases that already have the tablets table.
+  await q("ALTER TABLE tablets ADD COLUMN purchase_date DATE NULL");
+  await q("ALTER TABLE tablets ADD COLUMN purchase_cost DECIMAL(12,2) NULL");
+  await q("ALTER TABLE tablets ADD COLUMN supplier VARCHAR(200) NULL");
+  await q("ALTER TABLE tablets ADD COLUMN warranty_expires_on DATE NULL");
+  await q("ALTER TABLE tablets ADD COLUMN expected_eol_on DATE NULL");
+  await q("ALTER TABLE tablets ADD COLUMN batch_ref VARCHAR(60) NULL");
+  await q("CREATE INDEX idx_tablets_warranty ON tablets (warranty_expires_on)");
+  await q("CREATE INDEX idx_tablets_batch ON tablets (school_id, batch_ref)");
 
   await q(`CREATE TABLE IF NOT EXISTS tablet_history (
     id INT AUTO_INCREMENT PRIMARY KEY,

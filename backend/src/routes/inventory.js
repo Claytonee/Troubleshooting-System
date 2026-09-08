@@ -10,6 +10,10 @@ router.use(authenticate);
 router.get('/', ctrl.getAll);
 router.get('/stats', ctrl.getStats);
 router.get('/export', ctrl.exportDevices);
+// Lifecycle reports (feature 4). Both before /:id, or Express would read
+// "refresh-plan" as an id.
+router.get('/refresh-plan', ctrl.refreshPlan);
+router.get('/batches', ctrl.batches);
 router.get('/:id', ctrl.getById);
 
 router.post('/', authorize('admin', 'subadmin', 'school'), [

@@ -1,6 +1,7 @@
 const InventoryPage = (() => {
   let devices = [], stats = null, schools = [];
-  let filters = { status: '', form: '', search: '', school_id: '' };
+  let filters = { status: '', form: '', search: '', school_id: '', warranty: '', repeat_offender: '' };
+  let refreshPlan = null, batchRows = null, activeView = 'devices';
   const user = () => API.getUser();
   const isAdmin = () => ['admin','subadmin'].includes(user()?.role);
 
@@ -11,6 +12,8 @@ const InventoryPage = (() => {
       if (filters.form) params.form = filters.form;
       if (filters.search) params.search = filters.search;
       if (filters.school_id) params.school_id = filters.school_id;
+      if (filters.warranty) params.warranty = filters.warranty;
+      if (filters.repeat_offender) params.repeat_offender = filters.repeat_offender;
       [devices, stats] = await Promise.all([
         API.getInventory(params),
         API.getInventoryStats(params.school_id ? { school_id: params.school_id } : {})
@@ -48,9 +51,18 @@ const InventoryPage = (() => {
       <button class="btn btn-ghost" onclick="InventoryPage.openImport()" title="Import CSV"><i class="ti ti-upload"></i></button>
       <button class="btn btn-ghost" onclick="InventoryPage.exportCsv()" title="Export"><i class="ti ti-download"></i></button>
       <button class="btn btn-primary" onclick="InventoryPage.openAdd()"><i class="ti ti-plus"></i> Add</button>
-    </div>
+  <div class="tab-row" style="margin-bottom:12px">
+    <button class="tab-btn ${activeView === 'devices' ? 'active' : ''}" onclick="InventoryPage.setView('devices')"><i class="ti ti-device-tablet"></i> Devices</button>
+    <button class="tab-btn ${activeView === 'refresh' ? 'active' : ''}" onclick="InventoryPage.setView('refresh')"><i class="ti ti-recycle"></i> Replace &amp; renew</button>
+    <button class="tab-btn ${activeView === 'batches' ? 'active' : ''}" onclick="InventoryPage.setView('batches')"><i class="ti ti-packages"></i> Batches</button>
   </div>
 
+  <div id="inv-view">${activeView === 'devices' ? deviceView() : activeView === 'refresh' ? refreshView() : batchView()}</div>`;
+  }
+
+  /** The device list, with the lifecycle filters. */
+  function deviceView() {
+    return `
   <div class="inv-toolbar">
     ${isAdmin() ? `<div style="min-width:200px">${Dropdown.render('inv-school', 'All Schools', [{value:'',label:'All Schools'},...schools.map(sc => ({value:sc.id,label:sc.name,tag:sc.zone||''}))], {defaultValue: filters.school_id, onSelect: "InventoryPage.onSchoolSelect()"})}</div>` : ''}
     <div style="min-width:150px">${Dropdown.render('inv-status', 'All Statuses', [
@@ -68,10 +80,22 @@ const InventoryPage = (() => {
       {value:'Form 3',label:'Form 3'},
       {value:'Form 4',label:'Form 4'}
     ], {defaultValue: filters.form, onSelect: "InventoryPage.onFormSelect()"})}</div>
+    <div style="min-width:160px">${Dropdown.render('inv-warranty', 'Any warranty', [
+      {value:'',label:'Any warranty'},
+      {value:'active',label:'Under warranty'},
+      {value:'expiring',label:'Expiring soon'},
+      {value:'expired',label:'Out of warranty'},
+      {value:'unknown',label:'Not recorded'}
+    ], {defaultValue: filters.warranty, onSelect: "InventoryPage.onWarrantySelect()"})}</div>
     <div style="flex:1;position:relative;min-width:160px">
       <i class="ti ti-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text3)"></i>
-      <input type="text" id="inv-search" placeholder="Search serial, tag, student..." value="${filters.search}" onkeyup="InventoryPage.debounceSearch(this.value)" style="width:100%;padding:7px 10px 7px 30px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:12px">
+      <input type="text" id="inv-search" placeholder="Search serial, tag, student, batch..." value="${filters.search}" onkeyup="InventoryPage.debounceSearch(this.value)" style="width:100%;padding:7px 10px 7px 30px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:12px">
     </div>
+    <button class="btn ${filters.repeat_offender ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="InventoryPage.toggleRepeatOffenders()" data-tip="Devices with 3+ faults, or 2+ in the last 90 days">
+      <!-- Text kept at every width: .inv-toolbar stretches its children on a
+           phone, and an icon alone in a full-width bar reads as broken. -->
+      <i class="ti ti-alert-triangle"></i> Repeat faults
+    </button>
     <span style="font-size:11px;color:var(--text3);white-space:nowrap">${devices.length} shown</span>
   </div>
 
@@ -98,7 +122,184 @@ const InventoryPage = (() => {
         </div>
         <button class="btn-icon" onclick="event.stopPropagation();InventoryPage.openEdit(${d.id})" title="Edit" style="width:26px;height:26px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px"></i></button>
       </div>
+      ${lifecycleStrip(d)}
     </div>`;
+  }
+
+  /**
+   * The repair-or-replace line, on the card itself. Rendered only when there is
+   * something to say — a healthy in-warranty device adds no row, so the strip
+   * draws the eye exactly to the devices that need a decision.
+   */
+  function lifecycleStrip(d) {
+    const bits = [];
+    if (d.repeat_offender) {
+      bits.push(`<span style="color:var(--red)"><i class="ti ti-alert-triangle" style="font-size:11px"></i> ${d.fault_count} faults</span>`);
+    }
+    if (d.warranty_state === 'expiring') {
+      bits.push(`<span style="color:var(--amber)"><i class="ti ti-shield-half" style="font-size:11px"></i> warranty ends in ${d.warranty_days_left}d</span>`);
+    } else if (d.warranty_state === 'expired') {
+      bits.push('<span style="color:var(--text3)"><i class="ti ti-shield-off" style="font-size:11px"></i> out of warranty</span>');
+    }
+    if (d.eol_state === 'past') {
+      bits.push('<span style="color:var(--purple)"><i class="ti ti-clock-exclamation" style="font-size:11px"></i> past end of life</span>');
+    }
+    if (d.batch_ref) {
+      bits.push(`<span style="color:var(--text3)"><i class="ti ti-package" style="font-size:11px"></i> ${esc(d.batch_ref)}</span>`);
+    }
+    if (!bits.length) return '';
+    return `<div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;font-size:11px">${bits.join('')}</div>`;
+  }
+
+  const TZS = n => n == null ? '—' : 'TZS ' + Number(n).toLocaleString('en-GB');
+
+  /** Colour and wording for a warranty state. 'unknown' is grey, never red. */
+  const WARRANTY_META = {
+    active:   { color: 'var(--green)', label: 'Under warranty' },
+    expiring: { color: 'var(--amber)', label: 'Expiring soon' },
+    expired:  { color: 'var(--red)',   label: 'Out of warranty' },
+    unknown:  { color: 'var(--text3)', label: 'Warranty not recorded' }
+  };
+
+  /**
+   * The procurement request. Every number here is traceable: the total says how
+   * much came from each device's own recorded cost and how much is an estimate,
+   * and devices with no paperwork at all are counted rather than hidden.
+   */
+  function refreshView() {
+    if (!refreshPlan) return '<div class="card"><div class="empty"><i class="ti ti-loader"></i>Loading…</div></div>';
+    const p = refreshPlan;
+
+    const costLine = p.estimated_cost == null
+      ? 'nothing priced yet'
+      : `${p.priced_from_own_record} from their own cost` +
+        (p.priced_from_fleet_median ? ` · ${p.priced_from_fleet_median} estimated at the fleet median` : '') +
+        (p.unpriced ? ` · ${p.unpriced} unpriced` : '');
+
+    return `
+    <div class="three-col" style="margin-bottom:16px">
+      <div class="stat-card a">
+        <div class="stat-label">Due for replacement</div>
+        <div class="stat-val" style="color:var(--amber)">${p.due_count}</div>
+        <div class="stat-sub">of ${p.devices_total} devices</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Estimated cost</div>
+        <div class="stat-val" style="color:var(--accent);font-size:22px">${p.estimated_cost == null ? '&mdash;' : TZS(p.estimated_cost)}</div>
+        <div class="stat-sub">${costLine}</div>
+      </div>
+      <div class="stat-card r">
+        <div class="stat-label">No purchase record</div>
+        <div class="stat-val" style="color:${p.devices_without_any_purchase_record ? 'var(--red)' : 'var(--green)'}">${p.devices_without_any_purchase_record}</div>
+        <div class="stat-sub">${p.devices_without_any_purchase_record ? 'cannot be planned for' : 'all devices have dates'}</div>
+      </div>
+    </div>
+
+    ${p.devices_without_any_purchase_record ? `
+    <div class="alert-banner" style="background:rgba(245,166,35,0.08);border-color:rgba(245,166,35,0.25)">
+      <i class="ti ti-file-off" style="font-size:18px;color:var(--amber);flex-shrink:0"></i>
+      <div class="alert-banner-text" style="flex:1;min-width:0;font-size:12px;color:var(--text2)">
+        <strong style="color:var(--amber)">${p.devices_without_any_purchase_record} device${p.devices_without_any_purchase_record === 1 ? ' has' : 's have'} no purchase date, warranty or end-of-life recorded.</strong>
+        They are excluded from this plan — not because they are healthy, but because there is nothing to judge them by.
+      </div>
+    </div>` : ''}
+
+    <div class="card" style="padding:0">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div class="card-title" style="margin:0">Replace or renew</div>
+        ${p.median_device_cost != null ? `<span style="font-size:11px;color:var(--text3)">median device cost ${TZS(p.median_device_cost)}</span>` : ''}
+      </div>
+      ${p.due.length ? `<div class="table-wrap"><table>
+        <thead><tr>
+          <th>Device</th><th class="hide-mobile">School</th><th>Why</th>
+          <th class="hide-mobile">Warranty</th><th>Cost</th>
+        </tr></thead>
+        <tbody>${p.due.map(d => {
+          const w = WARRANTY_META[d.warranty_state] || WARRANTY_META.unknown;
+          return `<tr style="cursor:pointer" onclick="InventoryPage.openDetail(${d.id})">
+            <td><span class="error-id">${esc(d.asset_tag || d.serial_number)}</span>
+              ${d.repeat_offender ? '<i class="ti ti-alert-triangle" style="font-size:12px;color:var(--red);margin-left:5px" title="Repeat faults"></i>' : ''}
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">${esc(d.model || d.serial_number)}</div></td>
+            <td class="hide-mobile" style="font-size:12px;color:var(--text2)">${esc(d.school_name)}</td>
+            <td style="font-size:12px;color:var(--text2)">${d.reasons.map(esc).join('<br>')}</td>
+            <td class="hide-mobile" style="font-size:12px;color:${w.color}">${w.label}</td>
+            <td style="font-size:12px;white-space:nowrap">${TZS(d.replacement_cost)}${d.replacement_cost_estimated && d.replacement_cost != null ? '<div style="font-size:10px;color:var(--text3)">estimated</div>' : ''}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>` : `<div class="empty" style="padding:40px 20px"><i class="ti ti-circle-check" style="color:var(--green)"></i>Nothing is due for replacement.</div>`}
+    </div>`;
+  }
+
+  /**
+   * Fault rate per procurement batch — the warranty-claim argument. Devices
+   * bought together and used identically fail together.
+   */
+  function batchView() {
+    if (!batchRows) return '<div class="card"><div class="empty"><i class="ti ti-loader"></i>Loading…</div></div>';
+    if (!batchRows.length) {
+      return `<div class="card"><div class="empty" style="padding:40px 20px">
+        <i class="ti ti-packages"></i>No batches recorded yet.
+        <div style="font-size:12px;color:var(--text3);margin-top:8px;max-width:420px;margin-left:auto;margin-right:auto">
+          Give devices bought together the same batch reference when you add or edit them. A fault rate per batch is far stronger evidence than any single device.
+        </div>
+      </div></div>`;
+    }
+    return `
+    <div class="card" style="padding:0">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border)"><div class="card-title" style="margin:0">Fault rate by batch</div></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Batch</th><th class="hide-mobile">Supplier</th><th>Devices</th><th>Faulty now</th><th>Fault rate</th><th class="hide-mobile">Warranty ends</th></tr></thead>
+        <tbody>${batchRows.map(b => {
+          const bad = b.fault_rate_pct >= 20;
+          const warn = b.fault_rate_pct >= 10;
+          const col = bad ? 'var(--red)' : warn ? 'var(--amber)' : 'var(--green)';
+          return `<tr>
+            <td><span class="error-id">${esc(b.batch_ref)}</span>
+              ${b.purchased ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">bought ${fmtDate(b.purchased).split(' ')[0]} ${fmtDate(b.purchased).split(' ')[1]} ${fmtDate(b.purchased).split(' ')[2]}</div>` : ''}</td>
+            <td class="hide-mobile" style="font-size:12px;color:var(--text2)">${esc(b.supplier || '—')}</td>
+            <td style="font-size:12px">${b.devices}</td>
+            <td style="font-size:12px;color:${col}">${b.faulty_now}</td>
+            <td style="min-width:120px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress" style="flex:1"><div class="progress-fill" style="width:${Math.min(100, b.fault_rate_pct)}%;background:${col}"></div></div>
+                <span style="font-size:12px;color:${col};width:34px;text-align:right">${b.fault_rate_pct}%</span>
+              </div>
+            </td>
+            <td class="hide-mobile" style="font-size:12px;color:var(--text2)">${b.warranty_expires_on ? String(b.warranty_expires_on).slice(0,10) : '—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>
+    </div>`;
+  }
+
+  async function setView(v) {
+    activeView = v;
+    document.querySelectorAll('.main .tab-row .tab-btn').forEach((b, i) => {
+      b.classList.toggle('active', ['devices', 'refresh', 'batches'][i] === v);
+    });
+    // In-place swap, never App.render() — that flickers and drops the sidebar.
+    const slot = document.getElementById('inv-view');
+    if (slot) slot.innerHTML = '<div class="card"><div class="empty"><i class="ti ti-loader"></i>Loading…</div></div>';
+    if (v === 'refresh' && !refreshPlan) {
+      try { refreshPlan = await API.getRefreshPlan(filters.school_id ? { school_id: filters.school_id } : {}); }
+      catch (e) { refreshPlan = { devices_total: 0, due_count: 0, estimated_cost: null, due: [], devices_without_any_purchase_record: 0 }; }
+    }
+    if (v === 'batches' && !batchRows) {
+      try { batchRows = await API.getDeviceBatches(filters.school_id ? { school_id: filters.school_id } : {}); }
+      catch (e) { batchRows = []; }
+    }
+    const again = document.getElementById('inv-view');
+    if (again) {
+      again.innerHTML = v === 'devices' ? deviceView() : v === 'refresh' ? refreshView() : batchView();
+      again.querySelectorAll('.card, .stat-card, .alert-banner').forEach(c => c.classList.add('reveal', 'visible'));
+      if (v === 'devices') Dropdown.initAll && Dropdown.initAll();
+    }
+  }
+
+  function onWarrantySelect() { filters.warranty = Dropdown.getValue('inv-warranty') || ''; reload(); }
+  function toggleRepeatOffenders() {
+    filters.repeat_offender = filters.repeat_offender ? '' : 'true';
+    reload();
   }
 
   function afterRender() {
@@ -123,6 +324,8 @@ const InventoryPage = (() => {
   function onFormSelect() { filters.form = Dropdown.getValue('inv-form') || ''; reload(); }
 
   async function reload() {
+    refreshPlan = null;
+    batchRows = null;
     await load();
     const main = document.querySelector('.main');
     if (main) { main.innerHTML = render(); afterRender(); }
@@ -263,8 +466,10 @@ const InventoryPage = (() => {
             <tr><td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-user" style="font-size:13px;color:var(--accent)"></i>Student</span></td><td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${esc(d.student_name||'Unassigned')}</td>
                 <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-id" style="font-size:13px;color:var(--purple)"></i>Adm. No</span></td><td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${esc(d.admission_no||'-')}</td></tr>
             ${d.notes ? `<tr><td colspan="4" style="padding:0;height:1px;background:var(--border)"></td></tr><tr><td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-note" style="font-size:13px;color:var(--amber)"></i>Notes</span></td><td colspan="3" style="padding:9px 12px;font-size:13px;color:var(--text2)">${esc(d.notes)}</td></tr>` : ''}
+            ${lifecycleRows(d)}
           </table>
         </div>
+        ${lifecycleVerdictBox(d)}
         ${history.length ? `
         <div style="margin-top:16px">
           <div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:8px">History</div>
@@ -282,6 +487,53 @@ const InventoryPage = (() => {
         </div>
       `, '', true);
     } catch (err) { showToast('Failed to load device details', 'error'); }
+  }
+
+  /**
+   * Procurement rows for the detail modal. Rendered only when at least one
+   * field is recorded: four rows of "—" would suggest the data exists and is
+   * empty, when in fact it was never captured.
+   */
+  function lifecycleRows(d) {
+    const has = d.purchase_date || d.purchase_cost || d.supplier || d.warranty_expires_on || d.expected_eol_on || d.batch_ref;
+    if (!has) return '';
+    const sep = '<tr><td colspan="4" style="padding:0;height:1px;background:var(--border)"></td></tr>';
+    const cell = (icon, color, label, value) =>
+      `<td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)">` +
+      `<i class="ti ${icon}" style="font-size:13px;color:${color}"></i>${label}</span></td>` +
+      `<td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${value}</td>`;
+    const date = v => v ? String(v).slice(0, 10) : '—';
+
+    return sep +
+      `<tr>${cell('ti-calendar-plus', 'var(--amber)', 'Purchased', date(d.purchase_date))}` +
+      `${cell('ti-coin', 'var(--green)', 'Cost', d.purchase_cost != null ? TZS(d.purchase_cost) : '—')}</tr>` +
+      sep +
+      `<tr>${cell('ti-truck-delivery', 'var(--teal)', 'Supplier', esc(d.supplier || '—'))}` +
+      `${cell('ti-package', 'var(--purple)', 'Batch', esc(d.batch_ref || '—'))}</tr>` +
+      sep +
+      `<tr>${cell('ti-shield-check', 'var(--accent)', 'Warranty ends', date(d.warranty_expires_on))}` +
+      `${cell('ti-clock-exclamation', 'var(--red)', 'End of life', date(d.expected_eol_on))}</tr>`;
+  }
+
+  /**
+   * The one sentence that decides repair or replace, composed on the server so
+   * the same wording appears in the list, here, and in the refresh plan.
+   */
+  function lifecycleVerdictBox(d) {
+    if (!d.lifecycle_verdict) return '';
+    const w = WARRANTY_META[d.warranty_state] || WARRANTY_META.unknown;
+    const replace = d.repeat_offender && d.warranty_state !== 'active';
+    return `
+      <div style="margin-top:14px;padding:11px 13px;border-radius:10px;background:${replace ? 'rgba(255,82,99,0.07)' : 'var(--bg3)'};border:1px solid ${replace ? 'rgba(255,82,99,0.22)' : 'var(--border)'}">
+        <div style="display:flex;align-items:flex-start;gap:9px">
+          <i class="ti ${replace ? 'ti-replace' : 'ti-tools'}" style="font-size:16px;color:${replace ? 'var(--red)' : w.color};flex-shrink:0;margin-top:1px"></i>
+          <div style="min-width:0">
+            <div style="font-size:12px;color:var(--text2);line-height:1.5">${esc(d.lifecycle_verdict)}</div>
+            ${replace ? '<div style="font-size:12px;color:var(--red);font-weight:500;margin-top:4px">Replace rather than repair again.</div>' : ''}
+            ${d.age_months != null ? `<div style="font-size:11px;color:var(--text3);margin-top:3px">${d.age_months} months old</div>` : ''}
+          </div>
+        </div>
+      </div>`;
   }
 
   function historyLabel(h) {
@@ -449,5 +701,6 @@ const InventoryPage = (() => {
     openImport, downloadTemplate, previewCsv, submitImport, exportCsv,
     filterStatus, filterForm, filterSchool, debounceSearch,
     onSchoolSelect, onStatusSelect, onFormSelect,
+    setView, onWarrantySelect, toggleRepeatOffenders,
   };
 })();

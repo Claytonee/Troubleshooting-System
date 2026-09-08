@@ -165,6 +165,8 @@ const API = (() => {
     },
     getInventory: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/inventory' + (qs ? '?' + qs : '')); },
     getInventoryStats: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/inventory/stats' + (qs ? '?' + qs : '')); },
+    getRefreshPlan: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/inventory/refresh-plan' + (qs ? '?' + qs : '')); },
+    getDeviceBatches: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/inventory/batches' + (qs ? '?' + qs : '')); },
     getDevice: (id) => request('GET', `/inventory/${id}`),
     createDevice: (data) => request('POST', '/inventory', data),
     updateDevice: (id, data) => request('PUT', `/inventory/${id}`, data),

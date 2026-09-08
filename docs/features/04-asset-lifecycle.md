@@ -1,6 +1,6 @@
 # 4. Asset lifecycle & total cost of ownership
 
-**Status:** designed · **Effort:** S · **Changes:** repair-vs-replace becomes answerable
+**Status:** implemented · **Effort:** S · **Changes:** repair-vs-replace becomes answerable
 
 ## What the giants do
 
@@ -87,6 +87,42 @@ The existing SLA sweep endpoint gains a weekly pass: warranties expiring within
   scanning is a separate piece of work.
 - Automatic supplier integration. Thirteen schools and a handful of suppliers
   do not justify it.
+
+## Decisions taken while building
+
+**The replacement total uses a median, not a mean.** One mistyped cost would
+drag an average up and inflate the whole procurement request. The response also
+reports how many devices were priced from their own record versus estimated at
+the fleet median, so the number is traceable rather than merely plausible.
+
+**`estimated_cost` is `null`, never `0`, when nothing can be priced.** A zero
+would read as "free to replace" — the same class of lie as the SLA card that
+once showed −200%.
+
+**Warranty reminders ride on the heartbeat sweep.** ROADMAP_AND_DESIGN.md §5 has
+one scheduled endpoint; a second schedule to maintain for a weekly check would
+be disproportionate. The sweep runs every 5 minutes, so reminders are
+deduplicated to one per batch per day via `admin_notifications` — a batch of 40
+tablets bought the same day expires the same day, and 40 identical alerts would
+train everyone to ignore them.
+
+**`update` uses `COALESCE`, not assignment, for the six new fields.** The edit
+modal does not carry the purchase fields, so a plain assignment would silently
+erase the procurement record on every ordinary status change. There is a test
+for exactly that.
+
+**Repeat-offender thresholds are 3 ever, or 2 within 90 days.** Two faults in
+three months is a pattern; two across four years is bad luck. Both are tested at
+the boundary.
+
+## What testing and the UI pass changed
+
+- The "Repeat faults" toggle kept its text at every width. `.inv-toolbar`
+  stretches its children on a phone, and `.btn-label` hid the label there — an
+  icon alone in a full-width bar reads as broken, not as a button.
+- The tab row lives outside the swapped `#inv-view`, so changing view left the
+  previous tab looking active. `setView` now moves the active class too.
+- The exclusion banner said "1 device have no purchase date".
 
 ## Verification plan
 

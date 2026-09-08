@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const lc = require('../config/lifecycle');
 const { logAudit } = require('../services/audit');
 
 // Returns true if `user` may modify a device belonging to `schoolId`.
@@ -17,7 +18,10 @@ async function canWriteSchool(user, schoolId) {
 
 async function getAll(req, res, next) {
   try {
-    let query = `SELECT t.*, s.name as school_name FROM tablets t
+    let query = `SELECT t.*, s.name as school_name,
+        ${lc.lifecycleSelect('t')},
+        ${lc.repeatOffenderExpr('t')} AS repeat_offender
+      FROM tablets t
       JOIN schools s ON t.school_id = s.id`;
     const params = [];
     const conditions = [];
@@ -37,16 +41,30 @@ async function getAll(req, res, next) {
     if (req.query.status) { conditions.push('t.status = ?'); params.push(req.query.status); }
     if (req.query.form) { conditions.push('t.form = ?'); params.push(req.query.form); }
     if (req.query.search) {
-      conditions.push("(t.serial_number LIKE ? OR t.asset_tag LIKE ? OR t.student_name LIKE ?)");
+      conditions.push("(t.serial_number LIKE ? OR t.asset_tag LIKE ? OR t.student_name LIKE ? OR t.batch_ref LIKE ?)");
       const s = `%${req.query.search}%`;
-      params.push(s, s, s);
+      params.push(s, s, s, s);
     }
+
+    // Lifecycle filters (feature 4). warranty=unknown is a real answer — the
+    // devices whose paperwork is missing are the ones worth chasing.
+    if (req.query.batch) { conditions.push('t.batch_ref = ?'); params.push(req.query.batch); }
+    if (req.query.repeat_offender === 'true') conditions.push(lc.repeatOffenderExpr('t'));
+    const warrantyClause = {
+      unknown: 't.warranty_expires_on IS NULL',
+      expired: 't.warranty_expires_on < CURDATE()',
+      expiring: `t.warranty_expires_on >= CURDATE() AND t.warranty_expires_on <= DATE_ADD(CURDATE(), INTERVAL ${lc.WARRANTY_WARN_DAYS} DAY)`,
+      active: `t.warranty_expires_on > DATE_ADD(CURDATE(), INTERVAL ${lc.WARRANTY_WARN_DAYS} DAY)`
+    }[req.query.warranty];
+    if (warrantyClause) conditions.push(warrantyClause);
 
     if (conditions.length) query += ' WHERE ' + conditions.join(' AND ');
     query += ' ORDER BY t.asset_tag ASC, t.serial_number ASC';
 
     const [rows] = await pool.query(query, params);
-    res.json(rows);
+    // The repair-or-replace sentence is composed once, server-side, so the same
+    // wording appears in the list, the detail view and the refresh plan.
+    res.json(rows.map(r => ({ ...r, repeat_offender: !!Number(r.repeat_offender), lifecycle_verdict: lc.verdict(r) })));
   } catch (err) { next(err); }
 }
 
@@ -112,7 +130,8 @@ async function getById(req, res, next) {
 async function create(req, res, next) {
   try {
     const { school_id, serial_number, asset_tag, form, stream, model,
-      year_first_used, status, student_name, admission_no, last_checked, notes } = req.body;
+      year_first_used, status, student_name, admission_no, last_checked, notes,
+      purchase_date, purchase_cost, supplier, warranty_expires_on, expected_eol_on, batch_ref } = req.body;
 
     if (!serial_number) return res.status(400).json({ error: 'Serial number is required' });
 
@@ -126,11 +145,14 @@ async function create(req, res, next) {
 
     const [result] = await pool.query(
       `INSERT INTO tablets (school_id, serial_number, asset_tag, form, stream, model,
-        year_first_used, status, student_name, admission_no, last_checked, notes, assigned_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        year_first_used, status, student_name, admission_no, last_checked, notes, assigned_at,
+        purchase_date, purchase_cost, supplier, warranty_expires_on, expected_eol_on, batch_ref)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [sid, serial_number, asset_tag || null, form || null, stream || null, model || null,
         year_first_used || null, status || 'Working', student_name || null, admission_no || null,
-        last_checked || null, notes || null, student_name ? new Date() : null]
+        last_checked || null, notes || null, student_name ? new Date() : null,
+        purchase_date || null, purchase_cost || null, supplier || null,
+        warranty_expires_on || null, expected_eol_on || null, batch_ref || null]
     );
 
     await pool.query(
@@ -148,7 +170,8 @@ async function create(req, res, next) {
 async function update(req, res, next) {
   try {
     const { serial_number, asset_tag, form, stream, model,
-      year_first_used, status, student_name, admission_no, last_checked, notes } = req.body;
+      year_first_used, status, student_name, admission_no, last_checked, notes,
+      purchase_date, purchase_cost, supplier, warranty_expires_on, expected_eol_on, batch_ref } = req.body;
 
     const [current] = await pool.query('SELECT * FROM tablets WHERE id = ?', [req.params.id]);
     if (!current.length) return res.status(404).json({ error: 'Device not found' });
@@ -166,10 +189,21 @@ async function update(req, res, next) {
       `UPDATE tablets SET serial_number=?, asset_tag=?, form=?, stream=?, model=?,
         year_first_used=?, status=?, student_name=?, admission_no=?, last_checked=?, notes=?,
         assigned_at = CASE WHEN ? IS NOT NULL AND ? != '' AND (student_name IS NULL OR student_name = '') THEN NOW() ELSE assigned_at END,
+        -- COALESCE, not assignment: an edit form that does not carry the
+        -- purchase fields must not erase the procurement record.
+        purchase_date = COALESCE(?, purchase_date),
+        purchase_cost = COALESCE(?, purchase_cost),
+        supplier = COALESCE(?, supplier),
+        warranty_expires_on = COALESCE(?, warranty_expires_on),
+        expected_eol_on = COALESCE(?, expected_eol_on),
+        batch_ref = COALESCE(?, batch_ref),
         updated_at=NOW() WHERE id=?`,
       [serial_number, asset_tag || null, form || null, stream || null, model || null,
         year_first_used || null, status || old.status, student_name || null, admission_no || null,
-        last_checked || null, notes || null, student_name, student_name, req.params.id]
+        last_checked || null, notes || null, student_name, student_name,
+        purchase_date || null, purchase_cost || null, supplier || null,
+        warranty_expires_on || null, expected_eol_on || null, batch_ref || null,
+        req.params.id]
     );
 
     if (status && status !== old.status) {
@@ -347,4 +381,160 @@ async function remove(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getStats, getById, create, update, assignDevice, changeStatus, bulkImport, exportDevices, remove };
+/** Role scoping shared by the two lifecycle reports. */
+function scopeFor(user, schoolId) {
+  const conditions = [];
+  const params = [];
+  if (user.role === 'school' || user.role === 'teacher') {
+    conditions.push('t.school_id = ?');
+    params.push(user.school_id);
+  } else if (user.role === 'subadmin') {
+    conditions.push('t.school_id IN (SELECT id FROM schools WHERE assigned_admin_id = ?)');
+    params.push(user.id);
+    if (schoolId) { conditions.push('t.school_id = ?'); params.push(schoolId); }
+  } else if (schoolId) {
+    conditions.push('t.school_id = ?');
+    params.push(schoolId);
+  }
+  return { where: conditions.length ? 'WHERE ' + conditions.join(' AND ') : '', params };
+}
+
+/**
+ * GET /api/inventory/refresh-plan
+ *
+ * The procurement request, generated rather than assembled by hand: devices
+ * past their expected end of life, out of warranty with a fault history, or
+ * repeat offenders — with the replacement cost totalled from what devices
+ * actually cost.
+ *
+ * Devices with no purchase record are reported separately, not silently
+ * dropped and not counted as due. Missing paperwork is its own action item.
+ */
+async function refreshPlan(req, res, next) {
+  try {
+    const { where, params } = scopeFor(req.user, req.query.school_id);
+
+    const [rows] = await pool.query(
+      `SELECT t.id, t.serial_number, t.asset_tag, t.model, t.form, t.status,
+              t.purchase_date, t.purchase_cost, t.supplier, t.warranty_expires_on,
+              t.expected_eol_on, t.batch_ref, s.name AS school_name,
+              ${lc.lifecycleSelect('t')},
+              ${lc.repeatOffenderExpr('t')} AS repeat_offender
+       FROM tablets t JOIN schools s ON t.school_id = s.id
+       ${where}
+       ORDER BY s.name, t.asset_tag, t.serial_number`,
+      params
+    );
+
+    // A median, not a mean: one mistyped cost would drag an average up and
+    // inflate the whole procurement request.
+    const costs = rows.map(r => Number(r.purchase_cost))
+      .filter(c => Number.isFinite(c) && c > 0)
+      .sort((a, b) => a - b);
+    const medianCost = costs.length
+      ? (costs.length % 2
+          ? costs[(costs.length - 1) / 2]
+          : (costs[costs.length / 2 - 1] + costs[costs.length / 2]) / 2)
+      : null;
+
+    const due = [];
+    let noRecord = 0;
+    for (const r of rows) {
+      const repeat = !!Number(r.repeat_offender);
+      const faults = Number(r.fault_count);
+      const reasons = [];
+      if (r.eol_state === 'past') reasons.push('past expected end of life');
+      if (repeat) reasons.push(faults + ' recorded fault' + (faults === 1 ? '' : 's'));
+      if (r.warranty_state === 'expired' && faults > 0) reasons.push('out of warranty with a fault history');
+      if (r.status === 'Lost/Missing') reasons.push('recorded lost');
+
+      if (!r.purchase_date && !r.warranty_expires_on && !r.expected_eol_on) noRecord++;
+      if (!reasons.length) continue;
+
+      due.push({
+        id: r.id,
+        serial_number: r.serial_number,
+        asset_tag: r.asset_tag,
+        model: r.model,
+        school_name: r.school_name,
+        form: r.form,
+        status: r.status,
+        batch_ref: r.batch_ref,
+        supplier: r.supplier,
+        fault_count: faults,
+        repeat_offender: repeat,
+        warranty_state: r.warranty_state,
+        eol_state: r.eol_state,
+        age_months: r.age_months == null ? null : Number(r.age_months),
+        reasons,
+        lifecycle_verdict: lc.verdict(r),
+        // What this one cost, or the fleet median when it has no recorded cost.
+        // Flagged either way so nobody mistakes an estimate for a price.
+        replacement_cost: r.purchase_cost != null ? Number(r.purchase_cost) : medianCost,
+        replacement_cost_estimated: r.purchase_cost == null
+      });
+    }
+
+    const priced = due.filter(d => d.replacement_cost != null);
+    const total = priced.reduce((sum, d) => sum + Number(d.replacement_cost), 0);
+
+    res.json({
+      devices_total: rows.length,
+      due_count: due.length,
+      // Null, never 0, when nothing can be priced: a zero would read as "free
+      // to replace". Same rule as the SLA card — do not invent a number.
+      estimated_cost: priced.length ? Math.round(total) : null,
+      currency: 'TZS',
+      priced_from_own_record: due.filter(d => !d.replacement_cost_estimated && d.replacement_cost != null).length,
+      priced_from_fleet_median: due.filter(d => d.replacement_cost_estimated && d.replacement_cost != null).length,
+      unpriced: due.filter(d => d.replacement_cost == null).length,
+      median_device_cost: medianCost,
+      devices_without_any_purchase_record: noRecord,
+      due
+    });
+  } catch (err) { next(err); }
+}
+
+/**
+ * GET /api/inventory/batches
+ *
+ * Fault rate per procurement batch. Devices bought together and used
+ * identically fail together, so this is a stronger signal than any single
+ * device — and it is the argument a supplier can be held to.
+ */
+async function batches(req, res, next) {
+  try {
+    const { where, params } = scopeFor(req.user, req.query.school_id);
+    const scoped = where ? where + ' AND t.batch_ref IS NOT NULL' : 'WHERE t.batch_ref IS NOT NULL';
+
+    const [rows] = await pool.query(
+      `SELECT t.batch_ref,
+              COUNT(*) AS devices,
+              MIN(t.purchase_date) AS purchased,
+              MIN(t.supplier) AS supplier,
+              MIN(t.warranty_expires_on) AS warranty_expires_on,
+              ROUND(AVG(t.purchase_cost), 2) AS avg_cost,
+              SUM(t.status IN ('Faulty', 'In Repair')) AS faulty_now,
+              SUM(${lc.repeatOffenderExpr('t')}) AS repeat_offenders
+       FROM tablets t
+       ${scoped}
+       GROUP BY t.batch_ref
+       ORDER BY (SUM(t.status IN ('Faulty', 'In Repair')) / COUNT(*)) DESC, t.batch_ref`,
+      params
+    );
+
+    res.json(rows.map(r => ({
+      batch_ref: r.batch_ref,
+      devices: Number(r.devices),
+      purchased: r.purchased,
+      supplier: r.supplier,
+      warranty_expires_on: r.warranty_expires_on,
+      avg_cost: r.avg_cost == null ? null : Number(r.avg_cost),
+      faulty_now: Number(r.faulty_now),
+      repeat_offenders: Number(r.repeat_offenders),
+      fault_rate_pct: Number(r.devices) ? Math.round((Number(r.faulty_now) / Number(r.devices)) * 100) : 0
+    })));
+  } catch (err) { next(err); }
+}
+
+module.exports = { getAll, getStats, getById, create, update, assignDevice, changeStatus, bulkImport, exportDevices, remove, refreshPlan, batches };

@@ -21,6 +21,7 @@ const { logAudit } = require('../services/audit');
 const {
   BEAT_MINUTES, MISSED_BEATS_TO_OPEN, DOWN_AFTER_MINUTES, HEARTBEAT_SOURCE
 } = require('../config/monitoring');
+const { WARRANTY_WARN_DAYS } = require('../config/lifecycle');
 
 const sourceKey = deviceId => `${HEARTBEAT_SOURCE}:${deviceId}`;
 
@@ -178,9 +179,80 @@ async function sweep(req, res, next) {
       threshold_minutes: DOWN_AFTER_MINUTES,
       silent_devices: silent.length,
       errors_opened: opened.length,
-      opened
+      opened,
+      warranty: await warrantySweep()
     });
   } catch (err) { next(err); }
+}
+
+/**
+ * Warranties worth claiming on, folded into the sweep that already runs.
+ *
+ * No new cron: ROADMAP_AND_DESIGN.md §5 has one scheduled endpoint and adding a
+ * second schedule to maintain for a weekly check would be disproportionate.
+ * The sweep runs every 5 minutes, so this notifies at most once per device per
+ * day, tracked in admin_notifications rather than a new column.
+ */
+async function warrantySweep() {
+  try {
+    const [rows] = await pool.query(
+      `SELECT t.id, t.serial_number, t.asset_tag, t.warranty_expires_on, t.supplier, t.batch_ref,
+              DATEDIFF(t.warranty_expires_on, CURDATE()) AS days_left,
+              s.name AS school_name
+       FROM tablets t JOIN schools s ON t.school_id = s.id
+       WHERE t.warranty_expires_on IS NOT NULL
+         AND t.warranty_expires_on >= CURDATE()
+         AND t.warranty_expires_on <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
+       ORDER BY t.warranty_expires_on`,
+      [WARRANTY_WARN_DAYS]
+    );
+    if (!rows.length) return { expiring_soon: 0, notified: 0 };
+
+    // One notification per batch (or per device where there is no batch): a
+    // batch of 40 tablets bought the same day expires the same day, and 40
+    // identical alerts would train everyone to ignore them.
+    const groups = new Map();
+    for (const r of rows) {
+      const key = r.batch_ref || `device:${r.id}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(r);
+    }
+
+    let notified = 0;
+    for (const [key, items] of groups) {
+      const first = items[0];
+      const type = 'warranty_expiring';
+      const title = items.length > 1
+        ? `${items.length} devices out of warranty in ${first.days_left} days`
+        : `Warranty expires in ${first.days_left} days — ${first.asset_tag || first.serial_number}`;
+
+      // Once per group per day. A repeat inside the window is noise.
+      const [seen] = await pool.query(
+        `SELECT id FROM admin_notifications
+         WHERE type = ? AND title = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY) LIMIT 1`,
+        [type, title]
+      );
+      if (seen.length) continue;
+
+      const message = items.length > 1
+        ? `Batch ${key} at ${first.school_name}${first.supplier ? `, supplied by ${first.supplier}` : ''}. ` +
+          `Expires ${String(first.warranty_expires_on).slice(0, 10)}. Raise any outstanding claims before then.`
+        : `${first.school_name}${first.supplier ? `, supplied by ${first.supplier}` : ''}. ` +
+          `Expires ${String(first.warranty_expires_on).slice(0, 10)}.`;
+
+      await pool.query(
+        'INSERT INTO admin_notifications (target_role, type, title, message, meta) VALUES (?, ?, ?, ?, ?)',
+        ['admin', type, title, message, JSON.stringify({ batch_ref: first.batch_ref || null, device_ids: items.map(i => i.id) })]
+      );
+      notified++;
+    }
+
+    return { expiring_soon: rows.length, groups: groups.size, notified };
+  } catch (err) {
+    // A warranty reminder failing must never stop the outage sweep.
+    console.error('[warranty] sweep failed:', err.message);
+    return { error: err.message };
+  }
 }
 
 /** Opens one CRITICAL connectivity error for a silent LRS and notifies. */
