@@ -6,11 +6,24 @@
 
 const SLA_TARGET_HOURS = { critical: 4, high: 24, medium: 72, low: 168 };
 
+// Errors that mean "this step has already been applied". These migrations run
+// on every boot by design, so from the second boot onwards every ADD COLUMN and
+// CREATE INDEX raises one of these. Counting them as failures printed ~25
+// "Migration step FAILED" lines per restart and buried the real ones.
+const ALREADY_APPLIED = new Set([
+  'ER_DUP_FIELDNAME',      // duplicate column name
+  'ER_DUP_KEYNAME',        // duplicate index/key name
+  'ER_TABLE_EXISTS_ERROR',
+  'ER_DUP_ENTRY'           // seed row already present
+]);
+
 async function applyExtensions(db) {
   let failed = 0;
+  let skipped = 0;
   const q = async (sql, params) => {
     try { await db.query(sql, params); }
     catch (e) {
+      if (ALREADY_APPLIED.has(e.code)) { skipped++; return; }
       failed++;
       console.error('  Migration step FAILED:', e.message);
       console.error('    SQL:', sql.replace(/\s+/g, ' ').trim().slice(0, 140));
@@ -258,6 +271,17 @@ async function applyExtensions(db) {
     FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE
   )`);
 
+  // --- Feature 1: LRS heartbeat (docs/features/01-lrs-heartbeat.md) ---
+  await q("ALTER TABLE lrs_devices ADD COLUMN heartbeat_agent_version VARCHAR(30) NULL");
+  await q("ALTER TABLE lrs_devices ADD COLUMN heartbeat_disk_free_pct SMALLINT NULL");
+  // When the silence started, so a recovery can report how long it lasted.
+  await q("ALTER TABLE lrs_devices ADD COLUMN heartbeat_missed_since DATETIME NULL");
+  await q("CREATE INDEX idx_lrs_heartbeat ON lrs_devices (last_heartbeat)");
+  // Marks a machine-opened ticket and doubles as the dedup key, so a school
+  // that stays down for a week produces one error rather than ~2000.
+  await q("ALTER TABLE errors ADD COLUMN auto_source VARCHAR(80) NULL");
+  await q("CREATE INDEX idx_errors_auto_source ON errors (auto_source, status)");
+
   await q(`CREATE TABLE IF NOT EXISTS lrs_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
     lrs_id INT NOT NULL,
@@ -286,6 +310,7 @@ async function applyExtensions(db) {
     FOREIGN KEY (error_id) REFERENCES errors(id) ON DELETE CASCADE
   )`);
 
+  if (skipped) console.log(`  schemaExtensions: ${skipped} step(s) already applied.`);
   if (failed) console.error(`  schemaExtensions: ${failed} step(s) failed — see errors above.`);
 }
 

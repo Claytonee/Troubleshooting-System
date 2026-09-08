@@ -45,6 +45,7 @@
 | 19 | Swahili localization (i18n) | 🟡 2 | Designed |
 | 20 | Offline / PWA | 🔵 3 | Planned |
 | 21 | Recurring-problem detection | 🔵 3 | Planned |
+| 24 | LRS heartbeat → self-opening tickets | 🟢 1 | **Implemented** (needs `HEARTBEAT_KEY` + the agent cron) — [design](features/01-lrs-heartbeat.md) |
 | 22 | Preventive-maintenance reminders | 🔵 3 | Planned |
 | 23 | Email-to-ticket | 🔵 3 | Planned |
 
@@ -129,6 +130,7 @@
 A single `node-cron` runner (added with #2 breach alerts / #10 digest):
 - **SLA breach sweep** (hourly): find unresolved errors past `sla_due_at` with `sla_breach_notified = 0`, send alert (email/SMS), set flag.
 - **Weekly digest** (Mon 07:00 EAT): per-admin summary email.
+- **LRS heartbeat sweep** (every 5 min): `POST /api/heartbeat/sweep` with `X-Webhook-Secret`. Opens a CRITICAL ticket for any LRS silent for 15 minutes, deduplicated on `errors.auto_source`. Implemented — see [features/01-lrs-heartbeat.md](features/01-lrs-heartbeat.md).
 
 > On cPanel/shared hosting without a long-running process, replace `node-cron` with a cPanel **Cron Job** hitting an internal authenticated endpoint.
 

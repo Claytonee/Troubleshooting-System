@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { SILENT_SCHOOLS_SUBQUERY } = require('../config/monitoring');
 
 async function getDashboard(req, res) {
   try {
@@ -40,9 +41,13 @@ async function getDashboard(req, res) {
       FROM errors e WHERE 1=1 ${errorFilter}
     `, params);
 
-    const healthyFilter = schoolFilter
-      ? `${schoolFilter} AND s.id NOT IN (SELECT DISTINCT school_id FROM errors WHERE status != 'resolved' AND priority IN ('critical', 'high'))`
-      : `WHERE s.id NOT IN (SELECT DISTINCT school_id FROM errors WHERE status != 'resolved' AND priority IN ('critical', 'high'))`;
+    // Healthy used to mean only "nobody has filed a critical/high ticket", so a
+    // school in a blackout — where nobody can file one — counted as healthy. A
+    // silent LRS now disqualifies a school too, whether or not anyone noticed.
+    const healthyConditions =
+      `s.id NOT IN (SELECT DISTINCT school_id FROM errors WHERE status != 'resolved' AND priority IN ('critical', 'high'))
+       AND s.id NOT IN (${SILENT_SCHOOLS_SUBQUERY})`;
+    const healthyFilter = schoolFilter ? `${schoolFilter} AND ${healthyConditions}` : `WHERE ${healthyConditions}`;
     const [healthySchools] = await pool.query(`SELECT COUNT(*) as count FROM schools s ${healthyFilter}`, params);
 
     const [recentErrors] = await pool.query(`

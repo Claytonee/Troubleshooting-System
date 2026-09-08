@@ -337,6 +337,8 @@ JWT_SECRET=your_jwt_secret
 JWT_EXPIRES_IN=7d
 NODE_ENV=production
 WEBHOOK_SECRET=your_webhook_secret        # required — /api/deploy refuses to deploy without it
+                                          # also authenticates POST /api/heartbeat/sweep
+HEARTBEAT_KEY=your_heartbeat_key           # required for POST /api/heartbeat; unset, it refuses
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
