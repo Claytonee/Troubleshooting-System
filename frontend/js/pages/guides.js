@@ -419,5 +419,6 @@ const GuidesPage = (() => {
     </div>`;
   }
 
-  return { load, render, afterRender, setCategory, setSearch, selectGuide, toggleGuide: selectGuide, toggleStep, resetProgress, openAdd, openEdit, onCategorySelect, addStepRow, removeStepRow, submitForm, escalate };
+  return { load, render, afterRender, canGoBack: () => selectedId !== null, goBack: () => selectGuide(null),
+    setCategory, setSearch, selectGuide, toggleGuide: selectGuide, toggleStep, resetProgress, openAdd, openEdit, onCategorySelect, addStepRow, removeStepRow, submitForm, escalate };
 })();

@@ -7,15 +7,30 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 .app { display: grid; grid-template-columns: 230px 1fr; grid-template-rows: 56px 1fr; min-height: 100vh; }
 .topbar { grid-column: 1/-1; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 14px; z-index: 200; position: fixed; top: 0; left: 0; right: 0; height: 56px; }
 .sidebar { position: fixed; top: 56px; left: 0; bottom: 0; width: 230px; background: var(--bg2); border-right: 1px solid var(--border); padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; z-index: 30; }
-.main { --pad-x: 28px; --pad-y: 24px; grid-column: 2; margin-top: 56px; overflow-y: auto; height: calc(100vh - 56px); padding: var(--pad-y) var(--pad-x) 60px; scroll-behavior: smooth; }
+.main { --pad-x: 28px; --pad-y: 24px; grid-column: 2; margin-top: 56px; overflow-y: auto; overscroll-behavior-y: contain; height: calc(100vh - 56px); padding: var(--pad-y) var(--pad-x) 60px; scroll-behavior: smooth; }
 
 /* Brand */
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; letter-spacing: -0.3px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; letter-spacing: -0.3px; min-width: 0; }
 .brand-icon { flex-shrink: 0; filter: drop-shadow(0 0 8px rgba(255,174,0,0.3)); }
 .app-footer { position: fixed; bottom: 0; left: 230px; right: 0; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 20px; background: var(--bg2); border-top: 1px solid var(--border); z-index: 5; }
 .app-footer svg { opacity: 0.7; }
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 .menu-toggle { display: none; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; width: 34px; height: 34px; align-items: center; justify-content: center; cursor: pointer; color: var(--text2); }
+
+/* Topbar back arrow — hidden via the [hidden] attribute until there is somewhere to go. */
+.topbar-back { display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; width: 34px; height: 34px; cursor: pointer; color: var(--text2); font-size: 17px; padding: 0; transition: background .15s, color .15s; }
+.topbar-back[hidden] { display: none; }
+.topbar-back:hover { background: var(--bg4); color: var(--text); }
+.brand { cursor: pointer; user-select: none; border-radius: 8px; padding: 4px 6px; margin-left: -6px; transition: background .15s; }
+.brand:hover { background: rgba(255,255,255,0.05); }
+.brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Pull-to-refresh indicator */
+.ptr { position: fixed; top: 62px; left: 50%; transform: translate(-50%, 0); z-index: 190; width: 34px; height: 34px; border-radius: 50%; background: var(--bg2); border: 1px solid var(--border); box-shadow: 0 4px 14px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: var(--text3); font-size: 17px; opacity: 0; visibility: hidden; pointer-events: none; }
+.ptr.visible { visibility: visible; }
+.ptr.ready { color: var(--accent); border-color: rgba(79,124,255,0.4); }
+.ptr.spinning { transition: transform .2s ease; }
+.ptr.spinning i { animation: spin .7s linear infinite; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }

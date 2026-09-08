@@ -12,12 +12,32 @@ const Router = (() => {
 
   let currentPage = getPageFromHash();
 
+  // Pages visited before the current one, most recent last. Drives the topbar
+  // back arrow — the browser's own history is not enough, because in-page detail
+  // views (a school, a guide) never push a hash entry.
+  const pageStack = [];
+
   function navigate(page) {
+    if (page !== currentPage) pageStack.push(currentPage);
     currentPage = page;
     window.location.hash = page;
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
     if (window.innerWidth <= 920) closeSidebar();
     document.getElementById('main').scrollTop = 0;
+  }
+
+  function canGoBack() { return pageStack.length > 0 || currentPage !== 'dashboard'; }
+
+  // Pops one entry, falling back to the dashboard so the arrow is never a dead end.
+  function goBack() {
+    const target = pageStack.pop() || 'dashboard';
+    currentPage = target;
+    window.location.hash = target;
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === target));
+    if (window.innerWidth <= 920) closeSidebar();
+    const main = document.getElementById('main');
+    if (main) main.scrollTop = 0;
+    App.loadAndRender();
   }
 
   function getCurrentPage() { return currentPage; }
@@ -72,6 +92,9 @@ const Router = (() => {
       }
       const page = getPageFromHash();
       if (page !== currentPage) {
+        // Browser back/forward: keep our own stack in step rather than growing it.
+        if (pageStack[pageStack.length - 1] === page) pageStack.pop();
+        else pageStack.push(currentPage);
         currentPage = page;
         document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
         App.loadAndRender();
@@ -79,5 +102,5 @@ const Router = (() => {
     });
   }
 
-  return { navigate, getCurrentPage, toggleSidebar, closeSidebar, applyRoleVisibility, initHashListener };
+  return { navigate, getCurrentPage, toggleSidebar, closeSidebar, applyRoleVisibility, initHashListener, canGoBack, goBack };
 })();

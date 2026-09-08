@@ -29,9 +29,91 @@ const App = (() => {
 
   async function init() {
     Router.applyRoleVisibility();
+    initPullToRefresh();
     await loadAndRender();
     updateBadges();
     setInterval(updateBadges, 30000);
+  }
+
+  /** Brand click — back to the dashboard. */
+  function goHome() {
+    if (Router.getCurrentPage() === 'dashboard') { const m = $('main'); if (m) m.scrollTop = 0; return; }
+    Router.navigate('dashboard');
+    loadAndRender();
+  }
+
+  /**
+   * Topbar back arrow. A page showing an in-page detail view (a school, a guide)
+   * closes that first, so one tap never skips past it to the previous page.
+   */
+  function goBack() {
+    const handler = pages[Router.getCurrentPage()];
+    if (handler && handler.canGoBack && handler.canGoBack()) { handler.goBack(); syncBackButton(); return; }
+    Router.goBack();
+  }
+
+  function syncBackButton() {
+    const btn = $('topbar-back');
+    if (!btn) return;
+    const handler = pages[Router.getCurrentPage()];
+    const inDetail = !!(handler && handler.canGoBack && handler.canGoBack());
+    btn.hidden = !(inDetail || Router.canGoBack());
+  }
+
+  /**
+   * Pull-to-refresh. .main is the scroll container and the document itself never
+   * scrolls, so the browser's native gesture never fires — this reproduces it.
+   */
+  function initPullToRefresh() {
+    const main = $('main');
+    const ind = $('ptr');
+    if (!main || !ind || !('ontouchstart' in window)) return;
+
+    const THRESHOLD = 68;   // pull distance that triggers a refresh
+    const MAX = 96;         // furthest the indicator travels
+    let startY = 0, pull = 0, tracking = false, busy = false;
+
+    const place = y => { ind.style.transform = 'translate(-50%,' + y + 'px)'; };
+
+    main.addEventListener('touchstart', e => {
+      if (busy || e.touches.length !== 1 || main.scrollTop > 0) { tracking = false; return; }
+      startY = e.touches[0].clientY;
+      pull = 0;
+      tracking = true;
+    }, { passive: true });
+
+    main.addEventListener('touchmove', e => {
+      if (!tracking) return;
+      const dy = e.touches[0].clientY - startY;
+      if (dy <= 0 || main.scrollTop > 0) { if (pull) { pull = 0; ind.classList.remove('visible'); place(0); } return; }
+      e.preventDefault();                       // hold the page still while pulling
+      pull = Math.min(dy * 0.5, MAX);           // resistance, so it feels like a pull
+      ind.classList.add('visible');
+      ind.classList.toggle('ready', pull >= THRESHOLD);
+      place(pull);
+      ind.style.opacity = Math.min(pull / THRESHOLD, 1);
+    }, { passive: false });
+
+    const release = async () => {
+      if (!tracking) return;
+      tracking = false;
+      const trigger = pull >= THRESHOLD;
+      pull = 0;
+      if (!trigger) { ind.classList.remove('visible', 'ready'); place(0); ind.style.opacity = ''; return; }
+      busy = true;
+      ind.classList.add('spinning');
+      place(THRESHOLD);
+      ind.style.opacity = 1;
+      try { await loadAndRender(); await updateBadges(); }
+      finally {
+        ind.classList.remove('spinning', 'ready', 'visible');
+        place(0);
+        ind.style.opacity = '';
+        busy = false;
+      }
+    };
+    main.addEventListener('touchend', release, { passive: true });
+    main.addEventListener('touchcancel', release, { passive: true });
   }
 
   async function updateBadges() {
@@ -108,6 +190,7 @@ const App = (() => {
     } else {
       main.innerHTML = `<div class="empty"><i class="ti ti-hammer"></i>Page "${page}" coming soon</div>`;
     }
+    syncBackButton();
     initScrollReveal();
   }
 
@@ -115,13 +198,17 @@ const App = (() => {
     const main = document.querySelector('.main');
     if (!main) return;
 
-    // Sticky header elevation on scroll
-    const header = main.querySelector('.section-header');
-    if (header) {
+    // Sticky header elevation on scroll. Bound once — render() runs on every
+    // navigation, and re-adding the listener each time leaked one per page view.
+    if (!main.dataset.elevationBound) {
+      main.dataset.elevationBound = '1';
       main.addEventListener('scroll', () => {
-        header.classList.toggle('elevated', main.scrollTop > 10);
+        const h = main.querySelector('.section-header');
+        if (h) h.classList.toggle('elevated', main.scrollTop > 10);
       }, { passive: true });
     }
+    const header = main.querySelector('.section-header');
+    if (header) header.classList.toggle('elevated', main.scrollTop > 10);
 
     // Reveal cards/stat-cards on scroll into view
     const els = main.querySelectorAll('.card, .stat-card, .alert-banner');
@@ -138,7 +225,7 @@ const App = (() => {
     els.forEach(el => observer.observe(el));
   }
 
-  return { init, render, loadAndRender };
+  return { init, render, loadAndRender, goHome, goBack, syncBackButton };
 })();
 
 /**

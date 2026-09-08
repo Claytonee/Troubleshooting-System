@@ -7,9 +7,9 @@
   <title>Opportunity Education Tanzania — Technical Support</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.14.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/variables.css?v=18">
-  <link rel="stylesheet" href="css/base.css?v=18">
-  <link rel="stylesheet" href="css/components.css?v=18">
+  <link rel="stylesheet" href="css/variables.css?v=19">
+  <link rel="stylesheet" href="css/base.css?v=19">
+  <link rel="stylesheet" href="css/components.css?v=19">
 </head>
 <body>
 
@@ -57,7 +57,9 @@
   <!-- Top Bar -->
   <header class="topbar">
     <div class="menu-toggle" onclick="Router.toggleSidebar()"><i class="ti ti-menu-2"></i></div>
-    <div class="brand">
+    <button class="topbar-back" id="topbar-back" onclick="App.goBack()" aria-label="Go back" title="Back" hidden><i class="ti ti-arrow-left"></i></button>
+    <div class="brand" id="brand-home" role="button" tabindex="0" title="Go to dashboard"
+      onclick="App.goHome()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();App.goHome()}">
       <svg class="brand-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30" width="28" height="28"><path d="M24.33,10c-.54-1.27.49-3,1.84-4.71A14.81,14.81,0,0,1,29.76,12C27.32,11.83,24.94,11.43,24.33,10ZM13.21,5.57c1.47-.63,1.93-2.75,2.1-5h-.68A14.79,14.79,0,0,0,7.28,2.91C9.27,4.65,11.5,6.3,13.21,5.57ZM24.59,3.84A14.81,14.81,0,0,0,17.27.7c.23,2.15.8,4.14,2.42,4.79S23,5.16,24.59,3.84ZM24.41,16.5c-.78,2,1.69,4.33,3.74,6.39a14.79,14.79,0,0,0,2-8.12c0-.2,0-.39,0-.58C27.59,14.4,25.07,14.86,24.41,16.5Zm-15.65.19c-.55-2-8-1.77-8.32-1.68,0,.36,0,.72,0,1.08A14.79,14.79,0,0,0,3.59,24.6C5.35,22.59,9.31,18.7,8.76,16.69Zm-.08-6.48c.71-1.76-1.16-4.08-3-6.1a14.87,14.87,0,0,0-4.91,8.2C3.8,12.17,7.83,12.34,8.68,10.21Zm11.2,10.94c-2.19.94-1.68,7.26-1.59,8.85a14.83,14.83,0,0,0,8.32-4.93C24.4,23,21.78,20.33,19.88,21.14Zm-6.48.08c-2.8-1-7.6,4.91-7.94,5.36a14.81,14.81,0,0,0,9.76,3.72C15.25,29.12,16.2,22.21,13.4,21.22Z" fill="#ffae00"/></svg>
       <span class="font-brand" style="font-weight:600;font-size:14px;color:var(--text)">Opportunity Education</span>
     </div>
@@ -169,6 +171,9 @@
     </div>
   </nav>
 
+  <!-- Pull-to-refresh indicator (touch devices) -->
+  <div class="ptr" id="ptr" aria-hidden="true"><i class="ti ti-refresh"></i></div>
+
   <!-- Main Content -->
   <main class="main" id="main" style="animation: fadeUp .4s ease"></main>
 
@@ -194,36 +199,36 @@
 <div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg">Action completed</span></div>
 
 <!-- JavaScript Modules -->
-<script src="js/api.js?v=18"></script>
-<script src="js/utils.js?v=18"></script>
-<script src="js/components/modal.js?v=18"></script>
-<script src="js/components/notifications.js?v=18"></script>
-<script src="js/auth.js?v=18"></script>
-<script src="js/router.js?v=18"></script>
-<script src="js/pages/dashboard.js?v=18"></script>
-<script src="js/pages/report.js?v=18"></script>
-<script src="js/pages/tracker.js?v=18"></script>
-<script src="js/pages/schools.js?v=18"></script>
-<script src="js/pages/team.js?v=18"></script>
-<script src="js/pages/schoolAdmins.js?v=18"></script>
-<script src="js/pages/guides.js?v=18"></script>
-<script src="js/pages/followup.js?v=18"></script>
-<script src="js/pages/weekly.js?v=18"></script>
-<script src="js/pages/manuals.js?v=18"></script>
-<script src="js/pages/analytics.js?v=18"></script>
-<script src="js/pages/branding.js?v=18"></script>
-<script src="js/pages/audit.js?v=18"></script>
-<script src="js/pages/search.js?v=18"></script>
-<script src="js/pages/chat.js?v=18"></script>
-<script src="js/pages/help.js?v=18"></script>
-<script src="js/pages/fieldguide.js?v=18"></script>
-<script src="js/pages/register.js?v=18"></script>
-<script src="js/pages/approvals.js?v=18"></script>
-<script src="js/pages/teachers.js?v=18"></script>
-<script src="js/pages/teacherRegister.js?v=18"></script>
-<script src="js/pages/inventory.js?v=18"></script>
-<script src="js/pages/lrs.js?v=18"></script>
-<script src="js/app.js?v=18"></script>
+<script src="js/api.js?v=19"></script>
+<script src="js/utils.js?v=19"></script>
+<script src="js/components/modal.js?v=19"></script>
+<script src="js/components/notifications.js?v=19"></script>
+<script src="js/auth.js?v=19"></script>
+<script src="js/router.js?v=19"></script>
+<script src="js/pages/dashboard.js?v=19"></script>
+<script src="js/pages/report.js?v=19"></script>
+<script src="js/pages/tracker.js?v=19"></script>
+<script src="js/pages/schools.js?v=19"></script>
+<script src="js/pages/team.js?v=19"></script>
+<script src="js/pages/schoolAdmins.js?v=19"></script>
+<script src="js/pages/guides.js?v=19"></script>
+<script src="js/pages/followup.js?v=19"></script>
+<script src="js/pages/weekly.js?v=19"></script>
+<script src="js/pages/manuals.js?v=19"></script>
+<script src="js/pages/analytics.js?v=19"></script>
+<script src="js/pages/branding.js?v=19"></script>
+<script src="js/pages/audit.js?v=19"></script>
+<script src="js/pages/search.js?v=19"></script>
+<script src="js/pages/chat.js?v=19"></script>
+<script src="js/pages/help.js?v=19"></script>
+<script src="js/pages/fieldguide.js?v=19"></script>
+<script src="js/pages/register.js?v=19"></script>
+<script src="js/pages/approvals.js?v=19"></script>
+<script src="js/pages/teachers.js?v=19"></script>
+<script src="js/pages/teacherRegister.js?v=19"></script>
+<script src="js/pages/inventory.js?v=19"></script>
+<script src="js/pages/lrs.js?v=19"></script>
+<script src="js/app.js?v=19"></script>
 
 </body>
 </html>

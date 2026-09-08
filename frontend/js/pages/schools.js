@@ -549,6 +549,7 @@ const SchoolsPage = (() => {
     reader.readAsText(fileInput.files[0]);
   }
 
-  return { load, render, select, back, openCreate, openEdit, submitCreate, submitEdit, remove,
+  return { load, render, select, back, canGoBack: () => selectedId !== null, goBack: back,
+    openCreate, openEdit, submitCreate, submitEdit, remove,
     updateFormTotals, addFormRowInModal, openEditForms, addFormRow, submitForms, openImportCSV, downloadTemplate, submitCSV };
 })();
