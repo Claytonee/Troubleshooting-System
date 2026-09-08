@@ -3,19 +3,62 @@ const pool = require('../config/database');
 
 const BEDROCK_TOKEN = process.env.AWS_BEARER_TOKEN_BEDROCK || '';
 const BEDROCK_HOST = process.env.AWS_BEDROCK_HOST || 'bedrock-runtime.us-east-1.amazonaws.com';
+// Bedrock model id. This account currently only has Claude Opus 4.6 enabled —
+// anthropic.claude-opus-5 answers 403 "not available for this account" until
+// model access is requested in the Bedrock console. Override with AI_MODEL.
 const CHAT_MODEL = process.env.AI_MODEL || 'us.anthropic.claude-opus-4-6-v1';
 
-const SYSTEM_PROMPT = `You are a technical support assistant for Quest Forward Tanzania (QFT), a school technology program. You help school administrators and teachers troubleshoot technical issues with tablets, WiFi/internet connectivity, the learning platform, power/UPS systems, and user accounts.
+const ROLE_LABELS = {
+  admin: 'System administrator',
+  subadmin: 'Field engineer / sub-admin',
+  school: 'School administrator',
+  teacher: 'Teacher',
+};
 
-IMPORTANT RULES:
-1. ONLY answer questions related to technical troubleshooting for school equipment and systems.
-2. If someone asks about anything unrelated to troubleshooting (politics, personal questions, homework, general knowledge, etc.), politely decline and redirect them back to troubleshooting topics.
-3. Use the knowledge base and resources provided below as your primary source of truth.
-4. LANGUAGE: Be flexible. If the user writes in English, respond in English. If they write in Swahili, respond in Swahili. If they explicitly request a specific language (e.g., "answer in Swahili" or "jibu kwa Kingereza"), honor that request. You can mix both when it helps clarity.
-5. Be concise, practical, and give step-by-step troubleshooting guidance.
-6. If you cannot find the answer in the provided context, say so and suggest they report the issue via the "Report Error" page for engineer follow-up.
-7. Never make up solutions that could damage equipment. When unsure, recommend professional help.
-8. Keep responses focused and not too long — aim for clear actionable steps.
+// Turns of history sent to the model. The Bedrock invoke path this account uses
+// does not honour cache_control (measured: cache_read_input_tokens stays 0), so
+// every turn is billed in full — an unbounded transcript would grow without limit.
+const HISTORY_LIMIT = 24;
+const MAX_TOKENS = 4096;
+
+const SYSTEM_PROMPT = `You are the technical support assistant inside the Opportunity Education Tanzania (OE Tanzania / QFT) school technology support system. The people talking to you are school administrators, teachers and field engineers in Tanzanian secondary schools. You help them fix tablets, WiFi and internet connectivity, the Quest learning platform, power and UPS systems, and user accounts.
+
+LANGUAGE — this matters most:
+- Reply in the SAME language the user wrote in. Swahili question, Swahili answer. English question, English answer.
+- If they mix Swahili and English (very common here), mirror that mix naturally. Keep technical terms people actually use in English — router, cable, charger, password, WiFi, tablet, app.
+- If they ask for a specific language, or switch language mid-conversation, follow them immediately.
+- Never translate a question into another language before answering, and never answer in a language the user has not used.
+- This applies to every reply, including a refusal, a clarifying question or an apology — an English question gets an English refusal.
+
+HOW TO ANSWER:
+- Lead with the single most likely fix, not with a preamble. No "Pole kwa tatizo" openers, no restating the question.
+- Give numbered steps that a non-technical teacher can follow alone, with what to look for after each one ("the power light should turn green").
+- Stop at 5 steps. If it is still not fixed by then, say so and send them to escalate.
+- Only use headings when the answer genuinely covers two or more separate problems. A single fix needs no heading.
+- Use **bold** for the thing they must press, unplug or type. Never for whole sentences.
+- Ask one clarifying question instead of guessing when the symptom could have very different causes.
+
+STAYING IN SCOPE:
+- Answer only questions about the school's equipment, this support system, and the Quest platform.
+- For anything else — politics, homework, general knowledge, personal advice — decline in one short sentence, in their language, and offer to help with a technical problem instead.
+
+TRUTHFULNESS AND SAFETY:
+- The knowledge base below is your source of truth. Follow its steps rather than inventing your own.
+- If the answer is not in it, say plainly that you do not have it, then tell them to open **Report Error** so an engineer follows up.
+- Never suggest opening a device, changing electrical wiring, flashing firmware or resetting the LRS. For those, tell them to wait for an engineer.
+- Never invent an asset tag, serial number, IP address, phone number or error code. Use only what appears in the context below.
+
+POINTING THEM AT THE RIGHT PLACE IN THIS SYSTEM:
+- **Report Error** — log a NEW fault so an engineer is assigned and the SLA clock starts.
+- **Error Tracker** — check the status of a fault that is already logged. Send them here, never to Report Error, when they ask about an existing ticket.
+- **Troubleshooting** — the step-by-step guides; name the guide when one covers their problem.
+- **Resource Library** — manuals and training videos; name the document when one exists.
+- **Tablet Inventory** — record a tablet as faulty, lost or in repair.
+- **Weekly Check-Ins** — the weekly report of the school's equipment health.
+Refer to them by those names only, and only when it is the natural next step.
+
+WHO YOU ARE TALKING TO:
+{USER_CONTEXT}
 
 KNOWLEDGE BASE:
 {GUIDES_CONTEXT}
@@ -37,6 +80,72 @@ async function getKnowledgeContext() {
   ).join('\n');
 
   return { guidesText, manualsText };
+}
+
+/**
+ * Resolves the school this user is asking on behalf of. School admins carry it
+ * on the user row; teachers carry it on their teachers row; a sub-admin covers
+ * several schools, so there is no single one.
+ */
+async function resolveSchoolId(user) {
+  if (user.school_id) return user.school_id;
+  if (user.role === 'teacher') {
+    const [rows] = await pool.query('SELECT school_id FROM teachers WHERE user_id = ?', [user.id]);
+    if (rows.length) return rows[0].school_id;
+  }
+  return null;
+}
+
+/**
+ * What the assistant knows about the person asking: their school, the faults
+ * already logged for it, and the state of its tablets. Without this the model
+ * gives generic advice and re-asks things the system already knows.
+ */
+async function getUserContext(user) {
+  const lines = [`Name: ${user.full_name}`, `Role: ${ROLE_LABELS[user.role] || user.role}`];
+
+  try {
+    const schoolId = await resolveSchoolId(user);
+
+    if (schoolId) {
+      const [schools] = await pool.query(
+        'SELECT name, zone, students, tablets, routers, lrs_ip, isp FROM schools WHERE id = ?', [schoolId]
+      );
+      if (schools.length) {
+        const s = schools[0];
+        lines.push(`School: ${s.name} (${s.zone || 'zone not recorded'})`);
+        lines.push(`Equipment on record: ${s.tablets || 0} tablets, ${s.routers || 0} routers, ${s.students || 0} students`);
+        if (s.isp) lines.push(`Internet provider: ${s.isp}`);
+        if (s.lrs_ip) lines.push(`LRS address: ${s.lrs_ip}`);
+      }
+
+      const [open] = await pool.query(
+        `SELECT error_code, title, category, priority, status FROM errors
+         WHERE school_id = ? AND status <> 'resolved' ORDER BY FIELD(priority,'critical','high','medium','low'), created_at DESC LIMIT 8`,
+        [schoolId]
+      );
+      lines.push(open.length
+        ? `Faults already logged for this school (do not tell them to report these again — they are open):
+${open.map(e => `  - ${e.error_code} [${e.priority}/${e.status}] ${e.title} (${e.category})`).join('\n')}`
+        : 'No open faults logged for this school.');
+
+      const [tabs] = await pool.query(
+        'SELECT status, COUNT(*) AS n FROM tablets WHERE school_id = ? GROUP BY status', [schoolId]
+      );
+      if (tabs.length) lines.push(`Tablet inventory: ${tabs.map(t => `${t.n} ${t.status}`).join(', ')}`);
+    } else if (user.role === 'subadmin') {
+      const [mine] = await pool.query('SELECT name FROM schools WHERE assigned_admin_id = ? ORDER BY name', [user.id]);
+      lines.push(mine.length
+        ? `Field engineer covering: ${mine.map(s => s.name).join(', ')}`
+        : 'Field engineer with no schools assigned yet.');
+    } else if (user.role === 'admin') {
+      lines.push('System administrator — sees every school. Ask which school they mean when it changes the answer.');
+    }
+  } catch (e) {
+    // Context is an enhancement, never a reason to fail the conversation.
+  }
+
+  return lines.join('\n');
 }
 
 function invokeBedrockStream(payload) {
@@ -170,13 +279,19 @@ async function sendMessage(req, res, next) {
     );
 
     var { guidesText, manualsText } = await getKnowledgeContext();
+    var userContext = await getUserContext(req.user);
   } catch (err) { return next(err); }
 
   const systemPrompt = SYSTEM_PROMPT
+    .replace('{USER_CONTEXT}', userContext || 'No details on file.')
     .replace('{GUIDES_CONTEXT}', guidesText || 'No guides available.')
     .replace('{MANUALS_CONTEXT}', manualsText || 'No manuals available.');
 
-  const messages = history.map(m => ({ role: m.role, content: m.content }));
+  // Keep the tail of the conversation. The first message must be from the user,
+  // or Bedrock rejects the request.
+  let recent = history.slice(-HISTORY_LIMIT);
+  while (recent.length && recent[0].role !== 'user') recent = recent.slice(1);
+  const messages = recent.map(m => ({ role: m.role, content: m.content }));
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -187,7 +302,7 @@ async function sendMessage(req, res, next) {
   try {
     const stream = await invokeBedrockStream({
       anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: 2048,
+      max_tokens: MAX_TOKENS,
       system: systemPrompt,
       messages
     });
@@ -215,13 +330,26 @@ async function sendMessage(req, res, next) {
         res.end();
       },
       (err) => {
-        res.write(`data: ${JSON.stringify({ type: 'error', error: 'Stream interrupted' })}\n\n`);
+        console.error('[ai] stream error:', err.message);
+        res.write(`data: ${JSON.stringify({ type: 'error', error: 'The connection dropped mid-answer. Send the message again.' })}\n\n`);
         res.write('data: [DONE]\n\n');
         res.end();
       }
     );
   } catch (err) {
-    res.write(`data: ${JSON.stringify({ type: 'error', error: 'Failed to connect to AI service' })}\n\n`);
+    // The headers are already sent, so the real cause can only reach the log —
+    // print it rather than swallowing it, and tell the user which class of
+    // failure it was so they know whether retrying will help.
+    console.error('[ai] bedrock request failed:', err.message);
+    const m = /Bedrock (\d+)/.exec(err.message || '');
+    const status = m ? Number(m[1]) : 0;
+    const friendly =
+      status === 403 ? 'The AI service rejected our credentials, or this model is not enabled for this account. An administrator needs to check the Bedrock configuration.'
+      : status === 400 ? 'The AI service rejected the request. An administrator needs to check the configured model.'
+      : status === 429 ? 'The AI service is rate limited right now. Wait a moment and send the message again.'
+      : status >= 500 ? 'The AI service is having trouble. Try again in a minute.'
+      : 'Could not reach the AI service. Check the connection and try again.';
+    res.write(`data: ${JSON.stringify({ type: 'error', error: friendly })}\n\n`);
     res.write('data: [DONE]\n\n');
     res.end();
   }

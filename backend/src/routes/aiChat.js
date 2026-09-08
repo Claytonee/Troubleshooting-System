@@ -5,7 +5,7 @@ const aiChatController = require('../controllers/aiChatController');
 const router = express.Router();
 
 router.use(authenticate);
-router.use(authorize('school', 'subadmin'));
+router.use(authorize('admin', 'subadmin', 'school', 'teacher'));
 
 router.get('/chats', aiChatController.getChats);
 router.get('/chats/:id', aiChatController.getChat);
