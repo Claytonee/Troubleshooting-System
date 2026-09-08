@@ -7,9 +7,16 @@
   <title>Opportunity Education Tanzania — Technical Support</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.14.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/variables.css?v=23">
-  <link rel="stylesheet" href="css/base.css?v=23">
-  <link rel="stylesheet" href="css/components.css?v=23">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0f1117">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="OE Support">
+  <link rel="apple-touch-icon" href="/icons/oe-maskable.svg">
+  <link rel="stylesheet" href="css/variables.css?v=29">
+  <link rel="stylesheet" href="css/base.css?v=29">
+  <link rel="stylesheet" href="css/components.css?v=29">
 </head>
 <body>
 
@@ -199,36 +206,53 @@
 <div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg">Action completed</span></div>
 
 <!-- JavaScript Modules -->
-<script src="js/api.js?v=23"></script>
-<script src="js/utils.js?v=23"></script>
-<script src="js/components/modal.js?v=23"></script>
-<script src="js/components/notifications.js?v=23"></script>
-<script src="js/auth.js?v=23"></script>
-<script src="js/router.js?v=23"></script>
-<script src="js/pages/dashboard.js?v=23"></script>
-<script src="js/pages/report.js?v=23"></script>
-<script src="js/pages/tracker.js?v=23"></script>
-<script src="js/pages/schools.js?v=23"></script>
-<script src="js/pages/team.js?v=23"></script>
-<script src="js/pages/schoolAdmins.js?v=23"></script>
-<script src="js/pages/guides.js?v=23"></script>
-<script src="js/pages/followup.js?v=23"></script>
-<script src="js/pages/weekly.js?v=23"></script>
-<script src="js/pages/manuals.js?v=23"></script>
-<script src="js/pages/analytics.js?v=23"></script>
-<script src="js/pages/branding.js?v=23"></script>
-<script src="js/pages/audit.js?v=23"></script>
-<script src="js/pages/search.js?v=23"></script>
-<script src="js/pages/chat.js?v=23"></script>
-<script src="js/pages/help.js?v=23"></script>
-<script src="js/pages/fieldguide.js?v=23"></script>
-<script src="js/pages/register.js?v=23"></script>
-<script src="js/pages/approvals.js?v=23"></script>
-<script src="js/pages/teachers.js?v=23"></script>
-<script src="js/pages/teacherRegister.js?v=23"></script>
-<script src="js/pages/inventory.js?v=23"></script>
-<script src="js/pages/lrs.js?v=23"></script>
-<script src="js/app.js?v=23"></script>
+<script src="js/api.js?v=29"></script>
+<script src="js/offline.js?v=29"></script>
+<script src="js/utils.js?v=29"></script>
+<script src="js/components/modal.js?v=29"></script>
+<script src="js/components/notifications.js?v=29"></script>
+<script src="js/auth.js?v=29"></script>
+<script src="js/router.js?v=29"></script>
+<script src="js/pages/dashboard.js?v=29"></script>
+<script src="js/pages/report.js?v=29"></script>
+<script src="js/pages/tracker.js?v=29"></script>
+<script src="js/pages/schools.js?v=29"></script>
+<script src="js/pages/team.js?v=29"></script>
+<script src="js/pages/schoolAdmins.js?v=29"></script>
+<script src="js/pages/guides.js?v=29"></script>
+<script src="js/pages/followup.js?v=29"></script>
+<script src="js/pages/weekly.js?v=29"></script>
+<script src="js/pages/manuals.js?v=29"></script>
+<script src="js/pages/analytics.js?v=29"></script>
+<script src="js/pages/branding.js?v=29"></script>
+<script src="js/pages/audit.js?v=29"></script>
+<script src="js/pages/search.js?v=29"></script>
+<script src="js/pages/chat.js?v=29"></script>
+<script src="js/pages/help.js?v=29"></script>
+<script src="js/pages/fieldguide.js?v=29"></script>
+<script src="js/pages/register.js?v=29"></script>
+<script src="js/pages/approvals.js?v=29"></script>
+<script src="js/pages/teachers.js?v=29"></script>
+<script src="js/pages/teacherRegister.js?v=29"></script>
+<script src="js/pages/inventory.js?v=29"></script>
+<script src="js/pages/lrs.js?v=29"></script>
+<script src="js/app.js?v=29"></script>
+
+<script>
+  // Service worker: the app shell, the troubleshooting guides and the resource
+  // list stay available with no network, and writes queue instead of failing.
+  // docs/features/02-offline-pwa.md
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(err =>
+        console.warn('[sw] registration failed:', err.message));
+      // Background Sync cannot read the JWT, so the worker asks us to flush.
+      navigator.serviceWorker.addEventListener('message', e => {
+        if (e.data && e.data.action === 'flush-queue' && typeof Offline !== 'undefined') Offline.flush();
+      });
+    });
+  }
+</script>
 
 </body>
 </html>

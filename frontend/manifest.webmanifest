@@ -1,0 +1,42 @@
+{
+  "name": "Opportunity Education Tanzania — Technical Support",
+  "short_name": "OE Support",
+  "description": "Report and track technical faults across Quest Forward schools. Works offline: guides stay readable and reports queue until the network returns.",
+  "start_url": "/#dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["education", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/oe-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/oe-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Report an error",
+      "short_name": "Report",
+      "description": "File a new technical fault",
+      "url": "/#report"
+    },
+    {
+      "name": "Troubleshooting guides",
+      "short_name": "Guides",
+      "description": "Step-by-step fixes, available offline",
+      "url": "/#troubleshoot"
+    }
+  ]
+}

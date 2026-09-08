@@ -430,6 +430,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   Auth.init();
   API.initSessionMonitor();
   Router.initHashListener();
+  // Drains anything queued while offline, and keeps the pending badge current.
+  // Guarded with typeof, not window.Offline: offline.js declares Offline with
+  // const, which is a script-scope binding and never a window property.
+  if (typeof Offline !== 'undefined') Offline.init();
 
   // Handle public teacher registration URL
   const teacherRegMatch = window.location.pathname.match(/\/register\/teacher\/([a-f0-9]+)/);

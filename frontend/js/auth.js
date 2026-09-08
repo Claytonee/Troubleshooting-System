@@ -411,6 +411,10 @@ const Auth = (() => {
       } else {
         showApp();
         App.init();
+        // Offline.init() runs before a token exists, so warm the offline
+        // reference caches here — otherwise the report form's school list is
+        // missing the first time the network drops.
+        if (typeof Offline !== 'undefined') Offline.warm();
       }
     } catch (err) {
       if (err.error === 'pending_approval' || err.error === 'registration_rejected') {
@@ -441,7 +445,13 @@ const Auth = (() => {
     API.clearUser();
     // Pages that hold a transcript or draft in module state must forget it —
     // the next person to sign in on this device must not inherit it.
-    if (window.ChatPage && ChatPage.reset) ChatPage.reset();
+    // This was guarded with window.ChatPage, which is always undefined: chat.js
+    // declares ChatPage with const, a script-scope binding rather than a window
+    // property, so the reset had never once run.
+    if (typeof ChatPage !== 'undefined' && ChatPage.reset) ChatPage.reset();
+    // Cached API responses are role-scoped, so they belong to the account that
+    // fetched them, not to the device.
+    if (typeof Offline !== 'undefined') Offline.forgetUserData();
     showLogin();
   }
 

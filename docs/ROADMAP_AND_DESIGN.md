@@ -43,7 +43,7 @@
 | 17 | Reporting trends + weekly digest | 🟡 2 | Designed |
 | 18 | 2FA + security hardening | 🟡 2 | Designed |
 | 19 | Swahili localization (i18n) | 🟡 2 | Designed |
-| 20 | Offline / PWA | 🔵 3 | Planned |
+| 20 | Offline / PWA | 🟢 1 | **Implemented** — [design](features/02-offline-pwa.md) |
 | 21 | Recurring-problem detection | 🔵 3 | Planned |
 | 24 | LRS heartbeat → self-opening tickets | 🟢 1 | **Implemented** (needs `HEARTBEAT_KEY` + the agent cron) — [design](features/01-lrs-heartbeat.md) |
 | 22 | Preventive-maintenance reminders | 🔵 3 | Planned |

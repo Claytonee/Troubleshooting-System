@@ -124,12 +124,13 @@ function slaState(error) {
   return parseFloat(error.hours_open) > (SLA[error.priority] || 24) ? 'breach' : 'ok';
 }
 
-function showToast(msg) {
+/** @param {number} [ms] hold longer for messages that carry an instruction. */
+function showToast(msg, ms) {
   const t = $('toast');
   $('toast-msg').textContent = msg;
   t.classList.add('show');
   clearTimeout(t._t);
-  t._t = setTimeout(() => t.classList.remove('show'), 3200);
+  t._t = setTimeout(() => t.classList.remove('show'), ms || 3200);
 }
 
 function downloadBlob(blob, filename) {

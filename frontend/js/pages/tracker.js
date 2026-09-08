@@ -31,7 +31,21 @@ const TrackerPage = (() => {
     };
     const chips = [['all', 'All'], ['open', 'Open'], ['progress', 'In Progress'], ['escalated', 'Escalated'], ['resolved', 'Resolved']];
 
+    // Stale data must never look live, and a queued report must stay visible
+    // until it is actually filed (docs/features/02-offline-pwa.md).
+    const cachedAt = errors.length ? API.lastCachedAt('/errors') : null;
+    const staleNote = cachedAt
+      ? `<div class="alert-banner" style="background:rgba(99,106,130,0.10);border-color:var(--border)">
+           <i class="ti ti-cloud-off" style="font-size:16px;color:var(--text3);flex-shrink:0"></i>
+           <div class="alert-banner-text" style="flex:1;min-width:0;font-size:12px;color:var(--text2)">
+             Showing saved data from ${relTime(cachedAt)} (${fmtDate(cachedAt)}) — no connection to the server.
+           </div>
+         </div>`
+      : '';
+
     return `
+    <div id="offline-queue-banner"></div>
+    ${staleNote}
     <div class="tracker-sticky-header">
       <div class="section-header" style="position:static;margin:0;padding:0 0 14px;background:none;backdrop-filter:none">
         <div><div class="section-title">Error Tracker</div><div class="section-sub">All reported issues</div></div>
@@ -111,7 +125,11 @@ const TrackerPage = (() => {
     }
   }
 
-  function afterRender() { refreshTable(); }
+  async function afterRender() {
+    refreshTable();
+    const slot = document.getElementById('offline-queue-banner');
+    if (slot) slot.innerHTML = await Offline.banner();
+  }
 
   return { load, render, afterRender, setFilter, setSearch, resolve, exportCsv };
 })();

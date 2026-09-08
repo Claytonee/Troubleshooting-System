@@ -1,6 +1,6 @@
 # 2. Offline-first PWA
 
-**Status:** designed · **Effort:** M · **Changes:** works when it matters most
+**Status:** implemented · **Effort:** M · **Changes:** works when it matters most
 
 ## What the giants do
 
@@ -92,6 +92,37 @@ what makes teachers treat it as one.
   a device that cannot reach the server is a security problem, not a feature.
 - Conflict resolution UI. Two people editing the same ticket offline is rare
   here; last-write-wins plus the audit log is proportionate.
+
+## What testing changed about the design
+
+Four things were found by running it offline rather than by reasoning about it,
+and each changed the implementation:
+
+**The offline trigger is a failed request, not `navigator.onLine`.** In these
+schools the LAN is routinely up while the uplink is dead: the tablet is happily
+associated to the router, so `navigator.onLine` reports `true` and would have
+queued nothing. Stopping the server while the page stayed "online" reproduced
+exactly that, and it is the normal case here, not an edge case.
+
+**Reference data has to be warmed, not merely cacheable.** The report form was
+unusable offline: the school dropdown was empty and the form refused to submit,
+because `/api/schools` had only ever been network-first and the user had not
+opened the form while online. It is now cached like the guides *and* fetched on
+login.
+
+**Warming has to wait for the worker to control the page.** On a first visit the
+worker installs but does not yet control, and a fetch issued in that window
+bypasses it entirely — so warming on login cached nothing the first time and
+everything the second. The teacher's first offline attempt is the one that
+matters, so `warm()` now waits for `controllerchange`.
+
+**`window.Offline` is always undefined.** `offline.js` declares `Offline` with
+`const`, which is a script-scope binding rather than a property of `window`, so
+every `if (window.Offline)` guard was permanently false and `Offline.init()`
+never ran at all. Measured: `typeof Offline === 'object'` while
+`'Offline' in window === false`. The same pattern was already in `auth.js` for
+`window.ChatPage`, which meant the AI transcript had never once been cleared on
+logout despite a comment saying it must be — fixed here too.
 
 ## Verification plan
 

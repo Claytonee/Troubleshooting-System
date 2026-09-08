@@ -15,6 +15,11 @@ const API = (() => {
   function clearUser() { localStorage.removeItem('qft_user'); }
   function isLoggedIn() { return !!getToken(); }
 
+  // When a GET was served from the service-worker cache, keyed by path — a
+  // single shared value let one endpoint's staleness mislabel another's data.
+  const _cachedAt = new Map();
+  function lastCachedAt(path) { return path ? (_cachedAt.get(path) || null) : null; }
+
   function resetInactivityTimer() {
     clearInactivityTimer();
     if (!getToken()) return;
@@ -43,8 +48,20 @@ const API = (() => {
     if (token) opts.headers['Authorization'] = `Bearer ${token}`;
     if (body && method !== 'GET') opts.body = JSON.stringify(body);
 
-    const res = await fetch(BASE + path, opts);
+    let res;
+    try {
+      res = await fetch(BASE + path, opts);
+    } catch (err) {
+      // The request never reached the server — a dead uplink, not a rejection.
+      // Callers branch on this to queue writes (js/offline.js).
+      throw { status: 0, offline: true, error: 'No connection to the server.', cause: err };
+    }
     const data = await res.json().catch(() => ({}));
+
+    // The service worker stamps a cached fallback so pages can label stale
+    // data instead of presenting it as live (docs/features/02-offline-pwa.md).
+    const cachedAt = res.headers.get('X-OE-Cached-At');
+    if (cachedAt) _cachedAt.set(path, cachedAt); else if (res.ok) _cachedAt.delete(path);
 
     if (res.status === 401 && !path.includes('/auth/login')) {
       clearToken();
@@ -67,7 +84,7 @@ const API = (() => {
   }
 
   return {
-    getToken, setToken, clearToken, getUser, setUser, clearUser, isLoggedIn,
+    getToken, setToken, clearToken, getUser, setUser, clearUser, isLoggedIn, lastCachedAt,
     login: (username, password) => request('POST', '/auth/login', { username, password }),
     getProfile: () => request('GET', '/auth/profile'),
     updateProfile: (data) => request('PUT', '/auth/profile', data),

@@ -280,6 +280,12 @@ async function applyExtensions(db) {
   // Marks a machine-opened ticket and doubles as the dedup key, so a school
   // that stays down for a week produces one error rather than ~2000.
   await q("ALTER TABLE errors ADD COLUMN auto_source VARCHAR(80) NULL");
+  // --- Feature 2: offline replay (docs/features/02-offline-pwa.md) ---
+  // Client-generated id for a report filed offline. A queued POST that timed
+  // out after the server had already committed would otherwise file the same
+  // fault twice on replay.
+  await q("ALTER TABLE errors ADD COLUMN client_ref VARCHAR(64) NULL");
+  await q("CREATE UNIQUE INDEX uq_errors_client_ref ON errors (client_ref)");
   await q("CREATE INDEX idx_errors_auto_source ON errors (auto_source, status)");
 
   await q(`CREATE TABLE IF NOT EXISTS lrs_history (

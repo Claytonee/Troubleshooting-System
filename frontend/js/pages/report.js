@@ -154,6 +154,17 @@ const ReportPage = (() => {
     Dropdown.updateItems('f-subcat', opts);
   }
 
+  /**
+   * Attachments cannot ride the offline queue — the files would have to be
+   * held in IndexedDB and re-uploaded, and photos are the bulk of the bytes.
+   * Say so plainly rather than dropping them silently.
+   */
+  function selectedFilesWarning() {
+    return selectedFiles.length
+      ? 'Saved on this device — no connection. It will file automatically. Attachments were not kept; add them once it syncs.'
+      : 'Saved on this device — no connection. It will file automatically when the network returns.';
+  }
+
   async function submit() {
     const school_id = Dropdown.getValue('f-school') || ($('f-school') ? $('f-school').value : '');
     const title = $('f-title').value.trim();
@@ -190,12 +201,43 @@ const ReportPage = (() => {
       if ($('f-affected')) formData.append('affected_devices', $('f-affected').value);
       selectedFiles.forEach(f => formData.append('attachments', f));
 
+      // Sent with the request and again on any offline replay, so a reply lost
+      // after the server committed cannot file this fault twice.
+      const clientRef = Offline.newRef();
+      formData.append('client_ref', clientRef);
+
       const token = API.getToken();
-      const resp = await fetch('/api/errors', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
+      let resp;
+      try {
+        resp = await fetch('/api/errors', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+      } catch (netErr) {
+        // The request never reached the server. Queue it rather than losing it
+        // — this is the case the whole feature exists for, and it is the moment
+        // a teacher is most likely to be reporting (docs/features/02-offline-pwa.md).
+        await Offline.enqueue({
+          client_ref: clientRef,
+          kind: 'error.create',
+          path: '/api/errors',
+          label: title,
+          body: {
+            title, description, school_id: Number(school_id), category,
+            subcategory: subcat || null, priority,
+            reporter_name: reporter || null, reporter_role: role || null,
+            reporter_contact: $('f-contact') ? $('f-contact').value : null,
+            location: $('f-location') ? $('f-location').value : null,
+            affected_devices: $('f-affected') ? $('f-affected').value : null
+          }
+        });
+        selectedFiles = [];
+        showToast(selectedFilesWarning(), 6000);
+        Router.navigate(API.getUser() && API.getUser().role === 'teacher' ? 'dashboard' : 'tracker');
+        App.loadAndRender();
+        return;
+      }
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: 'Upload failed (status ' + resp.status + ')' }));
         throw err;

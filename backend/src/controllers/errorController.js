@@ -228,6 +228,18 @@ async function create(req, res, next) {
       return res.status(403).json({ error: 'You can only report errors for your own school.' });
     }
 
+    // Offline replay: a queued POST whose response was lost still committed on
+    // the server, so a retry must return the existing row rather than file the
+    // same fault twice (docs/features/02-offline-pwa.md).
+    const clientRef = req.body.client_ref ? String(req.body.client_ref).slice(0, 64) : null;
+    if (clientRef) {
+      const [prior] = await pool.query('SELECT id FROM errors WHERE client_ref = ?', [clientRef]);
+      if (prior.length) {
+        const existing = await getErrorRow(prior[0].id);
+        return res.status(200).json({ ...shapers.pickErrorDetail(existing), deduplicated: true });
+      }
+    }
+
     // Derive next code from the highest numeric code (not last-inserted row),
     // so seeded data with non-sequential ids can't cause a duplicate code.
     const [mx] = await pool.query(
@@ -246,9 +258,9 @@ async function create(req, res, next) {
     const escalationLevel = req.user.role === 'school' ? 'platform' : 'school';
 
     const [result] = await pool.query(
-      `INSERT INTO errors (error_code, title, description, school_id, category, subcategory, priority, status, assigned_to, reporter_name, reporter_role, reporter_contact, location, affected_devices, sla_due_at, escalation_level, reported_by_user_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? HOUR), ?, ?)`,
-      [errorCode, title, description, school_id, category, subcategory || null, prio, assignedTo, reporter_name || null, reporter_role || null, reporter_contact || null, location || null, affected_devices || null, slaHours, escalationLevel, req.user.id]
+      `INSERT INTO errors (error_code, title, description, school_id, category, subcategory, priority, status, assigned_to, reporter_name, reporter_role, reporter_contact, location, affected_devices, sla_due_at, escalation_level, reported_by_user_id, client_ref)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? HOUR), ?, ?, ?)`,
+      [errorCode, title, description, school_id, category, subcategory || null, prio, assignedTo, reporter_name || null, reporter_role || null, reporter_contact || null, location || null, affected_devices || null, slaHours, escalationLevel, req.user.id, clientRef]
     );
 
     await logAudit({
