@@ -251,6 +251,30 @@ return `
 `;
 ```
 
+### Offline / PWA (bump BOTH versions together)
+`frontend/sw.js` caches the shell, the guides, the manuals, the settings and the
+school list; `frontend/js/offline.js` queues writes in IndexedDB and replays them.
+
+- **`sw.js`'s `VERSION` and the `?v=NN` query on every asset in `index.html` must
+  match.** The cache names derive from `VERSION`, so bumping only one leaves
+  clients on a half-old shell. Change both, every time.
+- **Offline is detected by a failed request, never `navigator.onLine`.** School
+  LANs are up while the uplink is dead, so the browser reports itself online.
+- Reference data the offline paths need (`/api/schools`, `/api/guides`,
+  `/api/settings`, `/api/errors`) is fetched by `Offline.warm()` on login — a
+  route being *cacheable* is not enough, it has to have been fetched once.
+- Anything served from cache is labelled with when it was fetched
+  (`API.lastCachedAt(path)`). Never present cached data as live.
+- Every queued mutation carries a `client_ref`; the server returns the existing
+  row on a repeat, so a replay cannot file the same fault twice.
+- Role-scoped caches are dropped on logout (`Offline.forgetUserData()`), and
+  queued items record their owner. School tablets are shared.
+
+### Module guards: use `typeof`, never `window.X`
+Page modules are `const X = (() => { … })()`, which is a script-scope binding and
+**not** a property of `window`. `if (window.ChatPage)` is permanently false and
+had silently disabled the logout chat reset. Always `typeof X !== 'undefined'`.
+
 ### Icons
 - Use ONLY Tabler Icons: `<i class="ti ti-icon-name"></i>`
 - Do NOT use Unicons, Font Awesome, or any other icon library
