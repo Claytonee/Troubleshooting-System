@@ -60,16 +60,10 @@ const SLA_BREACH_SELECT = `CASE WHEN e.status != 'resolved' AND e.sla_due_at IS 
 // column is left in place (additive-only schema rule); it is simply not served.
 const HOURS_OPEN_SELECT = `ROUND(TIMESTAMPDIFF(MINUTE, e.created_at, COALESCE(e.resolved_at, NOW())) / 60, 1) AS hours_open_live`;
 
-/**
- * Serves the derived age as hours_open and drops the helper column, so callers
- * never see the frozen value. Applied explicitly rather than relying on a
- * duplicate column name in the SELECT shadowing e.*.
- */
-function withLiveAge(row) {
-  if (!row) return row;
-  const { hours_open_live, ...rest } = row;
-  return { ...rest, hours_open: hours_open_live != null ? Number(hours_open_live) : row.hours_open };
-}
+// Response shaping lives in the DTO layer: it resolves hours_open from
+// hours_open_live and whitelists the columns, so adding a column to the errors
+// table never silently exports it (docs/features/DTO.md).
+const { shapers } = require('../dto');
 
 // Tenant access check for a single error row. Returns true if `user` may view/modify it.
 // admin: any · school: own school · teacher: own-reported · subadmin: schools assigned to them.
@@ -160,7 +154,7 @@ async function getAll(req, res, next) {
     }
 
     const [rows] = await pool.query(query, params);
-    res.json(rows.map(withLiveAge));
+    res.json(rows.map(shapers.pickError));
   } catch (err) { next(err); }
 }
 
@@ -222,7 +216,7 @@ async function getById(req, res, next) {
       [req.params.id]
     );
 
-    res.json({ ...withLiveAge(rows[0]), updates, attachments });
+    res.json({ ...shapers.pickErrorDetail(rows[0]), updates, attachments });
   } catch (err) { next(err); }
 }
 

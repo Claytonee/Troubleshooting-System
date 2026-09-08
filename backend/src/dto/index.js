@@ -53,7 +53,22 @@ const requests = {
   },
   AssignSchools: { school_ids: 'int[]*' },
 
-  AuditFilter: { entity_type: 'string?', action: 'string?', actor_id: 'int?', search: 'string?', limit: 'int? (<=1000)' }
+  AuditFilter: { entity_type: 'string?', action: 'string?', actor_id: 'int?', search: 'string?', limit: 'int? (<=1000)' },
+
+  // --- Feature 1: LRS heartbeat ---
+  // Posted by the agent on each school LRS. Authenticated by a shared secret in
+  // the X-Heartbeat-Key header, not by a user session, so the body carries only
+  // what identifies the box and describes its own health.
+  Heartbeat: {
+    school_code: 'string* (schools.code)',
+    hostname: 'string?',
+    ip_address: 'string?',
+    agent_version: 'string?',
+    uptime_seconds: 'int?',
+    disk_free_pct: 'int? (0-100)'
+  },
+  // Triggered by the cPanel cron job, authenticated by WEBHOOK_SECRET.
+  HeartbeatSweep: {}
 };
 
 // ----- RESPONSE shapers -----
@@ -74,6 +89,21 @@ function pickSchoolAdmin(r) {
   };
 }
 
+/**
+ * Age in hours. errors.hours_open is written once at insert and never
+ * recomputed, so the queries serve a derived value as hours_open_live; prefer
+ * it and fall back to the column only for callers that do not select it.
+ */
+function ageHours(r) {
+  return r.hours_open_live != null ? Number(r.hours_open_live) : r.hours_open;
+}
+
+/**
+ * An error as the list endpoints serve it. Deliberately omits csat_token — the
+ * list has no use for it and would hand out one live feedback capability per
+ * row — along with the internal columns nothing in the frontend reads
+ * (sla_breach_notified, escalated_by, reported_by_user_id).
+ */
 function pickError(r) {
   if (!r) return null;
   return {
@@ -82,10 +112,44 @@ function pickError(r) {
     category: r.category, subcategory: r.subcategory, priority: r.priority, status: r.status,
     assigned_to: r.assigned_to, assigned_name: r.assigned_name, assigned_color: r.assigned_color,
     reporter_name: r.reporter_name, reporter_role: r.reporter_role, reporter_contact: r.reporter_contact,
-    location: r.location, affected_devices: r.affected_devices, hours_open: r.hours_open,
+    location: r.location, affected_devices: r.affected_devices, hours_open: ageHours(r),
     sla_due_at: r.sla_due_at, sla_breached: r.sla_breached, first_response_at: r.first_response_at,
+    escalation_level: r.escalation_level, escalated_at: r.escalated_at,
     csat_rating: r.csat_rating, csat_comment: r.csat_comment,
     resolved_at: r.resolved_at, created_at: r.created_at, updated_at: r.updated_at
+  };
+}
+
+/**
+ * The detail view additionally needs csat_token: ErrorDetailModal renders the
+ * in-app star rating from it. That is the one intentional difference from the
+ * list shape.
+ */
+function pickErrorDetail(r) {
+  if (!r) return null;
+  return { ...pickError(r), csat_token: r.csat_token };
+}
+
+/**
+ * An LRS device. Field list checked against frontend/js/pages/lrs.js — every
+ * one of these is read by that page — plus the heartbeat state from feature 1.
+ */
+function pickLrsDevice(r) {
+  if (!r) return null;
+  return {
+    id: r.id, school_id: r.school_id, school_name: r.school_name, school_zone: r.school_zone,
+    asset_tag: r.asset_tag, hostname: r.hostname, serial_number: r.serial_number,
+    device_model: r.device_model, ip_address: r.ip_address, mac_address: r.mac_address,
+    port: r.port, connection_type: r.connection_type, os_version: r.os_version,
+    lrs_version: r.lrs_version, storage_gb: r.storage_gb, ram_gb: r.ram_gb,
+    power_type: r.power_type, status: r.status, sync_status: r.sync_status,
+    last_sync: r.last_sync, records_pending: r.records_pending, uptime_hours: r.uptime_hours,
+    notes: r.notes, installed_at: r.installed_at,
+    last_heartbeat: r.last_heartbeat, heartbeat_state: r.heartbeat_state,
+    heartbeat_agent_version: r.heartbeat_agent_version,
+    heartbeat_disk_free_pct: r.heartbeat_disk_free_pct,
+    minutes_since_heartbeat: r.minutes_since_heartbeat == null ? null : Number(r.minutes_since_heartbeat),
+    created_at: r.created_at, updated_at: r.updated_at
   };
 }
 
@@ -101,5 +165,5 @@ function pickAuditEntry(r) {
 module.exports = {
   enums: { ROLES, ERROR_CATEGORIES, ERROR_PRIORITIES, ERROR_STATUSES, USER_STATUSES, CHECKIN_STATUSES },
   requests,
-  shapers: { pickUser, pickSchoolAdmin, pickError, pickAuditEntry }
+  shapers: { pickUser, pickSchoolAdmin, pickError, pickErrorDetail, pickLrsDevice, pickAuditEntry }
 };

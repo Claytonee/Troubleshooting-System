@@ -1,13 +1,16 @@
 const pool = require('../config/database');
+const { heartbeatStateSelect } = require('../config/monitoring');
+const { shapers } = require('../dto');
 
 async function getAll(req, res, next) {
   try {
     const [rows] = await pool.query(
-      `SELECT l.*, s.name as school_name, s.zone as school_zone
+      `SELECT l.*, s.name as school_name, s.zone as school_zone,
+        ${heartbeatStateSelect('l')}
        FROM lrs_devices l JOIN schools s ON l.school_id = s.id
        ORDER BY s.name ASC`
     );
-    res.json(rows);
+    res.json(rows.map(shapers.pickLrsDevice));
   } catch (err) { next(err); }
 }
 
