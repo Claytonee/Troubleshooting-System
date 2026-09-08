@@ -1,6 +1,6 @@
 # 5. Visit planner for field engineers
 
-**Status:** designed · **Effort:** M · **Changes:** one trip fixes four faults
+**Status:** implemented · **Effort:** M · **Changes:** one trip fixes four faults
 
 ## What the giants do
 
@@ -81,6 +81,34 @@ feature 2's queue. Planning happens online; execution must not need to be.
   choosing it.
 - Calendar integration. Worth revisiting only if visits become frequent enough
   to clash.
+
+## Decisions taken while building
+
+**One planned visit per school at a time.** Two open plans for the same place
+means two people drive there. A second attempt returns 409 with the existing
+visit's id and date, so the UI can say "already planned for Wed 09 Sept" rather
+than a generic failure.
+
+**Planning attaches faults but never changes their status.** A plan is not work
+done, and a ticket that looks touched when nobody has been there is worse than
+no plan at all.
+
+**Cancelling releases the still-open faults.** A cancelled trip must not leave
+work invisible because it is filed under a journey nobody made. Faults already
+closed during the visit stay attached — that is the record.
+
+**A new `field` role marker, not `staff`.** `staff` includes school admins, who
+report faults but do not drive to other people's schools. Admin and sub-admins
+only, enforced by `authorize()` on the router and by `assigned_admin_id`
+scoping in every query.
+
+**"Faults per trip" is the headline metric.** It is the number the feature
+exists to move: 1.0 means the queue is being worked one drive at a time.
+Showing it makes the improvement visible instead of assumed.
+
+**LRS state reuses the heartbeat threshold** from `config/monitoring.js`, so a
+device that has never reported is `unknown` here exactly as it is in the sweep.
+The two can never disagree about whether a school is down.
 
 ## Verification plan
 

@@ -236,6 +236,33 @@ async function applyExtensions(db) {
   await q("CREATE INDEX idx_tablets_warranty ON tablets (warranty_expires_on)");
   await q("CREATE INDEX idx_tablets_batch ON tablets (school_id, batch_ref)");
 
+  // --- Feature 5: visit planner (docs/features/05-visit-planner.md) ---
+  // A trip to a school, so several faults can be closed in one journey instead
+  // of one journey per fault.
+  await q(`CREATE TABLE IF NOT EXISTS visits (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    school_id INT NOT NULL,
+    engineer_id INT NOT NULL,
+    planned_for DATE NOT NULL,
+    started_at DATETIME NULL,
+    completed_at DATETIME NULL,
+    -- planned | done | cancelled
+    status VARCHAR(20) NOT NULL DEFAULT 'planned',
+    -- What could not be finished, and why. This is the part the weekly
+    -- check-in and the SLA story currently lack.
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_visits_school (school_id, planned_for),
+    INDEX idx_visits_engineer (engineer_id, status),
+    FOREIGN KEY (school_id) REFERENCES schools(id) ON DELETE CASCADE
+  )`);
+
+  // Nullable, so nothing about existing tickets changes: a fault not attached
+  // to a visit behaves exactly as it always did.
+  await q('ALTER TABLE errors ADD COLUMN visit_id INT NULL');
+  await q('CREATE INDEX idx_errors_visit ON errors (visit_id)');
+
   await q(`CREATE TABLE IF NOT EXISTS tablet_history (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tablet_id INT NOT NULL,

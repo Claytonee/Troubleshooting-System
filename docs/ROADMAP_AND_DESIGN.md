@@ -48,6 +48,7 @@
 | 24 | LRS heartbeat → self-opening tickets | 🟢 1 | **Implemented** (needs `HEARTBEAT_KEY` + the agent cron) — [design](features/01-lrs-heartbeat.md) |
 | 22 | Preventive-maintenance reminders | 🔵 3 | Planned |
 | 26 | Asset lifecycle & TCO (warranty, batches, refresh plan) | 🟢 1 | **Implemented** — [design](features/04-asset-lifecycle.md) |
+| 27 | Visit planner (queue by school, on-site checklist) | 🟢 1 | **Implemented** — [design](features/05-visit-planner.md) |
 | 23 | Email-to-ticket | 🔵 3 | Planned |
 | 25 | WhatsApp intake (inbound reports + AI first reply) | 🟢 1 | **Implemented** (needs Meta credentials to send) — [design](features/03-whatsapp-intake.md) |
 

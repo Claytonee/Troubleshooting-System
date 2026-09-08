@@ -270,6 +270,14 @@ school list; `frontend/js/offline.js` queues writes in IndexedDB and replays the
 - Role-scoped caches are dropped on logout (`Offline.forgetUserData()`), and
   queued items record their owner. School tablets are shared.
 
+### Role markers on nav items
+`data-role` gates sidebar items in `router.js`: `admin`, `subadmin`, `school`,
+`school-teacher`, `no-admin`, `staff` (admin+subadmin+school) and `field`
+(admin+subadmin only — whoever drives out to schools). Use `field`, not
+`staff`, for anything a school admin should not see: `staff` includes them.
+A page gated this way must also be listed in the matching `*Pages` array in
+`applyRoleVisibility()`, or a user can still reach it by typing the hash.
+
 ### Module guards: use `typeof`, never `window.X`
 Page modules are `const X = (() => { … })()`, which is a script-scope binding and
 **not** a property of `window`. `if (window.ChatPage)` is permanently false and
@@ -395,6 +403,7 @@ and took both deployments down on 2026-09-07.
 | 13 | Approvals | #approvals | Admin | School admin registration approval |
 | 14 | Teachers | #teachers | School | Teacher management + registration links |
 | 15 | Help / User Guide | #help | School | Support documentation with sidebar nav |
+| 16 | Visit Planner | #visits | Admin, Sub-admin | Queue grouped by school, on-site checklist, visit record |
 
 **Non-page intake channels** (no UI of their own; both stamp `errors.intake_channel`
 and are labelled in the error detail modal by `intakeLabel()`):

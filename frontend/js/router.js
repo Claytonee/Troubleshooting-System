@@ -3,7 +3,7 @@
  * Handles page navigation with hash-based routing for persistence
  */
 const Router = (() => {
-  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'manuals', 'analytics', 'team', 'schooladmins', 'branding', 'audit', 'search', 'chat', 'help', 'fieldguide', 'approvals', 'teachers', 'inventory', 'lrs'];
+  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'manuals', 'analytics', 'team', 'schooladmins', 'branding', 'audit', 'search', 'chat', 'help', 'fieldguide', 'approvals', 'teachers', 'inventory', 'lrs', 'visits'];
 
   function getPageFromHash() {
     const hash = window.location.hash.replace('#', '');
@@ -61,23 +61,28 @@ const Router = (() => {
     const isStaff = isAdmin || role === 'subadmin' || isSchool;
 
     const isSubadmin = role === 'subadmin';
+    // Whoever goes out to schools. Not "staff", which includes school admins.
+    const isField = isAdmin || isSubadmin;
 
     document.querySelectorAll('[data-role="admin"]').forEach(el => el.classList.toggle('nav-hidden', !isAdmin));
     document.querySelectorAll('[data-role="school"]').forEach(el => el.classList.toggle('nav-hidden', !isSchool));
     document.querySelectorAll('[data-role="school-teacher"]').forEach(el => el.classList.toggle('nav-hidden', !isSchool && !isTeacher));
     document.querySelectorAll('[data-role="staff"]').forEach(el => el.classList.toggle('nav-hidden', !isStaff));
     document.querySelectorAll('[data-role="subadmin"]').forEach(el => el.classList.toggle('nav-hidden', !isSubadmin));
+    document.querySelectorAll('[data-role="field"]').forEach(el => el.classList.toggle('nav-hidden', !isField));
     document.querySelectorAll('[data-role="no-admin"]').forEach(el => el.classList.toggle('nav-hidden', isAdmin));
 
     const adminPages = ['analytics', 'schooladmins', 'branding', 'audit', 'approvals', 'lrs'];
     const schoolPages = ['help', 'teachers'];
     const subadminPages = ['fieldguide'];
     const staffPages = ['tracker', 'followup', 'weekly', 'schools'];
+    const fieldPages = ['visits'];
 
     if (!isAdmin && adminPages.includes(currentPage)) navigate('dashboard');
     if (!isSchool && schoolPages.includes(currentPage)) navigate('dashboard');
     if (!isSubadmin && subadminPages.includes(currentPage)) navigate('dashboard');
     if (!isStaff && staffPages.includes(currentPage)) navigate('dashboard');
+    if (!isField && fieldPages.includes(currentPage)) navigate('dashboard');
 
 
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === currentPage));
