@@ -115,6 +115,7 @@ function pickError(r) {
     location: r.location, affected_devices: r.affected_devices, hours_open: ageHours(r),
     sla_due_at: r.sla_due_at, sla_breached: r.sla_breached, first_response_at: r.first_response_at,
     escalation_level: r.escalation_level, escalated_at: r.escalated_at,
+    intake_channel: r.intake_channel, auto_source: r.auto_source,
     csat_rating: r.csat_rating, csat_comment: r.csat_comment,
     resolved_at: r.resolved_at, created_at: r.created_at, updated_at: r.updated_at
   };

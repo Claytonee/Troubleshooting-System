@@ -32,6 +32,7 @@ const registrationRoutes = require('./routes/registration');
 const inventoryRoutes = require('./routes/inventory');
 const lrsRoutes = require('./routes/lrs');
 const heartbeatRoutes = require('./routes/heartbeat');
+const whatsappRoutes = require('./routes/whatsapp');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -135,7 +136,15 @@ app.use('/api/register/school-admin', registrationLimiter);
 app.use('/api/register/teacher/register', registrationLimiter);
 
 // Body parsing
-app.use(express.json({ limit: '10mb' }));
+// Keep the exact bytes for routes that authenticate the body itself. Meta signs
+// the raw payload of a WhatsApp webhook, and re-serialising the parsed object
+// changes the bytes, so the HMAC would never match.
+app.use(express.json({
+  limit: '10mb',
+  verify: (req, _res, buf) => {
+    if (req.originalUrl && req.originalUrl.startsWith('/api/whatsapp/')) req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ extended: true }));
 
 // Logging
@@ -171,6 +180,7 @@ app.use('/api/register', registrationRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/lrs', lrsRoutes);
 app.use('/api/heartbeat', heartbeatRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

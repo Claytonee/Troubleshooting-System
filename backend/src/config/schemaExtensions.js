@@ -286,6 +286,47 @@ async function applyExtensions(db) {
   // fault twice on replay.
   await q("ALTER TABLE errors ADD COLUMN client_ref VARCHAR(64) NULL");
   await q("CREATE UNIQUE INDEX uq_errors_client_ref ON errors (client_ref)");
+
+  // --- Feature 3: WhatsApp intake (docs/features/03-whatsapp-intake.md) ---
+  // How a ticket arrived: 'web' | 'whatsapp' | 'monitor'. Nullable with no
+  // backfill — existing rows predate the distinction and 'unknown' is honest.
+  await q("ALTER TABLE errors ADD COLUMN intake_channel VARCHAR(20) NULL");
+  await q("CREATE INDEX idx_errors_intake ON errors (intake_channel)");
+
+  // One row per phone number in conversation with the support line.
+  await q(`CREATE TABLE IF NOT EXISTS whatsapp_conversations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    phone VARCHAR(30) NOT NULL,
+    user_id INT NULL,
+    school_id INT NULL,
+    -- A number matched to a user or teacher record; unverified numbers may file
+    -- against a school code they supply but can never read anything back.
+    verified TINYINT(1) NOT NULL DEFAULT 0,
+    -- idle | awaiting_school | offered
+    state VARCHAR(30) NOT NULL DEFAULT 'idle',
+    -- The fault being discussed, held until they confirm it should be filed.
+    draft JSON NULL,
+    last_message_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_wa_phone (phone),
+    INDEX idx_wa_school (school_id)
+  )`);
+
+  // Transcript, and the dedup key for Meta's webhook retries.
+  await q(`CREATE TABLE IF NOT EXISTS whatsapp_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    conversation_id INT NOT NULL,
+    wa_message_id VARCHAR(120) NULL,
+    direction VARCHAR(8) NOT NULL,
+    body TEXT,
+    media_url VARCHAR(500) NULL,
+    error_id INT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_wa_msg (wa_message_id),
+    INDEX idx_wa_msg_conv (conversation_id, created_at),
+    FOREIGN KEY (conversation_id) REFERENCES whatsapp_conversations(id) ON DELETE CASCADE
+  )`);
   await q("CREATE INDEX idx_errors_auto_source ON errors (auto_source, status)");
 
   await q(`CREATE TABLE IF NOT EXISTS lrs_history (

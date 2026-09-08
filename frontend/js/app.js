@@ -259,7 +259,7 @@ const ErrorDetailModal = (() => {
           <span style="margin-left:auto" class="error-id">${e.error_code}</span>
         </div>
         <div style="font-size:16px;font-weight:600;margin-bottom:4px">${esc(e.title)}</div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:16px">${esc(e.school_name)} · ${e.category} · Reported ${e.created_at ? fmtDate(e.created_at) : ageStr(e.hours_open)}</div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:16px">${esc(e.school_name)} · ${e.category} · Reported ${e.created_at ? fmtDate(e.created_at) : ageStr(e.hours_open)}${intakeLabel(e)}</div>
         <div style="background:var(--bg3);border-radius:8px;padding:12px;font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:14px">${esc(e.description || 'No description')}</div>
         ${e.escalation_level === 'platform' ? `<div style="background:rgba(155,125,255,0.08);border:1px solid rgba(155,125,255,0.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
           <i class="ti ti-arrow-up-right" style="font-size:16px;color:var(--purple)"></i>

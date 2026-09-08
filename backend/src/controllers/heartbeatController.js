@@ -202,9 +202,9 @@ async function openOutageError(d) {
   const [result] = await pool.query(
     `INSERT INTO errors
        (error_code, title, description, school_id, category, subcategory, priority, status,
-        assigned_to, reporter_name, reporter_role, location, sla_due_at, escalation_level, auto_source)
+        assigned_to, reporter_name, reporter_role, location, sla_due_at, escalation_level, auto_source, intake_channel)
      VALUES (?, ?, ?, ?, 'Connectivity', 'LRS unreachable', 'critical', 'open',
-        ?, 'System monitor', 'Automated detection', ?, DATE_ADD(NOW(), INTERVAL ? HOUR), 'platform', ?)`,
+        ?, 'System monitor', 'Automated detection', ?, DATE_ADD(NOW(), INTERVAL ? HOUR), 'platform', ?, 'monitor')`,
     [errorCode, `LRS unreachable — ${d.school_name}`, description, d.school_id,
      d.assigned_admin_id || null, d.hostname || null, slaHours, sourceKey(d.id)]
   );

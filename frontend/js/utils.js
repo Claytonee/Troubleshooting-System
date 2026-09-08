@@ -113,6 +113,23 @@ const SUBCATS = {
  * resolved error unconditionally, which made a missed target impossible to see
  * and left 'breach' reachable only for still-open errors.
  */
+/**
+ * How a ticket reached the system, when that changes what the engineer should
+ * do. A machine-opened ticket has no reporter to call back, and an unverified
+ * WhatsApp sender's identity has not been established — both worth knowing
+ * before picking up the phone. Web reports are the norm and go unlabelled.
+ */
+function intakeLabel(e) {
+  if (e.auto_source) {
+    return ' · <span style="color:var(--purple)"><i class="ti ti-activity-heartbeat" style="font-size:12px;vertical-align:-1px"></i> detected automatically</span>';
+  }
+  if (e.intake_channel !== 'whatsapp') return '';
+  const unverified = e.reporter_role === 'whatsapp-unverified';
+  return unverified
+    ? ' · <span style="color:var(--amber)"><i class="ti ti-brand-whatsapp" style="font-size:12px;vertical-align:-1px"></i> WhatsApp · sender not verified</span>'
+    : ' · <span style="color:var(--green)"><i class="ti ti-brand-whatsapp" style="font-size:12px;vertical-align:-1px"></i> WhatsApp</span>';
+}
+
 function slaState(error) {
   if (error.status === 'resolved') {
     if (!error.resolved_at || !error.sla_due_at) return 'unknown';

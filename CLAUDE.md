@@ -363,6 +363,10 @@ NODE_ENV=production
 WEBHOOK_SECRET=your_webhook_secret        # required — /api/deploy refuses to deploy without it
                                           # also authenticates POST /api/heartbeat/sweep
 HEARTBEAT_KEY=your_heartbeat_key           # required for POST /api/heartbeat; unset, it refuses
+WHATSAPP_APP_SECRET=your_app_secret        # signs every inbound webhook; unset, /api/whatsapp refuses
+WHATSAPP_VERIFY_TOKEN=your_verify_token    # Meta's one-time subscription handshake
+WHATSAPP_TOKEN=your_permanent_token        # sending only — unset, replies are logged and skipped
+WHATSAPP_PHONE_ID=your_phone_number_id
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
@@ -391,6 +395,16 @@ and took both deployments down on 2026-09-07.
 | 13 | Approvals | #approvals | Admin | School admin registration approval |
 | 14 | Teachers | #teachers | School | Teacher management + registration links |
 | 15 | Help / User Guide | #help | School | Support documentation with sidebar nav |
+
+**Non-page intake channels** (no UI of their own; both stamp `errors.intake_channel`
+and are labelled in the error detail modal by `intakeLabel()`):
+- `POST /api/heartbeat` + `/sweep` — a silent school LRS opens its own CRITICAL
+  ticket (`intake_channel='monitor'`, `auto_source='lrs_heartbeat:<id>'`).
+- `POST /api/whatsapp/webhook` — a teacher's WhatsApp message; the assistant
+  replies with first steps, then offers to log it
+  (`intake_channel='whatsapp'`). **A phone number is not authentication:** an
+  unmatched number files against a school code it supplies, is recorded as
+  `whatsapp-unverified`, and can never read anything back.
 
 ## File Upload System (Cloudinary)
 

@@ -258,8 +258,8 @@ async function create(req, res, next) {
     const escalationLevel = req.user.role === 'school' ? 'platform' : 'school';
 
     const [result] = await pool.query(
-      `INSERT INTO errors (error_code, title, description, school_id, category, subcategory, priority, status, assigned_to, reporter_name, reporter_role, reporter_contact, location, affected_devices, sla_due_at, escalation_level, reported_by_user_id, client_ref)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? HOUR), ?, ?, ?)`,
+      `INSERT INTO errors (error_code, title, description, school_id, category, subcategory, priority, status, assigned_to, reporter_name, reporter_role, reporter_contact, location, affected_devices, sla_due_at, escalation_level, reported_by_user_id, client_ref, intake_channel)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? HOUR), ?, ?, ?, 'web')`,
       [errorCode, title, description, school_id, category, subcategory || null, prio, assignedTo, reporter_name || null, reporter_role || null, reporter_contact || null, location || null, affected_devices || null, slaHours, escalationLevel, req.user.id, clientRef]
     );
 
