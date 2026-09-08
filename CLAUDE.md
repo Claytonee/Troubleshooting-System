@@ -73,6 +73,44 @@ long stale answers survive, not the new one's.
 - **Sidebar:** `position: fixed; top: 56px; bottom: 0;` — always visible, scrolls independently if nav overflows
 - **Main content area:** `grid-column: 2; margin-top: 56px; height: calc(100vh - 56px); overflow-y: auto;` — this is the ONLY scrollable region on desktop
 
+### Stylesheet cascade (read before touching responsive CSS)
+`index.html` loads `variables.css` → `base.css` → `components.css`. **A `@media` block does not raise
+specificity**, so a same-selector rule in `components.css` silently beats a `base.css` media query.
+Put responsive **component** rules in `components.css`'s own `@media (max-width: 920px / 768px / 520px)`
+blocks (keep that order). `base.css` keeps only the shell: `.app`, `.sidebar`, `.main`, `.topbar`,
+`.menu-toggle`, `.app-footer`. Verify with computed style, not by reading the file.
+
+### Full-bleed children use the padding variables
+`.main` declares `--pad-x` / `--pad-y` per breakpoint (28/24 desktop, 16/16 at 920, 14/18 at 520).
+Anything that must span the full width negates them instead of hardcoding an offset:
+```css
+margin: calc(-1 * var(--pad-y)) calc(-1 * var(--pad-x)) 20px;
+padding: var(--pad-y) var(--pad-x) 16px;
+top: calc(-1 * var(--pad-y));   /* sticky offset */
+```
+`.section-header`, `.tracker-sticky-header` and `.sa-page` all do this. Hardcoding `-28px` against a
+14px padding is what made the header hang off the right edge and sit behind the topbar.
+
+### The fixed footer has a height
+`--footer-h` (32px desktop, 23px at 520). Any panel sized to the viewport must subtract it:
+`height: calc(100vh - 56px - var(--pad-y) - var(--footer-h))`. `.sa-page` and `.chat-page-wrap` do.
+The footer paints `--bg2` and only its logo is dimmed — never put `opacity` on the footer itself.
+
+### Second sticky bars
+Only one sticky bar per page. `.section-header` is much taller on a phone than on desktop, so a
+second sticky element with a hardcoded `top` covers it — `.inv-toolbar` and `.lrs-toolbar` are
+therefore `position: static` at ≤920px.
+
+### Mobile page header is centred
+At ≤520px `.section-header` stacks and centres (title, subtitle and the action group). Do not
+left-align it.
+
+### Standalone pages must scroll
+`.login-container` and `.reg-page` are `position: fixed; inset: 0` — they need `overflow-y: auto`
+and `margin: auto` on the child (not `align-items: center`, which clips the top once content
+overflows). Never `overflow: hidden` or `touch-action: none` there: the registration form is taller
+than a 640px phone and was unreachable.
+
 ### Sticky Section Headers
 Every page MUST start with a `.section-header` element. This header is sticky within `.main`:
 ```css
