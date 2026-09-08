@@ -439,6 +439,9 @@ const Auth = (() => {
     closeProfileMenu();
     API.clearToken();
     API.clearUser();
+    // Pages that hold a transcript or draft in module state must forget it —
+    // the next person to sign in on this device must not inherit it.
+    if (window.ChatPage && ChatPage.reset) ChatPage.reset();
     showLogin();
   }
 
