@@ -80,6 +80,7 @@ const Offline = (() => {
     await tx('readwrite', s => s.put(record));
     notifyChange();
     requestSync();
+    scheduleRetry();
     return record;
   }
 
@@ -171,6 +172,8 @@ const Offline = (() => {
       if (typeof App !== 'undefined' && App.loadAndRender) App.loadAndRender();
     }
     notifyChange();
+    // Keep trying while anything is left; stop entirely once it is empty.
+    if (kept && await count().catch(() => 0)) scheduleRetry(); else cancelRetry();
     return { sent, kept };
   }
 
@@ -212,6 +215,52 @@ const Offline = (() => {
       </div>`;
   }
 
+  // --- retry while anything is queued -------------------------------------
+
+  /**
+   * A backoff timer that runs ONLY while the queue has something in it.
+   *
+   * Every other trigger depends on the browser noticing a connectivity change:
+   * the `online` event, and Background Sync, both key on `navigator.onLine`.
+   * In these schools that signal never moves — the LAN stays up while the
+   * uplink is dead, so the tablet reports itself online the whole time.
+   * Measured: a report queued that way, with the tab left open, still sat in
+   * the queue 15 seconds after the uplink came back because nothing had fired.
+   *
+   * So the only reliable trigger is to try again. Steps are wide because
+   * bandwidth is the scarce resource, and the timer stops the moment the queue
+   * is empty — a device with nothing pending polls nothing at all.
+   */
+  const RETRY_STEPS = [15000, 30000, 60000, 120000];
+  let retryTimer = null;
+  let retryStep = 0;
+
+  function scheduleRetry() {
+    if (retryTimer) return;
+    const wait = RETRY_STEPS[Math.min(retryStep, RETRY_STEPS.length - 1)];
+    retryTimer = setTimeout(async () => {
+      retryTimer = null;
+      const pending = await count().catch(() => 0);
+      if (!pending) { retryStep = 0; return; }
+      const { sent } = await flush();
+      // A success proves the link is back: start again from the short step so
+      // the rest of the queue drains quickly rather than waiting two minutes.
+      retryStep = sent ? 0 : retryStep + 1;
+      if (await count().catch(() => 0)) scheduleRetry();
+    }, wait);
+    return wait;
+  }
+
+  function cancelRetry() {
+    if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+    retryStep = 0;
+  }
+
+  /** For the verification script: is a retry armed, and at which step. */
+  function retryState() {
+    return { armed: !!retryTimer, step: retryStep, next_ms: RETRY_STEPS[Math.min(retryStep, RETRY_STEPS.length - 1)] };
+  }
+
   /**
    * Pull the reference data the offline paths depend on, so it is cached before
    * it is needed rather than only if the user happened to visit that page while
@@ -245,8 +294,9 @@ const Offline = (() => {
   }
 
   function init() {
-    // Any regained connectivity is a chance to drain the queue.
-    window.addEventListener('online', flush);
+    // Any of these is a chance to drain the queue. None of them is reliable on
+    // its own here, which is why scheduleRetry() exists as the backstop.
+    window.addEventListener('online', () => { retryStep = 0; flush(); });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) flush(); });
     notifyChange();
     flush();
@@ -255,6 +305,8 @@ const Offline = (() => {
 
   return {
     enqueue, list, listAll, count, remove, flush, banner, init, warm,
-    forgetUserData, onChange, newRef, isNetworkFailure
+    forgetUserData, onChange, newRef, isNetworkFailure,
+    // Exposed for backend/scripts and the offline verification page.
+    retryState, cancelRetry
   };
 })();

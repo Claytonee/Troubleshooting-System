@@ -260,6 +260,13 @@ school list; `frontend/js/offline.js` queues writes in IndexedDB and replays the
   clients on a half-old shell. Change both, every time.
 - **Offline is detected by a failed request, never `navigator.onLine`.** School
   LANs are up while the uplink is dead, so the browser reports itself online.
+- **A backoff retry is the only reliable resync trigger**, for the same reason:
+  the `online` event and Background Sync both key on `navigator.onLine`, which
+  never moves in that case. Measured — a queued report with the tab left open
+  still sat there after the uplink returned. `Offline.scheduleRetry()` runs at
+  15s / 30s / 60s / 2min **only while the queue is non-empty**, resets to the
+  short step on a success, and disarms when it drains: a device with nothing
+  pending polls nothing.
 - Reference data the offline paths need (`/api/schools`, `/api/guides`,
   `/api/settings`, `/api/errors`) is fetched by `Offline.warm()` on login — a
   route being *cacheable* is not enough, it has to have been fetched once.

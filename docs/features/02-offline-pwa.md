@@ -116,6 +116,15 @@ bypasses it entirely — so warming on login cached nothing the first time and
 everything the second. The teacher's first offline attempt is the one that
 matters, so `warm()` now waits for `controllerchange`.
 
+**Nothing retried once the uplink came back.** The `online` event and Background
+Sync both key on `navigator.onLine`, and in this failure mode that signal never
+moves: the LAN is up, so the tablet reports itself online the whole time. With
+the tab left open, a queued report still sat in the queue 15 seconds after the
+server was reachable again, because no trigger had fired — the earlier "it
+synced" result had actually been the page reloading. Fixed with a backoff retry
+(15s / 30s / 60s / 2min) that runs only while something is queued and disarms
+when the queue drains, so an idle device polls nothing.
+
 **`window.Offline` is always undefined.** `offline.js` declares `Offline` with
 `const`, which is a script-scope binding rather than a property of `window`, so
 every `if (window.Offline)` guard was permanently false and `Offline.init()`
