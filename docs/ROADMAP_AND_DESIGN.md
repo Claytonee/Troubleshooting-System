@@ -40,7 +40,7 @@
 | 14 | School admin self-registration + approval | 🟢 1 | **Implemented** |
 | 15 | In-app notifications (bell) | 🟢 1 | **Implemented** |
 | 16 | Auto-assignment | 🟡 2 | Designed |
-| 17 | Reporting trends + weekly digest | 🟡 2 | Designed |
+| 17 | Reporting trends + weekly digest | 🟢 1 | **Implemented** (digest contents defined; the email itself still to wire) — [design](features/06-trend-metrics.md) |
 | 18 | 2FA + security hardening | 🟡 2 | Designed |
 | 19 | Swahili localization (i18n) | 🟡 2 | Designed |
 | 20 | Offline / PWA | 🟢 1 | **Implemented** — [design](features/02-offline-pwa.md) |

@@ -34,6 +34,7 @@ const lrsRoutes = require('./routes/lrs');
 const heartbeatRoutes = require('./routes/heartbeat');
 const whatsappRoutes = require('./routes/whatsapp');
 const visitRoutes = require('./routes/visits');
+const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -183,6 +184,7 @@ app.use('/api/lrs', lrsRoutes);
 app.use('/api/heartbeat', heartbeatRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/visits', visitRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

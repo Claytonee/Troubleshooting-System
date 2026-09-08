@@ -1,6 +1,6 @@
 # 6. Trend metrics
 
-**Status:** designed · **Effort:** S · **Changes:** the numbers that drive decisions
+**Status:** implemented · **Effort:** S · **Changes:** the numbers that drive decisions
 
 ## What the giants do
 
@@ -46,7 +46,7 @@ because it is the part the team controls.
 | MTTR by week | `resolved_at - created_at` | the headline, but only useful as a trend |
 | Time to first response | `first_response_at - created_at` | what the team actually controls |
 | SLA compliance by week | the fixed calculation from `sla_measurable` / `sla_on_time` | now that it is honest, it can be trended |
-| First-contact resolution | resolved with no `escalated_at` and no reassignment | measures whether the guides work |
+| Resolved without escalation | resolved with no `escalated_at` | measures whether the guides work — renamed, see below |
 | Escalation rate | `escalated_at IS NOT NULL` over total | rising means the first line is under-supported |
 | AI deflection | `ai_chats` with no error filed by that user within an hour | how much the assistant is absorbing |
 
@@ -93,6 +93,53 @@ and line charts over ~13 weeks.
   opens.
 - Real-time dashboards. Weekly is the decision cadence here; live counters
   would be decoration.
+
+## Decisions taken while building
+
+**Named for what it measures.** The design called for "first-contact
+resolution". Nothing in this system records contacts, so the metric is
+**"resolved without escalation"** and the card says why. Claiming to count
+contacts would have been the same kind of lie as the −200%.
+
+**Buckets are keyed on when the fault was reported, not resolved.** Bucketing by
+resolution date lets a bad week look good simply because nothing was closed in
+it.
+
+**A week with nothing measurable returns `null`, not `0`.** Every ratio goes
+through one clamped `pct()` that returns null on a zero denominator, and the
+line chart *breaks* rather than dropping to zero — a gap is the truth, a dip is
+a lie.
+
+**Deflection is null when nobody asked.** A 0% deflection rate reads as "the
+assistant helps nobody" when in fact nobody used it. `deflectionRate()` is a
+pure function so this is tested at the boundary rather than argued about.
+
+**The baseline is the four weeks before last, not the whole period.** A
+13-week average would flatten exactly the movement the page exists to show.
+
+**The trends endpoint takes an optional `school_id`.** Per-school trends are
+useful in their own right, and it is what let the verification suite measure
+exact figures against a school with no history instead of deleting everybody's
+data to get a clean slate.
+
+## What testing and the UI pass changed
+
+- **Sparse data was rendering as broken charts.** With one week of history the
+  line chart drew a single dot in an empty 90px box, and the volume chart's
+  `flex:1` stretched one bar pair across the whole card as a solid block. Under
+  three measurable weeks both now show the numbers plainly with "not enough for
+  a direction yet".
+- **"last week" was a plain untruth** on a database whose newest fault is three
+  months old: the latest bucket was week 24. Cards now name the bucket by its
+  week number.
+- **The visits suite was corrupting this page.** It closed a real seed fault to
+  prove the audit trail and left it closed, which made MTTR read 89.7 days off
+  that one row. It now records the fault's state and restores it. Worth
+  remembering: a suite that mutates shared fixtures poisons every measurement
+  taken afterwards.
+- The deflection assertions are deltas against a baseline, because this
+  database has chats of its own and deleting somebody's conversation history to
+  make an assertion tidy is not a trade worth making.
 
 ## Verification plan
 

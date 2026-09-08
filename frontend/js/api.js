@@ -167,6 +167,7 @@ const API = (() => {
     getInventoryStats: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/inventory/stats' + (qs ? '?' + qs : '')); },
     getRefreshPlan: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/inventory/refresh-plan' + (qs ? '?' + qs : '')); },
     getDeviceBatches: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/inventory/batches' + (qs ? '?' + qs : '')); },
+    getTrends: () => request('GET', '/analytics/trends'),
     getVisitQueue: () => request('GET', '/visits/queue'),
     getVisitSuggestions: (schoolId) => request('GET', '/visits/suggestions/' + schoolId),
     getVisits: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/visits' + (qs ? '?' + qs : '')); },

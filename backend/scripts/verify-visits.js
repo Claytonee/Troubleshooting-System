@@ -147,6 +147,11 @@ async function cleanup() {
 
   // Closing a fault inside a visit must behave like closing it anywhere.
   const first = v.body.faults[0];
+  // This is a real fault, not a fixture — remember its state so it can be put
+  // back. Leaving a seed ticket closed would silently corrupt every later
+  // measurement (it did: MTTR read 89.7d on the trends page).
+  const [[firstBefore]] = await pool.query(
+    'SELECT status, resolved_at, first_response_at FROM errors WHERE id = ?', [first.id]);
   await send('PATCH', '/api/errors/' + first.id + '/status', { status: 'resolved' });
   const listed = await get('/api/visits');
   const mine = listed.body.find(x => x.id === visitId);
@@ -241,6 +246,13 @@ async function cleanup() {
   await pool.query('DELETE FROM users WHERE id = ?', [tmp.insertId]);
 
   console.log('\n  cleanup:');
+  // Put the real fault back exactly as it was. Leaving a seed ticket closed
+  // silently corrupts every later measurement — it did: the trends page read
+  // an MTTR of 89.7 days off this one row.
+  await pool.query(
+    'UPDATE errors SET status = ?, resolved_at = ?, first_response_at = ?, csat_token = NULL WHERE id = ?',
+    [firstBefore.status, firstBefore.resolved_at, firstBefore.first_response_at, first.id]);
+  await pool.query("DELETE FROM audit_log WHERE entity_type = 'error' AND entity_id = ?", [String(first.id)]);
   await pool.query('DELETE FROM visits WHERE notes LIKE ?', [MARK + '%']);
   await cleanup();
   const [[e]] = await pool.query('SELECT COUNT(*) n FROM errors');
