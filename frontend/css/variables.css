@@ -9,6 +9,7 @@
 
 :root {
   --bg: #0f1117;
+  --bg1: #0f1117;
   --bg2: #161921;
   --bg3: #1d2130;
   --bg4: #252a3a;
@@ -17,6 +18,7 @@
   --text: #e8eaf2;
   --text2: #9ba1b5;
   --text3: #636a82;
+  --text1: #e8eaf2;
   --accent: #4f7cff;
   --accent2: #3d63e8;
   --green: #2dd98a;
@@ -34,4 +36,11 @@
   --font: 'DM Sans', sans-serif;
   --font-brand: 'Axiforma', 'DM Sans', sans-serif;
   --mono: 'DM Mono', monospace;
+  --font-mono: 'DM Mono', monospace;
+  /* Layout padding — .main overrides these per breakpoint; full-bleed
+     children (.section-header, .tracker-sticky-header, .sa-page) negate them. */
+  --pad-x: 28px;
+  --pad-y: 24px;
+  /* Height of the fixed .app-footer — full-height panels subtract it. */
+  --footer-h: 32px;
 }

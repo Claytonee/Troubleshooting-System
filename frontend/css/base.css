@@ -7,12 +7,13 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 .app { display: grid; grid-template-columns: 230px 1fr; grid-template-rows: 56px 1fr; min-height: 100vh; }
 .topbar { grid-column: 1/-1; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 14px; z-index: 200; position: fixed; top: 0; left: 0; right: 0; height: 56px; }
 .sidebar { position: fixed; top: 56px; left: 0; bottom: 0; width: 230px; background: var(--bg2); border-right: 1px solid var(--border); padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; z-index: 30; }
-.main { grid-column: 2; margin-top: 56px; overflow-y: auto; height: calc(100vh - 56px); padding: 24px 28px 60px; scroll-behavior: smooth; }
+.main { --pad-x: 28px; --pad-y: 24px; grid-column: 2; margin-top: 56px; overflow-y: auto; height: calc(100vh - 56px); padding: var(--pad-y) var(--pad-x) 60px; scroll-behavior: smooth; }
 
 /* Brand */
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; letter-spacing: -0.3px; }
 .brand-icon { flex-shrink: 0; filter: drop-shadow(0 0 8px rgba(255,174,0,0.3)); }
-.app-footer { position: fixed; bottom: 0; left: 230px; right: 0; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 20px; background: var(--bg1); border-top: 1px solid var(--border); z-index: 5; opacity: 0.7; }
+.app-footer { position: fixed; bottom: 0; left: 230px; right: 0; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 20px; background: var(--bg2); border-top: 1px solid var(--border); z-index: 5; }
+.app-footer svg { opacity: 0.7; }
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 .menu-toggle { display: none; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; width: 34px; height: 34px; align-items: center; justify-content: center; cursor: pointer; color: var(--text2); }
 
@@ -42,11 +43,11 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
   .app { grid-template-columns: 1fr; grid-template-rows: 56px 1fr; }
   .sidebar { transform: translateX(-100%); transition: transform .25s; }
   .sidebar.open { transform: translateX(0); box-shadow: 0 0 40px rgba(0,0,0,0.6); }
-  .main { grid-column: 1; margin-top: 56px; padding: 16px 16px 60px; }
+  .main { --pad-x: 16px; --pad-y: 16px; grid-column: 1; margin-top: 56px; padding: var(--pad-y) var(--pad-x) 60px; }
   .menu-toggle { display: flex; }
-  .two-col, .three-col, .form-grid { grid-template-columns: 1fr; }
-  .stats-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
-  .section-header { flex-direction: column; align-items: flex-start; gap: 10px; margin: -16px -16px 16px; padding: 16px 16px 12px; }
+  /* Component-level overrides for this breakpoint live in components.css,
+     which loads last — same-specificity rules here would be overridden. */
+  .section-header { flex-direction: column; }
   .brand span { display: none; }
   .app-footer { left: 0; }
 }
@@ -55,24 +56,11 @@ body { background: var(--bg); color: var(--text); font-family: var(--font); font
 @media (max-width: 520px) {
   .topbar { padding: 0 12px; gap: 8px; }
   .topbar-search { display: none !important; }
-  .main { padding: 20px 14px 60px; }
-  .stats-grid { grid-template-columns: 1fr; gap: 10px; }
-  .stat-card { padding: 12px; }
-  .stat-val { font-size: 22px; }
-  .card { padding: 14px; }
-  .section-header { margin: -20px -14px 14px; padding: 56px 14px 10px; top: -20px; }
-  .section-title { font-size: 16px; }
-  .section-sub { font-size: 12px; }
-  .btn { padding: 8px 14px; font-size: 12px; }
-  .btn-sm { padding: 5px 10px; font-size: 11px; }
-  table { font-size: 12px; }
-  th, td { padding: 8px 8px; }
-  .modal { width: 100%; max-width: 100%; border-radius: 14px 14px 0 0; max-height: 85vh; }
-  .modal-overlay { align-items: flex-end; padding: 0; }
-  .form-grid { gap: 10px; }
-  .alert-banner { padding: 10px 12px; font-size: 12px; }
-  .chip { font-size: 11px; padding: 4px 10px; }
-  .school-card { padding: 12px; }
+  .main { --pad-x: 14px; --pad-y: 18px; padding: var(--pad-y) var(--pad-x) 60px; }
+  /* Component-level overrides for this breakpoint live in components.css. */
+  :root { --footer-h: 23px; }
+  .app-footer { padding: 5px 12px; }
+  .app-footer svg { width: 112px; height: 12px; }
 }
 .sidebar-backdrop { display: none; position: fixed; inset: 56px 0 0 0; background: rgba(0,0,0,0.5); z-index: 25; }
 .sidebar-backdrop.show { display: block; }
