@@ -2,6 +2,7 @@ const express = require('express');
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { authenticate, authorize } = require('../middleware/auth');
+const { requireInventoryWrite } = require('../middleware/permissions');
 const ctrl = require('../controllers/inventoryController');
 
 const router = express.Router();
@@ -16,19 +17,22 @@ router.get('/refresh-plan', ctrl.refreshPlan);
 router.get('/batches', ctrl.batches);
 router.get('/:id', ctrl.getById);
 
-router.post('/', authorize('admin', 'subadmin', 'school'), [
+// Writes: role OR an explicit per-teacher grant (see middleware/permissions.js).
+router.post('/', requireInventoryWrite, [
   body('serial_number').notEmpty().withMessage('Serial number is required'),
   validate
 ], ctrl.create);
 
-router.put('/:id', authorize('admin', 'subadmin', 'school'), ctrl.update);
-router.patch('/:id/assign', authorize('admin', 'subadmin', 'school'), ctrl.assignDevice);
-router.patch('/:id/status', authorize('admin', 'subadmin', 'school'), [
+router.put('/:id', requireInventoryWrite, ctrl.update);
+router.patch('/:id/assign', requireInventoryWrite, ctrl.assignDevice);
+router.patch('/:id/status', requireInventoryWrite, [
   body('status').isIn(['Working', 'Needs Setup', 'In Repair', 'Faulty', 'Lost/Missing']).withMessage('Invalid status'),
   validate
 ], ctrl.changeStatus);
 
-router.post('/bulk-import', authorize('admin', 'subadmin', 'school'), ctrl.bulkImport);
+router.post('/bulk-import', requireInventoryWrite, ctrl.bulkImport);
+// Delete stays with head office — a school admin cannot delete a device, so a
+// teacher they delegate to cannot either.
 router.delete('/:id', authorize('admin', 'subadmin'), ctrl.remove);
 
 module.exports = router;

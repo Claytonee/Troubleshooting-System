@@ -46,6 +46,10 @@ the incident opens itself, the on-call engineer is paged
 | 4 | Asset lifecycle & TCO | repair-vs-replace becomes answerable | S | [04](04-asset-lifecycle.md) |
 | 5 | Visit planner | one trip fixes four faults | M | [05](05-visit-planner.md) |
 | 6 | Trend metrics | the numbers that drive decisions | S | [06](06-trend-metrics.md) |
+| 7 | Teacher scope & delegated inventory | the account stops offering what it refuses | M | [07](07-teacher-scope.md) |
+
+7 came from the field, not the roadmap: six things a teacher's account did
+wrong, reported after the first six shipped.
 
 **1 → 2 → 3 first.** They push the same way: *the system knows about the
 problem, or is easy to reach, even when the network is poor.* 4–6 improve what

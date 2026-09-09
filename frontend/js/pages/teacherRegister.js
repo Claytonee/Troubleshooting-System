@@ -69,7 +69,9 @@ const TeacherRegisterPage = (() => {
             </div>
             <div class="reg-field">
               <label>Subject / Department</label>
-              <input type="text" id="tr-subject" placeholder="e.g. Mathematics, Science">
+              <select id="tr-subject" onchange="TeacherRegisterPage.onSubjectChange()">${subjectOptions('')}</select>
+              <input type="text" id="tr-subject-other" placeholder="Type your subject or department"
+                     style="margin-top:8px" hidden>
             </div>
             <div class="reg-field">
               <label>Employee ID (if any)</label>
@@ -187,7 +189,7 @@ const TeacherRegisterPage = (() => {
           full_name: document.getElementById('tr-name').value.trim(),
           email: document.getElementById('tr-email').value.trim(),
           phone: document.getElementById('tr-phone').value.trim(),
-          subject: document.getElementById('tr-subject').value.trim(),
+          subject: subjectValue(),
           employee_id: document.getElementById('tr-empid').value.trim(),
           password
         })
@@ -265,5 +267,23 @@ const TeacherRegisterPage = (() => {
     window.location.href = '/';
   }
 
-  return { init, render, submit, showStatus, goLogin };
+  /** "Other" reveals a text box; anything else hides it and drops what was typed. */
+  function onSubjectChange() {
+    const sel = document.getElementById('tr-subject');
+    const other = document.getElementById('tr-subject-other');
+    if (!sel || !other) return;
+    const isOther = sel.value === '__other';
+    other.hidden = !isOther;
+    if (isOther) other.focus(); else other.value = '';
+  }
+
+  /** The value to file: the typed one when "Other" is chosen, else the list one. */
+  function subjectValue() {
+    const sel = document.getElementById('tr-subject');
+    if (!sel) return '';
+    if (sel.value !== '__other') return sel.value;
+    return (document.getElementById('tr-subject-other')?.value || '').trim();
+  }
+
+  return { init, render, submit, showStatus, goLogin, onSubjectChange };
 })();

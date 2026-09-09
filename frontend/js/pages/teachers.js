@@ -31,7 +31,7 @@ const TeachersPage = (() => {
         <div class="section-sub">Manage teachers, approvals, and registration links</div>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-primary btn-sm" data-tip="${TIP.GENERATE_LINK}" onclick="TeachersPage.generateLink()"><i class="ti ti-link"></i> Generate Registration Link</button>
+        <button class="btn btn-primary btn-sm" data-tip="${TIP.GENERATE_LINK}" onclick="TeachersPage.openGenerateModal()"><i class="ti ti-link"></i> Generate Registration Link</button>
         <button class="btn btn-sm" data-tip="${TIP.ADD_TEACHER}" onclick="TeachersPage.showAddModal()"><i class="ti ti-plus"></i> Add Teacher</button>
       </div>
     </div>
@@ -52,8 +52,19 @@ const TeachersPage = (() => {
 
   function renderTeachers() {
     if (!Array.isArray(teachers) || !teachers.length) return '<div class="empty-state">No teachers registered yet</div>';
-    return `<div class="table-wrap"><table>
-      <thead><tr><th>Name</th><th class="hide-mobile">Email</th><th class="hide-mobile">Subject</th><th>Status</th><th>Actions</th></tr></thead>
+    const keyHolders = teachers.filter(t => t.can_manage_inventory);
+    return `
+    <div style="background:var(--bg1);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px">
+      <i class="ti ti-device-tablet" style="font-size:16px;color:${keyHolders.length ? 'var(--teal)' : 'var(--text3)'};margin-top:1px"></i>
+      <div style="font-size:12px;color:var(--text2);line-height:1.5">
+        <strong style="color:var(--text)">Tablet inventory</strong> is read-only for teachers.
+        ${keyHolders.length
+          ? `${keyHolders.map(t => esc(t.full_name)).join(', ')} can add and edit devices${keyHolders.length === 1 && keyHolders[0].inventory_granted_at ? ` (since ${new Date(keyHolders[0].inventory_granted_at).toLocaleDateString()})` : ''}.`
+          : 'Give one teacher edit access with the tablet button below, and take it back when their turn is over.'}
+      </div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Name</th><th class="hide-mobile">Email</th><th class="hide-mobile">Subject</th><th>Status</th><th>Inventory</th><th>Actions</th></tr></thead>
       <tbody>
         ${teachers.map(t => `<tr>
           <td><strong>${esc(t.full_name)}</strong></td>
@@ -61,6 +72,12 @@ const TeachersPage = (() => {
           <td class="hide-mobile">${esc(t.subject || '—')}</td>
           <td><span class="badge-${t.status === 'active' ? 'green' : t.status === 'suspended' ? 'red' : 'gray'}">${t.status}</span></td>
           <td>
+            ${t.can_manage_inventory
+              ? `<span class="badge-teal" data-tip="Can add, edit and re-assign this school's tablets${t.inventory_granted_by_name ? ' · granted by ' + esc(t.inventory_granted_by_name) : ''}">Can edit</span>`
+              : `<span style="font-size:11px;color:var(--text3)">Read-only</span>`}
+          </td>
+          <td>
+            ${t.status === 'active' ? `<button class="btn-icon" data-tip="${t.can_manage_inventory ? 'Take back inventory edit access' : 'Let this teacher manage the tablet inventory'}" data-tip-color="${t.can_manage_inventory ? 'red' : 'teal'}" onclick="TeachersPage.setInventoryAccess(${t.id}, ${t.can_manage_inventory ? 'false' : 'true'})"><i class="ti ti-device-tablet${t.can_manage_inventory ? '-off' : ''}" style="color:${t.can_manage_inventory ? 'var(--teal)' : 'inherit'}"></i></button>` : ''}
             ${t.status === 'active' ? `<button class="btn-icon" data-tip="${TIP.SUSPEND}" onclick="TeachersPage.updateStatus(${t.id},'suspended')"><i class="ti ti-ban"></i></button>` : ''}
             ${t.status === 'suspended' ? `<button class="btn-icon" data-tip="${TIP.REACTIVATE}" onclick="TeachersPage.updateStatus(${t.id},'active')"><i class="ti ti-check"></i></button>` : ''}
             <button class="btn-icon" data-tip="${TIP.DELETE}" data-tip-color="red" onclick="TeachersPage.deleteTeacher(${t.id})"><i class="ti ti-trash"></i></button>
@@ -68,6 +85,32 @@ const TeachersPage = (() => {
         </tr>`).join('')}
       </tbody>
     </table></div>`;
+  }
+
+  /**
+   * Grant or revoke a teacher's inventory write access.
+   *
+   * `granted` is sent explicitly rather than toggled server-side, so a retry on
+   * a bad connection cannot land in the opposite state from the one the school
+   * admin clicked.
+   */
+  async function setInventoryAccess(id, granted) {
+    const t = (Array.isArray(teachers) ? teachers : []).find(x => x.id === id);
+    const name = t ? t.full_name : 'this teacher';
+    if (!confirm(granted
+      ? `Let ${name} add and edit tablets in the inventory?`
+      : `Take back ${name}'s inventory edit access? They keep read-only access.`)) return;
+    try {
+      const token = API.getToken();
+      const res = await fetch(`/api/register/teachers/${id}/inventory-access`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ granted })
+      });
+      const data = await res.json();
+      if (res.ok) { showToast(data.message); await load(); App.render(); }
+      else showToast(data.error || 'Could not change inventory access');
+    } catch (e) { showToast('Network error'); }
   }
 
   function renderPending() {
@@ -131,7 +174,10 @@ const TeachersPage = (() => {
               <div style="font-size:11px;color:var(--text3)">${created.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
             </div>
           </div>
-          ${active ? `<div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn btn-sm" data-tip="${TIP.DEACTIVATE_LINK}" data-tip-color="red" style="background:var(--red);color:#fff" onclick="TeachersPage.deactivateLink(${l.id})"><i class="ti ti-link-off"></i> Deactivate</button></div>` : ''}
+          ${l.is_active && !expired ? `<div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">
+            <button class="btn btn-sm" data-tip="Change how many teachers this link may admit" onclick="TeachersPage.openCapModal(${l.id})"><i class="ti ti-users"></i> Change limit</button>
+            <button class="btn btn-sm" data-tip="${TIP.DEACTIVATE_LINK}" data-tip-color="red" style="background:var(--red);color:#fff" onclick="TeachersPage.deactivateLink(${l.id})"><i class="ti ti-link-off"></i> Deactivate</button>
+          </div>` : ''}
         </div>`;
       }).join('')}
     </div>`;
@@ -139,13 +185,49 @@ const TeachersPage = (() => {
 
   function setTab(t) { tab = t; App.render(); }
 
-  async function generateLink() {
+  /**
+   * Ask how many teachers the link should admit before creating it.
+   *
+   * It used to be hardcoded at 50 for every school. A link shared in a staff
+   * WhatsApp group can travel, and 50 slots at a school with 12 teachers is 38
+   * openings nobody is watching — so the person who knows the staff list sets
+   * the number.
+   */
+  function openGenerateModal() {
+    const suggested = Math.max(1, (Array.isArray(teachers) ? teachers.length : 0) + 5);
+    Modal.open('Generate Registration Link', `
+      <form onsubmit="TeachersPage.generateLink(event)">
+        <div class="form-group">
+          <label>How many teachers may register with this link?</label>
+          <input type="number" id="gen-max-uses" class="form-control" min="1" max="500" step="1"
+                 value="${suggested}" required>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">
+            The link stops accepting registrations once the limit is reached, and expires after 7 days either way.
+            ${Array.isArray(teachers) && teachers.length ? `You currently have ${teachers.length} teacher(s) on file.` : ''}
+          </div>
+        </div>
+        <div style="background:rgba(79,124,255,0.06);border:1px solid rgba(79,124,255,0.15);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text2);display:flex;align-items:flex-start;gap:8px">
+          <i class="ti ti-info-circle" style="color:var(--accent);flex-shrink:0;margin-top:1px"></i>
+          <span>Every teacher who registers still needs your approval before they can sign in.</span>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;margin-top:14px"><i class="ti ti-link"></i> Generate Link</button>
+      </form>
+    `, '');
+  }
+
+  async function generateLink(e) {
+    if (e) e.preventDefault();
+    const maxUses = Number(document.getElementById('gen-max-uses')?.value || 50);
+    if (!Number.isInteger(maxUses) || maxUses < 1 || maxUses > 500) {
+      showToast('Enter a whole number between 1 and 500');
+      return;
+    }
     try {
       const token = API.getToken();
       const res = await fetch('/api/register/teacher-links', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ max_uses: 50 })
+        body: JSON.stringify({ max_uses: maxUses })
       });
       const data = await res.json();
       if (res.ok) {
@@ -206,6 +288,46 @@ const TeachersPage = (() => {
   function copyLink(token) {
     const url = `${window.location.origin}/register/teacher/${token}`;
     navigator.clipboard.writeText(url).then(() => showToast('Link copied!')).catch(() => showToast('Copy failed'));
+  }
+
+  /**
+   * Raise (or lower) the cap on a link that is already circulating.
+   *
+   * The alternative is deactivating it and sending a new URL to everyone, which
+   * in practice means the teachers who kept the old one quietly cannot register.
+   */
+  function openCapModal(id) {
+    const link = (Array.isArray(links) ? links : []).find(l => l.id === id);
+    if (!link) return;
+    Modal.open('Registration limit', `
+      <form onsubmit="TeachersPage.saveCap(event, ${id})">
+        <div class="form-group">
+          <label>Maximum teachers for this link</label>
+          <input type="number" id="cap-max-uses" class="form-control" min="${Math.max(1, link.use_count)}" max="500" step="1"
+                 value="${link.max_uses}" required>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">
+            ${link.use_count} teacher(s) have already registered through this link, so the limit cannot go below ${Math.max(1, link.use_count)}.
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;margin-top:12px">Save limit</button>
+      </form>
+    `, '');
+  }
+
+  async function saveCap(e, id) {
+    e.preventDefault();
+    const max_uses = Number(document.getElementById('cap-max-uses')?.value);
+    try {
+      const token = API.getToken();
+      const res = await fetch(`/api/register/teacher-links/${id}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ max_uses })
+      });
+      const data = await res.json();
+      if (res.ok) { Modal.close(); showToast(data.message || 'Limit updated'); await load(); App.render(); }
+      else showToast(data.error || 'Could not update the limit');
+    } catch (err) { showToast('Network error'); }
   }
 
   async function deactivateLink(id) {
@@ -278,7 +400,9 @@ const TeachersPage = (() => {
         <div class="form-group"><label>Full Name *</label><input type="text" id="add-t-name" required class="form-control"></div>
         <div class="form-group"><label>Email *</label><input type="email" id="add-t-email" required class="form-control"></div>
         <div class="form-group"><label>Phone</label><input type="tel" id="add-t-phone" class="form-control"></div>
-        <div class="form-group"><label>Subject</label><input type="text" id="add-t-subject" class="form-control" placeholder="e.g. Mathematics"></div>
+        <div class="form-group"><label>Subject / Department</label>
+          <select id="add-t-subject" class="form-control" onchange="TeachersPage.onSubjectChange()">${subjectOptions('')}</select>
+          <input type="text" id="add-t-subject-other" class="form-control" placeholder="Type the subject or department" style="margin-top:8px" hidden></div>
         <div class="form-group"><label>Employee ID</label><input type="text" id="add-t-empid" class="form-control"></div>
         <button type="submit" class="btn btn-primary" data-tip="${TIP.ADD_TEACHER}" style="width:100%;margin-top:12px">Add Teacher</button>
       </form>
@@ -291,7 +415,7 @@ const TeachersPage = (() => {
       full_name: document.getElementById('add-t-name').value.trim(),
       email: document.getElementById('add-t-email').value.trim(),
       phone: document.getElementById('add-t-phone').value.trim(),
-      subject: document.getElementById('add-t-subject').value.trim(),
+      subject: subjectValue(),
       employee_id: document.getElementById('add-t-empid').value.trim()
     };
     try {
@@ -312,6 +436,23 @@ const TeachersPage = (() => {
     } catch (e) { showToast('Network error'); }
   }
 
+  /** "Other" reveals a text box. Same behaviour as the public form on purpose. */
+  function onSubjectChange() {
+    const sel = document.getElementById('add-t-subject');
+    const other = document.getElementById('add-t-subject-other');
+    if (!sel || !other) return;
+    const isOther = sel.value === '__other';
+    other.hidden = !isOther;
+    if (isOther) other.focus(); else other.value = '';
+  }
+
+  function subjectValue() {
+    const sel = document.getElementById('add-t-subject');
+    if (!sel) return '';
+    if (sel.value !== '__other') return sel.value;
+    return (document.getElementById('add-t-subject-other')?.value || '').trim();
+  }
+
   function timeAgo(date) {
     const diff = Date.now() - new Date(date).getTime();
     const mins = Math.floor(diff / 60000);
@@ -323,5 +464,7 @@ const TeachersPage = (() => {
 
   function afterRender() {}
 
-  return { load, render, afterRender, setTab, generateLink, copyLink, copyGenerated, deactivateLink, approveTeacher, rejectTeacher, updateStatus, deleteTeacher, showAddModal, submitAdd };
+  return { load, render, afterRender, setTab, openGenerateModal, generateLink, copyLink, copyGenerated,
+    openCapModal, saveCap, deactivateLink, approveTeacher, rejectTeacher, updateStatus, setInventoryAccess,
+    deleteTeacher, showAddModal, submitAdd, onSubjectChange };
 })();

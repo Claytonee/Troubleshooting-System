@@ -1,12 +1,19 @@
 const pool = require('../config/database');
 const lc = require('../config/lifecycle');
 const { logAudit } = require('../services/audit');
+const { canWriteInventory } = require('../middleware/permissions');
+
+// Roles whose school is fixed by their account: the request body can never
+// point them at another school's devices.
+const OWN_SCHOOL_ROLES = ['school', 'teacher'];
 
 // Returns true if `user` may modify a device belonging to `schoolId`.
-// admin: any · school: only own school · subadmin: only assigned schools · teacher/other: never.
+// admin: any · school: only own school · subadmin: only assigned schools ·
+// teacher: own school only, and only while the school admin's grant stands.
 async function canWriteSchool(user, schoolId) {
   if (user.role === 'admin') return true;
   if (user.role === 'school') return user.school_id === schoolId;
+  if (user.role === 'teacher') return canWriteInventory(user) && user.school_id === schoolId;
   if (user.role === 'subadmin') {
     const [allowed] = await pool.query(
       'SELECT id FROM schools WHERE id = ? AND assigned_admin_id = ?', [schoolId, user.id]
@@ -98,7 +105,10 @@ async function getStats(req, res, next) {
     const [byForm] = await pool.query(`SELECT form, status, COUNT(*) as count
       FROM tablets ${schoolFilter} GROUP BY form, status ORDER BY form`, params);
 
-    res.json({ summary: totals[0], byForm });
+    // The page asks the server what it may do rather than deciding from the
+    // role in localStorage: a grant made — or revoked — after login then takes
+    // effect on the next page load, and a hidden button matches a real 403.
+    res.json({ summary: totals[0], byForm, can_write: canWriteInventory(req.user) });
   } catch (err) { next(err); }
 }
 
@@ -135,7 +145,7 @@ async function create(req, res, next) {
 
     if (!serial_number) return res.status(400).json({ error: 'Serial number is required' });
 
-    const sid = req.user.role === 'school' ? req.user.school_id : school_id;
+    const sid = OWN_SCHOOL_ROLES.includes(req.user.role) ? req.user.school_id : school_id;
     if (!sid) return res.status(400).json({ error: 'School is required' });
 
     if (req.user.role === 'subadmin') {
@@ -177,7 +187,7 @@ async function update(req, res, next) {
     if (!current.length) return res.status(404).json({ error: 'Device not found' });
     const old = current[0];
 
-    if (req.user.role === 'school' && old.school_id !== req.user.school_id) {
+    if (OWN_SCHOOL_ROLES.includes(req.user.role) && old.school_id !== req.user.school_id) {
       return res.status(403).json({ error: 'Access denied' });
     }
     if (req.user.role === 'subadmin') {
@@ -280,7 +290,7 @@ async function bulkImport(req, res, next) {
       return res.status(400).json({ error: 'No devices provided' });
     }
 
-    const sid = req.user.role === 'school' ? req.user.school_id : school_id;
+    const sid = OWN_SCHOOL_ROLES.includes(req.user.role) ? req.user.school_id : school_id;
     if (!sid) return res.status(400).json({ error: 'School is required' });
 
     if (req.user.role === 'subadmin') {

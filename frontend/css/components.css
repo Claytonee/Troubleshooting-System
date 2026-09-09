@@ -48,6 +48,8 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .badge-purple { background: rgba(155,125,255,0.15); color: var(--purple); }
 .badge-gray { background: rgba(255,255,255,0.06); color: var(--text2); }
 .badge-gold { background: rgba(255,174,0,0.15); color: var(--gold); }
+.badge-teal { background: rgba(54,217,204,0.15); color: var(--teal); }
+
 
 /* Priority dot */
 .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
@@ -137,6 +139,11 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .inv-toolbar { position: sticky; top: 52px; z-index: 100; background: rgba(15,17,23,0.95); backdrop-filter: blur(12px); padding: 10px 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
 .inv-grid { padding: 14px 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; }
 .inv-header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+/* Stands where the Add button stands, so the page reads as deliberately
+   read-only rather than as a page whose buttons failed to load. */
+.inv-readonly-chip { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg2); color: var(--text3); font-size: 11px; font-weight: 500;
+  white-space: nowrap; }
 .inv-header-stats { display: flex; gap: 6px; flex-wrap: wrap; }
 .detail-info-table td { padding: 9px 12px; font-size: 13px; }
 .detail-info-table td:nth-child(odd) { white-space: nowrap; }
@@ -619,6 +626,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .badge-green { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 500; background: rgba(45,217,138,0.1); color: var(--green); }
 .badge-red { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 500; background: rgba(255,82,99,0.1); color: var(--red); }
 .badge-gray { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 500; background: var(--bg3); color: var(--text3); }
+.badge-teal { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 500; background: rgba(54,217,204,0.12); color: var(--teal); }
 
 /* School Admin rows */
 .sa-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 8px; transition: all .15s; background: var(--bg1); }

@@ -201,7 +201,11 @@ const GuidesPage = (() => {
 
           <div style="padding:12px 22px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">
             <button id="guide-escalate-btn" onclick="GuidesPage.escalate(${g.id})" style="padding:8px 16px;font-size:12px;background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-alert-triangle" style="font-size:12px"></i> Escalate</button>
-            <span style="font-size:10px;color:var(--text3);margin-left:auto">Still stuck? Escalate for engineer follow-up</span>
+            <!-- Says where it actually goes: a teacher's escalation reaches their
+                 own school administrator, everyone else's reaches support. -->
+            <span style="font-size:10px;color:var(--text3);margin-left:auto">${(API.getUser() || {}).role === 'teacher'
+              ? 'Still stuck? Escalate to your school administrator'
+              : 'Still stuck? Escalate for engineer follow-up'}</span>
           </div>
         </div>
 
@@ -387,17 +391,30 @@ const GuidesPage = (() => {
     }
   }
 
-  // "Escalate Issue" — emails the support lead; falls back to the report form if email is off.
+  /**
+   * "Escalate Issue" — sends the guide up the chain the user actually belongs to.
+   *
+   * A teacher's escalation goes to their own school administrator, in the app;
+   * everyone else's goes to the support mailbox. The server decides and says
+   * which route it used, so this only has to report it honestly — and if the
+   * teacher's school has no administrator on file, it says that too rather than
+   * implying somebody at the school was told.
+   */
   async function escalate(id) {
     const btn = document.getElementById('guide-escalate-btn');
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Sending...'; }
     try {
       const r = await API.escalateGuide(id);
-      if (r.sent) {
-        showToast('Support has been notified by email');
+      if (r.routed_to === 'school_admin') {
+        showToast(r.message || 'Your school administrator has been notified', 5000);
+        if (btn) { btn.innerHTML = '<i class="ti ti-check" style="font-size:13px;color:var(--green)"></i> Sent to your school admin'; }
+      } else if (r.sent) {
+        showToast(r.no_school_admin
+          ? 'Your school has no administrator on file, so support was emailed directly'
+          : 'Support has been notified by email', r.no_school_admin ? 5500 : 3200);
         if (btn) { btn.innerHTML = '<i class="ti ti-check" style="font-size:13px;color:var(--green)"></i> Escalated'; }
       } else {
-        showToast('Email is not configured — please report the issue instead');
+        showToast('Could not send the escalation — please report the issue instead');
         Router.navigate('report');
       }
     } catch (e) {

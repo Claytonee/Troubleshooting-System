@@ -5,6 +5,17 @@ const InventoryPage = (() => {
   const user = () => API.getUser();
   const isAdmin = () => ['admin','subadmin'].includes(user()?.role);
 
+  /**
+   * May this account change the inventory?
+   *
+   * The answer comes from the server (`/inventory/stats`.can_write), not from
+   * the role in localStorage: a teacher's write access is a grant the school
+   * admin can give and take back, so the buttons have to follow it on the next
+   * page load. Until the load finishes, assume read-only — a button that turns
+   * out to 403 is worse than a button that appears a second late.
+   */
+  const canWrite = () => stats?.can_write === true;
+
   async function load() {
     try {
       const params = {};
@@ -48,9 +59,11 @@ const InventoryPage = (() => {
         <div style="padding:4px 10px;border-radius:6px;background:rgba(245,166,35,.1);font-size:11px;font-weight:600;color:var(--amber)">${inRepair} <span style="font-weight:400;opacity:.7">Repair</span></div>
         <div style="padding:4px 10px;border-radius:6px;background:rgba(155,125,255,.1);font-size:11px;font-weight:600;color:var(--purple)">${lostMissing} <span style="font-weight:400;opacity:.7">Lost</span></div>
       </div>
-      <button class="btn btn-ghost" onclick="InventoryPage.openImport()" title="Import CSV"><i class="ti ti-upload"></i></button>
+      ${canWrite() ? `<button class="btn btn-ghost" onclick="InventoryPage.openImport()" title="Import CSV"><i class="ti ti-upload"></i></button>` : ''}
       <button class="btn btn-ghost" onclick="InventoryPage.exportCsv()" title="Export"><i class="ti ti-download"></i></button>
-      <button class="btn btn-primary" onclick="InventoryPage.openAdd()"><i class="ti ti-plus"></i> Add</button>
+      ${canWrite()
+        ? `<button class="btn btn-primary" onclick="InventoryPage.openAdd()"><i class="ti ti-plus"></i> Add</button>`
+        : `<span class="inv-readonly-chip" data-tip="Your school administrator can give you edit access"><i class="ti ti-eye"></i> Read-only</span>`}
   <div class="tab-row" style="margin-bottom:12px">
     <button class="tab-btn ${activeView === 'devices' ? 'active' : ''}" onclick="InventoryPage.setView('devices')"><i class="ti ti-device-tablet"></i> Devices</button>
     <button class="tab-btn ${activeView === 'refresh' ? 'active' : ''}" onclick="InventoryPage.setView('refresh')"><i class="ti ti-recycle"></i> Replace &amp; renew</button>
@@ -120,7 +133,7 @@ const InventoryPage = (() => {
           <div style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.serial_number)}${d.model ? ' · ' + esc(d.model) : ''}</div>
           <div style="font-size:12px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${d.student_name ? 'var(--text2)' : 'var(--text3)'}"><i class="ti ti-user" style="font-size:12px;margin-right:4px"></i>${d.student_name ? esc(d.student_name) : 'Unassigned'}${d.admission_no ? ' · ' + esc(d.admission_no) : ''}</div>
         </div>
-        <button class="btn-icon" onclick="event.stopPropagation();InventoryPage.openEdit(${d.id})" title="Edit" style="width:26px;height:26px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px"></i></button>
+        ${canWrite() ? `<button class="btn-icon" onclick="event.stopPropagation();InventoryPage.openEdit(${d.id})" title="Edit" style="width:26px;height:26px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px"></i></button>` : ''}
       </div>
       ${lifecycleStrip(d)}
     </div>`;
@@ -331,7 +344,15 @@ const InventoryPage = (() => {
     if (main) { main.innerHTML = render(); afterRender(); }
   }
 
+  /** Refuses politely instead of opening a form the server will reject. */
+  function guardWrite() {
+    if (canWrite()) return true;
+    showToast('Inventory is read-only for your account — ask your school administrator for edit access');
+    return false;
+  }
+
   function openAdd() {
+    if (!guardWrite()) return;
     const schoolSelect = isAdmin() ? `<div class="form-group"><label>School</label><select id="dev-school" required>
       <option value="">Select school</option>${schools.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}</select></div>` : '';
     Modal.open('Add Device', `
@@ -388,6 +409,7 @@ const InventoryPage = (() => {
   }
 
   function openEdit(id) {
+    if (!guardWrite()) return;
     const d = devices.find(x => x.id === id);
     if (!d) return;
     const schoolSelect = isAdmin() ? `<div class="form-group"><label>School</label><select id="dev-school">
@@ -481,10 +503,10 @@ const InventoryPage = (() => {
             </div>`).join('')}
           </div>
         </div>` : ''}
-        <div style="display:flex;gap:8px;margin-top:14px;justify-content:space-between">
+        ${canWrite() ? `<div style="display:flex;gap:8px;margin-top:14px;justify-content:space-between">
           <button class="btn" onclick="InventoryPage.openEdit(${d.id})" style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px"><i class="ti ti-pencil"></i> Edit</button>
           <button class="btn" onclick="InventoryPage.openStatusChange(${d.id},'${d.status}')" style="padding:8px 16px;font-size:12px;background:rgba(54,217,204,.12);color:var(--teal);border:1px solid rgba(54,217,204,.25);border-radius:8px"><i class="ti ti-refresh"></i> Change Status</button>
-        </div>
+        </div>` : ''}
       `, '', true);
     } catch (err) { showToast('Failed to load device details', 'error'); }
   }
@@ -544,6 +566,7 @@ const InventoryPage = (() => {
   }
 
   function openStatusChange(id, currentStatus) {
+    if (!guardWrite()) return;
     Modal.open('Change Status', `
       <form onsubmit="InventoryPage.submitStatus(event, ${id})">
         <div class="form-group"><label>New Status</label><select id="st-status">
@@ -579,6 +602,7 @@ const InventoryPage = (() => {
   }
 
   function openImport() {
+    if (!guardWrite()) return;
     Modal.open('Import Devices from CSV', `
       <div style="margin-bottom:12px">
         <p style="font-size:13px;color:var(--text2);margin:0 0 10px">Upload a CSV file with tablet inventory data. Required column: <strong>serial_number</strong>.</p>

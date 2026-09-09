@@ -153,6 +153,7 @@ const API = (() => {
     updateSettings: (data) => request('PUT', '/settings', data),
     getAuditLog: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/audit' + (qs ? '?' + qs : '')); },
     search: (q) => request('GET', '/search?q=' + encodeURIComponent(q)),
+    getAiStatus: () => request('GET', '/ai/status'),
     getAiChats: () => request('GET', '/ai/chats'),
     getAiChat: (id) => request('GET', `/ai/chats/${id}`),
     deleteAiChat: (id) => request('DELETE', `/ai/chats/${id}`),

@@ -13,6 +13,7 @@ const ChatPage = (() => {
   let streamBuffer = '';
   let controller = null;      // aborts the in-flight request when the user stops
   let railOpen = false;
+  let service = null;         // { configured, hint } — asked of the server on load
   let pinnedToBottom = true;  // false once the user scrolls up to read
 
   const NEAR_BOTTOM_PX = 80;
@@ -30,8 +31,19 @@ const ChatPage = (() => {
     // device would otherwise open on the previous user conversation.
     const me = (API.getUser() || {}).id || null;
     if (me !== ownerId) { reset(); ownerId = me; }
-    try { chats = await API.getAiChats(); } catch (e) { chats = []; }
+    // Asked before rendering: on a deployment where the model credentials were
+    // never set, a composer that swallows every message and answers "AI service
+    // not configured" is worse than saying so up front, next to the two things
+    // that DO work offline of the assistant — the guides and Report Error.
+    const [chatList, status] = await Promise.all([
+      API.getAiChats().catch(() => []),
+      API.getAiStatus().catch(() => ({ configured: true, unknown: true }))
+    ]);
+    chats = Array.isArray(chatList) ? chatList : [];
+    service = status;
   }
+
+  const serviceOff = () => service && service.configured === false;
 
   /* ----------------------------------------------------------------- icons */
 
@@ -102,7 +114,48 @@ const ChatPage = (() => {
   }
 
   function renderBody() {
+    if (serviceOff()) return renderUnavailable();
     return (activeChat || messages.length) ? renderConversation() : renderWelcome();
+  }
+
+  /**
+   * The assistant is not switched on for this deployment.
+   *
+   * Says who can switch it on, and offers the two routes that still work — the
+   * guides, and a fault report that reaches a human. No composer: a text box
+   * that cannot send anything is a trap.
+   */
+  function renderUnavailable() {
+    const role = (API.getUser() || {}).role;
+    const hint = (service && service.hint) || 'The AI assistant has not been switched on yet.';
+    return `
+      <div class="chat-welcome-area">
+        <div class="chat-welcome-scroll">
+          <div class="chat-welcome-inner">
+            <div class="chat-w-icon" style="opacity:.5">${aiIcon}</div>
+            <div class="chat-w-title">The assistant is not available yet</div>
+            <div class="chat-w-sub">${esc(hint)}</div>
+            <div class="chat-w-grid">
+              <button class="chat-sug" onclick="Router.navigate('troubleshoot');App.loadAndRender()">
+                <i class="ti ti-list-check" style="color:var(--teal)"></i><span>Open the troubleshooting guides</span>
+              </button>
+              <button class="chat-sug" onclick="Router.navigate('report');App.loadAndRender()">
+                <i class="ti ti-alert-triangle" style="color:var(--amber)"></i><span>Report the problem to an engineer</span>
+              </button>
+              ${role === 'admin' ? `<button class="chat-sug" onclick="ChatPage.recheck()">
+                <i class="ti ti-refresh" style="color:var(--accent)"></i><span>I have set the key — check again</span>
+              </button>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  /** For an admin who has just set the variable: re-ask without a full reload. */
+  async function recheck() {
+    try { service = await API.getAiStatus(); } catch (e) { /* keep the last answer */ }
+    App.render();
+    if (serviceOff()) showToast('Still not configured — the app has to be restarted after setting the key');
   }
 
   function renderConversation() {
@@ -559,6 +612,6 @@ const ChatPage = (() => {
     load, render, afterRender, reset,
     newChat, loadChat, deleteChat,
     send, sendText, onSendClick, handleKey, grow,
-    toggleRail, onScroll, regenerate, copyMsg, copyCode
+    toggleRail, onScroll, regenerate, copyMsg, copyCode, recheck
   };
 })();

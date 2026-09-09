@@ -1,6 +1,29 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const pool = require('../config/database');
+const { logAudit, fromReq } = require('../services/audit');
+
+// How many teachers one registration link may admit. The cap is the school
+// admin's, not ours — these are the bounds it must fall inside.
+const LINK_USES_MIN = 1;
+const LINK_USES_MAX = 500;
+const LINK_USES_DEFAULT = 50;
+
+/**
+ * Reads a max_uses value from a request body.
+ *
+ * `req.body.max_uses || 50` accepted "twenty" as NaN, which MySQL stores as
+ * NULL — and `use_count >= NULL` is never true, so the link admitted an
+ * unlimited number of teachers. Parse it, or refuse it.
+ */
+function parseMaxUses(value, fallback) {
+  if (value === undefined || value === null || value === '') return { value: fallback };
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < LINK_USES_MIN || n > LINK_USES_MAX) {
+    return { error: `Maximum uses must be a whole number between ${LINK_USES_MIN} and ${LINK_USES_MAX}.` };
+  }
+  return { value: n };
+}
 
 async function getSchoolsList(req, res, next) {
   try {
@@ -296,7 +319,9 @@ async function generateTeacherLink(req, res, next) {
 
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    const maxUses = req.body.max_uses || 50;
+    const parsed = parseMaxUses(req.body.max_uses, LINK_USES_DEFAULT);
+    if (parsed.error) return res.status(400).json({ error: parsed.error });
+    const maxUses = parsed.value;
 
     const [result] = await pool.query(
       'INSERT INTO registration_links (school_id, token, created_by, expires_at, max_uses) VALUES (?, ?, ?, ?, ?)',
@@ -322,6 +347,36 @@ async function getTeacherLinks(req, res, next) {
       [schoolId]
     );
     res.json(rows);
+  } catch (err) { next(err); }
+}
+
+/**
+ * Change how many teachers a live link may still admit.
+ *
+ * The new cap may not be below the number already registered through it: those
+ * teachers exist, and a cap under the count would read as "over capacity" in
+ * every list. Raising it is how a school that outgrew its first estimate
+ * carries on with the link already shared in the staff WhatsApp group.
+ */
+async function updateLinkCap(req, res, next) {
+  try {
+    const parsed = parseMaxUses(req.body.max_uses, undefined);
+    if (parsed.error) return res.status(400).json({ error: parsed.error });
+    if (parsed.value === undefined) return res.status(400).json({ error: 'Maximum uses is required.' });
+
+    const [rows] = await pool.query(
+      'SELECT id, use_count FROM registration_links WHERE id = ? AND school_id = ?',
+      [req.params.id, req.user.school_id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Link not found.' });
+    if (parsed.value < rows[0].use_count) {
+      return res.status(400).json({
+        error: `${rows[0].use_count} teacher(s) already registered through this link — the limit cannot be lower than that.`
+      });
+    }
+
+    await pool.query('UPDATE registration_links SET max_uses = ? WHERE id = ?', [parsed.value, req.params.id]);
+    res.json({ message: `Limit set to ${parsed.value} teacher(s).`, max_uses: parsed.value, use_count: rows[0].use_count });
   } catch (err) { next(err); }
 }
 
@@ -559,14 +614,77 @@ async function getTeachers(req, res, next) {
 
     const [rows] = await pool.query(
       `SELECT u.id as user_id, u.full_name, u.email, u.phone, u.status as user_status, u.created_at,
-              t.id, t.subject, t.employee_id, t.status, t.registered_via, t.approved_at
+              t.id, t.subject, t.employee_id, t.status, t.registered_via, t.approved_at,
+              t.can_manage_inventory, t.inventory_granted_at, t.inventory_revoked_at,
+              g.full_name AS inventory_granted_by_name
        FROM teachers t
        JOIN users u ON t.user_id = u.id
+       LEFT JOIN users g ON g.id = t.inventory_granted_by
        WHERE t.school_id = ?
        ORDER BY u.full_name`,
       [schoolId]
     );
-    res.json(rows);
+    res.json(rows.map(r => ({ ...r, can_manage_inventory: !!Number(r.can_manage_inventory) })));
+  } catch (err) { next(err); }
+}
+
+/**
+ * Hand a teacher write access to the school's tablet inventory, or take it back.
+ *
+ * Both directions are one endpoint with an explicit `granted` flag rather than
+ * a toggle: a toggle sent twice by a slow connection lands back where it
+ * started, and the school admin cannot tell which. The grant is recorded with
+ * who gave it and when, and a revocation keeps that history instead of blanking
+ * it — "who had the keys in June" is a question worth being able to answer.
+ *
+ * A suspended or inactive teacher cannot be granted access; suspending one
+ * whose grant stands revokes it (see updateTeacherStatus).
+ */
+async function setTeacherInventoryAccess(req, res, next) {
+  try {
+    const schoolId = req.user.school_id;
+    if (!schoolId) return res.status(400).json({ error: 'No school linked.' });
+    if (typeof req.body.granted !== 'boolean') {
+      return res.status(400).json({ error: 'granted must be true or false.' });
+    }
+    const granted = req.body.granted;
+
+    const [rows] = await pool.query(
+      `SELECT t.id, t.user_id, t.status, t.can_manage_inventory, u.full_name, u.status AS user_status
+         FROM teachers t JOIN users u ON u.id = t.user_id
+        WHERE t.id = ? AND t.school_id = ?`,
+      [req.params.id, schoolId]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Teacher not found.' });
+    const teacher = rows[0];
+
+    if (granted && (teacher.status !== 'active' || teacher.user_status !== 'active')) {
+      return res.status(400).json({ error: 'Only an active teacher can be given inventory access.' });
+    }
+
+    await pool.query(
+      granted
+        ? `UPDATE teachers SET can_manage_inventory = 1, inventory_granted_by = ?, inventory_granted_at = NOW(),
+                               inventory_revoked_at = NULL WHERE id = ?`
+        : `UPDATE teachers SET can_manage_inventory = 0, inventory_revoked_at = NOW() WHERE id = ?`,
+      granted ? [req.user.id, teacher.id] : [teacher.id]
+    );
+
+    await logAudit({
+      ...fromReq(req),
+      action: granted ? 'inventory.access_granted' : 'inventory.access_revoked',
+      entityType: 'teacher',
+      entityId: teacher.id,
+      summary: `${granted ? 'Granted' : 'Revoked'} tablet inventory access ${granted ? 'to' : 'from'} ${teacher.full_name}`,
+      meta: { school_id: schoolId, teacher_user_id: teacher.user_id }
+    });
+
+    res.json({
+      message: granted
+        ? `${teacher.full_name} can now manage the tablet inventory.`
+        : `${teacher.full_name} now has read-only access to the tablet inventory.`,
+      can_manage_inventory: granted
+    });
   } catch (err) { next(err); }
 }
 
@@ -687,7 +805,20 @@ async function updateTeacherStatus(req, res, next) {
     );
     if (!rows.length) return res.status(404).json({ error: 'Teacher not found.' });
 
-    await pool.query('UPDATE teachers SET status = ? WHERE id = ?', [status, id]);
+    // Suspending or deactivating a teacher takes the inventory keys with it.
+    // Leaving the grant set would restore write access silently the moment the
+    // account was reactivated, which nobody asked for.
+    if (status === 'active') {
+      await pool.query('UPDATE teachers SET status = ? WHERE id = ?', [status, id]);
+    } else {
+      await pool.query(
+        `UPDATE teachers SET status = ?,
+                can_manage_inventory = 0,
+                inventory_revoked_at = CASE WHEN can_manage_inventory = 1 THEN NOW() ELSE inventory_revoked_at END
+          WHERE id = ?`,
+        [status, id]
+      );
+    }
 
     const userStatus = status === 'active' ? 'active' : 'inactive';
     await pool.query('UPDATE users SET status = ? WHERE id = ?', [userStatus, rows[0].user_id]);
@@ -727,6 +858,7 @@ module.exports = {
   getAppeals,
   generateTeacherLink,
   getTeacherLinks,
+  updateLinkCap,
   deactivateLink,
   verifyTeacherLink,
   registerTeacher,
@@ -739,5 +871,6 @@ module.exports = {
   createTeacher,
   updateTeacher,
   updateTeacherStatus,
+  setTeacherInventoryAccess,
   deleteTeacher
 };

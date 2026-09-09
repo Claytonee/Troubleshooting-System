@@ -277,6 +277,54 @@ school list; `frontend/js/offline.js` queues writes in IndexedDB and replays the
 - Role-scoped caches are dropped on logout (`Offline.forgetUserData()`), and
   queued items record their owner. School tablets are shared.
 
+### Permissions that role alone cannot answer
+`backend/src/middleware/permissions.js` holds capability checks. Today: inventory writes.
+A school admin may delegate tablet-inventory write access to a teacher
+(`PATCH /api/register/teachers/:id/inventory-access` with `{granted:true|false}`), and
+`teachers.can_manage_inventory` is loaded into `req.user` by `authenticate()` on **every**
+request, so a revoke bites immediately rather than at the delegate's next login.
+
+- Write routes use `requireInventoryWrite`, never `authorize(...)` role lists.
+- **A delegate never outranks the delegator.** A school admin cannot DELETE a device, so
+  a granted teacher cannot either — DELETE keeps `authorize('admin','subadmin')`.
+- A teacher's school comes from their account (`OWN_SCHOOL_ROLES`), never the request body.
+- Suspending a teacher revokes the grant; reactivating does **not** hand it back.
+- **The UI asks the server**: `GET /api/inventory/stats` returns `can_write`, and
+  `InventoryPage.canWrite()` gates every write control on it. Never gate write UI on the
+  role in `localStorage` — a grant made after login would not show, and a revoked one
+  would leave buttons that 403.
+
+### Escalation goes up the user's own chain
+`POST /api/guides/:id/escalate` routes a **teacher** to their own school administrator as an
+in-app notification (`admin_notifications`, `target_role='school'`, `type='guide_escalation'`,
+`meta.school_id`) — not to the support mailbox. The school admin's bell opens the report form
+pre-filled with the teacher's name, the guide and the category. Everyone else still gets email.
+If the school has no active administrator it falls back to email and the reply says so
+(`no_school_admin: true`) — never silently dropped. `/api/schools/notifications` is scoped by
+`meta.school_id` for the `school` role, in both the read and the mark-as-read.
+
+### One subject list, two forms
+`TEACHER_SUBJECTS` / `subjectOptions()` in `frontend/js/utils.js` is used by the public
+registration form **and** the school admin's Add Teacher modal. Free text produced "Maths",
+"MATHEMATICS", "math" and "Mathematics/Physics" for one subject. "Other" reveals a text box, and
+a stored value that is not on the list is kept as its own option so opening a form never
+rewrites what is on file.
+
+### Registration links carry a cap the school admin chooses
+`max_uses` is set when the link is generated (1–500, default = teachers on file + 5) and can be
+raised later with `PATCH /api/register/teacher-links/:id` — never below `use_count`, and the
+Change limit / Deactivate buttons stay visible on a **full** link, which is exactly when the cap
+needs raising. `parseMaxUses()` refuses non-integers: `req.body.max_uses || 50` stored `"twenty"`
+as NULL, and `use_count >= NULL` is never true, so the link was silently unlimited.
+
+### /api/health carries feature flags
+`features: { ai, email, sms, whatsapp_inbound, whatsapp_send, heartbeat, uploads }` — booleans
+only, asked of the services' own `isConfigured()` where one exists. It exists so "the AI says it
+is not configured" can be diagnosed without cPanel access:
+```bash
+curl -s https://support.mkatolikikiganjani.com/api/health
+```
+
 ### Role markers on nav items
 `data-role` gates sidebar items in `router.js`: `admin`, `subadmin`, `school`,
 `school-teacher`, `no-admin`, `staff` (admin+subadmin+school) and `field`
@@ -382,6 +430,12 @@ WHATSAPP_APP_SECRET=your_app_secret        # signs every inbound webhook; unset,
 WHATSAPP_VERIFY_TOKEN=your_verify_token    # Meta's one-time subscription handshake
 WHATSAPP_TOKEN=your_permanent_token        # sending only — unset, replies are logged and skipped
 WHATSAPP_PHONE_ID=your_phone_number_id
+AWS_BEARER_TOKEN_BEDROCK=your_bedrock_token  # REQUIRED for the AI Assistant. Unset, every role
+                                          # gets "AI service not configured" — this variable was
+                                          # missing from this list, so it was never set on cPanel
+                                          # and teachers hit it first (2026-09-09).
+AI_MODEL=us.anthropic.claude-opus-4-6-v1   # optional; this account has no Opus 5 access
+AWS_BEDROCK_HOST=bedrock-runtime.us-east-1.amazonaws.com   # optional
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
@@ -406,9 +460,9 @@ and took both deployments down on 2026-09-07.
 | 9 | Analytics | #analytics | Admin | SLA compliance, errors by school/category |
 | 10 | Sub-Admins | #team | Admin | Manage field engineers, assign schools |
 | 11 | Branding | #branding | Admin | Customize system name, logo, colors |
-| 12 | Tablet Inventory | #inventory | All | Device CRUD, stats, CSV import/export, history |
+| 12 | Tablet Inventory | #inventory | All (teachers **read-only** unless granted) | Device CRUD, stats, CSV import/export, history |
 | 13 | Approvals | #approvals | Admin | School admin registration approval |
-| 14 | Teachers | #teachers | School | Teacher management + registration links |
+| 14 | Teachers | #teachers | School | Teacher management, registration-link cap, inventory delegation |
 | 15 | Help / User Guide | #help | School | Support documentation with sidebar nav |
 | 16 | Visit Planner | #visits | Admin, Sub-admin | Queue grouped by school, on-site checklist, visit record |
 

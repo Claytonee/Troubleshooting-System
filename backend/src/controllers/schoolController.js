@@ -301,6 +301,15 @@ async function getNotifications(req, res, next) {
     } else if (req.user.role === 'subadmin') {
       query = `SELECT * FROM admin_notifications WHERE target_role = 'subadmin' AND CAST(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.assigned_to')) AS UNSIGNED) = ? ORDER BY created_at DESC LIMIT 50`;
       params = [req.user.id];
+    } else if (req.user.role === 'school') {
+      // Scoped by the school on the notification, not just the role — one
+      // school's escalations must never appear on another school's bell.
+      if (!req.user.school_id) return res.json([]);
+      query = `SELECT * FROM admin_notifications
+                WHERE target_role = 'school'
+                  AND CAST(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.school_id')) AS UNSIGNED) = ?
+                ORDER BY created_at DESC LIMIT 50`;
+      params = [req.user.school_id];
     } else {
       return res.json([]);
     }
@@ -311,7 +320,18 @@ async function getNotifications(req, res, next) {
 
 async function markNotificationRead(req, res, next) {
   try {
-    await pool.query('UPDATE admin_notifications SET is_read = true WHERE id = ?', [req.params.id]);
+    // A school admin may only clear their own school's notifications; head
+    // office may clear anything it can see.
+    if (req.user.role === 'school') {
+      await pool.query(
+        `UPDATE admin_notifications SET is_read = true
+          WHERE id = ? AND target_role = 'school'
+            AND CAST(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.school_id')) AS UNSIGNED) = ?`,
+        [req.params.id, req.user.school_id || 0]
+      );
+    } else {
+      await pool.query('UPDATE admin_notifications SET is_read = true WHERE id = ?', [req.params.id]);
+    }
     res.json({ message: 'Marked as read' });
   } catch (err) { next(err); }
 }

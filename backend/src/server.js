@@ -188,7 +188,26 @@ app.use('/api/analytics', analyticsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '1.0.0' });
+  // Which optional integrations actually have credentials on THIS deployment.
+  // Booleans only — never a value, a prefix or a length. Without this, "the AI
+  // says it is not configured" could only be diagnosed by someone with cPanel
+  // access, and a variable that was never in the deploy checklist stays missing.
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    features: {
+      ai: !!process.env.AWS_BEARER_TOKEN_BEDROCK,
+      // Asked of the services themselves, so a flag here cannot disagree with
+      // the check the sending path actually makes.
+      email: require('./services/notify').isConfigured(),
+      sms: require('./services/sms').isConfigured(),
+      whatsapp_inbound: !!process.env.WHATSAPP_APP_SECRET,
+      whatsapp_send: require('./services/whatsapp').isConfigured(),
+      heartbeat: !!process.env.HEARTBEAT_KEY,
+      uploads: !!process.env.CLOUDINARY_API_KEY
+    }
+  });
 });
 
 // GitHub webhook auto-deploy (environment-aware)

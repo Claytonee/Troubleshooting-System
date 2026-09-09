@@ -212,6 +212,23 @@ function parseEventStream(stream, onDelta, onDone, onError) {
   stream.on('error', onError);
 }
 
+/**
+ * Is the assistant switched on for this deployment?
+ *
+ * The page asks before it renders a composer nobody can use. The env var name
+ * only goes to an administrator: a teacher who is told to "set
+ * AWS_BEARER_TOKEN_BEDROCK" learns nothing and can do nothing.
+ */
+function status(req, res) {
+  res.json({
+    configured: !!BEDROCK_TOKEN,
+    model: BEDROCK_TOKEN ? CHAT_MODEL : null,
+    hint: BEDROCK_TOKEN ? null : (req.user.role === 'admin'
+      ? 'Set AWS_BEARER_TOKEN_BEDROCK in cPanel → Setup Node.js App → Environment variables, then restart the app.'
+      : 'The AI assistant has not been switched on yet. Ask the system administrator.')
+  });
+}
+
 async function getChats(req, res, next) {
   try {
     const [chats] = await pool.query(
@@ -248,7 +265,12 @@ async function sendMessage(req, res, next) {
   if (!message || !message.trim()) return res.status(400).json({ error: 'Message is required' });
 
   if (!BEDROCK_TOKEN) {
-    return res.status(503).json({ error: 'AI service not configured. Please set AWS_BEARER_TOKEN_BEDROCK.' });
+    return res.status(503).json({
+      error: req.user.role === 'admin'
+        ? 'AI service not configured. Set AWS_BEARER_TOKEN_BEDROCK and restart the app.'
+        : 'The AI assistant is not switched on. Use Troubleshooting for step-by-step guides, or Report Error to reach an engineer.',
+      code: 'AI_NOT_CONFIGURED'
+    });
   }
 
   let chatId = chat_id;
@@ -355,4 +377,4 @@ async function sendMessage(req, res, next) {
   }
 }
 
-module.exports = { getChats, getChat, deleteChat, sendMessage };
+module.exports = { status, getChats, getChat, deleteChat, sendMessage };

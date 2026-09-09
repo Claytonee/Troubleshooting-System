@@ -87,6 +87,45 @@ const STAT = {
 // SLA response/resolution targets in HOURS — must match backend config/schemaExtensions.js
 const SLA = { critical: 4, high: 24, medium: 72, low: 168 };
 
+/**
+ * Subjects and departments in a Tanzanian secondary school, grouped as the
+ * schools themselves group them.
+ *
+ * Typed freely, the same subject arrived as "Maths", "MATHEMATICS", "math" and
+ * "Mathematics/Physics", which makes "how many science teachers are there"
+ * unanswerable. One list, used by both the public registration form and the
+ * school admin's add-teacher form, so the two can never drift apart.
+ * "Other" stays, with a free-text box: a list that cannot express a real
+ * teacher's post just gets the nearest wrong answer picked.
+ */
+const TEACHER_SUBJECTS = [
+  ['Sciences', ['Mathematics', 'Basic Mathematics', 'Advanced Mathematics', 'Physics', 'Chemistry', 'Biology', 'Agriculture']],
+  ['Languages', ['Kiswahili', 'English Language', 'English Literature', 'French', 'Arabic']],
+  ['Humanities', ['History', 'Geography', 'Civics', 'General Studies', 'Divinity / Religious Studies']],
+  ['Business & ICT', ['Computer Studies / ICT', 'Commerce', 'Book-keeping', 'Accountancy', 'Economics']],
+  ['Vocational & Arts', ['Fine Art', 'Music', 'Physical Education', 'Home Economics', 'Technical Drawing']],
+  ['School roles', ['Academic Master / Mistress', 'Head of Department', 'ICT Coordinator', 'Librarian', 'Laboratory Technician']]
+];
+
+/** The flat set, for deciding whether a stored value is a list value. */
+const TEACHER_SUBJECT_VALUES = TEACHER_SUBJECTS.reduce((all, [, subjects]) => all.concat(subjects), []);
+
+/**
+ * <option>s for a subject picker, with `selected` preselected. A value that is
+ * not on the list (an older record, or an "Other" entry) is kept as its own
+ * option so opening the form never silently rewrites what is on file.
+ */
+function subjectOptions(selected) {
+  const known = TEACHER_SUBJECT_VALUES.includes(selected);
+  const groups = TEACHER_SUBJECTS.map(([group, subjects]) => `<optgroup label="${esc(group)}">` +
+    subjects.map(s => `<option value="${esc(s)}"${s === selected ? ' selected' : ''}>${esc(s)}</option>`).join('') +
+    '</optgroup>').join('');
+  const custom = selected && !known
+    ? `<option value="${esc(selected)}" selected>${esc(selected)}</option>`
+    : '';
+  return `<option value=""${selected ? '' : ' selected'}>Select subject or department…</option>${groups}${custom}<option value="__other">Other (type it in)…</option>`;
+}
+
 const CAT_META = {
   Connectivity: { ic: 'ti-wifi-off', color: 'var(--amber)' },
   Hardware: { ic: 'ti-device-laptop', color: 'var(--red)' },

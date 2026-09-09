@@ -156,6 +156,15 @@ async function applyExtensions(db) {
     INDEX idx_teachers_user (user_id)
   )`);
 
+  // Inventory delegation. A school administrator may hand a teacher write
+  // access to that school's tablet inventory and take it back when the
+  // teacher's turn of duty ends. Additive and defaulted to 0, so every existing
+  // teacher reads as read-only — the safe direction for a permission column.
+  await q('ALTER TABLE teachers ADD COLUMN can_manage_inventory TINYINT(1) DEFAULT 0');
+  await q('ALTER TABLE teachers ADD COLUMN inventory_granted_by INT NULL');
+  await q('ALTER TABLE teachers ADD COLUMN inventory_granted_at DATETIME NULL');
+  await q('ALTER TABLE teachers ADD COLUMN inventory_revoked_at DATETIME NULL');
+
   // --- User extensions ---
   await q("ALTER TABLE users ADD COLUMN approval_status VARCHAR(20) DEFAULT 'approved'");
   await q("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500) NULL");

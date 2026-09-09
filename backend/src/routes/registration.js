@@ -25,10 +25,14 @@ router.post('/approvals/:id/reject', authenticate, authorize('admin'), ctrl.reje
 // --- School Admin: Teacher links & approval ---
 router.post('/teacher-links', authenticate, authorize('school'), ctrl.generateTeacherLink);
 router.get('/teacher-links', authenticate, authorize('school'), ctrl.getTeacherLinks);
+router.patch('/teacher-links/:id', authenticate, authorize('school'), ctrl.updateLinkCap);
 router.delete('/teacher-links/:id', authenticate, authorize('school'), ctrl.deactivateLink);
 router.get('/teacher-approvals/pending', authenticate, authorize('school'), ctrl.getPendingTeachers);
 router.post('/teacher-approvals/:id/approve', authenticate, authorize('school'), ctrl.approveTeacher);
 router.post('/teacher-approvals/:id/reject', authenticate, authorize('school'), ctrl.rejectTeacher);
+
+// Delegate inventory write access to a teacher, or take it back.
+router.patch('/teachers/:id/inventory-access', authenticate, authorize('school'), ctrl.setTeacherInventoryAccess);
 
 // --- School Admin: Teacher CRUD ---
 router.get('/teachers', authenticate, authorize('school'), ctrl.getTeachers);

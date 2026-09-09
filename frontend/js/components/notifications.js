@@ -113,6 +113,45 @@ const Notifications = (() => {
         }
       }
 
+      // School admin: escalations from their own teachers. A teacher who tried
+      // a guide and is still stuck reaches the person who can walk to the room,
+      // and from here straight into a fault report with the context filled in.
+      if (user.role === 'school') {
+        const escRes = await fetch('/api/schools/notifications', { headers });
+        if (escRes.ok) {
+          const notifs = await escRes.json();
+          notifs.filter(n => !n.is_read && n.type === 'guide_escalation').forEach(n => {
+            const meta = typeof n.meta === 'string' ? JSON.parse(n.meta) : (n.meta || {});
+            items.push({
+              type: 'guide_escalation',
+              icon: 'ti ti-arrow-up-circle',
+              color: 'var(--amber)',
+              title: n.title,
+              sub: `${n.message ? truncate(n.message, 60) : ''} · ${timeAgo(n.created_at)}`,
+              notifId: n.id,
+              action: () => {
+                close();
+                fetch(`/api/schools/notifications/${n.id}/read`, { method: 'PATCH', headers });
+                Router.navigate('report');
+                App.loadAndRender().then(() => {
+                  const t = document.getElementById('f-title');
+                  const d = document.getElementById('f-desc');
+                  if (t && !t.value) t.value = meta.guide_title ? `${meta.guide_title} — still not resolved` : 'Escalated by a teacher';
+                  if (d && !d.value) {
+                    d.value = [
+                      `${meta.teacher_name || 'A teacher'} followed the "${meta.guide_title || 'troubleshooting'}" guide and the problem is still there.`,
+                      meta.guide_category ? `Category: ${meta.guide_category}` : '',
+                      '', 'What I checked myself:'
+                    ].filter(Boolean).join('\n');
+                  }
+                  if (t) t.focus();
+                });
+              }
+            });
+          });
+        }
+      }
+
       // School admin: pending teacher approvals
       if (user.role === 'school') {
         const res = await fetch('/api/register/teacher-approvals/pending', { headers });
