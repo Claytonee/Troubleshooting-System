@@ -37,6 +37,21 @@ const visitRoutes = require('./routes/visits');
 const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
+
+/**
+ * The commit this process started from. Read once, at boot, on purpose: that is
+ * what makes it evidence about the RUNNING code rather than about the working
+ * tree, which a deploy updates without necessarily respawning anything.
+ */
+const BUILD_COMMIT = (() => {
+  try {
+    return require('child_process')
+      .execSync('git rev-parse --short HEAD', { cwd: path.join(__dirname, '..', '..'), timeout: 5000, encoding: 'utf8' })
+      .trim();
+  } catch (e) {
+    return 'unknown';
+  }
+})();
 const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
@@ -243,6 +258,11 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
+    // Which commit this PROCESS is running, so "the deploy landed" can be
+    // checked rather than assumed. Static files come off disk and can be newer
+    // than the process serving them — that is exactly what happened on
+    // 2026-09-09: index.html was the new build, /api/health was not.
+    build: BUILD_COMMIT,
     features: {
       ai: !!process.env.AWS_BEARER_TOKEN_BEDROCK,
       // Asked of the services themselves, so a flag here cannot disagree with
@@ -355,11 +375,32 @@ app.post('/api/deploy', express.json({ limit: '1mb' }), (req, res) => {
     }
 
     // Ask Passenger to respawn. Its restart file lives inside its application
-    // root, so backend/tmp — not the repo root's tmp.
-    fs.mkdirSync(path.join(backendDir, 'tmp'), { recursive: true });
-    fs.writeFileSync(path.join(backendDir, 'tmp', 'restart.txt'), '');
-    console.log(`[DEPLOY] Deployed ${target.slice(0, 7)} — Passenger restart requested`);
-    res.json({ status: 'deployed', branch: myBranch, commit: target.slice(0, 7), timestamp: new Date().toISOString() });
+    // root, so backend/tmp — not the repo root's tmp (deploy/CPANEL-SETUP.md).
+    //
+    // The content is a timestamp rather than an empty string: an empty write to
+    // an already-empty file leaves nothing but the mtime to notice, and if that
+    // restart is ever missed the result is the half-state seen on 2026-09-09 —
+    // new files on disk, the OLD process serving them, and /api/health from a
+    // build nobody deployed. The path is returned so the next person can check
+    // it without cPanel access.
+    const restartFile = path.join(backendDir, 'tmp', 'restart.txt');
+    let restartTouched = true;
+    try {
+      fs.mkdirSync(path.join(backendDir, 'tmp'), { recursive: true });
+      fs.writeFileSync(restartFile, new Date().toISOString() + '\n');
+    } catch (e) {
+      restartTouched = false;
+      console.error(`[DEPLOY] Could NOT touch ${restartFile}: ${e.message} — the new code is on disk but this process is still the old one. Restart the app from cPanel.`);
+    }
+    console.log(`[DEPLOY] Deployed ${target.slice(0, 7)} — Passenger restart ${restartTouched ? 'requested' : 'FAILED'}`);
+    res.json({
+      status: 'deployed',
+      branch: myBranch,
+      commit: target.slice(0, 7),
+      restart_requested: restartTouched,
+      restart_file: restartFile.replace(process.env.HOME || '~', '~'),
+      timestamp: new Date().toISOString()
+    });
   } catch (e) {
     // git/npm output can carry absolute server paths — log it, don't return it.
     console.error('[DEPLOY] Failed:', e.message);

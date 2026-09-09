@@ -361,6 +361,16 @@ Change limit / Deactivate buttons stay visible on a **full** link, which is exac
 needs raising. `parseMaxUses()` refuses non-integers: `req.body.max_uses || 50` stored `"twenty"`
 as NULL, and `use_count >= NULL` is never true, so the link was silently unlimited.
 
+### /api/health says which commit is RUNNING
+`build` is read from `git rev-parse HEAD` once at boot, so it describes the **process**, not
+the working tree. On 2026-09-09 a deploy left `index.html` at the new asset version while
+`/api/health` came from the previous build: the files had been pulled and Passenger had not
+respawned. Static files are read off disk per request, so they are never proof of a deploy.
+Compare `build` with `git rev-parse --short HEAD` locally; if it lags, the app needs a
+restart (cPanel → Setup Node.js App → Restart, or
+`touch ~/troubleshooting.pathfindereducation.or.tz/backend/tmp/restart.txt`).
+The deploy webhook now reports `restart_requested` and the path it touched.
+
 ### /api/health carries feature flags
 `features: { ai, email, sms, whatsapp_inbound, whatsapp_send, heartbeat, uploads }` — booleans
 only, asked of the services' own `isConfigured()` where one exists. It exists so "the AI says it
