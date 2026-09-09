@@ -37,10 +37,28 @@ async function authenticate(req, res, next) {
   }
 }
 
+/**
+ * Role gate.
+ *
+ * The refusal names the role it saw and the roles it wanted. "Forbidden.
+ * Insufficient permissions." is unfalsifiable from the outside: on 2026-09-09 a
+ * platform admin got it from the AI assistant and it took a git archaeology
+ * session to find out why — the running process was an old build whose route
+ * allowed only school+subadmin. Either message would have been refused; only
+ * one of them would have said which role was rejected.
+ *
+ * It reveals nothing: a person already knows their own role, and the required
+ * roles are visible in the nav they can see.
+ */
 function authorize(...roles) {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Forbidden. Insufficient permissions.' });
+      return res.status(403).json({
+        error: `Forbidden. This is for ${roles.join(', ')} accounts — yours is ${req.user.role}.`,
+        code: 'ROLE_NOT_ALLOWED',
+        your_role: req.user.role,
+        allowed_roles: roles
+      });
     }
     next();
   };
