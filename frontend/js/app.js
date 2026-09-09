@@ -471,6 +471,8 @@ const ErrorDetailModal = (() => {
 document.addEventListener('DOMContentLoaded', async () => {
   Modal.init();
   Auth.init();
+  // Every password field in the app gets a reveal button.
+  PasswordField.init();
   API.initSessionMonitor();
   Router.initHashListener();
   // Drains anything queued while offline, and keeps the pending badge current.
@@ -492,6 +494,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     regPage.style.display = 'flex';
     await TeacherRegisterPage.init();
     document.getElementById('register-content').innerHTML = TeacherRegisterPage.render();
+    PasswordField.enhanceAll(document.getElementById('register-content'));
     return;
   }
 

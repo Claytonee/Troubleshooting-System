@@ -73,21 +73,11 @@ const RegisterPage = (() => {
             </div>
             <div class="reg-field">
               <label>Password <span class="req">*</span></label>
-              <div class="reg-pw-wrap">
-                <input type="password" id="reg-password" placeholder="Minimum 8 characters" required minlength="8">
-                <button type="button" class="reg-pw-toggle" onclick="RegisterPage.togglePw('reg-password', this)" tabindex="-1">
-                  <i class="ti ti-eye"></i>
-                </button>
-              </div>
+              <input type="password" id="reg-password" placeholder="Minimum 8 characters" required minlength="8">
             </div>
             <div class="reg-field">
               <label>Confirm Password <span class="req">*</span></label>
-              <div class="reg-pw-wrap">
-                <input type="password" id="reg-confirm" placeholder="Re-enter password" required>
-                <button type="button" class="reg-pw-toggle" onclick="RegisterPage.togglePw('reg-confirm', this)" tabindex="-1">
-                  <i class="ti ti-eye"></i>
-                </button>
-              </div>
+              <input type="password" id="reg-confirm" placeholder="Re-enter password" required>
             </div>
           </div>
           <button type="submit" class="reg-btn" id="reg-submit-btn">
@@ -327,6 +317,7 @@ const RegisterPage = (() => {
 
   function reRender() {
     const el = document.getElementById('register-content');
+    if (el && typeof PasswordField !== 'undefined') setTimeout(() => PasswordField.enhanceAll(el), 0);
     if (el) el.innerHTML = render();
   }
 
@@ -390,15 +381,7 @@ const RegisterPage = (() => {
 
   document.addEventListener('click', closeDropdownOnOutsideClick);
 
-  function togglePw(id, btn) {
-    const inp = document.getElementById(id);
-    if (!inp) return;
-    const show = inp.type === 'password';
-    inp.type = show ? 'text' : 'password';
-    btn.querySelector('i').className = show ? 'ti ti-eye-off' : 'ti ti-eye';
-  }
-
   function afterRender() {}
 
-  return { load, render, afterRender, submit, showAppeal, cancelAppeal, submitAppeal, goLogin, showStatus, toggleDropdown, filterSchools, selectSchool, togglePw };
+  return { load, render, afterRender, submit, showAppeal, cancelAppeal, submitAppeal, goLogin, showStatus, toggleDropdown, filterSchools, selectSchool };
 })();

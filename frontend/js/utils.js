@@ -404,3 +404,83 @@ const Tooltip = (() => {
 
   return { show, hide };
 })();
+
+/**
+ * Password visibility toggle, for every password field in the app.
+ *
+ * There was no way to see what you had typed. On a cracked tablet screen in a
+ * staffroom that means retyping a password until it takes, and it is the first
+ * thing a teacher meets. `enhanceAll()` is idempotent and safe to call after
+ * any render; a `focusin` fallback catches fields rendered by paths that forget
+ * to call it.
+ *
+ * Toggling fires `pw:visibility` on the input (bubbling) so anything else on
+ * the page can react without this module knowing about it.
+ */
+const PasswordField = (() => {
+  function icon(visible) { return `<i class="ti ti-eye${visible ? '-off' : ''}"></i>`; }
+
+  function toggle(input, btn) {
+    const reveal = input.type === 'password';
+    input.type = reveal ? 'text' : 'password';
+    btn.innerHTML = icon(reveal);
+    btn.classList.toggle('is-on', reveal);
+    const label = reveal ? 'Hide password' : 'Show password';
+    btn.setAttribute('aria-label', label);
+    btn.title = label;
+    input.dispatchEvent(new CustomEvent('pw:visibility', { bubbles: true, detail: { visible: reveal } }));
+    // Keep the caret where it was: switching type moves it to the end.
+    const pos = input.value.length;
+    input.focus();
+    try { input.setSelectionRange(pos, pos); } catch (e) { /* type=email etc. */ }
+  }
+
+  function enhance(input) {
+    if (!input || input.dataset.pwEnhanced) return;
+    // A page that ships its own reveal button keeps it — two eyes on one field
+    // is worse than none, and that is exactly what happened the first time.
+    const sibling = input.parentElement && input.parentElement.querySelector('button');
+    if (sibling && !sibling.classList.contains('pw-toggle')) { input.dataset.pwEnhanced = '1'; return; }
+    input.dataset.pwEnhanced = '1';
+
+    // The login page ships its own markup so the button is there before JS runs.
+    let wrap = input.closest('.pw-wrap');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'pw-wrap';
+      input.parentNode.insertBefore(wrap, input);
+      wrap.appendChild(input);
+    }
+    let btn = wrap.querySelector('.pw-toggle');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pw-toggle';
+      btn.setAttribute('aria-label', 'Show password');
+      btn.title = 'Show password';
+      btn.innerHTML = icon(false);
+      wrap.appendChild(btn);
+    }
+    if (!btn.dataset.bound) {
+      btn.dataset.bound = '1';
+      // mousedown would blur the field before the click lands, which loses the
+      // caret position and any focus styling for a frame.
+      btn.addEventListener('mousedown', e => e.preventDefault());
+      btn.addEventListener('click', () => toggle(input, btn));
+    }
+  }
+
+  function enhanceAll(root) {
+    (root || document).querySelectorAll('input[type="password"]').forEach(enhance);
+  }
+
+  function init() {
+    enhanceAll();
+    // Anything rendered later: enhance it the moment it is used.
+    document.addEventListener('focusin', e => {
+      if (e.target && e.target.tagName === 'INPUT' && e.target.type === 'password') enhance(e.target);
+    });
+  }
+
+  return { init, enhance, enhanceAll };
+})();

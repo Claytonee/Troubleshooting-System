@@ -13,6 +13,9 @@ const Modal = (() => {
     box.classList.remove('preview');
     $('modal').classList.add('open');
     document.body.style.overflow = 'hidden';
+    // Change-password and registration modals carry password fields; give each
+    // one its reveal button here rather than asking every caller to remember.
+    if (typeof PasswordField !== 'undefined') PasswordField.enhanceAll($('modal-body'));
   }
 
   // Lock/unlock lets callers (e.g. a forced password change) prevent the user

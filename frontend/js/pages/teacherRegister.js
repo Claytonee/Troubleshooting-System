@@ -215,6 +215,7 @@ const TeacherRegisterPage = (() => {
 
   function renderPage() {
     const container = document.getElementById('register-content');
+    if (container && typeof PasswordField !== 'undefined') setTimeout(() => PasswordField.enhanceAll(container), 0);
     if (container) {
       container.innerHTML = render();
     } else {
