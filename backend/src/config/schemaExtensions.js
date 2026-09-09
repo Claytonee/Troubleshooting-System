@@ -400,6 +400,24 @@ async function applyExtensions(db) {
     FOREIGN KEY (lrs_id) REFERENCES lrs_devices(id) ON DELETE CASCADE
   )`);
 
+  // --- USSD sessions (feature 8) ---
+  // One row per call. A session that reaches the menu and stops is a fault
+  // somebody wanted to report and could not — the number this feature exists
+  // to move — so the abandoned ones matter as much as the filed ones.
+  await q(`CREATE TABLE IF NOT EXISTS ussd_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(100) NOT NULL,
+    phone VARCHAR(30),
+    user_id INT NULL,
+    school_id INT NULL,
+    outcome VARCHAR(40) NOT NULL,
+    error_id INT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_ussd_session (session_id),
+    INDEX idx_ussd_outcome (outcome, created_at)
+  )`);
+
   // --- Error Attachments ---
   await q(`CREATE TABLE IF NOT EXISTS error_attachments (
     id INT AUTO_INCREMENT PRIMARY KEY,

@@ -7,6 +7,7 @@ const { logAudit } = require('../services/audit');
 const { notifyErrorEvent } = require('../services/notify');
 const { notifyErrorSms } = require('../services/sms');
 const { targetHours } = require('../services/sla');
+const intake = require('../services/intake');
 
 function getResourceType(mimetype) {
   if (mimetype.startsWith('image/')) return 'image';
@@ -274,10 +275,16 @@ async function create(req, res, next) {
      * A school admin's own report still goes straight to platform: they ARE the
      * school level, so there is nobody below to triage it.
      */
-    const byTeacher = req.user.role === 'teacher';
-    const critical = prio === 'critical';
-    const assignedTo = (!byTeacher || critical) ? fieldEngineer : null;
-    const escalationLevel = (req.user.role === 'school' || (byTeacher && critical)) ? 'platform' : 'school';
+    // The rule lives in services/intake.js — four channels file faults now, and
+    // the copy that used to live in the WhatsApp handler had already drifted.
+    const route = intake.routeFor({
+      reporterRole: req.user.role,
+      priority: prio,
+      fieldEngineerId: fieldEngineer
+    });
+    const assignedTo = route.assignedTo;
+    const escalationLevel = route.escalationLevel;
+    const critical = route.critical;
 
     const [result] = await pool.query(
       `INSERT INTO errors (error_code, title, description, school_id, category, subcategory, priority, status, assigned_to, reporter_name, reporter_role, reporter_contact, location, affected_devices, sla_due_at, escalation_level, reported_by_user_id, client_ref, intake_channel)
@@ -298,23 +305,11 @@ async function create(req, res, next) {
     // A teacher's fault also lands on the school administrator's bell. Email is
     // best-effort and unconfigured on this deployment, so in-app is the only
     // channel that actually reaches them.
-    if (byTeacher) {
-      await pool.query(
-        `INSERT INTO admin_notifications (target_role, type, title, message, meta)
-         VALUES ('school', 'error_reported', ?, ?, ?)`,
-        [
-          `${req.user.full_name} reported: ${title}`.slice(0, 300),
-          `${errorCode} · ${prio} · ${category}${critical ? ' — critical, already sent to the engineers too' : ''}`,
-          JSON.stringify({
-            school_id: Number(school_id),
-            error_id: result.insertId,
-            error_code: errorCode,
-            priority: prio,
-            teacher_id: req.user.id,
-            teacher_name: req.user.full_name
-          })
-        ]
-      );
+    if (route.notifySchoolAdmin) {
+      await intake.notifySchoolAdmin({
+        schoolId: school_id, errorId: result.insertId, errorCode,
+        priority: prio, category, reporterName: req.user.full_name, critical
+      });
     }
     // Critical issues also fire an SMS (most reliable channel in the field).
     if (prio === 'critical') {

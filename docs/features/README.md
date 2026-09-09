@@ -47,6 +47,7 @@ the incident opens itself, the on-call engineer is paged
 | 5 | Visit planner | one trip fixes four faults | M | [05](05-visit-planner.md) |
 | 6 | Trend metrics | the numbers that drive decisions | S | [06](06-trend-metrics.md) |
 | 7 | Teacher scope & delegated inventory | the account stops offering what it refuses | M | [07](07-teacher-scope.md) |
+| 8 | USSD + SMS intake | any phone, no internet, no bundle | M | [08](08-phone-intake.md) |
 
 7 came from the field, not the roadmap: six things a teacher's account did
 wrong, reported after the first six shipped.

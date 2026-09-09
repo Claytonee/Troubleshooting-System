@@ -158,15 +158,29 @@ const SUBCATS = {
  * WhatsApp sender's identity has not been established — both worth knowing
  * before picking up the phone. Web reports are the norm and go unlabelled.
  */
+/**
+ * How this fault arrived, said plainly on the detail view.
+ *
+ * "Sender not verified" is not decoration: a phone number is not authentication,
+ * so a fault filed from an unrecognised number may be about a school the caller
+ * has nothing to do with. Whoever picks it up has to know that before they drive.
+ */
+const INTAKE_CHANNELS = {
+  whatsapp: { icon: 'ti-brand-whatsapp', label: 'WhatsApp' },
+  ussd:     { icon: 'ti-device-mobile-message', label: 'USSD (simu ya kawaida)' },
+  sms:      { icon: 'ti-message-2', label: 'SMS' }
+};
+
 function intakeLabel(e) {
   if (e.auto_source) {
     return ' · <span style="color:var(--purple)"><i class="ti ti-activity-heartbeat" style="font-size:12px;vertical-align:-1px"></i> detected automatically</span>';
   }
-  if (e.intake_channel !== 'whatsapp') return '';
-  const unverified = e.reporter_role === 'whatsapp-unverified';
-  return unverified
-    ? ' · <span style="color:var(--amber)"><i class="ti ti-brand-whatsapp" style="font-size:12px;vertical-align:-1px"></i> WhatsApp · sender not verified</span>'
-    : ' · <span style="color:var(--green)"><i class="ti ti-brand-whatsapp" style="font-size:12px;vertical-align:-1px"></i> WhatsApp</span>';
+  const channel = INTAKE_CHANNELS[e.intake_channel];
+  if (!channel) return '';
+  const unverified = String(e.reporter_role || '').endsWith('-unverified');
+  const colour = unverified ? 'var(--amber)' : 'var(--green)';
+  const suffix = unverified ? ' · sender not verified' : '';
+  return ` · <span style="color:${colour}"><i class="ti ${channel.icon}" style="font-size:12px;vertical-align:-1px"></i> ${channel.label}${suffix}</span>`;
 }
 
 function slaState(error) {

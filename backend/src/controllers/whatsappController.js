@@ -16,6 +16,7 @@ const pool = require('../config/database');
 const wa = require('../services/whatsapp');
 const assistant = require('../services/assistant');
 const { targetHours } = require('../services/sla');
+const intake = require('../services/intake');
 const { logAudit } = require('../services/audit');
 
 const MAX_REPLY_CHARS = 900;   // a support answer on a phone, not an essay
@@ -250,23 +251,41 @@ async function fileFromDraft(conv) {
   const title = makeTitle(text);
 
   let reporterName = 'WhatsApp report';
+  let identityRole = null;
   if (conv.user_id) {
-    const [u] = await pool.query('SELECT full_name FROM users WHERE id = ?', [conv.user_id]);
-    if (u.length) reporterName = u[0].full_name;
+    const [u] = await pool.query('SELECT full_name, role FROM users WHERE id = ?', [conv.user_id]);
+    if (u.length) { reporterName = u[0].full_name; identityRole = u[0].role; }
   }
+
+  // Routing comes from services/intake.js. This handler used to assign the
+  // field engineer directly and answer "an engineer has been notified", so the
+  // same teacher reporting the same fault got a different chain depending on
+  // whether they used the web form or WhatsApp.
+  const route = intake.routeFor({
+    reporterRole: conv.verified ? identityRole : null,
+    priority,
+    fieldEngineerId: school.assigned_admin_id
+  });
 
   const [result] = await pool.query(
     `INSERT INTO errors
        (error_code, title, description, school_id, category, priority, status, assigned_to,
         reporter_name, reporter_role, reporter_contact, sla_due_at, escalation_level,
         reported_by_user_id, intake_channel)
-     VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? HOUR), 'school', ?, 'whatsapp')`,
+     VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? HOUR), ?, ?, 'whatsapp')`,
     [errorCode, title, text, conv.school_id, category, priority,
-     school.assigned_admin_id || null, reporterName,
+     route.assignedTo, reporterName,
      conv.verified ? 'whatsapp' : 'whatsapp-unverified', conv.phone,
-     targetHours(priority), conv.user_id || null]
+     targetHours(priority), route.escalationLevel, conv.user_id || null]
   );
   const errorId = result.insertId;
+
+  if (route.notifySchoolAdmin) {
+    await intake.notifySchoolAdmin({
+      schoolId: conv.school_id, errorId, errorCode, priority, category,
+      reporterName, critical: route.critical
+    });
+  }
 
   await pool.query('UPDATE whatsapp_messages SET error_id = ? WHERE conversation_id = ? AND error_id IS NULL',
     [errorId, conv.id]);
@@ -280,8 +299,9 @@ async function fileFromDraft(conv) {
   await setState(conv.id, 'idle', null);
   return reply(conv,
     `Logged as ${errorCode} — ${school.name || 'your school'}.\n` +
-    `Priority: ${priority}. An engineer has been notified.\n\n` +
-    'Message me again if anything changes.');
+    `Priority: ${priority}. ` +
+    (route.assignedTo ? 'An engineer has been notified.' : 'Your school administrator has been notified.') +
+    '\n\nMessage me again if anything changes.');
 }
 
 // ---------------------------------------------------------------------------

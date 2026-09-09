@@ -516,6 +516,10 @@ WHATSAPP_APP_SECRET=your_app_secret        # signs every inbound webhook; unset,
 WHATSAPP_VERIFY_TOKEN=your_verify_token    # Meta's one-time subscription handshake
 WHATSAPP_TOKEN=your_permanent_token        # sending only — unset, replies are logged and skipped
 WHATSAPP_PHONE_ID=your_phone_number_id
+PHONE_INTAKE_KEY=your_ussd_sms_key         # required for POST /api/ussd and /api/sms/inbound;
+                                          # unset, both refuse (Africa's Talking does not sign callbacks)
+AT_USERNAME=your_at_username               # Africa's Talking, also used for outbound SMS
+AT_API_KEY=your_at_api_key
 AWS_BEARER_TOKEN_BEDROCK=your_bedrock_token  # REQUIRED for the AI Assistant. Unset, every role
                                           # gets "AI service not configured" — this variable was
                                           # missing from this list, so it was never set on cPanel
@@ -556,6 +560,11 @@ and took both deployments down on 2026-09-07.
 and are labelled in the error detail modal by `intakeLabel()`):
 - `POST /api/heartbeat` + `/sweep` — a silent school LRS opens its own CRITICAL
   ticket (`intake_channel='monitor'`, `auto_source='lrs_heartbeat:<id>'`).
+- `POST /api/ussd` — a feature phone dialling the shortcode. No internet, no
+  bundle, no smartphone. Menu in Swahili, four presses, scale not severity
+  (`intake_channel='ussd'`). An unrecognised number may report but never read.
+- `POST /api/sms/inbound` — a plain SMS; keywords STATUS and MSAADA, anything
+  else is a fault (`intake_channel='sms'`).
 - `POST /api/whatsapp/webhook` — a teacher's WhatsApp message; the assistant
   replies with first steps, then offers to log it
   (`intake_channel='whatsapp'`). **A phone number is not authentication:** an
