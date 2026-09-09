@@ -76,7 +76,11 @@ const Router = (() => {
     document.querySelectorAll('[data-role="field"]').forEach(el => el.classList.toggle('nav-hidden', !isField));
     document.querySelectorAll('[data-role="no-admin"]').forEach(el => el.classList.toggle('nav-hidden', isAdmin));
 
-    const adminPages = ['analytics', 'schooladmins', 'branding', 'audit', 'approvals', 'lrs'];
+    // Every page with a data-role marker MUST be listed here too, or the hash
+    // still reaches it. 'team' was missing: the Sub-Admins page rendered for any
+    // role and simply 403'd its data (found by audit, 2026-09-09).
+    const adminPages = ['analytics', 'schooladmins', 'branding', 'audit', 'approvals', 'lrs', 'team'];
+    const noAdminPages = ['chat'];
     const schoolPages = ['help', 'teachers'];
     const subadminPages = ['fieldguide'];
     const staffPages = ['followup', 'weekly', 'schools'];
@@ -84,6 +88,7 @@ const Router = (() => {
     const fieldPages = ['visits'];
 
     if (!isAdmin && adminPages.includes(currentPage)) navigate('dashboard');
+    if (isAdmin && noAdminPages.includes(currentPage)) navigate('dashboard');
     if (!isSchool && schoolPages.includes(currentPage)) navigate('dashboard');
     if (!isSubadmin && subadminPages.includes(currentPage)) navigate('dashboard');
     if (!isStaff && staffPages.includes(currentPage)) navigate('dashboard');

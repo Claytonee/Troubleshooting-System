@@ -4,10 +4,14 @@
  * docs/features/06-trend-metrics.md
  */
 const router = require('express').Router();
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 const ctrl = require('../controllers/analyticsController');
 
 router.use(authenticate);
+// Aggregates over a whole school are a management view. The controller scopes
+// rows per role, but a teacher has no page for this and no business with the
+// school's totals — the endpoint should not answer them at all.
+router.use(authorize('admin', 'subadmin', 'school'));
 router.get('/trends', ctrl.trends);
 
 module.exports = router;

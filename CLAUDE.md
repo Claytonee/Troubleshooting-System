@@ -379,6 +379,33 @@ is not configured" can be diagnosed without cPanel access:
 curl -s https://support.mkatolikikiganjani.com/api/health
 ```
 
+### Who sees what (the matrix, and the two halves of it)
+`backend/scripts/verify-role-matrix.js` is the executable version of this table —
+124 assertions, and it fails if the sidebar and the hash guard stop agreeing.
+
+| | admin | subadmin | school | teacher |
+|---|---|---|---|---|
+| Dashboard, Errors, Guides, Resources, Inventory, Search, Settings | ✔ | ✔ | ✔ | ✔ |
+| **AI Assistant** | — | ✔ | ✔ | ✔ |
+| Error Tracker | ✔ | ✔ | ✔ | ✔ (own reports) |
+| Analytics, School Profiles, Check-Ins, Communications, notifications | ✔ | ✔ | ✔ | — |
+| Visit Planner | ✔ | ✔ | — | — |
+| Sub-Admins, School Admins, Audit, LRS, Approvals, Branding | ✔ | — | — | — |
+| Teachers, registration links | — | — | ✔ | — |
+
+**The assistant is not head office's.** It helps whoever is standing in front of the
+equipment. A platform admin runs the system; they were seeing it because the nav item
+carried no `data-role` at all (found 2026-09-09).
+
+**A permission has two halves and both must be set.** The nav marker hides the link;
+the matching `*Pages` array in `applyRoleVisibility()` stops the hash. `#team` had the
+first and not the second, so the Sub-Admins page rendered for every role and merely
+403'd its data. The suite now asserts every marked page appears in its array.
+
+**`/api/analytics/trends` answered teachers.** The page is admin-only in the nav, but the
+endpoint took any signed-in role and scoped rows to their school — so a teacher could read
+their school's totals with no page for it. Now `admin, subadmin, school`.
+
 ### Role markers on nav items
 `data-role` gates sidebar items in `router.js`: `admin`, `subadmin`, `school`,
 `school-teacher`, `no-admin`, `staff` (admin+subadmin+school), `staff-teacher`
