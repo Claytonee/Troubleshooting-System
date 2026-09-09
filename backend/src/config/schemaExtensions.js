@@ -400,6 +400,31 @@ async function applyExtensions(db) {
     FOREIGN KEY (lrs_id) REFERENCES lrs_devices(id) ON DELETE CASCADE
   )`);
 
+  // --- Spares and swaps (feature 9) ---
+  // A spare is a working device deliberately held aside so a faulty one can be
+  // swapped out on the spot. Marking it on the device itself rather than in a
+  // parallel table keeps one source of truth for where every device is.
+  await q('ALTER TABLE tablets ADD COLUMN is_spare TINYINT(1) DEFAULT 0');
+  await q('CREATE INDEX idx_tablets_spare ON tablets (school_id, is_spare, status)');
+
+  // One row per swap. Reconstructing this from two history rows is fragile, and
+  // "did the visit fix it first time" is a question worth being able to answer
+  // directly — it is the field-service metric that everything else follows.
+  await q(`CREATE TABLE IF NOT EXISTS tablet_swaps (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    school_id INT NOT NULL,
+    faulty_tablet_id INT NOT NULL,
+    spare_tablet_id INT NOT NULL,
+    error_id INT NULL,
+    visit_id INT NULL,
+    student_name VARCHAR(200),
+    swapped_by VARCHAR(200),
+    note TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_swaps_school (school_id, created_at),
+    INDEX idx_swaps_error (error_id)
+  )`);
+
   // --- USSD sessions (feature 8) ---
   // One row per call. A session that reaches the menu and stops is a fault
   // somebody wanted to report and could not — the number this feature exists

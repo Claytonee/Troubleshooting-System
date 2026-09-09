@@ -1,7 +1,7 @@
 const InventoryPage = (() => {
   let devices = [], stats = null, schools = [];
   let filters = { status: '', form: '', search: '', school_id: '', warranty: '', repeat_offender: '' };
-  let refreshPlan = null, batchRows = null, activeView = 'devices';
+  let refreshPlan = null, batchRows = null, sparesView = null, activeView = 'devices';
   const user = () => API.getUser();
   const isAdmin = () => ['admin','subadmin'].includes(user()?.role);
 
@@ -68,9 +68,13 @@ const InventoryPage = (() => {
     <button class="tab-btn ${activeView === 'devices' ? 'active' : ''}" onclick="InventoryPage.setView('devices')"><i class="ti ti-device-tablet"></i> Devices</button>
     <button class="tab-btn ${activeView === 'refresh' ? 'active' : ''}" onclick="InventoryPage.setView('refresh')"><i class="ti ti-recycle"></i> Replace &amp; renew</button>
     <button class="tab-btn ${activeView === 'batches' ? 'active' : ''}" onclick="InventoryPage.setView('batches')"><i class="ti ti-packages"></i> Batches</button>
+    <button class="tab-btn ${activeView === 'spares' ? 'active' : ''}" onclick="InventoryPage.setView('spares')"><i class="ti ti-refresh-dot"></i> Spares</button>
   </div>
 
-  <div id="inv-view">${activeView === 'devices' ? deviceView() : activeView === 'refresh' ? refreshView() : batchView()}</div>`;
+  <div id="inv-view">${activeView === 'devices' ? deviceView()
+    : activeView === 'refresh' ? refreshView()
+    : activeView === 'spares' ? sparesViewHtml()
+    : batchView()}</div>`;
   }
 
   /** The device list, with the lifecycle filters. */
@@ -126,6 +130,7 @@ const InventoryPage = (() => {
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           ${d.form ? `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--text3)">${esc(d.form)}${d.stream ? ' '+esc(d.stream) : ''}</span>` : ''}
           ${statusBadge(d.status)}
+          ${d.is_spare ? '<span style="font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(155,125,255,.15);color:var(--purple);font-weight:600;letter-spacing:.4px">SPARE</span>' : ''}
         </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
@@ -285,10 +290,135 @@ const InventoryPage = (() => {
     </div>`;
   }
 
+  /**
+   * Spares: what is on the shelf, and — the point of the page — where it is not.
+   *
+   * Sorted by what is MISSING rather than by what is present. The only question
+   * an engineer asks here is "which school can I not fix today", and a list
+   * sorted by stock answers a question nobody has.
+   */
+  function sparesViewHtml() {
+    const d = sparesView;
+    if (!d) return '<div class="card"><div class="empty"><i class="ti ti-loader"></i>Loading…</div></div>';
+    const t = d.totals || {};
+    const ftf = d.first_time_fix || {};
+
+    const ftfCard = ftf.rate == null
+      ? `<div class="stat-card"><div class="stat-label">First-time fix</div>
+           <div class="stat-val" style="color:var(--text3)">—</div>
+           <div class="stat-sub">${ftf.visits_completed ? ftf.visits_completed + ' visit(s), none with faults attached' : 'no completed visits yet'}</div></div>`
+      : `<div class="stat-card ${ftf.rate >= 70 ? 'g' : ftf.rate >= 40 ? 'a' : 'r'}">
+           <div class="stat-label">First-time fix</div>
+           <div class="stat-val" style="color:var(--${ftf.rate >= 70 ? 'green' : ftf.rate >= 40 ? 'amber' : 'red'})">${ftf.rate}%</div>
+           <div class="stat-sub">${ftf.fixed_first_time}/${ftf.visits_measurable} visits, last ${ftf.window_days}d</div></div>`;
+
+    const rows = (d.schools || []).filter(x => x.awaiting_swap > 0 || x.spares_available > 0);
+
+    return `
+    <div class="stats-grid" style="margin-bottom:14px">
+      <div class="stat-card ${t.stockout_schools ? 'r' : 'g'}">
+        <div class="stat-label">Cannot fix today</div>
+        <div class="stat-val" style="color:var(--${t.stockout_schools ? 'red' : 'green'})">${t.stockout_schools || 0}</div>
+        <div class="stat-sub">schools with faults and no spare</div></div>
+      <div class="stat-card a"><div class="stat-label">Awaiting a swap</div>
+        <div class="stat-val" style="color:var(--amber)">${t.awaiting_swap || 0}</div>
+        <div class="stat-sub">faulty or in repair</div></div>
+      <div class="stat-card t"><div class="stat-label">Spares on the shelf</div>
+        <div class="stat-val" style="color:var(--teal)">${t.spares_available || 0}</div>
+        <div class="stat-sub">working and unassigned</div></div>
+      ${ftfCard}
+    </div>
+
+    <div class="card" style="padding:0">
+      <div class="table-wrap"><table>
+        <thead><tr><th>School</th><th>Awaiting swap</th><th>Spares on site</th><th>To carry</th><th></th></tr></thead>
+        <tbody>
+          ${rows.length ? rows.map(r => `<tr>
+            <td><strong>${esc(r.school_name)}</strong></td>
+            <td>${r.awaiting_swap}</td>
+            <td style="color:var(--${r.spares_available ? 'teal' : 'text3'})">${r.spares_available}</td>
+            <td>${r.needed ? '<strong style="color:var(--amber)">' + r.needed + '</strong>' : '<span style="color:var(--text3)">—</span>'}</td>
+            <td>${r.stockout ? '<span class="badge-red">cannot fix on site</span>' : ''}</td>
+          </tr>`).join('') : `<tr><td colspan="5"><div class="empty" style="padding:30px 20px">
+            <i class="ti ti-circle-check" style="color:var(--green)"></i>Nothing is waiting for a swap.</div></td></tr>`}
+        </tbody>
+      </table></div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.6">
+      A <strong>spare</strong> is a working, unassigned device held aside on purpose. Mark one from any
+      device's detail view. &ldquo;To carry&rdquo; is what to load into the vehicle: faulty devices minus
+      the spares already at that school.
+    </div>`;
+  }
+
+  /** Hold a device aside as a spare, or put it back into normal use. */
+  async function toggleSpare(id, makeSpare) {
+    try {
+      const r = await API.setSpare(id, makeSpare);
+      showToast(r.message);
+      sparesView = null;                       // stale the moment stock changes
+      await load();
+      App.render();
+    } catch (e) { showToast(e.error || 'Could not change that'); }
+  }
+
+  /**
+   * Swap a faulty device for a spare at the same school.
+   *
+   * The picker lists the spares actually on site; with none, the modal says so
+   * plainly rather than offering an empty dropdown.
+   */
+  async function openSwap(id) {
+    if (!guardWrite()) return;
+    try {
+      const device = devices.find(x => x.id === id) || await API.getInventoryItem(id);
+      const pool = devices.length ? devices : await API.getInventory({ school_id: device.school_id });
+      const usable = pool.filter(t => t.is_spare && t.status === 'Working' && !t.student_name && t.id !== id
+        && t.school_id === device.school_id);
+
+      Modal.open('Swap this device', usable.length ? `
+        <div style="font-size:13px;color:var(--text2);margin-bottom:12px">
+          <strong>${esc(device.asset_tag || device.serial_number)}</strong>
+          ${device.student_name ? ' is with <strong>' + esc(device.student_name) + '</strong>.' : ' is unassigned.'}
+          Pick the spare that takes its place — the student keeps working and this one goes to the repair pile.
+        </div>
+        <div class="form-group">
+          <label>Spare to use</label>
+          <select id="swap-spare" class="form-control">
+            ${usable.map(t => `<option value="${t.id}">${esc(t.asset_tag || t.serial_number)}${t.model ? ' · ' + esc(t.model) : ''}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group"><label>Note (optional)</label>
+          <input type="text" id="swap-note" class="form-control" placeholder="e.g. screen cracked, sent to Moshi"></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:10px" onclick="InventoryPage.submitSwap(${id})">
+          <i class="ti ti-refresh-dot"></i> Swap</button>
+      ` : `
+        <div class="empty" style="padding:30px 20px">
+          <i class="ti ti-package-off" style="color:var(--amber)"></i>
+          No spare at this school.<br>
+          <span style="font-size:12px;color:var(--text3)">Mark a working, unassigned device as a spare first, or bring one from another school.</span>
+        </div>`, '');
+    } catch (e) { showToast(e.error || 'Could not load the spares'); }
+  }
+
+  async function submitSwap(id) {
+    const spareId = document.getElementById('swap-spare')?.value;
+    const note = document.getElementById('swap-note')?.value || '';
+    if (!spareId) return;
+    try {
+      const r = await API.swapDevice(id, { spare_id: Number(spareId), note });
+      Modal.close();
+      showToast(r.message, 5000);
+      sparesView = null;
+      await load();
+      App.render();
+    } catch (e) { showToast(e.error || 'Swap failed'); }
+  }
+
   async function setView(v) {
     activeView = v;
     document.querySelectorAll('.main .tab-row .tab-btn').forEach((b, i) => {
-      b.classList.toggle('active', ['devices', 'refresh', 'batches'][i] === v);
+      b.classList.toggle('active', ['devices', 'refresh', 'batches', 'spares'][i] === v);
     });
     // In-place swap, never App.render() — that flickers and drops the sidebar.
     const slot = document.getElementById('inv-view');
@@ -297,13 +427,20 @@ const InventoryPage = (() => {
       try { refreshPlan = await API.getRefreshPlan(filters.school_id ? { school_id: filters.school_id } : {}); }
       catch (e) { refreshPlan = { devices_total: 0, due_count: 0, estimated_cost: null, due: [], devices_without_any_purchase_record: 0 }; }
     }
+    if (v === 'spares' && !sparesView) {
+      try { sparesView = await API.getSpares(filters.school_id ? { school_id: filters.school_id } : {}); }
+      catch (e) { sparesView = { schools: [], totals: { spares_available: 0, awaiting_swap: 0, needed: 0, stockout_schools: 0 }, first_time_fix: null }; }
+    }
     if (v === 'batches' && !batchRows) {
       try { batchRows = await API.getDeviceBatches(filters.school_id ? { school_id: filters.school_id } : {}); }
       catch (e) { batchRows = []; }
     }
     const again = document.getElementById('inv-view');
     if (again) {
-      again.innerHTML = v === 'devices' ? deviceView() : v === 'refresh' ? refreshView() : batchView();
+      again.innerHTML = v === 'devices' ? deviceView()
+        : v === 'refresh' ? refreshView()
+        : v === 'spares' ? sparesViewHtml()
+        : batchView();
       again.querySelectorAll('.card, .stat-card, .alert-banner').forEach(c => c.classList.add('reveal', 'visible'));
       if (v === 'devices') Dropdown.initAll && Dropdown.initAll();
     }
@@ -506,6 +643,8 @@ const InventoryPage = (() => {
         ${canWrite() ? `<div style="display:flex;gap:8px;margin-top:14px;justify-content:space-between">
           <button class="btn" onclick="InventoryPage.openEdit(${d.id})" style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px"><i class="ti ti-pencil"></i> Edit</button>
           <button class="btn" onclick="InventoryPage.openStatusChange(${d.id},'${d.status}')" style="padding:8px 16px;font-size:12px;background:rgba(54,217,204,.12);color:var(--teal);border:1px solid rgba(54,217,204,.25);border-radius:8px"><i class="ti ti-refresh"></i> Change Status</button>
+          ${['Faulty','In Repair'].includes(d.status) ? `<button class="btn" onclick="InventoryPage.openSwap(${d.id})" style="padding:8px 16px;font-size:12px;background:rgba(245,166,35,.12);color:var(--amber);border:1px solid rgba(245,166,35,.25);border-radius:8px"><i class="ti ti-refresh-dot"></i> Swap for a spare</button>` : ''}
+          ${d.status === 'Working' && !d.student_name ? `<button class="btn" onclick="InventoryPage.toggleSpare(${d.id}, ${d.is_spare ? 'false' : 'true'})" style="padding:8px 16px;font-size:12px;background:rgba(155,125,255,.12);color:var(--purple);border:1px solid rgba(155,125,255,.25);border-radius:8px"><i class="ti ti-${d.is_spare ? 'package-off' : 'package'}"></i> ${d.is_spare ? 'Return to use' : 'Hold as spare'}</button>` : ''}
         </div>` : ''}
       `, '', true);
     } catch (err) { showToast('Failed to load device details', 'error'); }
@@ -721,6 +860,7 @@ const InventoryPage = (() => {
   return {
     load, render, afterRender,
     openAdd, submitAdd, openEdit, submitEdit, openDetail,
+    toggleSpare, openSwap, submitSwap,
     openStatusChange, submitStatus, confirmDelete,
     openImport, downloadTemplate, previewCsv, submitImport, exportCsv,
     filterStatus, filterForm, filterSchool, debounceSearch,

@@ -14,6 +14,8 @@ router.get('/export', ctrl.exportDevices);
 // Lifecycle reports (feature 4). Both before /:id, or Express would read
 // "refresh-plan" as an id.
 router.get('/refresh-plan', ctrl.refreshPlan);
+// Spares: what is on the shelf and where the gaps are (feature 9).
+router.get('/spares', ctrl.sparesOverview);
 router.get('/batches', ctrl.batches);
 router.get('/:id', ctrl.getById);
 
@@ -30,6 +32,8 @@ router.patch('/:id/status', requireInventoryWrite, [
   validate
 ], ctrl.changeStatus);
 
+router.patch('/:id/spare', requireInventoryWrite, ctrl.setSpare);
+router.post('/:id/swap', requireInventoryWrite, ctrl.swapDevice);
 router.post('/bulk-import', requireInventoryWrite, ctrl.bulkImport);
 // Delete stays with head office — a school admin cannot delete a device, so a
 // teacher they delegate to cannot either.

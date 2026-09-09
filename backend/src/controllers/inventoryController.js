@@ -2,6 +2,7 @@ const pool = require('../config/database');
 const lc = require('../config/lifecycle');
 const { logAudit } = require('../services/audit');
 const { canWriteInventory } = require('../middleware/permissions');
+const spares = require('../services/spares');
 
 // Roles whose school is fixed by their account: the request body can never
 // point them at another school's devices.
@@ -547,4 +548,109 @@ async function batches(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getStats, getById, create, update, assignDevice, changeStatus, bulkImport, exportDevices, remove, refreshPlan, batches };
+/**
+ * GET /api/inventory/spares — what is on the shelf, and where the gaps are.
+ *
+ * Scoped like every other inventory read: a school sees its own, an engineer
+ * sees the schools they cover, head office sees everything. The list is sorted
+ * by what is MISSING rather than by what is present, because the only useful
+ * question here is which school an engineer cannot fix today.
+ */
+async function sparesOverview(req, res, next) {
+  try {
+    let schoolIds = [];
+    if (req.user.role === 'school' || req.user.role === 'teacher') {
+      schoolIds = req.user.school_id ? [req.user.school_id] : [];
+    } else if (req.user.role === 'subadmin') {
+      const [rows] = await pool.query('SELECT id FROM schools WHERE assigned_admin_id = ?', [req.user.id]);
+      schoolIds = rows.map(r => r.id);
+    } else {
+      const [rows] = await pool.query('SELECT id FROM schools' + (req.query.school_id ? ' WHERE id = ?' : ''),
+        req.query.school_id ? [req.query.school_id] : []);
+      schoolIds = rows.map(r => r.id);
+    }
+    const schools = await spares.stockAcross(schoolIds);
+    const totals = schools.reduce((acc, s) => ({
+      spares_available: acc.spares_available + s.spares_available,
+      awaiting_swap: acc.awaiting_swap + s.awaiting_swap,
+      needed: acc.needed + s.needed,
+      stockout_schools: acc.stockout_schools + (s.stockout ? 1 : 0)
+    }), { spares_available: 0, awaiting_swap: 0, needed: 0, stockout_schools: 0 });
+
+    // The trip metric belongs beside the stock it depends on: a low
+    // first-time-fix rate next to a stockout is one story, not two.
+    const ftf = await spares.firstTimeFix({ schoolIds });
+
+    res.json({ schools, totals, first_time_fix: ftf, can_write: canWriteInventory(req.user) });
+  } catch (err) { next(err); }
+}
+
+/**
+ * PATCH /api/inventory/:id/spare — hold a device aside, or put it back in use.
+ *
+ * Only a working, unassigned device can become a spare: marking an assigned one
+ * would promise the engineer a device that is under a student's hand.
+ */
+async function setSpare(req, res, next) {
+  try {
+    const isSpare = req.body.is_spare === true || req.body.is_spare === 'true' || req.body.is_spare === 1;
+    const [rows] = await pool.query('SELECT * FROM tablets WHERE id = ?', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Device not found' });
+    const device = rows[0];
+    if (!(await canWriteSchool(req.user, device.school_id))) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (isSpare && device.status !== 'Working') {
+      return res.status(400).json({ error: `A ${device.status} device cannot be held as a spare.` });
+    }
+    if (isSpare && device.student_name) {
+      return res.status(400).json({ error: `This device is assigned to ${device.student_name}. Unassign it first.` });
+    }
+
+    await pool.query('UPDATE tablets SET is_spare = ?, updated_at = NOW() WHERE id = ?', [isSpare ? 1 : 0, device.id]);
+    await pool.query(
+      'INSERT INTO tablet_history (tablet_id, action, old_value, new_value, actor_name) VALUES (?, ?, ?, ?, ?)',
+      [device.id, isSpare ? 'marked_spare' : 'unmarked_spare', device.is_spare ? 'spare' : 'in use',
+        isSpare ? 'spare' : 'in use', req.user.full_name || req.user.username]
+    );
+    res.json({ message: isSpare ? 'Held as a spare.' : 'Returned to normal use.', is_spare: isSpare });
+  } catch (err) { next(err); }
+}
+
+/**
+ * POST /api/inventory/:id/swap — put a working device in the student's hands.
+ *
+ * The whole point of the feature: the visit ends with a child able to work,
+ * not with a note saying the device is broken.
+ */
+async function swapDevice(req, res, next) {
+  try {
+    const [rows] = await pool.query('SELECT school_id FROM tablets WHERE id = ?', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Device not found' });
+    if (!(await canWriteSchool(req.user, rows[0].school_id))) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    const result = await spares.swap({
+      faultyId: req.params.id,
+      spareId: req.body.spare_id,
+      errorId: req.body.error_id || null,
+      visitId: req.body.visit_id || null,
+      actorName: req.user.full_name || req.user.username,
+      note: req.body.note || null
+    });
+    if (!result.ok) return res.status(400).json({ error: result.error });
+
+    await logAudit({
+      actor: req.user, ip: req.ip, action: 'inventory.swapped', entityType: 'tablet',
+      entityId: req.params.id,
+      summary: `Swapped ${result.faulty.label} for spare ${result.spare.label}`,
+      meta: { swap_id: result.swap_id, school_id: rows[0].school_id, error_id: req.body.error_id || null }
+    });
+    // Names ending in an initial ("Neema J.") already carry the full stop.
+    const who = result.student || 'the class';
+    res.json({ message: `${result.spare.label} is now with ${who}${who.endsWith('.') ? '' : '.'}`, ...result });
+  } catch (err) { next(err); }
+}
+
+module.exports = {
+  sparesOverview, setSpare, swapDevice, getAll, getStats, getById, create, update, assignDevice, changeStatus, bulkImport, exportDevices, remove, refreshPlan, batches };

@@ -379,6 +379,21 @@ is not configured" can be diagnosed without cPanel access:
 curl -s https://support.mkatolikikiganjani.com/api/health
 ```
 
+### Spares are devices, not a separate store
+`tablets.is_spare` + `SPARE_WHERE` in `services/spares.js`: a spare is marked aside, **Working**
+and **unassigned** — all three, in one SQL fragment, so the count and the picker cannot
+disagree. Marking is refused for an assigned or faulty device, with the reason.
+
+`needed = max(0, awaiting_swap - spares_available)` is a packing list, never negative, and
+the Spares view sorts by it: the only question there is which school cannot be fixed today.
+
+A swap is **one transaction** (`services/spares.js:swap`) moving the student across, retiring
+the broken device to In Repair, writing both histories, a `tablet_swaps` row and a ticket
+update. Half of it happening leaves a student assigned to two devices or none.
+
+**First-time fix** counts only visits that had faults attached, and returns `null` — never
+0% — when nothing is measurable. Same honesty rule as the SLA figure.
+
 ### Who sees what (the matrix, and the two halves of it)
 `backend/scripts/verify-role-matrix.js` is the executable version of this table —
 124 assertions, and it fails if the sidebar and the hash guard stop agreeing.

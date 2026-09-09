@@ -13,6 +13,7 @@
  * record.
  */
 const pool = require('../config/database');
+const spares = require('../services/spares');
 const lc = require('../config/lifecycle');
 const { DOWN_AFTER_MINUTES } = require('../config/monitoring');
 const { logAudit } = require('../services/audit');
@@ -334,7 +335,18 @@ async function getById(req, res, next) {
        ORDER BY status = 'resolved', FIELD(priority, 'critical','high','medium','low'), created_at`,
       [req.params.id]
     );
-    res.json({ ...visit, faults });
+    // What to carry. A checklist that lists what is broken and not what to
+    // bring sends the engineer twice (feature 9).
+    const kit = await spares.stockFor(visit.school_id);
+    const onSite = await spares.listSpares(visit.school_id);
+    const [needSwap] = await pool.query(
+      `SELECT id, asset_tag, serial_number, model, status, student_name
+         FROM tablets WHERE school_id = ? AND status IN ('Faulty','In Repair')
+         ORDER BY status, asset_tag`,
+      [visit.school_id]
+    );
+
+    res.json({ ...visit, faults, kit: { ...kit, spares_on_site: onSite, awaiting: needSwap } });
   } catch (err) { next(err); }
 }
 

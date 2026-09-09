@@ -252,6 +252,35 @@ const VisitsPage = (() => {
         </div>`).join('')
       : '<div style="font-size:12px;color:var(--text3)">No faults attached.</div>';
 
+    /**
+     * What to carry.
+     *
+     * A checklist that lists what is broken and not what to bring sends the
+     * engineer twice — first-time fix is the metric this block exists to move.
+     * It is placed ABOVE the fault list on purpose: it is the part you read
+     * before you leave, and the fault list is the part you read on arrival.
+     */
+    const kit = v.kit || {};
+    const kitBlock = (kit.awaiting_swap || kit.spares_available)
+      ? `<div style="padding:11px 13px;border-radius:10px;margin-bottom:12px;
+            background:${kit.stockout ? 'rgba(255,82,99,.07)' : 'rgba(54,217,204,.06)'};
+            border:1px solid ${kit.stockout ? 'rgba(255,82,99,.25)' : 'rgba(54,217,204,.2)'}">
+          <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.4px;margin-bottom:7px">WHAT TO CARRY</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text2)">
+            <span><strong style="color:var(--amber);font-size:15px">${kit.awaiting_swap || 0}</strong> awaiting a swap</span>
+            <span><strong style="color:var(--teal);font-size:15px">${kit.spares_available || 0}</strong> spare${kit.spares_available === 1 ? '' : 's'} on site</span>
+            <span><strong style="color:var(--${kit.needed ? 'red' : 'green'});font-size:15px">${kit.needed || 0}</strong> to bring</span>
+          </div>
+          ${kit.stockout ? `<div style="font-size:11px;color:var(--red);margin-top:7px">
+            <i class="ti ti-alert-triangle" style="font-size:12px"></i>
+            No spare at this school — without one in the vehicle, these cannot be fixed today.</div>` : ''}
+          ${(kit.spares_on_site || []).filter(s => s.usable).length ? `<div style="font-size:11px;color:var(--text3);margin-top:7px">
+            On site: ${kit.spares_on_site.filter(s => s.usable).map(s => esc(s.asset_tag || s.serial_number)).join(', ')}</div>` : ''}
+          ${(kit.awaiting || []).length ? `<div style="font-size:11px;color:var(--text3);margin-top:5px">
+            Waiting: ${kit.awaiting.slice(0, 8).map(a => esc(a.asset_tag || a.serial_number)).join(', ')}${kit.awaiting.length > 8 ? ` +${kit.awaiting.length - 8}` : ''}</div>` : ''}
+        </div>`
+      : '';
+
     const canAct = v.status === 'planned';
     Modal.open(`Visit — ${esc(v.school_name)}`, `
       <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text3);margin-bottom:12px">
@@ -259,6 +288,7 @@ const VisitsPage = (() => {
         <span><i class="ti ti-user" style="font-size:12px"></i> ${esc(v.engineer_name || '—')}</span>
         <span><i class="ti ti-map-pin" style="font-size:12px"></i> ${esc(v.zone || '—')}</span>
       </div>
+      ${kitBlock}
       <div style="padding:11px 13px;border-radius:10px;background:var(--bg3);border:1px solid var(--border)">
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">${done}/${v.faults.length} closed</div>
         ${rows}
