@@ -172,3 +172,58 @@ Deliberately **not** built, and why:
 
 Each feature ships with a verification suite, a document explaining the reasoning
 and the trade-offs, and a commit of its own.
+
+---
+
+## Part 5 — What was delivered
+
+All four, same day, each with a verification suite and a document of its own.
+
+| # | Built | Assertions | Doc |
+|---|---|---|---|
+| 8 | USSD + SMS intake | 59 | [08](features/08-phone-intake.md) |
+| 9 | Spares, swaps & first-time fix | 45 | [09](features/09-spares-and-first-time-fix.md) |
+| 10 | Guide-first reporting | 30 | [10](features/10-guide-first-reporting.md) |
+| 11 | Preventive maintenance | 33 | [11](features/11-preventive-maintenance.md) |
+
+**586 assertions across thirteen suites, all passing**, with the database
+returned to the state it was found in after every run.
+
+### What the work found on the way
+
+Three real defects, none of them in the features being built:
+
+1. **WhatsApp faults skipped the school administrator.** Extracting the routing
+   rule into `services/intake.js` exposed it: a teacher reporting on the web
+   reached their school administrator, while the same teacher reporting the same
+   fault over WhatsApp was assigned straight to the field engineer and told *"an
+   engineer has been notified"*. Two channels, two answers. One rule now,
+   asserted from all four.
+2. **`GET /api/guides/suggest` answered 404**, because the static routes were
+   added below `router.get('/:id')` — directly beneath a comment saying not to.
+3. **The first spares suite asserted absolute counts** against a fixture school
+   that holds 190 real devices, and reported a bug that did not exist. Every
+   count is now a delta against a baseline taken at the start.
+
+### What is now possible that was not
+
+- A teacher with **no bundle and a feature phone** can file a fault, and check
+  its status, on any handset on Vodacom or Airtel Tanzania.
+- An engineer knows **before leaving** whether the school has a working device to
+  swap in and how many to load — and first-time fix is measurable at last.
+- A fault a guide would have fixed **is never filed**, and the guides that fail
+  are named so somebody can rewrite them.
+- A trip can be justified by **work that prevents the next fault**, not only by
+  faults that have already happened.
+
+### Still deliberately not built
+
+Everything in Part 4's list stands. Two additions, deferred with reasons rather
+than forgotten:
+
+- **The Monday digest email.** Its contents are defined; SMTP is unconfigured on
+  this deployment, and now that USSD and SMS exist the digest should probably go
+  out over SMS instead. That is a decision to take, not a build task.
+- **A per-school uptime figure for a term** (gap G6). It needs a definition of
+  "up" that the data can actually support. Inventing one would produce exactly
+  the kind of number this codebase has spent a fortnight removing.
