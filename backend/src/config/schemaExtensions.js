@@ -400,6 +400,52 @@ async function applyExtensions(db) {
     FOREIGN KEY (lrs_id) REFERENCES lrs_devices(id) ON DELETE CASCADE
   )`);
 
+  // --- Preventive maintenance (feature 11) ---
+  // Everything here was reactive except the LRS heartbeat, which reports a
+  // machine that has already died. These are the checks that stop it dying.
+  await q(`CREATE TABLE IF NOT EXISTS maintenance_tasks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    description TEXT,
+    interval_days INT NOT NULL DEFAULT 90,
+    applies_to VARCHAR(20) NOT NULL DEFAULT 'school',
+    is_active TINYINT(1) DEFAULT 1,
+    sort_order INT DEFAULT 100,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_maintenance_task (name)
+  )`);
+
+  await q(`CREATE TABLE IF NOT EXISTS maintenance_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    school_id INT NOT NULL,
+    task_id INT NOT NULL,
+    done_on DATE NOT NULL,
+    done_by VARCHAR(200),
+    visit_id INT NULL,
+    note TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_maint_school (school_id, task_id, done_on),
+    INDEX idx_maint_visit (visit_id)
+  )`);
+
+  // A starting list, seeded once. Intervals come from what actually kills
+  // equipment in these schools — dust, heat, power and a disk nobody watches —
+  // not from a generic IT checklist. Head office can edit or retire any of them;
+  // the UNIQUE name means re-running this never duplicates or overwrites.
+  for (const t of [
+    ['UPS and battery test', 'Run the UPS on battery for 5 minutes. Check it holds, and that the school knows how long it lasts.', 90, 'school', 10],
+    ['Router and cabling check', 'Reseat the ethernet cables, check for rodent damage, confirm the WAN light. Note the ISP signal reading.', 90, 'school', 20],
+    ['LRS disk and dust', 'Check free disk space, clear the fans and vents, confirm it is on the UPS and not a bare socket.', 120, 'lrs', 30],
+    ['Tablet trolley and chargers', 'Count the tablets against the register, test every charging port, remove any swollen battery from service.', 90, 'tablets', 40],
+    ['Power and socket safety', 'Check sockets, extension leads and the earth. Anything scorched or loose is replaced, not noted.', 180, 'school', 50],
+    ['Termly device audit', 'Walk the register with the school: serials, who holds what, what is missing. This is what keeps the inventory true.', 120, 'tablets', 60]
+  ]) {
+    await q(
+      `INSERT INTO maintenance_tasks (name, description, interval_days, applies_to, sort_order)
+       VALUES (?, ?, ?, ?, ?)`, t
+    );
+  }
+
   // --- The knowledge loop (feature 10) ---
   // Which guide someone read before filing anyway. A guide that is tried and
   // does not help is a guide that needs rewriting, and nothing else in the

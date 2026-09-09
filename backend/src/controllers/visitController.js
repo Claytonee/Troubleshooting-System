@@ -14,6 +14,7 @@
  */
 const pool = require('../config/database');
 const spares = require('../services/spares');
+const maintenance = require('../services/maintenance');
 const lc = require('../config/lifecycle');
 const { DOWN_AFTER_MINUTES } = require('../config/monitoring');
 const { logAudit } = require('../services/audit');
@@ -346,7 +347,17 @@ async function getById(req, res, next) {
       [visit.school_id]
     );
 
-    res.json({ ...visit, faults, kit: { ...kit, spares_on_site: onSite, awaiting: needSwap } });
+    // Scheduled work belongs on the same sheet as the faults: the engineer is
+    // already standing there, and a check batched into a trip somebody is
+    // making anyway is the cheapest maintenance there is (feature 11).
+    const checks = await maintenance.dueFor(visit.school_id);
+
+    res.json({
+      ...visit, faults,
+      kit: { ...kit, spares_on_site: onSite, awaiting: needSwap },
+      checks: checks.filter(c => c.due),
+      checks_all: checks
+    });
   } catch (err) { next(err); }
 }
 

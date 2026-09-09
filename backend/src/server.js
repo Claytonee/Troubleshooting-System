@@ -36,6 +36,7 @@ const whatsappRoutes = require('./routes/whatsapp');
 const visitRoutes = require('./routes/visits');
 const analyticsRoutes = require('./routes/analytics');
 const phoneIntakeRoutes = require('./routes/phoneIntake');
+const maintenanceRoutes = require('./routes/maintenance');
 
 const app = express();
 
@@ -250,6 +251,7 @@ app.use('/api/visits', visitRoutes);
 app.use('/api/analytics', analyticsRoutes);
 // USSD + inbound SMS: a handset on Vodacom/Airtel, authenticated by the shared
 // secret in the callback URL rather than by a session.
+app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api', phoneIntakeRoutes);
 
 // Health check

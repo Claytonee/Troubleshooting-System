@@ -379,6 +379,20 @@ is not configured" can be diagnosed without cPanel access:
 curl -s https://support.mkatolikikiganjani.com/api/health
 ```
 
+### Preventive maintenance is a list and a log
+`maintenance_tasks` (name, interval_days) + `maintenance_log` (school, task, done_on, visit).
+"What is due here" is one left join; "when was this last done" is a fact, not an inference.
+The seed is idempotent through `UNIQUE(name)`, so a boot never duplicates or overwrites.
+
+**Never recorded counts as due AND overdue** — the commonest real state, and the one a
+"days since last" calculation skips by dividing by null. **Due and overdue differ**: one day
+past the interval is due; overdue waits `OVERDUE_GRACE_DAYS` (14). A list that turns red on
+day one becomes wallpaper.
+
+The visit sheet now has three parts — what to carry (feature 9), the faults, and the checks
+due (feature 11) — and signing a check off records `visit_id`, so what was actually done out
+there survives the drive home.
+
 ### The knowledge loop runs both ways
 `services/knowledge.js`. Forward: `GET /api/guides/suggest` puts up to three guides above the
 description field on the report form, scored +10 category / +3 title word / +2 step word, and

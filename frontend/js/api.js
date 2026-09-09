@@ -179,6 +179,8 @@ const API = (() => {
     getDeviceBatches: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/inventory/batches' + (qs ? '?' + qs : '')); },
     getTrends: () => request('GET', '/analytics/trends'),
     getVisitQueue: () => request('GET', '/visits/queue'),
+    getMaintenanceDue: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/maintenance/due' + (qs ? '?' + qs : '')); },
+    markCheckDone: (taskId, data) => request('POST', `/maintenance/${taskId}/done`, data),
     getVisitSuggestions: (schoolId) => request('GET', '/visits/suggestions/' + schoolId),
     getVisits: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/visits' + (qs ? '?' + qs : '')); },
     getVisit: (id) => request('GET', '/visits/' + id),

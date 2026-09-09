@@ -281,6 +281,35 @@ const VisitsPage = (() => {
         </div>`
       : '';
 
+    /**
+     * The scheduled checks due at this school.
+     *
+     * On the same sheet as the faults because the engineer is already standing
+     * there: a check batched into a trip somebody is making anyway is the
+     * cheapest maintenance there is. Ticking one records it against the visit,
+     * so "what did we actually do out there" survives the drive home.
+     */
+    const checks = v.checks || [];
+    const checksBlock = checks.length ? `
+      <div style="padding:11px 13px;border-radius:10px;margin-top:12px;background:var(--bg3);border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.4px;margin-bottom:8px">
+          SCHEDULED CHECKS DUE (${checks.length})
+        </div>
+        ${checks.map(c => `
+          <div style="display:flex;align-items:flex-start;gap:9px;padding:7px 0;border-top:1px solid var(--border)">
+            <i class="ti ti-square" style="font-size:15px;color:var(--text3);margin-top:1px;flex-shrink:0"></i>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;color:var(--text)">${esc(c.name)}
+                ${c.overdue ? '<span style="color:var(--red);font-size:10px;margin-left:5px">OVERDUE</span>' : ''}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px">
+                every ${c.interval_days}d ·
+                ${c.never_done ? 'never recorded' : `last done ${fmtDay(c.last_done)} (${c.days_since}d ago)`}</div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" style="flex-shrink:0;padding:3px 9px"
+                    onclick="VisitsPage.checkDone(${c.task_id}, ${v.school_id}, ${v.id})">Done</button>
+          </div>`).join('')}
+      </div>` : '';
+
     const canAct = v.status === 'planned';
     Modal.open(`Visit — ${esc(v.school_name)}`, `
       <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text3);margin-bottom:12px">
@@ -293,6 +322,7 @@ const VisitsPage = (() => {
         <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px">${done}/${v.faults.length} closed</div>
         ${rows}
       </div>
+      ${checksBlock}
       ${v.notes ? `<div style="margin-top:12px;font-size:12px;color:var(--text2)"><strong style="color:var(--text3);font-size:11px;display:block;margin-bottom:3px">NOTES</strong>${esc(v.notes)}</div>` : ''}
       ${canAct ? `<div class="form-group" style="margin-top:12px">
         <label>What could not be finished, and why</label>
@@ -302,6 +332,15 @@ const VisitsPage = (() => {
         ? `<button class="btn btn-secondary" onclick="VisitsPage.setStatus(${v.id}, 'cancelled')"><i class="ti ti-x"></i> Cancel visit</button>
            <button class="btn btn-success" onclick="VisitsPage.setStatus(${v.id}, 'done')"><i class="ti ti-check"></i> Mark done</button>`
         : `<button class="btn btn-secondary" onclick="Modal.close()">Close</button>`);
+  }
+
+  /** A scheduled check was carried out on this visit. */
+  async function checkDone(taskId, schoolId, visitId) {
+    try {
+      const r = await API.markCheckDone(taskId, { school_id: schoolId, visit_id: visitId });
+      showToast(r.message);
+      await openVisit(visitId);          // the list shrinks as the work is done
+    } catch (e) { showToast(e.error || 'Could not record that'); }
   }
 
   async function setStatus(id, status) {
@@ -348,5 +387,5 @@ const VisitsPage = (() => {
     document.querySelectorAll('.main .card, .main .stat-card').forEach(c => c.classList.add('reveal', 'visible'));
   }
 
-  return { load, render, afterRender, setView, reload, openPlan, submitPlan, openSuggestions, openVisit, setStatus };
+  return { load, render, afterRender, checkDone, setView, reload, openPlan, submitPlan, openSuggestions, openVisit, setStatus };
 })();
