@@ -49,6 +49,7 @@ the incident opens itself, the on-call engineer is paged
 | 7 | Teacher scope & delegated inventory | the account stops offering what it refuses | M | [07](07-teacher-scope.md) |
 | 8 | USSD + SMS intake | any phone, no internet, no bundle | M | [08](08-phone-intake.md) |
 | 9 | Spares & first-time fix | the trip ends with a child able to work | M | [09](09-spares-and-first-time-fix.md) |
+| 10 | Guide-first reporting | the fault that never needed an engineer | S | [10](10-guide-first-reporting.md) |
 
 7 came from the field, not the roadmap: six things a teacher's account did
 wrong, reported after the first six shipped.

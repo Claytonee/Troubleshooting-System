@@ -9,9 +9,16 @@ const router = express.Router();
 router.use(authenticate);
 
 router.get('/', guideController.getAll);
+
+// Static paths MUST come before /:id, or Express reads "suggest" as an id and
+// answers 404 — which is exactly what it did the first time these were added.
+router.get('/suggest', guideController.suggestGuides);
+router.get('/performance', authorize('admin'), guideController.performance);
+
 router.get('/:id', guideController.getById);
 
-// Any authenticated role can escalate a guide that didn't solve their issue.
+// Any authenticated role can say a guide fixed it, or that it did not.
+router.post('/:id/helped', guideController.markHelped);
 router.post('/:id/escalate', guideController.escalate);
 
 router.post('/', [

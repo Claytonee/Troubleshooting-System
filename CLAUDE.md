@@ -379,6 +379,20 @@ is not configured" can be diagnosed without cPanel access:
 curl -s https://support.mkatolikikiganjani.com/api/health
 ```
 
+### The knowledge loop runs both ways
+`services/knowledge.js`. Forward: `GET /api/guides/suggest` puts up to three guides above the
+description field on the report form, scored +10 category / +3 title word / +2 step word, and
+shows **nothing** when nothing matches — suggesting the least-bad guide teaches people to
+ignore the panel. Backward: `errors.tried_guide_id` remembers the guide someone read before
+filing anyway, which is the only signal saying which guide needs rewriting.
+
+**A deflection is recorded only because a person pressed "This fixed it".** Never inferred from
+"opened the guide and did not file within N minutes", which would count every interruption and
+every flat battery as a success. `success_rate` is `null`, never 0%, for a guide nobody has met.
+
+`/api/guides/suggest` and `/performance` sit **above** `router.get('/:id')` — placed below, Express
+reads "suggest" as an id and answers 404, which is exactly what happened the first time.
+
 ### Spares are devices, not a separate store
 `tablets.is_spare` + `SPARE_WHERE` in `services/spares.js`: a spare is marked aside, **Working**
 and **unassigned** — all three, in one SQL fragment, so the count and the picker cannot

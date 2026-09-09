@@ -223,7 +223,7 @@ async function getById(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const { title, description, school_id, category, subcategory, priority, reporter_name, reporter_role, reporter_contact, location, affected_devices } = req.body;
+    const { title, description, school_id, category, subcategory, priority, reporter_name, reporter_role, reporter_contact, location, affected_devices, tried_guide_id } = req.body;
 
     if ((req.user.role === 'school' || req.user.role === 'teacher') && parseInt(school_id) !== req.user.school_id) {
       return res.status(403).json({ error: 'You can only report errors for your own school.' });
@@ -287,9 +287,9 @@ async function create(req, res, next) {
     const critical = route.critical;
 
     const [result] = await pool.query(
-      `INSERT INTO errors (error_code, title, description, school_id, category, subcategory, priority, status, assigned_to, reporter_name, reporter_role, reporter_contact, location, affected_devices, sla_due_at, escalation_level, reported_by_user_id, client_ref, intake_channel)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? HOUR), ?, ?, ?, 'web')`,
-      [errorCode, title, description, school_id, category, subcategory || null, prio, assignedTo, reporter_name || null, reporter_role || null, reporter_contact || null, location || null, affected_devices || null, slaHours, escalationLevel, req.user.id, clientRef]
+      `INSERT INTO errors (error_code, title, description, school_id, category, subcategory, priority, status, assigned_to, reporter_name, reporter_role, reporter_contact, location, affected_devices, sla_due_at, escalation_level, reported_by_user_id, client_ref, intake_channel, tried_guide_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ? HOUR), ?, ?, ?, 'web', ?)`,
+      [errorCode, title, description, school_id, category, subcategory || null, prio, assignedTo, reporter_name || null, reporter_role || null, reporter_contact || null, location || null, affected_devices || null, slaHours, escalationLevel, req.user.id, clientRef, tried_guide_id || null]
     );
 
     await logAudit({

@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const { sendMail } = require('../services/notify');
+const knowledge = require('../services/knowledge');
 
 // Where "Escalate Issue" clicks on troubleshooting guides are sent.
 const ESCALATION_EMAIL = process.env.ESCALATION_EMAIL || 'jmassawe@questforward.org';
@@ -155,4 +156,50 @@ async function remove(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getById, create, update, remove, escalate };
+/**
+ * GET /api/guides/suggest?category=&text= — what to try before filing.
+ *
+ * Open to every signed-in role: the whole point is that it is in the way of the
+ * report form, and a teacher is the person most likely to be there.
+ */
+async function suggestGuides(req, res, next) {
+  try {
+    const guides = await knowledge.suggest({
+      category: req.query.category,
+      text: req.query.text,
+      limit: Math.min(5, Number(req.query.limit) || 3)
+    });
+    res.json({ guides });
+  } catch (err) { next(err); }
+}
+
+/**
+ * POST /api/guides/:id/helped — "this fixed it, I do not need an engineer".
+ *
+ * The fault that is never filed is invisible to every other metric in this
+ * system, so it is recorded here explicitly rather than inferred.
+ */
+async function markHelped(req, res, next) {
+  try {
+    const [rows] = await pool.query('SELECT id, category FROM troubleshooting_guides WHERE id = ?', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Guide not found.' });
+
+    const id = await knowledge.recordDeflection({
+      guideId: rows[0].id,
+      userId: req.user.id,
+      schoolId: req.user.school_id || null,
+      category: req.body.category || rows[0].category,
+      source: req.body.source || 'report_form'
+    });
+    res.json({ message: 'Good — nothing to report then.', deflection_id: id });
+  } catch (err) { next(err); }
+}
+
+/** GET /api/guides/performance — which guides earn their place. Admin only. */
+async function performance(req, res, next) {
+  try {
+    res.json({ guides: await knowledge.guidePerformance({ days: Number(req.query.days) || 90 }) });
+  } catch (err) { next(err); }
+}
+
+module.exports = { getAll, getById, create, update, remove, escalate, suggestGuides, markHelped, performance };

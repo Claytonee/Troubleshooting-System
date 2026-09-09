@@ -400,6 +400,26 @@ async function applyExtensions(db) {
     FOREIGN KEY (lrs_id) REFERENCES lrs_devices(id) ON DELETE CASCADE
   )`);
 
+  // --- The knowledge loop (feature 10) ---
+  // Which guide someone read before filing anyway. A guide that is tried and
+  // does not help is a guide that needs rewriting, and nothing else in the
+  // system can tell you which one that is.
+  await q('ALTER TABLE errors ADD COLUMN tried_guide_id INT NULL');
+
+  // One row each time a guide made a fault unnecessary. Only ever written
+  // because a person said so.
+  await q(`CREATE TABLE IF NOT EXISTS guide_deflections (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    guide_id INT NOT NULL,
+    user_id INT NULL,
+    school_id INT NULL,
+    category VARCHAR(60),
+    source VARCHAR(30) DEFAULT 'report_form',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_deflect_guide (guide_id, created_at),
+    INDEX idx_deflect_school (school_id, created_at)
+  )`);
+
   // --- Spares and swaps (feature 9) ---
   // A spare is a working device deliberately held aside so a faulty one can be
   // swapped out on the spot. Marking it on the device itself rather than in a
