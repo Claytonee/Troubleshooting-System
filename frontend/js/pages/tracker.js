@@ -13,6 +13,15 @@ const TrackerPage = (() => {
   }
 
   function setFilter(f) { filter = f; refreshTable(); updateChips(); }
+
+  const role = () => (API.getUser() || {}).role;
+  /**
+   * A teacher reaches this page too, scoped by the API to the faults they filed.
+   * It is the only place they can open one after it is resolved — the dashboard
+   * lists five and does not open them. They report and rate; closing the ticket
+   * belongs to whoever fixed it.
+   */
+  const isTeacher = () => role() === 'teacher';
   function setSearch(v) { search = v; refreshTable(); }
 
   function updateChips() {
@@ -48,7 +57,7 @@ const TrackerPage = (() => {
     ${staleNote}
     <div class="tracker-sticky-header">
       <div class="section-header" style="position:static;margin:0;padding:0 0 14px;background:none;backdrop-filter:none">
-        <div><div class="section-title">Error Tracker</div><div class="section-sub">All reported issues</div></div>
+        <div><div class="section-title">${isTeacher() ? 'My Reports' : 'Error Tracker'}</div><div class="section-sub">${isTeacher() ? 'Everything you have reported, open and resolved' : 'All reported issues'}</div></div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <input type="text" placeholder="Search errors…" class="tracker-search" id="search-input" value="${esc(search)}" oninput="TrackerPage.setSearch(this.value)">
           ${API.getUser() && ['admin','subadmin'].includes(API.getUser().role) ? `<button class="btn btn-secondary btn-sm" data-tip="${TIP.EXPORT_CSV}" onclick="TrackerPage.exportCsv()"><i class="ti ti-download"></i> Export</button>` : ''}
@@ -96,7 +105,9 @@ const TrackerPage = (() => {
           <div style="color:${breach ? 'var(--red)' : 'var(--text3)'};margin-top:2px">${ageStr(e.hours_open)}${breach ? ' <i class="ti ti-alert-triangle" style="font-size:11px"></i>' : ''}</div>
         </td>
         <td onclick="event.stopPropagation()"><div style="display:flex;gap:4px">
-          ${e.status !== 'resolved' ? `<button class="btn btn-success btn-sm" style="padding:3px 8px" data-tip="${TIP.RESOLVE}" onclick="TrackerPage.resolve(${e.id})"><i class="ti ti-check" style="font-size:12px"></i></button>` : ''}
+          ${e.status !== 'resolved' && !isTeacher() ? `<button class="btn btn-success btn-sm" style="padding:3px 8px" data-tip="${TIP.RESOLVE}" onclick="TrackerPage.resolve(${e.id})"><i class="ti ti-check" style="font-size:12px"></i></button>` : ''}
+          ${e.status === 'resolved' && e.csat_rating == null && (isTeacher() || role() === 'school') ? `<button class="btn btn-secondary btn-sm" style="padding:3px 8px" data-tip="Rate how well this was resolved" onclick="ErrorDetailModal.open(${e.id})"><i class="ti ti-star" style="font-size:12px;color:var(--amber)"></i></button>` : ''}
+          ${e.status === 'resolved' && e.csat_rating != null ? `<span style="font-size:11px;color:var(--amber)" data-tip="Rated by the school">${e.csat_rating}&#9733;</span>` : ''}
         </div></td></tr>`;
     }).join('');
   }

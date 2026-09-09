@@ -17,8 +17,8 @@ require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }
 const pool = require('../src/config/database');
 
 const BASE = process.env.VERIFY_BASE || 'http://localhost:3100';
-const TEACHER = { username: 'njoseph46', password: 'Teacher@123' };
-const SCHOOL_ADMIN = { username: 'emushi', password: 'School@123' };
+const fixtures = require('./lib/fixtures');
+let TEACHER, SCHOOL_ADMIN;
 
 let passed = 0, failed = 0;
 function ok(name, cond, detail) {
@@ -55,13 +55,12 @@ async function login(creds) {
   console.log('='.repeat(52));
 
   // ---- fixtures ------------------------------------------------------------
-  const [[teacherRow]] = [await pool.query(
-    `SELECT t.id, t.school_id, t.user_id, t.can_manage_inventory, t.status
-       FROM teachers t JOIN users u ON u.id = t.user_id WHERE u.username = ?`, [TEACHER.username]
-  )];
-  if (!teacherRow.length) throw new Error('fixture: teacher ' + TEACHER.username + ' not found');
-  const teacher = teacherRow[0];
-  const originalGrant = Number(teacher.can_manage_inventory);
+  // Provisioned rather than borrowed — see scripts/lib/fixtures.js.
+  const fx = await fixtures.ensure();
+  TEACHER = { username: fx.teacher.username, password: fx.password };
+  SCHOOL_ADMIN = { username: fx.schoolAdmin.username, password: fx.password };
+  const teacher = { id: fx.teacher.teacherId, user_id: fx.teacher.userId, school_id: fx.school.id };
+  const originalGrant = 0;
 
   const teacherToken = await login(TEACHER);
   const adminToken = await login(SCHOOL_ADMIN);
@@ -308,6 +307,7 @@ async function login(creds) {
     );
     await pool.query("UPDATE users SET status = 'active' WHERE id = ?", [teacher.user_id]);
     await pool.query("DELETE FROM audit_log WHERE entity_type = 'teacher' AND action LIKE 'inventory.access_%' AND entity_id = ?", [String(teacher.id)]);
+    await fixtures.cleanup();
 
     console.log('\n' + '='.repeat(52));
     console.log(`  ${passed} passed, ${failed} failed`);

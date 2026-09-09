@@ -122,13 +122,31 @@ function pickError(r) {
 }
 
 /**
+ * Who may rate a resolution: the person who reported it, and their school's
+ * administrator. Nobody else — a satisfaction score is the school's answer to
+ * "was this actually fixed", and a platform admin rating their own team's work
+ * is not feedback, it is marking your own homework (user instruction,
+ * 2026-09-09).
+ */
+function canRateError(row, viewer) {
+  if (!row || !viewer) return false;
+  if (viewer.role === 'teacher') return row.reported_by_user_id === viewer.id;
+  if (viewer.role === 'school') return row.school_id === viewer.school_id;
+  return false;
+}
+
+/**
  * The detail view additionally needs csat_token: ErrorDetailModal renders the
  * in-app star rating from it. That is the one intentional difference from the
- * list shape.
+ * list shape — and it is handed out only to a viewer who may actually rate,
+ * because the token IS the capability: /api/errors/csat/:token takes no auth.
  */
-function pickErrorDetail(r) {
+function pickErrorDetail(r, viewer) {
   if (!r) return null;
-  return { ...pickError(r), csat_token: r.csat_token };
+  const base = pickError(r);
+  return canRateError(r, viewer)
+    ? { ...base, csat_token: r.csat_token, can_rate: true }
+    : { ...base, can_rate: false };
 }
 
 /**
@@ -166,5 +184,5 @@ function pickAuditEntry(r) {
 module.exports = {
   enums: { ROLES, ERROR_CATEGORIES, ERROR_PRIORITIES, ERROR_STATUSES, USER_STATUSES, CHECKIN_STATUSES },
   requests,
-  shapers: { pickUser, pickSchoolAdmin, pickError, pickErrorDetail, pickLrsDevice, pickAuditEntry }
+  shapers: { pickUser, pickSchoolAdmin, pickError, pickErrorDetail, pickLrsDevice, pickAuditEntry, canRateError }
 };

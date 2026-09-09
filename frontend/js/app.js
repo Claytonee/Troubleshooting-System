@@ -193,6 +193,42 @@ const App = (() => {
     }
     syncBackButton();
     initScrollReveal();
+    mountQueueBanner();
+  }
+
+  /**
+   * "N reports waiting to sync" belongs on every page, not just the tracker.
+   *
+   * It used to be rendered by tracker.js alone, so the two people most likely
+   * to be offline never saw it: a teacher was sent to the dashboard after
+   * queueing (and had no tracker at all), and a school admin working anywhere
+   * else had no sign the queue existed — which is what "offline haifanyi kazi"
+   * looked like from the outside (reported 2026-09-09). The queue is a property
+   * of the device, so the banner is mounted by the shell.
+   */
+  function mountQueueBanner() {
+    if (typeof Offline === 'undefined') return;
+    const main = $('main');
+    if (!main) return;
+    // A page that carries its own slot (tracker) keeps filling that one, so the
+    // banner does not appear twice.
+    if (main.querySelector('#offline-queue-banner')) return;
+    Offline.banner().then(html => {
+      if (!html) {
+        const stale = main.querySelector('#offline-queue-banner-global');
+        if (stale) stale.remove();
+        return;
+      }
+      let slot = main.querySelector('#offline-queue-banner-global');
+      if (!slot) {
+        slot = document.createElement('div');
+        slot.id = 'offline-queue-banner-global';
+        const header = main.querySelector('.section-header, .tracker-sticky-header');
+        if (header && header.parentNode === main) main.insertBefore(slot, header.nextSibling);
+        else main.insertBefore(slot, main.firstChild);
+      }
+      slot.innerHTML = html;
+    }).catch(() => {});
   }
 
   function initScrollReveal() {
@@ -226,7 +262,7 @@ const App = (() => {
     els.forEach(el => observer.observe(el));
   }
 
-  return { init, render, loadAndRender, goHome, goBack, syncBackButton };
+  return { init, render, loadAndRender, goHome, goBack, syncBackButton, refreshQueueBanner: mountQueueBanner };
 })();
 
 /**
@@ -241,15 +277,19 @@ const ErrorDetailModal = (() => {
       const breach = slaState(e) === 'breach';
 
       const user = API.getUser();
+      // Rating a resolution belongs to the school: the teacher who reported it
+      // and their school administrator. The server decides (can_rate) and only
+      // hands the token to them — a platform admin scoring their own team's
+      // work is not feedback.
       const csatBlock = e.status === 'resolved' ? `
         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
           <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px">SATISFACTION</div>
           ${e.csat_rating != null
             ? `<div style="font-size:13px;color:var(--text2)">Rated <strong style="color:var(--amber)">${e.csat_rating}/5</strong>${e.csat_comment ? ` — &ldquo;${esc(e.csat_comment)}&rdquo;` : ''}</div>`
-            : (e.csat_token
+            : (e.can_rate && e.csat_token
                 ? `<div style="font-size:12px;color:var(--text3);margin-bottom:6px">How well was this resolved?</div>
-                   <div style="display:flex;gap:6px">${[1, 2, 3, 4, 5].map(n => `<button class="btn btn-secondary btn-sm" style="padding:4px 10px" onclick="ErrorDetailModal.rate('${e.csat_token}', ${n})">${n}&#9733;</button>`).join('')}</div>`
-                : '<div style="font-size:12px;color:var(--text3)">No feedback recorded.</div>')}
+                   <div style="display:flex;gap:6px;flex-wrap:wrap">${[1, 2, 3, 4, 5].map(n => `<button class="btn btn-secondary btn-sm" style="padding:4px 10px" onclick="ErrorDetailModal.rate('${e.csat_token}', ${n})">${n}&#9733;</button>`).join('')}</div>`
+                : '<div style="font-size:12px;color:var(--text3)">Not yet rated. The teacher who reported it, or the school administrator, can rate it.</div>')}
         </div>` : '';
 
       const body = `
@@ -293,7 +333,9 @@ const ErrorDetailModal = (() => {
 
       const isAdminUser = user && user.role === 'admin';
       const canEscalate = e.status !== 'resolved' && e.escalation_level !== 'platform' && user && user.role === 'school';
-      const canResolve = e.status !== 'resolved';
+      // A teacher reports and rates; they do not close the ticket. Closing it
+      // was the one action they had, and it skipped the person who fixes it.
+      const canResolve = e.status !== 'resolved' && !(user && user.role === 'teacher');
       const canAssign = isAdminUser && e.status !== 'resolved';
 
       let footer = '';
@@ -434,7 +476,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Drains anything queued while offline, and keeps the pending badge current.
   // Guarded with typeof, not window.Offline: offline.js declares Offline with
   // const, which is a script-scope binding and never a window property.
-  if (typeof Offline !== 'undefined') Offline.init();
+  if (typeof Offline !== 'undefined') {
+    Offline.init();
+    // Keep the shell's banner honest without waiting for a navigation: it must
+    // appear the moment something is queued and vanish the moment it drains.
+    Offline.onChange(() => App.refreshQueueBanner());
+  }
 
   // Handle public teacher registration URL
   const teacherRegMatch = window.location.pathname.match(/\/register\/teacher\/([a-f0-9]+)/);

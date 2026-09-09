@@ -119,7 +119,9 @@ const DashboardPage = (() => {
     const errorRows = (recent_errors || []).map(e => {
       const pri = PRI[e.priority] || PRI.medium;
       const stat = STAT[e.status] || STAT.open;
-      return `<tr>
+      // Clickable: a teacher had no way to open their own fault once it was
+      // resolved — the row was the whole record they could see.
+      return `<tr style="cursor:pointer" onclick="ErrorDetailModal.open(${e.id})">
         <td><span class="dot ${pri.dot}"></span></td>
         <td><span style="font-size:12px;font-weight:500">${esc(e.title)}</span><br><span class="error-id">${e.error_code}</span></td>
         <td><span style="font-size:11px;color:var(--text3)">${e.category}</span></td>
@@ -146,7 +148,9 @@ const DashboardPage = (() => {
   </div>
 
   <div class="card">
-    <div class="card-title">My Recent Reports</div>
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px">My Recent Reports
+      <span style="font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--accent);cursor:pointer" onclick="Router.navigate('tracker');App.loadAndRender()">See all, including resolved →</span>
+    </div>
     <div class="table-wrap"><table>
       <thead><tr><th></th><th>Error</th><th>Category</th><th>Status</th><th>Age</th></tr></thead>
       <tbody>${errorRows}</tbody>

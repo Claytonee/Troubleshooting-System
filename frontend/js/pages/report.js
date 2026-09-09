@@ -155,14 +155,42 @@ const ReportPage = (() => {
   }
 
   /**
-   * Attachments cannot ride the offline queue — the files would have to be
-   * held in IndexedDB and re-uploaded, and photos are the bulk of the bytes.
-   * Say so plainly rather than dropping them silently.
+   * Shrinks a photo before it is queued.
+   *
+   * A phone camera here produces 3–5 MB per shot, and a queued report has to
+   * sit on the device and then go up a link that just came back. 1600px on the
+   * long edge at q0.72 keeps a cracked screen, a cable and a serial number
+   * perfectly readable at a tenth of the bytes. Anything that is not an image,
+   * or that fails to decode, is passed through untouched.
    */
-  function selectedFilesWarning() {
-    return selectedFiles.length
-      ? 'Saved on this device — no connection. It will file automatically. Attachments were not kept; add them once it syncs.'
-      : 'Saved on this device — no connection. It will file automatically when the network returns.';
+  async function shrinkImage(file, maxEdge = 1600, quality = 0.72) {
+    if (!file.type || !file.type.startsWith('image/') || file.type === 'image/gif') return file;
+    try {
+      const bmp = await createImageBitmap(file);
+      const scale = Math.min(1, maxEdge / Math.max(bmp.width, bmp.height));
+      if (scale === 1 && file.size < 900 * 1024) { bmp.close && bmp.close(); return file; }
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bmp.width * scale);
+      canvas.height = Math.round(bmp.height * scale);
+      canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
+      bmp.close && bmp.close();
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
+      if (!blob || blob.size >= file.size) return file;    // never make it bigger
+      const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+      return new File([blob], name, { type: 'image/jpeg' });
+    } catch (e) {
+      return file;                                        // undecodable: keep the original
+    }
+  }
+
+  /** What the user is told once a report has been queued with its photos. */
+  function queuedMessage(kept, dropped) {
+    const base = 'Saved on this device — no connection. It will file automatically when the network returns';
+    if (!kept && !dropped) return base + '.';
+    if (dropped.length) {
+      return base + `, with ${kept} photo(s). ${dropped.map(f => f.name).join(', ')} ${dropped.length === 1 ? 'was' : 'were'} too large to keep — re-attach once it syncs.`;
+    }
+    return base + `, with ${kept} photo(s) kept.`;
   }
 
   async function submit() {
@@ -215,6 +243,11 @@ const ReportPage = (() => {
           body: formData
         });
       } catch (netErr) {
+        // Downscale first, then keep what fits the per-report budget. Both
+        // numbers live in offline.js so the queue owns its own limits.
+        const shrunk = [];
+        for (const f of selectedFiles) shrunk.push(await shrinkImage(f));
+        const { kept, dropped } = Offline.budgetFiles(shrunk);
         // The request never reached the server. Queue it rather than losing it
         // — this is the case the whole feature exists for, and it is the moment
         // a teacher is most likely to be reporting (docs/features/02-offline-pwa.md).
@@ -223,6 +256,7 @@ const ReportPage = (() => {
           kind: 'error.create',
           path: '/api/errors',
           label: title,
+          files: kept,
           body: {
             title, description, school_id: Number(school_id), category,
             subcategory: subcat || null, priority,
@@ -233,7 +267,7 @@ const ReportPage = (() => {
           }
         });
         selectedFiles = [];
-        showToast(selectedFilesWarning(), 6000);
+        showToast(queuedMessage(kept.length, dropped), dropped.length ? 8000 : 6000);
         Router.navigate(API.getUser() && API.getUser().role === 'teacher' ? 'dashboard' : 'tracker');
         App.loadAndRender();
         return;

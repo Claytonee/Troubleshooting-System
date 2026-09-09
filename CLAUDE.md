@@ -294,6 +294,50 @@ request, so a revoke bites immediately rather than at the delegate's next login.
   role in `localStorage` — a grant made after login would not show, and a revoked one
   would leave buttons that 403.
 
+### A fault reported by a teacher goes to their school administrator
+`errorController.create()` decides who holds a new fault:
+
+| Reported by | `assigned_to` | `escalation_level` | Also |
+|---|---|---|---|
+| teacher | **null** | `school` | school admin's bell (`admin_notifications`, `type='error_reported'`) |
+| teacher, **critical** | field engineer | `platform` | school admin still notified, and told why |
+| school admin | field engineer | `platform` | they *are* the school level |
+
+It used to assign the school's field engineer for everybody, which skipped the person who
+can walk to the room (reported 2026-09-09). **`POST /errors/:id/escalate` is what hands a
+fault to the engineer** — it fills `assigned_to` with `schools.assigned_admin_id` when the
+row is still unassigned, or an escalation would raise the level and leave nobody holding it.
+
+**A teacher cannot change a fault's status** — not by `PATCH /status` and not through the
+full `PUT` (both refuse with `TEACHER_CANNOT_SET_STATUS`). They own the row, so the access
+check passes; closing their own ticket took it out of the school admin's queue unlooked-at.
+They report and they rate.
+
+### Who may rate a resolution
+`pickErrorDetail(row, viewer)` hands out `csat_token` **only** to the teacher who reported
+the fault or a school admin of that school (`canRateError`), and sets `can_rate` for the UI
+to follow. The token takes no auth on submission — it *is* the capability — so giving it to
+a platform admin was giving them the school's answer to "was this actually fixed".
+List rows never carry it, for anybody.
+
+### The offline queue carries its photos
+`Offline.enqueue({ files })` stores Blobs in IndexedDB and `requestFor()` replays them as
+the same multipart POST the online form sends — **never set `Content-Type` by hand there**,
+or the boundary is missing and multer sees no fields at all. `report.js` downscales images
+first (`shrinkImage`, 1600px / q0.72 — measured 371 KB → 81 KB) and `Offline.budgetFiles()`
+keeps what fits 6 MB per report, naming anything it had to leave behind.
+
+**The "N reports waiting to sync" banner is mounted by the shell** (`App.mountQueueBanner`,
+refreshed via `Offline.onChange`), not by one page. It used to live only in the tracker, so
+a teacher — sent to the dashboard after queueing, and with no tracker at all — saw no sign
+the queue existed.
+
+### Verification suites provision their own fixtures
+`backend/scripts/lib/fixtures.js` creates a `zzverify*` school admin + teacher and removes
+them afterwards. Suites used to hardcode two accounts that happened to exist locally, and
+every one of them broke the day the local database was reseeded. Run them from `backend/`
+(they load `.env` relative to the script, but the older ones use a relative path).
+
 ### Escalation goes up the user's own chain
 `POST /api/guides/:id/escalate` routes a **teacher** to their own school administrator as an
 in-app notification (`admin_notifications`, `target_role='school'`, `type='guide_escalation'`,
@@ -327,7 +371,8 @@ curl -s https://support.mkatolikikiganjani.com/api/health
 
 ### Role markers on nav items
 `data-role` gates sidebar items in `router.js`: `admin`, `subadmin`, `school`,
-`school-teacher`, `no-admin`, `staff` (admin+subadmin+school) and `field`
+`school-teacher`, `no-admin`, `staff` (admin+subadmin+school), `staff-teacher`
+(staff + teachers — the Error Tracker) and `field`
 (admin+subadmin only — whoever drives out to schools). Use `field`, not
 `staff`, for anything a school admin should not see: `staff` includes them.
 A page gated this way must also be listed in the matching `*Pages` array in
@@ -409,7 +454,11 @@ Every page/feature MUST be tested and functional at all 4 breakpoints:
 - Admin can reset a sub-admin's password via PATCH /api/team/:id/reset-password
 - API prefix: `/api/` (auth, errors, schools, checkins, team, settings, dashboard, communications, guides, manuals)
 - File uploads go to Cloudinary (not local disk)
-- Rate limiting: 20 req/15min login, 200 req/15min general API
+- **Rate limiting is keyed per ACCOUNT, not per IP** (`rateKey()` in server.js reads the JWT's
+  `id` without verifying it — a fairness key, not an authorisation decision). Behind LiteSpeed
+  every request looks like it comes from the proxy, and a school is behind one router besides,
+  so an IP bucket is shared by strangers: 900 req/15min general (this SPA fires 3–6 per page
+  render), `/api/health` exempt, login 20 per account plus 120 per address.
 
 ## Environment Variables (Production — cPanel)
 Set these in **cPanel → Setup Node.js App → Environment variables**, not in `backend/.env`:

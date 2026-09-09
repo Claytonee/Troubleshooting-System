@@ -62,7 +62,35 @@ const Offline = (() => {
     return u && u.id != null ? u.id : null;
   }
 
+  /**
+   * Photos ride the queue too.
+   *
+   * They used to be dropped with a warning ("add them once it syncs"), which in
+   * practice meant a cracked screen was reported in words and the evidence was
+   * lost — and reported as a bug on 2026-09-09: "picha haikufika". IndexedDB
+   * stores Blobs, so the files are kept beside the fields and replayed as the
+   * same multipart POST the online path sends.
+   *
+   * Budgeted, because bandwidth here is the scarce resource and a queued report
+   * has to survive on a phone: images are downscaled by the caller, and
+   * anything still over the per-report budget is refused with its name so the
+   * person knows which one did not make it.
+   */
+  const QUEUE_FILE_BUDGET = 6 * 1024 * 1024;   // per report, after downscaling
+
+  /** Splits files into those that fit the budget and those that do not. */
+  function budgetFiles(files) {
+    const kept = [], dropped = [];
+    let total = 0;
+    for (const f of files || []) {
+      if (total + f.size <= QUEUE_FILE_BUDGET) { kept.push(f); total += f.size; }
+      else dropped.push(f);
+    }
+    return { kept, dropped, total };
+  }
+
   async function enqueue(item) {
+    const files = (item.files || []).map(f => ({ name: f.name, type: f.type || 'application/octet-stream', blob: f }));
     const record = {
       client_ref: item.client_ref || newRef(),
       // Whose report this is. School tablets are shared, so a queued item must
@@ -73,6 +101,7 @@ const Offline = (() => {
       path: item.path,
       body: item.body,
       label: item.label || item.kind,
+      files,
       queued_at: new Date().toISOString(),
       attempts: 0,
       last_error: null
@@ -129,6 +158,29 @@ const Offline = (() => {
   }
 
   /**
+   * How a queued item is replayed. With files it has to be multipart, exactly
+   * as the online form sends it — and the Content-Type header must NOT be set
+   * by hand, or the boundary is missing and multer sees no fields at all.
+   */
+  function requestFor(item) {
+    const auth = { Authorization: 'Bearer ' + API.getToken() };
+    if (!item.files || !item.files.length) {
+      return {
+        method: item.method,
+        headers: { 'Content-Type': 'application/json', ...auth },
+        body: JSON.stringify({ ...item.body, client_ref: item.client_ref })
+      };
+    }
+    const fd = new FormData();
+    Object.entries(item.body || {}).forEach(([k, v]) => {
+      if (v !== null && v !== undefined) fd.append(k, v);
+    });
+    fd.append('client_ref', item.client_ref);
+    item.files.forEach(f => fd.append('attachments', f.blob, f.name));
+    return { method: item.method, headers: auth, body: fd };
+  }
+
+  /**
    * Replays the queue oldest-first. Stops at the first network failure so the
    * order is preserved and a dead link does not burn through every item.
    * A rejection by the server (4xx) is kept, not dropped, with the reason
@@ -141,11 +193,7 @@ const Offline = (() => {
     try {
       for (const item of await list()) {
         try {
-          const res = await fetch(item.path, {
-            method: item.method,
-            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + API.getToken() },
-            body: JSON.stringify({ ...item.body, client_ref: item.client_ref })
-          });
+          const res = await fetch(item.path, requestFor(item));
           if (res.ok) {
             await remove(item.client_ref);
             sent++;
@@ -276,7 +324,13 @@ const Offline = (() => {
     // warming on login cached nothing the first time, and everything on the
     // second. The teacher's first offline attempt is the one that matters.
     await controlled();
-    await Promise.all(['/api/schools', '/api/guides', '/api/settings', '/api/errors'].map(p =>
+    // /api/schools is refused to a teacher (403), and a 403 is not cacheable
+    // anyway — they do not need it: the report form fixes their school from
+    // their own account. Asking for it regardless just logged a failure.
+    const role = (API.getUser() || {}).role;
+    const paths = ['/api/guides', '/api/settings', '/api/errors'];
+    if (role !== 'teacher') paths.unshift('/api/schools');
+    await Promise.all(paths.map(p =>
       fetch(p, { headers: { Authorization: 'Bearer ' + API.getToken() } }).catch(() => {})
     ));
   }
@@ -304,7 +358,7 @@ const Offline = (() => {
   }
 
   return {
-    enqueue, list, listAll, count, remove, flush, banner, init, warm,
+    enqueue, list, listAll, count, remove, flush, banner, init, warm, budgetFiles,
     forgetUserData, onChange, newRef, isNetworkFailure,
     // Exposed for backend/scripts and the offline verification page.
     retryState, cancelRetry

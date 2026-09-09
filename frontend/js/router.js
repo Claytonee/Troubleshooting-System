@@ -68,6 +68,10 @@ const Router = (() => {
     document.querySelectorAll('[data-role="school"]').forEach(el => el.classList.toggle('nav-hidden', !isSchool));
     document.querySelectorAll('[data-role="school-teacher"]').forEach(el => el.classList.toggle('nav-hidden', !isSchool && !isTeacher));
     document.querySelectorAll('[data-role="staff"]').forEach(el => el.classList.toggle('nav-hidden', !isStaff));
+    // Staff plus teachers. A teacher's tracker is scoped to their own reports by
+    // the API, and it is the only place they can open a fault once it is
+    // resolved — the dashboard shows five rows and does not open them.
+    document.querySelectorAll('[data-role="staff-teacher"]').forEach(el => el.classList.toggle('nav-hidden', !isStaff && !isTeacher));
     document.querySelectorAll('[data-role="subadmin"]').forEach(el => el.classList.toggle('nav-hidden', !isSubadmin));
     document.querySelectorAll('[data-role="field"]').forEach(el => el.classList.toggle('nav-hidden', !isField));
     document.querySelectorAll('[data-role="no-admin"]').forEach(el => el.classList.toggle('nav-hidden', isAdmin));
@@ -75,13 +79,15 @@ const Router = (() => {
     const adminPages = ['analytics', 'schooladmins', 'branding', 'audit', 'approvals', 'lrs'];
     const schoolPages = ['help', 'teachers'];
     const subadminPages = ['fieldguide'];
-    const staffPages = ['tracker', 'followup', 'weekly', 'schools'];
+    const staffPages = ['followup', 'weekly', 'schools'];
+    const staffTeacherPages = ['tracker'];
     const fieldPages = ['visits'];
 
     if (!isAdmin && adminPages.includes(currentPage)) navigate('dashboard');
     if (!isSchool && schoolPages.includes(currentPage)) navigate('dashboard');
     if (!isSubadmin && subadminPages.includes(currentPage)) navigate('dashboard');
     if (!isStaff && staffPages.includes(currentPage)) navigate('dashboard');
+    if (!isStaff && !isTeacher && staffTeacherPages.includes(currentPage)) navigate('dashboard');
     if (!isField && fieldPages.includes(currentPage)) navigate('dashboard');
 
 

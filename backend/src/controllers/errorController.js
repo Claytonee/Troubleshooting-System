@@ -216,7 +216,7 @@ async function getById(req, res, next) {
       [req.params.id]
     );
 
-    res.json({ ...shapers.pickErrorDetail(rows[0]), updates, attachments });
+    res.json({ ...shapers.pickErrorDetail(rows[0], req.user), updates, attachments });
   } catch (err) { next(err); }
 }
 
@@ -236,7 +236,7 @@ async function create(req, res, next) {
       const [prior] = await pool.query('SELECT id FROM errors WHERE client_ref = ?', [clientRef]);
       if (prior.length) {
         const existing = await getErrorRow(prior[0].id);
-        return res.status(200).json({ ...shapers.pickErrorDetail(existing), deduplicated: true });
+        return res.status(200).json({ ...shapers.pickErrorDetail(existing, req.user), deduplicated: true });
       }
     }
 
@@ -249,13 +249,35 @@ async function create(req, res, next) {
     const errorCode = `QFT-0${seq}`;
 
     const [school] = await pool.query('SELECT assigned_admin_id FROM schools WHERE id = ?', [school_id]);
-    const assignedTo = school.length ? school[0].assigned_admin_id : null;
+    const fieldEngineer = school.length ? school[0].assigned_admin_id : null;
 
     const prio = priority || 'medium';
     const slaHours = targetHours(prio);
 
-    // Tiered escalation: teachers report to school level, school admins report to platform level
-    const escalationLevel = req.user.role === 'school' ? 'platform' : 'school';
+    /**
+     * Who this lands on.
+     *
+     * A teacher's fault used to be assigned to the school's field engineer the
+     * moment it was filed, which skipped the person who can walk to the room:
+     * their own school administrator. Reported 2026-09-09 — "error haikupitia
+     * kwa school admin, ilienda moja kwa moja kwa platform admin". So a
+     * teacher's report is created UNASSIGNED at school level, and the school
+     * admin is notified; they fix it or escalate it on with the Escalate
+     * action, which is what sets escalation_level = 'platform'.
+     *
+     * One exception, and it is deliberate: **critical** goes to the engineer
+     * immediately as well. Critical means the school cannot teach today, and a
+     * ticket like that must not wait for someone to open their bell. The school
+     * admin is still notified — they are told, they are simply not the only
+     * one.
+     *
+     * A school admin's own report still goes straight to platform: they ARE the
+     * school level, so there is nobody below to triage it.
+     */
+    const byTeacher = req.user.role === 'teacher';
+    const critical = prio === 'critical';
+    const assignedTo = (!byTeacher || critical) ? fieldEngineer : null;
+    const escalationLevel = (req.user.role === 'school' || (byTeacher && critical)) ? 'platform' : 'school';
 
     const [result] = await pool.query(
       `INSERT INTO errors (error_code, title, description, school_id, category, subcategory, priority, status, assigned_to, reporter_name, reporter_role, reporter_contact, location, affected_devices, sla_due_at, escalation_level, reported_by_user_id, client_ref, intake_channel)
@@ -272,6 +294,28 @@ async function create(req, res, next) {
     const row = await getErrorRow(result.insertId);
     const recipients = await getRecipients(result.insertId);
     notifyErrorEvent('created', row, { recipients, actorName: req.user.full_name });
+
+    // A teacher's fault also lands on the school administrator's bell. Email is
+    // best-effort and unconfigured on this deployment, so in-app is the only
+    // channel that actually reaches them.
+    if (byTeacher) {
+      await pool.query(
+        `INSERT INTO admin_notifications (target_role, type, title, message, meta)
+         VALUES ('school', 'error_reported', ?, ?, ?)`,
+        [
+          `${req.user.full_name} reported: ${title}`.slice(0, 300),
+          `${errorCode} · ${prio} · ${category}${critical ? ' — critical, already sent to the engineers too' : ''}`,
+          JSON.stringify({
+            school_id: Number(school_id),
+            error_id: result.insertId,
+            error_code: errorCode,
+            priority: prio,
+            teacher_id: req.user.id,
+            teacher_name: req.user.full_name
+          })
+        ]
+      );
+    }
     // Critical issues also fire an SMS (most reliable channel in the field).
     if (prio === 'critical') {
       const phones = await getPhoneRecipients(result.insertId);
@@ -298,6 +342,9 @@ async function update(req, res, next) {
     if (!(await userCanAccessError(req.user, prev))) {
       return res.status(403).json({ error: 'Access denied.' });
     }
+    // The full edit carries `status` too, so the same rule has to hold here or
+    // it is simply a second door into the same room.
+    if (status && status !== prev.status && teacherMayNotSetStatus(req, res)) return;
 
     const resolvedAt = status === 'resolved' ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null;
     const slaHours = targetHours(priority);
@@ -328,10 +375,27 @@ async function update(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * A teacher reports a fault and rates the fix. Deciding it is fixed is not
+ * theirs to make: they own the row, so the access check passed, and they could
+ * close their own ticket — which takes it out of the school admin's queue with
+ * nobody having looked at it. The UI stopped offering it; this is the same rule
+ * where it actually binds.
+ */
+function teacherMayNotSetStatus(req, res) {
+  if (req.user.role !== 'teacher') return false;
+  res.status(403).json({
+    error: 'A teacher can report and rate a fault, but not change its status. Your school administrator or the engineer handling it does that.',
+    code: 'TEACHER_CANNOT_SET_STATUS'
+  });
+  return true;
+}
+
 async function updateStatus(req, res, next) {
   try {
     const { status } = req.body;
     if (!status) return res.status(400).json({ error: 'Status is required.' });
+    if (teacherMayNotSetStatus(req, res)) return;
 
     const prev = await getErrorRow(req.params.id);
     if (!prev) return res.status(404).json({ error: 'Error not found.' });
@@ -508,9 +572,20 @@ async function escalateToAdmin(req, res, next) {
       return res.status(400).json({ error: 'Error is already escalated to school admin.' });
     }
 
+    // Escalating to platform is what hands the fault to the school's field
+    // engineer. Faults reported by a teacher are created unassigned on purpose
+    // (see create()), so without this an escalation would raise the level and
+    // still leave nobody holding it.
+    let assignee = null;
+    if (targetLevel === 'platform' && !row.assigned_to) {
+      const [sch] = await pool.query('SELECT assigned_admin_id FROM schools WHERE id = ?', [row.school_id]);
+      assignee = sch.length ? sch[0].assigned_admin_id : null;
+    }
+
     await pool.query(
-      `UPDATE errors SET escalation_level = ?, escalated_by = ?, escalated_at = NOW(), status = 'escalated' WHERE id = ?`,
-      [targetLevel, req.user.id, id]
+      `UPDATE errors SET escalation_level = ?, escalated_by = ?, escalated_at = NOW(), status = 'escalated',
+              assigned_to = COALESCE(assigned_to, ?) WHERE id = ?`,
+      [targetLevel, req.user.id, assignee, id]
     );
 
     await pool.query(
