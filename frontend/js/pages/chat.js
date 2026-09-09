@@ -546,9 +546,20 @@ const ChatPage = (() => {
 
       if (!response.ok || !(response.headers.get('content-type') || '').includes('text/event-stream')) {
         const d = await response.json().catch(() => ({}));
-        failed = d.error || (response.status === 403
-          ? 'Your account is not allowed to use the assistant.'
-          : 'The assistant is unavailable right now. Try again shortly.');
+        if (response.status === 429) {
+          // Not the assistant's answer — the server's own throttle. Say whose
+          // limit it is, or it reads as the model refusing to help.
+          failed = 'The server is limiting requests right now (too many in a short time). Wait a minute and send it again.';
+        } else if (response.status === 503 || d.code === 'AI_NOT_CONFIGURED') {
+          // The key was removed, or never set, since this page loaded. Re-ask
+          // and let the page show its proper unavailable state.
+          failed = d.error || 'The AI assistant is not switched on.';
+          try { service = await API.getAiStatus(); } catch (e) { /* keep what we have */ }
+        } else {
+          failed = d.error || (response.status === 403
+            ? 'Your account is not allowed to use the assistant.'
+            : 'The assistant is unavailable right now. Try again shortly.');
+        }
       } else {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();

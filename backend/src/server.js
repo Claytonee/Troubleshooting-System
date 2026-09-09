@@ -113,21 +113,64 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
+/**
+ * Rate limiting, keyed per ACCOUNT rather than per IP wherever we know one.
+ *
+ * Behind LiteSpeed the app sees a proxy address, and a school is behind one
+ * router besides: keying on the IP puts a whole staffroom — and every
+ * diagnostic curl from a laptop — into a single bucket, so one busy user locks
+ * out everybody else. Measured on 2026-09-09: polling /api/health from a
+ * different machine produced "Too many requests" inside a teacher's chat window
+ * on the live site.
+ *
+ * The JWT's subject is read without verifying it, on purpose: this is a
+ * fairness key, not an authorisation decision (`authenticate()` still verifies
+ * every request). A forged token can only split its own bucket, and anything
+ * unparseable falls back to the IP.
+ */
+function rateKey(req) {
+  const auth = req.headers.authorization || '';
+  if (auth.startsWith('Bearer ')) {
+    try {
+      const payload = JSON.parse(Buffer.from(auth.split('.')[1], 'base64url').toString('utf8'));
+      if (payload && payload.id) return 'u' + payload.id;
+    } catch (e) { /* not a JWT we can read — fall through to the IP */ }
+  }
+  return 'ip' + (req.ip || 'unknown');
+}
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 200 : 1000,
+  // This SPA fires three to six calls per page it renders, so 200 was about
+  // ten minutes of ordinary use for ONE person.
+  max: process.env.NODE_ENV === 'production' ? 900 : 5000,
+  keyGenerator: rateKey,
+  // A liveness/diagnostic check must never be the thing that exhausts a
+  // person's quota — it is what monitoring and deploy checks call.
+  skip: (req) => req.path === '/health' || req.path === '/api/health',
   message: { error: 'Too many requests, please try again later.' }
 });
 app.use('/api/', limiter);
 
-// Auth endpoint has stricter rate limiting
+// Login is the brute-force surface, so it stays tight — but keyed by the
+// account being tried as well as the address. A whole school shares one public
+// IP; 20 attempts per IP meant one teacher's typos locked out the staffroom.
+// Two limiters together: 20 per account (stops guessing a password) and a
+// looser per-address cap (stops one machine working through a user list).
+// Mounted after the body parser — see below — because the key needs req.body.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
+  keyGenerator: (req) => String((req.body && req.body.username) || '(none)').toLowerCase().slice(0, 60)
+    + '|' + (req.ip || 'unknown'),
   message: { error: 'Too many login attempts, please try again later.' }
 });
-app.use('/api/auth/login', authLimiter);
+const authIpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  keyGenerator: (req) => 'ip' + (req.ip || 'unknown'),
+  message: { error: 'Too many login attempts from this network, please try again later.' }
+});
 
 const registrationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -148,6 +191,10 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: true }));
+
+// Login limiters live here, not with the others: their key reads the username
+// out of the request body, which does not exist until the parser above has run.
+app.use('/api/auth/login', authIpLimiter, authLimiter);
 
 // Logging
 if (process.env.NODE_ENV !== 'test') {
