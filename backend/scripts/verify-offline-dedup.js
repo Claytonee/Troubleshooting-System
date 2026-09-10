@@ -79,5 +79,9 @@ const check = (name, ok, detail) => {
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed');
   await pool.end();
-  process.exit(fail ? 1 : 0);
-})().catch(e => { console.error(e); process.exit(1); });
+  // Set the code and let Node wind down on its own. Calling process.exit() the
+  // instant after pool.end() aborted libuv on Windows —
+  // `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` — and the shell
+  // saw 127 from a run where all seven assertions had passed.
+  process.exitCode = fail ? 1 : 0;
+})().catch(e => { console.error(e); process.exitCode = 1; });

@@ -97,6 +97,19 @@ function code(src) {
   ok('the field keeps its own placeholder when its options change',
     /data-placeholder="\$\{esc\(placeholder\)\}"/.test(utils) && /text\.dataset\.placeholder/.test(utils));
 
+  console.log('\nDates are picked with our own calendar');
+  // `<input type="date">` hands the calendar to the operating system: unthemed,
+  // and on the Plan a visit modal it opened outside the modal and covered the
+  // rest of the form. There is no CSS that fixes it — the control has to go.
+  const nativeDate = sources.filter(({ s }) => /type=["']date["']/.test(s)).map(({ f }) => rel(f));
+  ok('no <input type="date"> left in the frontend', nativeDate.length === 0, nativeDate);
+  ok('DatePicker keeps the value in a hidden input under the same id',
+    /<input type="hidden" id="\$\{id\}"/.test(utils));
+  ok('DatePicker never round-trips through toISOString',
+    /const DatePicker/.test(utils) && !/toISOString/.test(utils.split('const DatePicker')[1].split('const Tooltip')[0]));
+  ok('the popup panel is fixed, so nothing can clip it',
+    /\.dp-panel \{ position: fixed/.test(fs.readFileSync(path.join(FRONTEND, 'css', 'components.css'), 'utf8')));
+
   console.log('\nThe shell version is coherent');
   // Bumping sw.js's VERSION without the ?v= query (or the reverse) leaves clients
   // on half an old shell — the exact failure CLAUDE.md warns about, unenforced until now.

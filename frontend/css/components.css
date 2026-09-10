@@ -557,6 +557,52 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .reg-dropdown-zone { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: rgba(54,217,204,0.1); color: var(--teal); white-space: nowrap; }
 .reg-field.reg-full { position: relative; }
 
+/* Date picker — replaces <input type="date">, whose calendar is drawn by the
+   operating system, ignores every variable in variables.css, and escapes its
+   own modal. Field matches .reg-select exactly so a form reads as one thing. */
+.dp { position: relative; }
+.dp-field { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; background: var(--bg1); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: border-color .2s; }
+.dp-field:hover { border-color: var(--text3); }
+.dp-text { font-size: 13px; color: var(--text3); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.dp-text.has { color: var(--text); }
+.dp-icon { font-size: 15px; color: var(--text3); flex-shrink: 0; }
+.dp-field:hover .dp-icon { color: var(--accent); }
+
+.dp-panel { position: fixed; z-index: 9999; width: 268px; padding: 10px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.34), 0 2px 8px rgba(0,0,0,0.22); animation: dropIn .15s ease; }
+/* Inline: in the flow of the form, for a short modal where a popup would cover
+   the very fields the user is trying to fill in. */
+.dp-panel.dp-static { position: static; width: auto; box-shadow: none; background: var(--bg3); animation: none; }
+
+.dp-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 8px; }
+.dp-title { flex: 1; display: inline-flex; align-items: center; justify-content: center; padding: 6px 8px; background: none; border: none; border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer; transition: background .12s; }
+.dp-title:hover { background: rgba(79,124,255,0.10); color: var(--accent); }
+.dp-nav { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: none; border: 1px solid transparent; border-radius: 8px; color: var(--text2); cursor: pointer; transition: all .12s; }
+.dp-nav:hover { background: rgba(79,124,255,0.10); border-color: rgba(79,124,255,0.25); color: var(--accent); }
+.dp-nav i { font-size: 15px; }
+
+.dp-dow { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 2px; }
+.dp-dow span { text-align: center; font-size: 10px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--text3); padding: 4px 0; }
+.dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.dp-day { display: flex; align-items: center; justify-content: center; height: 32px; background: none; border: 1px solid transparent; border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 12.5px; cursor: pointer; transition: all .12s; }
+.dp-day:hover { background: rgba(79,124,255,0.12); }
+.dp-day.other { color: var(--text3); opacity: .55; }
+.dp-day.today { border-color: rgba(79,124,255,0.45); color: var(--accent); font-weight: 600; }
+.dp-day.sel { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.dp-day.sel:hover { background: var(--accent); }
+.dp-day.dis { opacity: .22; cursor: default; }
+
+.dp-months { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.dp-mon { display: flex; align-items: center; justify-content: center; height: 40px; background: none; border: 1px solid transparent; border-radius: 8px; color: var(--text); font-family: var(--font); font-size: 12.5px; cursor: pointer; transition: all .12s; }
+.dp-mon:hover { background: rgba(79,124,255,0.12); }
+.dp-mon.sel { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.dp-mon.dis { opacity: .22; cursor: default; }
+
+.dp-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.dp-act { background: none; border: none; padding: 4px 6px; border-radius: 6px; color: var(--text3); font-family: var(--font); font-size: 12px; cursor: pointer; transition: all .12s; }
+.dp-act:hover { background: rgba(255,255,255,0.05); color: var(--text2); }
+.dp-act.accent { color: var(--accent); }
+.dp-act.accent:hover { background: rgba(79,124,255,0.12); }
+
 /* Tooltip System — JS-powered card with bold title + description */
 .tooltip-card {
   position: fixed;
@@ -804,4 +850,23 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .sa-metrics > div { padding: 12px !important; }
   .sa-task-card { padding: 10px 12px !important; }
   .sa-task-card > div:last-child { flex-wrap: wrap; }
+}
+
+/* The calendar on a phone: a touch target that can actually be hit, and a
+   panel that fits a 320px screen with room to spare. */
+@media (max-width: 520px) {
+  .dp-panel { width: 260px; padding: 9px; }
+  .dp-day { height: 34px; }
+  .dp-mon { height: 42px; }
+}
+
+/* Plan a visit — the calendar and the notes side by side, because the whole
+   point of drawing our own calendar was that nothing it does should hide the
+   rest of the form. Stacks below 640px, where two columns cannot both fit. */
+.plan-grid { display: grid; grid-template-columns: 268px 1fr; gap: 14px; align-items: stretch; }
+.plan-grid .form-group { display: flex; flex-direction: column; }
+.plan-notes { flex: 1; min-height: 200px; resize: vertical; }
+@media (max-width: 640px) {
+  .plan-grid { grid-template-columns: 1fr; }
+  .plan-notes { min-height: 90px; }
 }

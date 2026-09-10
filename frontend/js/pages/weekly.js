@@ -151,7 +151,7 @@ const WeeklyPage = (() => {
     const body = `
       <div class="form-grid">
         <div class="form-group"><label>School</label><input type="text" value="${esc(school?.name || '')}" disabled></div>
-        <div class="form-group"><label>Check-In Date <span style="color:var(--text3);font-weight:400">(Week ${selectedWeek})</span></label><input type="date" id="ci-date" value="${todayStr()}" max="${todayStr()}"></div>
+        <div class="form-group"><label>Check-In Date <span style="color:var(--text3);font-weight:400">(Week ${selectedWeek})</span></label>${DatePicker.render('ci-date', { value: todayStr(), max: DatePicker.today(), required: true })}</div>
         <div class="form-group"><label>Connectivity</label>${Dropdown.render('ci-conn', 'OK', statusOpts, { defaultValue: 'ok' })}</div>
         <div class="form-group"><label>Tablets</label>${Dropdown.render('ci-tab', 'OK', statusOpts, { defaultValue: 'ok' })}</div>
         <div class="form-group"><label>Platform</label>${Dropdown.render('ci-plat', 'OK', statusOpts, { defaultValue: 'ok' })}</div>

@@ -506,7 +506,7 @@ const InventoryPage = (() => {
             <option value="">—</option><option>A</option><option>B</option><option>C</option></select></div>
           <div class="form-group"><label>Status</label><select id="dev-status">
             <option>Working</option><option>Needs Setup</option><option>In Repair</option><option>Faulty</option><option>Lost/Missing</option></select></div>
-          <div class="form-group"><label>Last Checked</label><input id="dev-checked" type="date"></div>
+          <div class="form-group"><label>Last Checked</label>${DatePicker.render('dev-checked', { max: DatePicker.today(), placeholder: 'Not recorded' })}</div>
         </div>
         <div style="border-top:1px solid var(--border);margin:14px 0;padding-top:14px">
           <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text2)">Student Assignment (optional)</div>
@@ -565,7 +565,7 @@ const InventoryPage = (() => {
             <option value="">—</option>${['A','B','C'].map(s => `<option ${d.stream===s?'selected':''}>${s}</option>`).join('')}</select></div>
           <div class="form-group"><label>Status</label><select id="dev-status">
             ${['Working','Needs Setup','In Repair','Faulty','Lost/Missing'].map(s => `<option ${d.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
-          <div class="form-group"><label>Last Checked</label><input id="dev-checked" type="date" value="${d.last_checked ? d.last_checked.split('T')[0] : ''}"></div>
+          <div class="form-group"><label>Last Checked</label>${DatePicker.render('dev-checked', { value: d.last_checked ? d.last_checked.split('T')[0] : '', max: DatePicker.today(), placeholder: 'Not recorded' })}</div>
         </div>
         <div style="border-top:1px solid var(--border);margin:14px 0;padding-top:14px">
           <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text2)">Student Assignment</div>

@@ -214,6 +214,32 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/**
+ * The rectangle this panel may actually occupy: the viewport, narrowed by every
+ * ancestor that clips.
+ *
+ * Placement used to be decided against `window.innerWidth` and the card's right
+ * edge, which says nothing about whether the panel is *visible*. The report form's
+ * card is `overflow:hidden` (the upload overlay needs it), so the side panel of the
+ * one dropdown in the grid's right-hand column — Sub-category — opened 300px past
+ * the card's edge, into nothing. Worse, focusing its search box made the browser
+ * scroll that hidden card sideways to reach it: `card.scrollLeft` jumped to 300 and
+ * the whole form slid out from under its own labels (reported 2026-09-10).
+ */
+function clipBox(el) {
+  let box = { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    const cs = getComputedStyle(p);
+    if (/^(visible)$/.test(cs.overflowX) && /^(visible)$/.test(cs.overflowY)) continue;
+    const r = p.getBoundingClientRect();
+    box = {
+      left: Math.max(box.left, r.left), top: Math.max(box.top, r.top),
+      right: Math.min(box.right, r.right), bottom: Math.min(box.bottom, r.bottom)
+    };
+  }
+  return box;
+}
+
 const Dropdown = (() => {
   let openId = null;
 
@@ -234,31 +260,6 @@ const Dropdown = (() => {
   // 220px is the panel at its tallest (search box + a full list).
   const SIDE_W = 280, SIDE_GAP = 40, PANEL_H = 220;
 
-  /**
-   * The rectangle this panel may actually occupy: the viewport, narrowed by every
-   * ancestor that clips.
-   *
-   * Placement used to be decided against `window.innerWidth` and the card's right
-   * edge, which says nothing about whether the panel is *visible*. The report form's
-   * card is `overflow:hidden` (the upload overlay needs it), so the side panel of the
-   * one dropdown in the grid's right-hand column — Sub-category — opened 300px past
-   * the card's edge, into nothing. Worse, focusing its search box made the browser
-   * scroll that hidden card sideways to reach it: `card.scrollLeft` jumped to 300 and
-   * the whole form slid out from under its own labels (reported 2026-09-10).
-   */
-  function clipBox(el) {
-    let box = { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
-    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
-      const cs = getComputedStyle(p);
-      if (/^(visible)$/.test(cs.overflowX) && /^(visible)$/.test(cs.overflowY)) continue;
-      const r = p.getBoundingClientRect();
-      box = {
-        left: Math.max(box.left, r.left), top: Math.max(box.top, r.top),
-        right: Math.min(box.right, r.right), bottom: Math.min(box.bottom, r.bottom)
-      };
-    }
-    return box;
-  }
 
   function render(id, placeholder, items, opts = {}) {
     const defaultVal = opts.defaultValue || '';
@@ -405,6 +406,282 @@ const Dropdown = (() => {
   });
 
   return { render, toggle, filter, select, closeAll, updateItems, getValue };
+})();
+
+/**
+ * A date field that belongs to this system.
+ *
+ * `<input type="date">` renders whatever the operating system feels like: on
+ * Windows Chrome a small light-grey calendar that ignores every variable in
+ * `variables.css`, opens *outside* its own modal, and covers the rest of the
+ * form behind it. On the Plan a visit modal that meant the calendar hid the
+ * Notes field and the buttons — "I cannot see the part where I plan"
+ * (reported 2026-09-10).
+ *
+ * So: our own calendar, in our own colours, that cannot escape the page.
+ *
+ * The value still lives in a **hidden input carrying the same `id` (and `name`)**
+ * the native input had, so `document.getElementById('visit-date').value` and
+ * `new FormData(form)` keep working untouched — the callers did not change.
+ *
+ * Two modes. `inline: true` draws the calendar in the flow of the form, for a
+ * short modal where covering a field is the whole complaint. Otherwise it is a
+ * popup, positioned `fixed` so no `overflow:hidden` ancestor can clip it, and
+ * closed by a scroll rather than left floating away from its field.
+ *
+ * Dates are handled as `YYYY-MM-DD` strings and compared as strings, which for
+ * that format is the same as comparing dates. Nothing here goes through
+ * `new Date(iso)` and back: `toISOString()` is UTC, so in Tanzania (UTC+3) it
+ * reports yesterday for the first three hours of every day.
+ */
+const DatePicker = (() => {
+  const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  const MON_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+  const DOW = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+
+  const state = {};
+  let openId = null;
+
+  const pad = n => String(n).padStart(2, '0');
+
+  /** Today, from the local clock. Never `toISOString()` — see the note above. */
+  function today() {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  /** `days` from today, local. Used for "tomorrow" without a timezone bug. */
+  function offset(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+  function parse(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+    return m ? { y: +m[1], m: +m[2] - 1, d: +m[3] } : null;
+  }
+
+  /** "Fri 11 Sept 2026" — the same shape the visit list already prints. */
+  function format(iso) {
+    const p = parse(iso);
+    if (!p) return '';
+    const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(p.y, p.m, p.d).getDay()];
+    return `${dow} ${p.d} ${MON_SHORT[p.m]} ${p.y}`;
+  }
+
+  function render(id, opts = {}) {
+    const value = opts.value || '';
+    const p = parse(value) || parse(opts.min) || parse(today());
+    state[id] = {
+      y: p.y, m: p.m, value,
+      min: opts.min || '', max: opts.max || '',
+      clearable: opts.clearable !== false && !opts.required,
+      inline: !!opts.inline,
+      onChange: typeof opts.onChange === 'function' ? opts.onChange : null,
+      view: 'days'
+    };
+    const nameAttr = opts.name ? ` name="${esc(opts.name)}"` : '';
+    const hidden = `<input type="hidden" id="${id}"${nameAttr} value="${esc(value)}">`;
+
+    if (state[id].inline) {
+      return `<div class="dp dp-inline" data-datepicker="${id}">${hidden}
+        <div class="dp-panel dp-static" id="${id}-panel">${panelHtml(id)}</div>
+      </div>`;
+    }
+    return `<div class="dp" data-datepicker="${id}">${hidden}
+      <div class="dp-field" id="${id}-field" onclick="DatePicker.toggle('${id}',event)">
+        <span class="dp-text${value ? ' has' : ''}" id="${id}-text" data-placeholder="${esc(opts.placeholder || 'Choose a date')}">${value ? esc(format(value)) : esc(opts.placeholder || 'Choose a date')}</span>
+        <i class="ti ti-calendar-event dp-icon"></i>
+      </div>
+      <div class="dp-panel" id="${id}-panel" style="display:none">${panelHtml(id)}</div>
+    </div>`;
+  }
+
+  function panelHtml(id) {
+    const s = state[id];
+    if (!s) return '';
+    return s.view === 'months' ? monthsHtml(id) : daysHtml(id);
+  }
+
+  function head(id, title, sub) {
+    return `<div class="dp-head">
+      <button type="button" class="dp-nav" onclick="DatePicker.step('${id}',-1,event)" title="Previous"><i class="ti ti-chevron-left"></i></button>
+      <button type="button" class="dp-title" onclick="DatePicker.flip('${id}',event)">${esc(title)}<i class="ti ti-chevron-down" style="font-size:12px;margin-left:5px"></i></button>
+      <button type="button" class="dp-nav" onclick="DatePicker.step('${id}',1,event)" title="Next"><i class="ti ti-chevron-right"></i></button>
+    </div>${sub || ''}`;
+  }
+
+  function daysHtml(id) {
+    const s = state[id];
+    const sel = s.value || '';
+    const now = today();
+    const first = new Date(s.y, s.m, 1);
+    const lead = (first.getDay() + 6) % 7;              // Monday-first: how the week is read here
+    const start = new Date(s.y, s.m, 1 - lead);
+
+    let cells = '';
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const out = d.getMonth() !== s.m;
+      const disabled = (s.min && iso < s.min) || (s.max && iso > s.max);
+      const cls = ['dp-day', out ? 'other' : '', iso === now ? 'today' : '', iso === sel ? 'sel' : '', disabled ? 'dis' : ''].filter(Boolean).join(' ');
+      cells += disabled
+        ? `<span class="${cls}">${d.getDate()}</span>`
+        : `<button type="button" class="${cls}" onclick="DatePicker.pick('${id}','${iso}',event)">${d.getDate()}</button>`;
+    }
+
+    const dow = `<div class="dp-dow">${DOW.map(d => `<span>${d}</span>`).join('')}</div>`;
+    const todayBlocked = (s.min && now < s.min) || (s.max && now > s.max);
+    return head(id, `${MONTHS[s.m]} ${s.y}`, dow) +
+      `<div class="dp-grid">${cells}</div>
+      <div class="dp-foot">
+        ${s.clearable ? `<button type="button" class="dp-act" onclick="DatePicker.pick('${id}','',event)">Clear</button>` : '<span></span>'}
+        ${todayBlocked ? '<span></span>' : `<button type="button" class="dp-act accent" onclick="DatePicker.pick('${id}','${now}',event)">Today</button>`}
+      </div>`;
+  }
+
+  function monthsHtml(id) {
+    const s = state[id];
+    const sel = parse(s.value);
+    const cells = MONTHS.map((name, i) => {
+      // A month is out of range only when *every* day in it is.
+      const last = new Date(s.y, i + 1, 0).getDate();
+      const disabled = (s.min && `${s.y}-${pad(i + 1)}-${pad(last)}` < s.min) || (s.max && `${s.y}-${pad(i + 1)}-01` > s.max);
+      const cls = ['dp-mon', sel && sel.y === s.y && sel.m === i ? 'sel' : '', disabled ? 'dis' : ''].filter(Boolean).join(' ');
+      return disabled
+        ? `<span class="${cls}">${MON_SHORT[i]}</span>`
+        : `<button type="button" class="${cls}" onclick="DatePicker.setMonth('${id}',${i},event)">${MON_SHORT[i]}</button>`;
+    }).join('');
+    return head(id, String(s.y), '') + `<div class="dp-months">${cells}</div>`;
+  }
+
+  function repaint(id) {
+    const panel = document.getElementById(id + '-panel');
+    if (panel) panel.innerHTML = panelHtml(id);
+  }
+
+  /** Chevrons move a month in the day view, a year in the month view. */
+  function step(id, dir, e) {
+    if (e) e.stopPropagation();
+    const s = state[id];
+    if (!s) return;
+    if (s.view === 'months') { s.y += dir; }
+    else {
+      s.m += dir;
+      if (s.m < 0) { s.m = 11; s.y--; }
+      else if (s.m > 11) { s.m = 0; s.y++; }
+    }
+    repaint(id);
+  }
+
+  function flip(id, e) {
+    if (e) e.stopPropagation();
+    const s = state[id];
+    if (!s) return;
+    s.view = s.view === 'months' ? 'days' : 'months';
+    repaint(id);
+  }
+
+  function setMonth(id, m, e) {
+    if (e) e.stopPropagation();
+    const s = state[id];
+    if (!s) return;
+    s.m = m; s.view = 'days';
+    repaint(id);
+  }
+
+  function pick(id, iso, e) {
+    if (e) e.stopPropagation();
+    const s0 = state[id];
+    if (s0) s0.value = iso;
+    const hidden = document.getElementById(id);
+    const text = document.getElementById(id + '-text');
+    if (hidden) hidden.value = iso;
+    if (text) {
+      text.textContent = iso ? format(iso) : (text.dataset.placeholder || 'Choose a date');
+      text.classList.toggle('has', !!iso);
+    }
+    const s = state[id];
+    if (s && iso) { const p = parse(iso); s.y = p.y; s.m = p.m; }
+    if (s && s.inline) repaint(id); else close();
+    if (s && s.onChange) s.onChange(iso);
+  }
+
+  /**
+   * Anchored to the field and positioned `fixed`, so no clipping ancestor can
+   * hide it — the failure that made the Sub-category dropdown drag its whole
+   * form sideways. It flips above the field when there is no room below, and is
+   * kept inside `clipBox` horizontally so it never hangs off a narrow phone.
+   */
+  function place(id) {
+    const panel = document.getElementById(id + '-panel');
+    const field = document.getElementById(id + '-field');
+    if (!panel || !field) return;
+    const f = field.getBoundingClientRect();
+    // The panel is `fixed`, so no ancestor clips it and the viewport is the only
+    // real constraint. Clamping to `clipBox` here would shove it sideways to fit
+    // inside a modal it is entitled to overhang.
+    const w = panel.offsetWidth || 268, h = panel.offsetHeight || 300;
+
+    let left = f.left;
+    if (left + w > window.innerWidth - 8) left = window.innerWidth - w - 8;
+    if (left < 8) left = 8;
+
+    const below = window.innerHeight - f.bottom;
+    panel.style.left = Math.round(left) + 'px';
+    if (below < h + 10 && f.top > h + 10) {
+      panel.style.top = Math.round(f.top - h - 6) + 'px';
+    } else {
+      panel.style.top = Math.round(f.bottom + 6) + 'px';
+    }
+  }
+
+  function toggle(id, e) {
+    if (e) e.stopPropagation();
+    const panel = document.getElementById(id + '-panel');
+    if (!panel) return;
+    const isOpen = panel.style.display === 'block';
+    close();
+    if (isOpen) return;
+    const s = state[id];
+    const el = document.getElementById(id);
+    if (s && el) s.value = el.value;
+    const cur = parse(el ? el.value : '');
+    if (s && cur) { s.y = cur.y; s.m = cur.m; }
+    if (s) s.view = 'days';
+    repaint(id);
+    panel.style.display = 'block';
+    openId = id;
+    place(id);
+  }
+
+  function close() {
+    if (!openId) return;
+    const panel = document.getElementById(openId + '-panel');
+    if (panel && !(state[openId] && state[openId].inline)) panel.style.display = 'none';
+    openId = null;
+  }
+
+  function getValue(id) {
+    const el = document.getElementById(id);
+    return el ? el.value : '';
+  }
+
+  document.addEventListener('click', e => {
+    if (!openId) return;
+    const wrap = document.querySelector(`[data-datepicker="${openId}"]`);
+    const panel = document.getElementById(openId + '-panel');
+    if (wrap && !wrap.contains(e.target) && panel && !panel.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+  // A fixed panel does not follow a scrolling form, so it closes instead of drifting.
+  window.addEventListener('scroll', () => close(), true);
+  window.addEventListener('resize', () => close());
+
+  return { render, toggle, pick, step, flip, setMonth, close, getValue, format, today, offset };
 })();
 
 const Tooltip = (() => {

@@ -243,7 +243,13 @@ async function create(req, res, next) {
           `UPDATE errors SET visit_id = ? WHERE school_id = ? AND ${OPEN} AND id IN (?)`,
           [visitId, school_id, error_ids])
       : await pool.query(
-          `UPDATE errors SET visit_id = ? WHERE school_id = ? AND ${OPEN} AND visit_id IS NULL`,
+          // "Not on a visit" includes a fault pointing at a visit that no longer
+          // exists. Kilema Secondary was listed as worth a trip for one open
+          // fault and then attached nothing, because that fault still carried
+          // `visit_id = 1` from a visit deleted long ago — so the engineer would
+          // have driven out to an empty sheet (found 2026-09-10).
+          `UPDATE errors SET visit_id = ? WHERE school_id = ? AND ${OPEN}
+             AND (visit_id IS NULL OR visit_id NOT IN (SELECT id FROM visits))`,
           [visitId, school_id]);
 
     const [[s]] = await pool.query('SELECT name FROM schools WHERE id = ?', [school_id]);

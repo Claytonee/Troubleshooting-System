@@ -285,7 +285,7 @@ const LRSPage = (() => {
             <option value="poe" ${d.power_type === 'poe' ? 'selected' : ''}>PoE</option>
             <option value="ups" ${d.power_type === 'ups' ? 'selected' : ''}>UPS/Battery</option>
             <option value="solar" ${d.power_type === 'solar' ? 'selected' : ''}>Solar</option></select></div>
-          <div class="form-group"><label>Installed Date</label><input name="installed_at" type="date" value="${d.installed_at ? d.installed_at.split('T')[0] : ''}"></div>
+          <div class="form-group"><label>Installed Date</label>${DatePicker.render('lrs-installed', { name: 'installed_at', value: d.installed_at ? d.installed_at.split('T')[0] : '', max: DatePicker.today(), placeholder: 'Not recorded' })}</div>
           <div class="form-group"><label>OS Version</label><input name="os_version" value="${d.os_version || ''}" placeholder="Raspbian 11"></div>
           <div class="form-group"><label>LRS Version</label><input name="lrs_version" value="${d.lrs_version || ''}" placeholder="2.1.0"></div>
         </div>

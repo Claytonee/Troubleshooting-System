@@ -139,24 +139,34 @@ const VisitsPage = (() => {
   // --- planning ------------------------------------------------------------
 
   function openPlan(schoolId, schoolName) {
-    const today = new Date();
-    const iso = d => d.toISOString().slice(0, 10);
-    const tomorrow = new Date(today.getTime() + 86400000);
+    // The calendar is drawn inline, not as a popup. This modal has two fields;
+    // a popup here covered the Notes box and the buttons, which is what "I
+    // cannot see where to plan" meant (reported 2026-09-10).
+    const proposed = DatePicker.offset(1);
     Modal.open('Plan a visit', `
       <div style="font-size:13px;color:var(--text2);margin-bottom:14px">
         Every fault currently open at <strong style="color:var(--text)">${esc(schoolName)}</strong> will be attached to this visit.
         Their status does not change — a plan is not work done.
       </div>
-      <div class="form-group" style="margin-bottom:12px">
-        <label>Date</label>
-        <input type="date" id="visit-date" value="${iso(tomorrow)}" min="${iso(today)}">
-      </div>
-      <div class="form-group">
-        <label>Notes (optional)</label>
-        <textarea id="visit-notes" rows="3" placeholder="Parts to bring, who to meet, anything to prepare…"></textarea>
+      <div class="plan-grid">
+        <div class="form-group">
+          <label>Date <span id="visit-date-label" style="font-weight:400;color:var(--accent)">· ${esc(DatePicker.format(proposed))}</span></label>
+          ${DatePicker.render('visit-date', {
+            value: proposed,
+            min: DatePicker.today(),
+            inline: true,
+            required: true,
+            onChange: iso => { const l = document.getElementById('visit-date-label'); if (l) l.textContent = iso ? '· ' + DatePicker.format(iso) : ''; }
+          })}
+        </div>
+        <div class="form-group">
+          <label>Notes (optional)</label>
+          <textarea id="visit-notes" class="plan-notes" placeholder="Parts to bring, who to meet, anything to prepare…"></textarea>
+        </div>
       </div>`,
       `<button class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
-       <button class="btn btn-primary" onclick="VisitsPage.submitPlan(${schoolId})"><i class="ti ti-calendar-plus"></i> Plan it</button>`);
+       <button class="btn btn-primary" onclick="VisitsPage.submitPlan(${schoolId})"><i class="ti ti-calendar-plus"></i> Plan it</button>`,
+      true);
   }
 
   async function submitPlan(schoolId) {

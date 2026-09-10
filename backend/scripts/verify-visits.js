@@ -118,17 +118,34 @@ async function cleanup() {
   const noSchool = await send('POST', '/api/visits', { planned_for: iso(1) });
   check('plan: requires a school', noSchool.status === 400);
 
+  // A fault still pointing at a visit that no longer exists is not on a visit.
+  // Real data has these — Kilema Secondary was listed as worth a trip and then
+  // attached nothing, because its only open fault carried a `visit_id` from a
+  // visit deleted long ago (found 2026-09-10).
+  const orphanId = await fault(A.id, MARK + '-A4-orphan', 'low');
+  await pool.query('UPDATE errors SET visit_id = 999999 WHERE id = ?', [orphanId]);
+
+  // Status is asserted as a delta on the school's own rows. Asserting that
+  // *every* fault on the new visit is 'open' only held while the fixtures were
+  // the only ones there, and broke the moment a real in-progress fault joined
+  // them — the same brittleness the spares suite had.
+  const openAtA = "SELECT id, status FROM errors WHERE school_id = ? AND status <> 'resolved' ORDER BY id";
+  const [beforeStatuses] = await pool.query(openAtA, [A.id]);
+
   const created = await send('POST', '/api/visits', { school_id: A.id, planned_for: iso(1), notes: MARK + ' fixture' });
   check('plan: creates the visit and attaches the open faults',
     created.status === 201 && created.body.attached_faults >= 3,
     'attached=' + created.body.attached_faults);
   const visitId = created.body.id;
 
-  const [statuses] = await pool.query(
-    'SELECT DISTINCT status FROM errors WHERE visit_id = ?', [visitId]);
+  const [afterStatuses] = await pool.query(openAtA, [A.id]);
   check('plan: attaching does NOT change fault status',
-    statuses.length === 1 && statuses[0].status === 'open',
-    statuses.map(x => x.status).join(', '));
+    JSON.stringify(beforeStatuses) === JSON.stringify(afterStatuses),
+    JSON.stringify(afterStatuses).slice(0, 120));
+
+  const [[orphan]] = await pool.query('SELECT visit_id FROM errors WHERE id = ?', [orphanId]);
+  check('plan: a fault pointing at a deleted visit is picked up, not stranded',
+    orphan.visit_id === visitId, 'visit_id=' + orphan.visit_id);
 
   const dupe = await send('POST', '/api/visits', { school_id: A.id, planned_for: iso(2) });
   check('plan: refuses a second open plan for the same school',

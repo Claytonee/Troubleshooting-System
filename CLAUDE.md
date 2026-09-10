@@ -495,6 +495,33 @@ Hence also `.focus({ preventScroll: true })`: **never let focus move a container
 `render()` stamps `data-placeholder` on the text span, which `updateItems()` reads — without
 it, changing a field's options reset its label to a generic "Select...".
 
+### Dates are picked with `DatePicker`, never `<input type="date">`
+The native control hands the calendar to the operating system: unthemed, ignoring every
+variable in `variables.css`, and rendered *outside* its own modal. On Plan a visit it
+covered the Notes field and the buttons — "I cannot see the part where I plan"
+(2026-09-10). No CSS fixes that; the control had to go.
+
+`DatePicker.render(id, { value, min, max, name, placeholder, inline, required, onChange })`
+keeps the value in a **hidden input carrying the same `id` (and `name`)**, so
+`getElementById(id).value` and `new FormData(form)` keep working — no caller changed.
+`DatePicker.today()` / `.offset(days)` / `.format(iso)` read the **local** clock:
+`toISOString()` is UTC and reports yesterday for the first three hours of every day here.
+
+- **Popup by default**, `position: fixed` so no `overflow:hidden` ancestor can clip it,
+  flipping above the field when there is no room below, and **closing on scroll** rather
+  than drifting away from its field.
+- **`inline: true`** draws it in the flow of the form. Use it where a popup would cover
+  the fields the user is filling in — Plan a visit is `inline` beside its Notes box
+  (`.plan-grid`, two columns above 640px), which is the whole point.
+- Monday-first, `min`/`max` render as unclickable `<span>`s rather than dead buttons, and
+  the title flips to a month grid so a date a year out takes two clicks, not twelve.
+
+### A fault pointing at a deleted visit is not on a visit
+`planVisit` attaches `visit_id IS NULL OR visit_id NOT IN (SELECT id FROM visits)`.
+Kilema Secondary was listed as worth a trip for one open fault and then attached **zero**,
+because that fault still carried `visit_id = 1` from a visit deleted long ago — the
+engineer would have driven out to an empty sheet.
+
 ### Icons
 - Use ONLY Tabler Icons: `<i class="ti ti-icon-name"></i>`
 - Do NOT use Unicons, Font Awesome, or any other icon library
