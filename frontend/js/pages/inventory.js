@@ -81,7 +81,7 @@ const InventoryPage = (() => {
   function deviceView() {
     return `
   <div class="inv-toolbar">
-    ${isAdmin() ? `<div style="min-width:200px">${Dropdown.render('inv-school', 'All Schools', [{value:'',label:'All Schools'},...schools.map(sc => ({value:sc.id,label:sc.name,tag:sc.zone||''}))], {defaultValue: filters.school_id, onSelect: "InventoryPage.onSchoolSelect()"})}</div>` : ''}
+    ${isAdmin() ? `<div style="min-width:200px">${Dropdown.render('inv-school', 'All Schools', [{value:'',label:'All Schools'},...schools.map(sc => ({value:sc.id,label:sc.name,tag:sc.zone||''}))], {defaultValue: filters.school_id, onSelect: () => InventoryPage.onSchoolSelect()})}</div>` : ''}
     <div style="min-width:150px">${Dropdown.render('inv-status', 'All Statuses', [
       {value:'',label:'All Statuses'},
       {value:'Working',label:'Working'},
@@ -89,21 +89,21 @@ const InventoryPage = (() => {
       {value:'In Repair',label:'In Repair'},
       {value:'Faulty',label:'Faulty'},
       {value:'Lost/Missing',label:'Lost/Missing'}
-    ], {defaultValue: filters.status, onSelect: "InventoryPage.onStatusSelect()"})}</div>
+    ], {defaultValue: filters.status, onSelect: () => InventoryPage.onStatusSelect()})}</div>
     <div style="min-width:130px">${Dropdown.render('inv-form', 'All Forms', [
       {value:'',label:'All Forms'},
       {value:'Form 1',label:'Form 1'},
       {value:'Form 2',label:'Form 2'},
       {value:'Form 3',label:'Form 3'},
       {value:'Form 4',label:'Form 4'}
-    ], {defaultValue: filters.form, onSelect: "InventoryPage.onFormSelect()"})}</div>
+    ], {defaultValue: filters.form, onSelect: () => InventoryPage.onFormSelect()})}</div>
     <div style="min-width:160px">${Dropdown.render('inv-warranty', 'Any warranty', [
       {value:'',label:'Any warranty'},
       {value:'active',label:'Under warranty'},
       {value:'expiring',label:'Expiring soon'},
       {value:'expired',label:'Out of warranty'},
       {value:'unknown',label:'Not recorded'}
-    ], {defaultValue: filters.warranty, onSelect: "InventoryPage.onWarrantySelect()"})}</div>
+    ], {defaultValue: filters.warranty, onSelect: () => InventoryPage.onWarrantySelect()})}</div>
     <div style="flex:1;position:relative;min-width:160px">
       <i class="ti ti-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text3)"></i>
       <input type="text" id="inv-search" placeholder="Search serial, tag, student, batch..." value="${filters.search}" onkeyup="InventoryPage.debounceSearch(this.value)" style="width:100%;padding:7px 10px 7px 30px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:12px">

@@ -51,7 +51,7 @@ const LRSPage = (() => {
       {value:'Syncing',label:'Syncing'},
       {value:'Error',label:'Error'},
       {value:'Maintenance',label:'Maintenance'}
-    ], {defaultValue: filters.status, onSelect: "LRSPage.onStatusSelect()"})}</div>
+    ], {defaultValue: filters.status, onSelect: () => LRSPage.onStatusSelect()})}</div>
     <div style="flex:1;position:relative;min-width:160px">
       <i class="ti ti-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--text3)"></i>
       <input type="text" id="lrs-search" placeholder="Search IP, tag, school, hostname..." value="${filters.search}" onkeyup="LRSPage.debounceSearch(this.value)" style="width:100%;padding:7px 10px 7px 30px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:12px">

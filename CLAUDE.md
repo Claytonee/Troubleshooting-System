@@ -463,6 +463,38 @@ Page modules are `const X = (() => { … })()`, which is a script-scope binding 
 **not** a property of `window`. `if (window.ChatPage)` is permanently false and
 had silently disabled the logout chat reset. Always `typeof X !== 'undefined'`.
 
+### The CSP forbids strings-as-code — a handler is a function
+`script-src 'self' 'unsafe-inline'` has **no `'unsafe-eval'`**. So `eval()`,
+`new Function()` and `setTimeout('…')` all throw, and a `catch (e) {}` around one
+turns a dead feature into a silent one.
+
+`Dropdown.render(id, placeholder, items, { onSelect })` takes a **function**, kept in
+`handlers[id]`. It used to take a *string* run with `eval(hidden.dataset.onselect)`
+inside an empty catch: every call threw `EvalError`, so choosing a Category never filled
+Sub-category, the four inventory filters never filtered, the LRS filter never filtered
+and the week picker never changed the week — wired, shipped, and dead since they were
+written (found 2026-09-10). A string now logs `console.error` instead of being eaten.
+`backend/scripts/verify-frontend-safety.js` reads the source and fails on any of it.
+
+**Inline `onclick="Module.method()"` attributes are fine** — `'unsafe-inline'` covers
+them. It is only *runtime* string evaluation that is blocked.
+
+### A dropdown panel is placed against what clips it, not the window
+`clipBox(el)` intersects every ancestor that clips (`.card` on the report form is
+`overflow:hidden` for the upload overlay; `.main` is `overflow:auto`). `drop-side`
+(280px, 40px to the right) is used **only when it fits inside that box**, otherwise the
+panel drops below or above.
+
+Placement used to be judged by `window.innerWidth` against the card's right edge, which
+says nothing about whether the panel is *visible*. Sub-category — the one dropdown in the
+form grid's right-hand column — opened 300px past the card's edge into nothing, and
+focusing its search box made the browser scroll that `overflow:hidden` card sideways:
+`card.scrollLeft` jumped to 300 and the whole form slid out from under its own labels.
+Hence also `.focus({ preventScroll: true })`: **never let focus move a container**.
+
+`render()` stamps `data-placeholder` on the text span, which `updateItems()` reads — without
+it, changing a field's options reset its label to a generic "Select...".
+
 ### Icons
 - Use ONLY Tabler Icons: `<i class="ti ti-icon-name"></i>`
 - Do NOT use Unicons, Font Awesome, or any other icon library

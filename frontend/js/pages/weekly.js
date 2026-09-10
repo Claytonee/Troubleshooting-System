@@ -63,7 +63,7 @@ const WeeklyPage = (() => {
     }
     const weekSelector = `
       <button class="btn btn-secondary btn-sm" onclick="WeeklyPage.setWeek(${selectedWeek - 1})" ${selectedWeek <= 1 ? 'disabled style="opacity:.4;cursor:default"' : ''} title="Previous week"><i class="ti ti-chevron-left"></i></button>
-      <div style="flex:1;min-width:180px;max-width:270px">${Dropdown.render('wk-select', `Week ${selectedWeek} <span style="color:var(--text3);font-weight:400">· ${weekRange(selectedWeek, year)}</span>`, weekItems, { defaultValue: String(selectedWeek), onSelect: "WeeklyPage.setWeek(parseInt(Dropdown.getValue('wk-select')))" })}</div>
+      <div style="flex:1;min-width:180px;max-width:270px">${Dropdown.render('wk-select', `Week ${selectedWeek} <span style="color:var(--text3);font-weight:400">· ${weekRange(selectedWeek, year)}</span>`, weekItems, { defaultValue: String(selectedWeek), onSelect: (v) => WeeklyPage.setWeek(parseInt(v, 10)) })}</div>
       <button class="btn btn-secondary btn-sm" onclick="WeeklyPage.setWeek(${selectedWeek + 1})" ${selectedWeek >= 52 ? 'disabled style="opacity:.4;cursor:default"' : ''} title="Next week"><i class="ti ti-chevron-right"></i></button>
       ${selectedWeek !== currentWeek ? `<button class="btn btn-secondary btn-sm" onclick="WeeklyPage.setWeek(${currentWeek})"><i class="ti ti-calendar-pin"></i> This Week</button>` : ''}`;
 

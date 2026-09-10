@@ -305,7 +305,7 @@ const GuidesPage = (() => {
     // Built-in categories plus any custom ones already used by guides.
     const categories = [...new Set([...Object.keys(catMeta), ...getCategories()])];
     const items = [...categories.map(c => ({ value: c, label: c })), { value: '__new__', label: '+ New Category…' }];
-    const catDropdown = Dropdown.render('ag-category', g ? esc(g.category) : 'Select category', items, { defaultValue: g ? g.category : 'Other', onSelect: 'GuidesPage.onCategorySelect()' });
+    const catDropdown = Dropdown.render('ag-category', g ? esc(g.category) : 'Select category', items, { defaultValue: g ? g.category : 'Other', onSelect: () => GuidesPage.onCategorySelect() });
     const stepsHtml = g ? g.steps.map((s, i) => stepRowHtml(i, s)).join('') : stepRowHtml(0) + stepRowHtml(1);
     const submitLabel = g ? '<i class="ti ti-check"></i> Save Changes' : '<i class="ti ti-plus"></i> Create Guide';
     const body = `

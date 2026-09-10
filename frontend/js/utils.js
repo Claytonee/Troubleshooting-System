@@ -217,9 +217,57 @@ function downloadBlob(blob, filename) {
 const Dropdown = (() => {
   let openId = null;
 
+  /**
+   * What to run when a value is picked, keyed by dropdown id.
+   *
+   * `onSelect` used to be a *string* of JavaScript, stashed in `data-onselect`
+   * and run with `eval()` inside a `catch (e) {}`. The Content-Security-Policy
+   * this app sends is `script-src 'self' 'unsafe-inline'` — no `'unsafe-eval'` —
+   * so every one of those calls threw `EvalError` and the empty catch ate it.
+   * Silently: picking a Category never filled Sub-category, the inventory
+   * filters never filtered, the week picker never changed the week (found
+   * 2026-09-10). A function reference needs no eval and cannot be blocked.
+   */
+  const handlers = {};
+
+  // .reg-dropdown.drop-side is 280px wide and sits 40px to the right of the field;
+  // 220px is the panel at its tallest (search box + a full list).
+  const SIDE_W = 280, SIDE_GAP = 40, PANEL_H = 220;
+
+  /**
+   * The rectangle this panel may actually occupy: the viewport, narrowed by every
+   * ancestor that clips.
+   *
+   * Placement used to be decided against `window.innerWidth` and the card's right
+   * edge, which says nothing about whether the panel is *visible*. The report form's
+   * card is `overflow:hidden` (the upload overlay needs it), so the side panel of the
+   * one dropdown in the grid's right-hand column — Sub-category — opened 300px past
+   * the card's edge, into nothing. Worse, focusing its search box made the browser
+   * scroll that hidden card sideways to reach it: `card.scrollLeft` jumped to 300 and
+   * the whole form slid out from under its own labels (reported 2026-09-10).
+   */
+  function clipBox(el) {
+    let box = { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight };
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      const cs = getComputedStyle(p);
+      if (/^(visible)$/.test(cs.overflowX) && /^(visible)$/.test(cs.overflowY)) continue;
+      const r = p.getBoundingClientRect();
+      box = {
+        left: Math.max(box.left, r.left), top: Math.max(box.top, r.top),
+        right: Math.min(box.right, r.right), bottom: Math.min(box.bottom, r.bottom)
+      };
+    }
+    return box;
+  }
+
   function render(id, placeholder, items, opts = {}) {
     const defaultVal = opts.defaultValue || '';
-    const onSelect = opts.onSelect || '';
+    if (typeof opts.onSelect === 'function') {
+      handlers[id] = opts.onSelect;
+    } else {
+      delete handlers[id];
+      if (opts.onSelect) console.error(`Dropdown "${id}": onSelect must be a function — a string cannot be run under this CSP.`);
+    }
     const itemsHtml = items.map(item => {
       const val = typeof item === 'object' ? item.value : item;
       const label = typeof item === 'object' ? item.label : item;
@@ -233,9 +281,9 @@ const Dropdown = (() => {
 
     const hasDefault = !!defaultVal;
     return `<div style="position:relative" data-dropdown="${id}">
-      <input type="hidden" id="${id}" value="${esc(defaultVal)}"${onSelect ? ` data-onselect="${esc(onSelect)}"` : ''}>
+      <input type="hidden" id="${id}" value="${esc(defaultVal)}">
       <div class="reg-select" id="${id}-trigger" onclick="Dropdown.toggle('${id}',event)">
-        <span class="reg-select-text${hasDefault ? ' selected' : ''}" id="${id}-text">${placeholder}</span>
+        <span class="reg-select-text${hasDefault ? ' selected' : ''}" id="${id}-text" data-placeholder="${esc(placeholder)}">${placeholder}</span>
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="reg-select-arrow"><path d="M6 9l6 6 6-6"/></svg>
       </div>
       <div class="reg-dropdown" id="${id}-dd" style="display:none">
@@ -279,17 +327,18 @@ const Dropdown = (() => {
         dd.style.left = '';
         dd.style.top = '';
         dd.style.bottom = '';
-        const card = dd.closest('.card') || dd.closest('.form-grid');
-        const cardRect = card ? card.getBoundingClientRect() : null;
-        const spaceRight = cardRect ? window.innerWidth - cardRect.right : 0;
-        if (spaceRight > 290) {
-          dd.classList.add('drop-side');
-        } else if (triggerRect && window.innerHeight - triggerRect.bottom < 220) {
-          dd.classList.add('drop-up');
+        if (triggerRect) {
+          const clip = clipBox(dd);
+          const fitsSide = triggerRect.right + SIDE_GAP + SIDE_W <= clip.right
+                        && triggerRect.top + PANEL_H <= clip.bottom;
+          const fitsBelow = triggerRect.bottom + 4 + PANEL_H <= clip.bottom;
+          const fitsAbove = triggerRect.top - 4 - PANEL_H >= clip.top;
+          if (fitsSide) dd.classList.add('drop-side');
+          else if (!fitsBelow && fitsAbove) dd.classList.add('drop-up');
         }
       }
       const input = dd.querySelector('input[type="text"]');
-      if (input) { input.value = ''; filter(id, ''); input.focus(); }
+      if (input) { input.value = ''; filter(id, ''); input.focus({ preventScroll: true }); }
     }
   }
 
@@ -320,9 +369,8 @@ const Dropdown = (() => {
     if (hidden) hidden.value = value;
     if (text) { text.textContent = label; text.classList.add('selected'); }
     closeAll();
-    if (hidden && hidden.dataset.onselect) {
-      try { eval(hidden.dataset.onselect); } catch (e) {}
-    }
+    const fn = handlers[id];
+    if (fn) fn(value, label);
   }
 
   function updateItems(id, items) {

@@ -40,7 +40,7 @@ const ReportPage = (() => {
       ? `<input type="text" value="Teacher" disabled><input type="hidden" id="f-role" value="Teacher">`
       : Dropdown.render('f-role', 'Select role', ROLES);
 
-    const categoryField = Dropdown.render('f-category', 'Select category', categories, { onSelect: "ReportPage.onCategoryChange()" });
+    const categoryField = Dropdown.render('f-category', 'Select category', categories, { onSelect: () => onCategoryChange() });
     const subcatField = Dropdown.render('f-subcat', 'Select sub-category', []);
     const priorityField = Dropdown.render('f-priority', 'Medium — Partial disruption', PRIORITIES, { defaultValue: 'medium' });
 
