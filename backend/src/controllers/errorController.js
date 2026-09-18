@@ -217,6 +217,16 @@ async function getById(req, res, next) {
       [req.params.id]
     );
 
+    // A resolved fault that reached that state any way other than through
+    // PATCH /status — a migration, a direct database fix, a future bulk close —
+    // never got a token, and the token IS the rating capability. Without this
+    // the person entitled to rate opens the fault and is told they may rate it,
+    // with nothing to press. Minted here, on demand, only for a viewer who may
+    // actually rate (found while preparing the September 2026 walkthrough).
+    if (rows[0].status === 'resolved' && !rows[0].csat_token && shapers.canRateError(rows[0], req.user)) {
+      rows[0].csat_token = await ensureCsatToken(rows[0].id);
+    }
+
     res.json({ ...shapers.pickErrorDetail(rows[0], req.user), updates, attachments });
   } catch (err) { next(err); }
 }
