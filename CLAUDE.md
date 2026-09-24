@@ -547,6 +547,10 @@ the old code. Rules that came out of the 2026-09-24 review:
   earns only a 5-minute ticket when it is on. Never return a stored secret, never accept a ticket
   as a session, and never add a web path that turns it off for an admin: the break-glass is
   `scripts/mfa-reset.js` on the server console.
+- **Detection is alert-only** (`services/detection.js`, D5): seven rules every minute, one incident
+  per rule, subject and hour, one bell alert per incident. Nothing blocks traffic until 30 days of
+  closed incidents (with outcomes) justify it. Decide "new incident" with `INSERT IGNORE`, never
+  from `ON DUPLICATE KEY UPDATE`'s affected-rows count.
 - **Refusals are evidence.** `services/securityEvents.js` records every 401/403/429 from one
   response hook. A controller adds precision through `res.locals` (`secEvent`, `secUserId`,
   `secRule`, `secDetail`) and never writes rows itself. Never put a password, token, header,

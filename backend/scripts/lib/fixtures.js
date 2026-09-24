@@ -100,6 +100,21 @@ async function cleanup() {
   const ids = users.map(u => u.id);
   if (!ids.length) return { removed: 0 };
 
+  // The detection rules (services/detection.js) run inside the server and can open
+  // incidents — and bell alerts — about fixture accounts while a suite deliberately
+  // trips them. Those belong to the fixtures and go with them.
+  try {
+    const [incs] = await pool.query(
+      "SELECT id FROM security_incidents WHERE subject_type = 'account' AND subject IN (?)", [ids.map(String)]);
+    if (incs.length) {
+      const incIds = incs.map(i => i.id);
+      await pool.query(
+        `DELETE FROM admin_notifications WHERE type = 'security_incident'
+           AND CAST(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.incident_id')) AS UNSIGNED) IN (?)`, [incIds]);
+      await pool.query('DELETE FROM security_incidents WHERE id IN (?)', [incIds]);
+    }
+  } catch (e) { /* table absent on an older schema: nothing to remove */ }
+
   for (const id of ids) {
     const [errs] = await pool.query('SELECT id FROM errors WHERE reported_by_user_id = ?', [id]);
     for (const e of errs) {

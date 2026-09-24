@@ -33,7 +33,7 @@ Evidence: **T** automated test · **C** code read in this review · **D** hostin
 | Govern | In place | SECURITY_POLICY.md adopted; platform admin is security owner; quarterly access review |
 | Identify | In place | API matrix (143 endpoints) kept true by `api-matrix.js --check` in the suite; threat model; data inventory |
 | Protect | In place | V1–V9, V11–V13 above |
-| Detect | Partial | Every refusal recorded since 2026-09-24; no detection rules or alerts yet |
+| Detect | In place | Every refusal recorded; 7 rules open deduplicated incidents with one bell alert each (`services/detection.js`, tested); alert-only by D5; email alerts await SMTP |
 | Respond | Partial | INCIDENT_RESPONSE.md adopted, with PDPC notification; first tabletop due within 30 days |
 | Recover | Partial | RPO 24 h / RTO 4 h; restore drill proven on a copy; first production drill due |
 

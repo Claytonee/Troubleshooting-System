@@ -539,6 +539,37 @@ async function applyExtensions(db) {
   await q('ALTER TABLE teachers ADD COLUMN status_token VARCHAR(64) NULL');
   await q('CREATE INDEX idx_teachers_status_token ON teachers (status_token)');
 
+  // --- Security incidents (DECISIONS.md D5 b, D6) ---
+  // Opened by services/detection.js from the recorded evidence; one per rule,
+  // subject and hour (dedup_key). Closing one requires an outcome, so false
+  // alarms are counted — the 30-day review in D5 needs exactly that number.
+  await q(`CREATE TABLE IF NOT EXISTS security_incidents (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    dedup_key VARCHAR(120) NOT NULL,
+    rule_id VARCHAR(8) NOT NULL,
+    rule_name VARCHAR(120) NOT NULL,
+    severity VARCHAR(10) NOT NULL,
+    subject_type VARCHAR(10) NOT NULL,
+    subject VARCHAR(64) NOT NULL,
+    event_count INT NOT NULL DEFAULT 0,
+    first_seen DATETIME NULL,
+    last_seen DATETIME NULL,
+    summary VARCHAR(400) NULL,
+    why VARCHAR(400) NULL,
+    detail TEXT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'open',
+    outcome VARCHAR(20) NULL,
+    notes TEXT NULL,
+    acknowledged_by INT NULL,
+    acknowledged_at DATETIME NULL,
+    closed_by INT NULL,
+    closed_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_incident_dedup (dedup_key),
+    INDEX idx_incident_status (status, created_at),
+    INDEX idx_incident_subject (subject_type, subject)
+  )`);
+
   // --- Two-step sign-in (SEC-007, DECISIONS.md D4) ---
   // Secrets are AES-256-GCM ciphertext (services/totp.js), never plaintext. Recovery
   // codes are SHA-256 hashes. mfa_last_step makes each code work once.

@@ -1,6 +1,6 @@
 # Security Center — design proposal (phase 2)
 
-**Status: designed and decided (DECISIONS.md), not yet built.** Phase 1 (2026-09-24) fixed the confirmed
+**Status: §1 (evidence), §2 (rules) and §3 (incidents and alerts) are built and tested; §4 (IP blocking) waits for D5 (a) and 30 days of data.** Phase 1 (2026-09-24) fixed the confirmed
 authorisation and XSS findings and shipped the explanatory Security Overview page. This is what
 turns "attacks are slowed" into "attacks are seen, and someone is told".
 

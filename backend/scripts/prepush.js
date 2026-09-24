@@ -40,6 +40,16 @@ function jsFiles(dir, skip = []) {
 }
 
 (async () => {
+  // Highest incident id before the suites run: an exact cutoff, no clocks involved.
+  let incidentBaseline = null;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(BASE)) {
+    try {
+      require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+      const pool = require('../src/config/database');
+      const [[r]] = await pool.query('SELECT COALESCE(MAX(id), 0) AS m FROM security_incidents');
+      incidentBaseline = Number(r.m);
+    } catch (e) { incidentBaseline = null; }
+  }
   console.log('\n1. Syntax');
   const files = [...jsFiles(path.join(ROOT, 'backend', 'src')), ...jsFiles(path.join(ROOT, 'backend', 'scripts')),
     ...jsFiles(path.join(ROOT, 'frontend', 'js'), ['vendor']), path.join(ROOT, 'frontend', 'sw.js')];
@@ -93,6 +103,25 @@ function jsFiles(dir, skip = []) {
     const summary = ((r.stdout || '').match(/(\d+) passed, (\d+) failed/) || [])[0] || 'no summary';
     const failed = (r.stdout || '').split('\n').filter(l => l.includes('FAIL')).slice(0, 3).map(l => l.trim());
     step(s, r.status === 0, `${summary} (${((Date.now() - t) / 1000).toFixed(0)} s)${failed.length ? ' · ' + failed.join(' · ') : ''}`);
+  }
+
+  // The suites trip the detection rules on purpose (forged webhooks, wrong passwords)
+  // from this machine, and the server's own scheduler opens incidents about the
+  // loopback address. True detection, but test noise: remove what this run caused.
+  // Only ever against a local server — never another database.
+  if (incidentBaseline !== null) {
+    try {
+      const pool = require('../src/config/database');
+      const [inc] = await pool.query(
+        "SELECT id FROM security_incidents WHERE subject IN ('::1', '127.0.0.1', '::ffff:127.0.0.1') AND id > ?", [incidentBaseline]);
+      if (inc.length) {
+        await pool.query(`DELETE FROM admin_notifications WHERE type = 'security_incident'
+            AND CAST(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.incident_id')) AS UNSIGNED) IN (?)`, [inc.map(i => i.id)]);
+        await pool.query('DELETE FROM security_incidents WHERE id IN (?)', [inc.map(i => i.id)]);
+        console.log(`  note  removed ${inc.length} incident(s) the suites caused about this machine's own address`);
+      }
+      await pool.end();
+    } catch (e) { console.log('  note  could not tidy test incidents: ' + e.message); }
   }
 
   const failedSteps = results.filter(r => !r.ok);

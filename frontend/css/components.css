@@ -1072,3 +1072,25 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .mfa-qr { width: 180px; height: 180px; }
   .mfa-codes { grid-template-columns: 1fr; }
 }
+
+/* Security Overview — incidents (D5 b, D6) */
+.inc-list { display: flex; flex-direction: column; }
+.inc-row { padding: 12px 0; border-top: 1px solid var(--border); }
+.inc-row:first-child { border-top: 0; padding-top: 0; }
+.inc-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.inc-rule { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.inc-status { margin-left: auto; font-size: 11px; color: var(--text3); }
+.inc-status.open { color: var(--red); font-weight: 600; }
+.inc-who { font-size: 12.5px; color: var(--text2); margin-top: 5px; display: flex; align-items: center; gap: 6px; }
+.inc-who .ti { color: var(--text3); }
+.inc-why { font-size: 12px; color: var(--text3); margin-top: 3px; line-height: 1.5; }
+.inc-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.inc-actions .sec-btn { padding: 5px 10px; font-size: 11.5px; }
+.inc-close { background: var(--bg3); color: var(--text2); border-color: var(--border); }
+.inc-evidence { margin-top: 8px; }
+.inc-ev-table { width: 100%; font-size: 12px; }
+.inc-ev-table th { text-align: left; font-size: 10.5px; color: var(--text3); text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.inc-ev-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); color: var(--text2); }
+.inc-empty { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); }
+.inc-empty .ti { color: var(--green); font-size: 18px; }
+@media (max-width: 520px) { .inc-status { margin-left: 0; width: 100%; } .inc-ev-table th:nth-child(4), .inc-ev-table td:nth-child(4) { display: none; } }

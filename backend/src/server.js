@@ -537,7 +537,11 @@ app.listen(PORT, async () => {
   console.log(`  API base:         http://localhost:${PORT}/api`);
   console.log(`  Environment:      ${process.env.NODE_ENV || 'development'}`);
   console.log(`  Database:         ${describeDbTarget()}`);
-  if (await checkDatabase()) await autoMigrate();
+  if (await checkDatabase()) {
+    await autoMigrate();
+    // Detection rules over the recorded evidence, every minute (D5 b). Alert-only.
+    if (process.env.NODE_ENV !== 'test') require('./services/detection').start();
+  }
   console.log(`  ================================================\n`);
 });
 

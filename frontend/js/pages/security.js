@@ -14,6 +14,8 @@
  */
 const SecurityPage = (() => {
   let data = null;
+  let incidents = [];
+  let evidenceOpen = null;
   let loadError = null;
   let pollTimer = null;
 
@@ -60,9 +62,9 @@ const SecurityPage = (() => {
     { icon: 'ti-history', color: 'var(--amber)', title: 'Accountability', status: 'partial', evidence: 'tested',
       plain: 'Important administrative actions are written to an audit trail, and every refused request — a wrong password, a page outside a person\'s role, another school\'s record, a message without its key — is recorded as evidence.',
       tech: 'audit_log for administrative writes; security_events for every 401/403/429 since 24 September 2026 (no passwords, tokens or typed usernames — tested). Gaps: nothing alerts on them yet; neither log is tamper-evident.' },
-    { icon: 'ti-radar-2', color: 'var(--red)', title: 'Detection and alerting', status: 'planned', evidence: 'none',
-      plain: 'Automatic detection of attacks, alerts to head office, and blocking of hostile addresses.',
-      tech: 'Security Center — event log, detection rules, alerts, reviewed IP blocking. Next phase; nothing will block live traffic without your approval.' },
+    { icon: 'ti-radar-2', color: 'var(--red)', title: 'Detection and alerting', status: 'partial', evidence: 'tested',
+      plain: 'Seven rules watch the recorded evidence every minute — password guessing, spraying, a success after many failures, probing another school, forged messages, a removed second factor, lost evidence — and tell the platform admin on the bell, once per incident.',
+      tech: 'Alert-only by decision (D5): nothing is blocked until 30 days of closed incidents show how often each rule is wrong. Email alerts wait for SMTP. 24 tested assertions, including that nothing gets blocked.' },
     { icon: 'ti-database-export', color: 'var(--text3)', title: 'Backup and recovery', status: 'unverified', evidence: 'none',
       plain: 'Copies of the data kept so the system can be restored after a failure or an attack.',
       tech: 'Hosting backups; targets of 24 hours of data and 4 hours to recover. The restore drill passes on a copy of the database; until it has run on a production backup, recovery is unverified.' }
@@ -78,8 +80,8 @@ const SecurityPage = (() => {
   const LIMITS = [
     { kind: 'partial', title: 'Two-step sign-in is ready; platform admins must use it from 8 October 2026.',
       text: 'A code from an authenticator app after the password — not SMS, which a stolen SIM defeats. Until each platform admin has enrolled, a stolen admin password is still enough on its own.' },
-    { kind: 'partial', title: 'Attacks are recorded, not yet alerted on.',
-      text: 'Every refusal has been kept as evidence since 24 September 2026. Rules that recognise an attack and alert head office come next.' },
+    { kind: 'partial', title: 'Attacks are detected and alerted on, but never blocked automatically — yet.',
+      text: 'By decision: automatic blocking waits for 30 days of evidence on how often each rule raises a false alarm, because a whole school shares one address.' },
     { kind: 'impossible', title: 'No website can see a device\'s hardware (MAC) address.',
       text: 'It never leaves the school\'s network — the router replaces it, and modern phones randomise it. We block by account, by session and by network address instead; device-level blocking belongs in the school\'s own Wi-Fi router.' },
     { kind: 'constraint', title: 'A whole school shares one internet address.',
@@ -99,7 +101,7 @@ const SecurityPage = (() => {
     { name: 'NIST CSF 2.0 — Govern', status: 'in', note: 'A written security policy is adopted: one accountable owner (the platform admin), access rules, change control and a quarterly access review.' },
     { name: 'NIST CSF 2.0 — Identify', status: 'in', note: 'Every endpoint, role, threat and item of personal data is inventoried — and a test fails if the endpoint list drifts from the code.' },
     { name: 'NIST CSF 2.0 — Protect', status: 'in', note: 'Access control, two-step sign-in, encryption, input and output safety, signed integrations.' },
-    { name: 'NIST CSF 2.0 — Detect', status: 'partial', note: 'Every refusal is recorded since 24 September 2026. Nothing raises an alert on it yet — detection rules come next.' },
+    { name: 'NIST CSF 2.0 — Detect', status: 'in', note: 'Every refusal is recorded; seven rules turn patterns into incidents with one alert each on the platform admin\'s bell. Email joins when it is configured.' },
     { name: 'NIST CSF 2.0 — Respond', status: 'partial', note: 'Incident runbook adopted, including when to tell the Data Protection Commission. First rehearsal due within 30 days.' },
     { name: 'NIST CSF 2.0 — Recover', status: 'partial', note: 'Targets set: data at most 24 hours old, service back within 4 hours. The restore drill is proven on a copy; the first drill on a production backup is due.' },
     { name: 'OWASP ASVS 5.0', status: 'partial', note: 'Target: every Level 1 requirement, and Level 2 for sign-in, sessions and access. Not a certification — no outside party has assessed the system.' },
@@ -123,6 +125,7 @@ const SecurityPage = (() => {
   async function load() {
     try { data = await API.getSecurityOverview(); loadError = null; }
     catch (e) { data = null; loadError = e.error || 'Could not load the live checks.'; }
+    try { incidents = await API.getSecurityIncidents('active'); } catch (e) { incidents = []; }
     schedulePoll();
   }
 
@@ -638,6 +641,72 @@ const SecurityPage = (() => {
     }, 200);
   });
 
+  // ---- incidents from the detection rules (D5 b, D6) ----------------------
+  const SEV = { high: ['var(--red)', 'rgba(255,82,99,.12)'], medium: ['var(--amber)', 'rgba(245,166,35,.12)'], low: ['var(--text3)', 'var(--bg3)'] };
+
+  function incidentsCard() {
+    const rows = incidents.length ? incidents.map(i => {
+      const [c, bg] = SEV[i.severity] || SEV.low;
+      const who = i.subject_type === 'account'
+        ? `${esc(i.subject_username || 'account #' + i.subject)}${i.subject_role ? ' · ' + esc(i.subject_role) : ''}${i.subject_school ? ' · ' + esc(i.subject_school) : ''}`
+        : i.subject_type === 'address' ? 'address ' + esc(i.subject) : 'the monitoring itself';
+      return `<div class="inc-row" id="inc-${i.id}">
+        <div class="inc-head">
+          <span class="sec-chip" style="background:${bg};color:${c}">${esc(i.severity)}</span>
+          <span class="inc-rule">${esc(i.rule_id)} · ${esc(i.rule_name)}</span>
+          <span class="inc-status ${i.status}">${i.status === 'acknowledged' ? 'Acknowledged' : 'Open'}</span>
+        </div>
+        <div class="inc-who"><i class="ti ${i.subject_type === 'account' ? 'ti-user' : 'ti-world'}"></i>${who} — ${Number(i.event_count)} event${Number(i.event_count) === 1 ? '' : 's'}, last ${esc(relTime(i.last_seen))}</div>
+        <div class="inc-why">${esc(i.why || '')}</div>
+        <div class="inc-actions">
+          <button class="sec-btn" onclick="SecurityPage.toggleEvidence(${i.id})"><i class="ti ti-list-search"></i>Evidence</button>
+          ${i.status === 'open' ? `<button class="sec-btn sec-btn-teal" onclick="SecurityPage.ackIncident(${i.id})"><i class="ti ti-eye-check"></i>Acknowledge</button>` : ''}
+          <button class="sec-btn inc-close" onclick="SecurityPage.closeIncident(${i.id}, 'true_positive')"><i class="ti ti-shield-x"></i>Real</button>
+          <button class="sec-btn inc-close" onclick="SecurityPage.closeIncident(${i.id}, 'false_positive')"><i class="ti ti-mood-check"></i>False alarm</button>
+        </div>
+        <div class="inc-evidence" id="inc-ev-${i.id}"></div>
+      </div>`;
+    }).join('') : `<div class="inc-empty"><i class="ti ti-shield-check"></i>No open incidents. The rules run every minute over the recorded evidence.</div>`;
+    return `<div class="card" id="sec-incidents">
+      <div class="card-title"><span><i class="ti ti-alarm" style="margin-right:6px"></i>Security incidents</span>
+        <span class="sec-chip" style="background:var(--bg3);color:var(--text3)">alert-only — nothing is blocked</span></div>
+      <div class="inc-list">${rows}</div>
+      <div class="sec-foot">Seven rules (guessing, spraying, success after failures, probing another school, forged messages, two-step removed, dropped evidence) run every minute. One incident per rule, subject and hour, and one alert on the bell. Closing one records whether it was real, which is what sets the thresholds before anything is ever blocked.</div>
+    </div>`;
+  }
+
+  async function refreshIncidents() {
+    try { incidents = await API.getSecurityIncidents('active'); } catch (e) { return; }
+    const card = document.getElementById('sec-incidents');
+    if (card) { card.outerHTML = incidentsCard(); const n = document.getElementById('sec-incidents'); if (n) n.classList.add('reveal', 'visible'); }
+  }
+
+  async function ackIncident(id) {
+    try { await API.updateSecurityIncident(id, { status: 'acknowledged' }); showToast('Acknowledged'); refreshIncidents(); }
+    catch (e) { showToast(e.error || 'Could not update the incident'); }
+  }
+
+  async function closeIncident(id, outcome) {
+    const label = outcome === 'false_positive' ? 'a false alarm' : 'a real incident';
+    if (!confirm(`Close this incident as ${label}?`)) return;
+    try { await API.updateSecurityIncident(id, { status: 'closed', outcome }); showToast('Incident closed'); refreshIncidents(); }
+    catch (e) { showToast(e.error || 'Could not close the incident'); }
+  }
+
+  async function toggleEvidence(id) {
+    const box = document.getElementById('inc-ev-' + id);
+    if (!box) return;
+    if (evidenceOpen === id) { box.innerHTML = ''; evidenceOpen = null; return; }
+    evidenceOpen = id;
+    box.innerHTML = '<div class="sec-muted">Loading…</div>';
+    try {
+      const ev = await API.getIncidentEvidence(id);
+      box.innerHTML = ev.length ? `<div class="table-wrap"><table class="inc-ev-table"><thead><tr><th>When</th><th>Event</th><th>Route</th><th>From</th><th>Times</th></tr></thead><tbody>
+        ${ev.slice(0, 50).map(e => `<tr><td>${esc(relTime(e.last_at))}</td><td>${esc(e.event_type)}</td><td class="sec-mono">${esc((e.method || '') + ' ' + (e.path_template || ''))}</td><td class="sec-mono">${esc(e.source_ip || '')}</td><td>${Number(e.count)}</td></tr>`).join('')}
+        </tbody></table></div>` : '<div class="sec-muted">No recorded events in the window.</div>';
+    } catch (e) { box.innerHTML = `<div class="sec-muted">${esc(e.error || 'Could not load the evidence')}</div>`; }
+  }
+
   // ---- what the system refused (security_events) ---------------------------
   const SIGNALS = [
     { type: 'auth.login_failed', label: 'Wrong passwords', icon: 'ti-password', color: 'var(--amber)' },
@@ -700,6 +769,8 @@ const SecurityPage = (() => {
     <div id="sec-banner">${alertBanner()}</div>
 
     <div class="stats-grid sec-stats" id="sec-stats">${statCards()}</div>
+
+    ${incidentsCard()}
 
     ${flowCard()}
 
@@ -790,5 +861,5 @@ const SecurityPage = (() => {
     if (!reducedMotion()) loadGsap().then(ok => { if (ok) drawRings(); });
   }
 
-  return { load, render, afterRender, copyBriefing, setFlow, replayFlow, hlLayer };
+  return { load, render, afterRender, copyBriefing, setFlow, replayFlow, hlLayer, ackIncident, closeIncident, toggleEvidence };
 })();

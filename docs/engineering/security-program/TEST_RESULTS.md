@@ -145,3 +145,12 @@ still refused after reactivation, and the suite signs in again.
 | A code computed ~4.5 min before submission | refused: expired, as intended. That's how the test harness's latency showed up; the flow itself is fine |
 | Banner date | first showed "7 October" (UTC formatting of a midnight-EAT deadline); now formatted in Africa/Dar_es_Salaam → "8 October 2026" |
 | `scripts/mfa-reset.js` (break-glass) | without `--yes`: refuses (exit 2). With it: two-step off, secret and recovery hashes wiped, token_version 1 to 2 (every session ended), audit row `auth.mfa_reset_break_glass` written; a second run changes nothing; password-only sign-in works again |
+
+## Detection rules and alerts — D5 (b), D6 (2026-09-24)
+
+| Check | Result |
+|---|---|
+| `verify-detection.js` | **24 / 24**, run twice back to back. Real attack-shaped traffic opens R1–R7, each exactly one incident with one bell alert; a second run adds no incident or alert but grows the count; only the platform admin reads incidents; closing needs an outcome; the audit trail records it; **nothing is blocked** |
+| Bug found and fixed before shipping | `INSERT … ON DUPLICATE KEY UPDATE` reported an unchanged duplicate as "1 affected row, insertId 0", so repeats sent a second alert pointing at incident 0. Now `INSERT IGNORE` + `UPDATE`, with a regression assertion that no alert points at a missing incident |
+| R6 across two tables | the UNION failed on this server (different collations in `security_events` and `audit_log`); now two queries |
+| Browser | the incidents card names account, role, school, count and time; evidence expands to the events; the bell lists security alerts with their own icon, and one click opens the Security Overview |

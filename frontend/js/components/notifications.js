@@ -66,6 +66,23 @@ const Notifications = (() => {
         if (notifRes.ok) {
           const notifs = await notifRes.json();
           notifs.filter(n => !n.is_read).forEach(n => {
+            if (n.type === 'security_incident') {
+              const meta = typeof n.meta === 'string' ? JSON.parse(n.meta) : (n.meta || {});
+              items.push({
+                type: 'security_incident',
+                icon: 'ti ti-shield-exclamation',
+                color: meta.severity === 'high' ? 'var(--red)' : 'var(--amber)',
+                title: n.title,
+                sub: `${n.message} · ${timeAgo(n.created_at)}`,
+                notifId: n.id,
+                action: () => {
+                  close();
+                  fetch(`/api/schools/notifications/${n.id}/read`, { method: 'PATCH', headers });
+                  Router.navigate('security'); App.loadAndRender();
+                }
+              });
+              return;
+            }
             items.push({
               type: 'contact_update',
               icon: 'ti ti-address-book',

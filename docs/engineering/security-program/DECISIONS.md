@@ -56,7 +56,7 @@ So the order is fixed:
 - R2 (spraying from one IP) stays alert-only because of NAT.
 - Permanent and CIDR blocks remain manual, with a reason, forever.
 
-## D6 — Where alerts go · Decided: the bell always; email and SMS when configured
+## D6 — Where alerts go · Decided: the bell always; email and SMS when configured · **Built 2026-09-24**
 
 The in-app bell (`admin_notifications`, platform admin) is the only channel that works on
 production today (`/api/health`: `email:false`). Email to the support mailbox is added the day

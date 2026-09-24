@@ -21,5 +21,9 @@ router.use(authenticate);
 router.use(authorize('admin'));
 
 router.get('/overview', ctrl.overview);
+// Incidents from the detection rules (D5 b): alert-only, reviewed by a person.
+router.get('/incidents', ctrl.incidents);
+router.patch('/incidents/:id', ctrl.updateIncident);
+router.get('/incidents/:id/evidence', ctrl.incidentEvidence);
 
 module.exports = router;

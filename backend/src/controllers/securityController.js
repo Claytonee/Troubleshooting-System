@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const pool = require('../config/database');
+const { logAudit } = require('../services/audit');
 
 /**
  * GET /api/security/overview — platform admin only.
@@ -18,7 +19,7 @@ const pool = require('../config/database');
 // asserts every id below appears in that file.
 const REVIEW = {
   date: '2026-09-24',
-  scope: 'Whole application: 150 API endpoints, 4 roles, every page that renders stored data',
+  scope: 'Whole application: 153 API endpoints, 4 roles, every page that renders stored data',
   findings: [
     { id: 'SEC-001', severity: 'P1', status: 'fixed', title: 'Any signed-in user could attach files to another school\'s fault' },
     { id: 'SEC-002', severity: 'P2', status: 'fixed', title: 'School forms, and a field engineer\'s school detail, were not scoped' },
@@ -110,6 +111,12 @@ async function overview(req, res, next) {
         required_from: require('../services/mfaPolicy').enforceAfter().toISOString()
       },
       audit: { events_last_30_days: Number(audit.last_30_days), latest_event_at: audit.latest },
+      incidents: await (async () => {
+        const [r] = await pool.query("SELECT severity, COUNT(*) AS n FROM security_incidents WHERE status <> 'closed' GROUP BY severity");
+        const o = { high: 0, medium: 0, low: 0 };
+        r.forEach(x => { o[x.severity] = Number(x.n); });
+        return o;
+      })(),
       signals: {
         window_days: 7,
         recording_since: since.first_at,
@@ -120,7 +127,7 @@ async function overview(req, res, next) {
       // Recorded, but nothing acts on it yet — detection rules and alerts are
       // the next phase (DECISIONS.md D5, D6).
       not_collected: [
-        { signal: 'alerts', why: 'Refusals are recorded, but nothing raises an alert on them yet — detection rules come next.' }
+        { signal: 'email_alerts', why: 'Security alerts go to the in-app bell; email is added the day SMTP is configured (D6).' }
       ],
       checks: {
         https_enforced: process.env.NODE_ENV === 'production',
@@ -139,4 +146,70 @@ async function overview(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { overview, REVIEW };
+// ---- Incidents (D5 b, D6) ---------------------------------------------------
+const INCIDENT_STATUS = ['open', 'acknowledged', 'closed'];
+const INCIDENT_OUTCOME = ['true_positive', 'false_positive', 'benign'];
+
+/** GET /api/security/incidents?status=open|acknowledged|closed|all */
+async function incidents(req, res, next) {
+  try {
+    const status = String(req.query.status || 'active');
+    const where = status === 'all' ? '' : status === 'active' ? "WHERE i.status <> 'closed'"
+      : INCIDENT_STATUS.includes(status) ? 'WHERE i.status = ?' : "WHERE i.status <> 'closed'";
+    const [rows] = await pool.query(
+      `SELECT i.id, i.rule_id, i.rule_name, i.severity, i.subject_type, i.subject, i.event_count,
+              i.first_seen, i.last_seen, i.summary, i.why, i.status, i.outcome, i.notes,
+              i.acknowledged_at, i.closed_at, i.created_at,
+              u.username AS subject_username, u.role AS subject_role, s.name AS subject_school
+         FROM security_incidents i
+         LEFT JOIN users u ON i.subject_type = 'account' AND u.id = CAST(i.subject AS UNSIGNED)
+         LEFT JOIN schools s ON s.id = u.school_id
+         ${where}
+        ORDER BY FIELD(i.status, 'open', 'acknowledged', 'closed'), FIELD(i.severity, 'high', 'medium', 'low', 'info'), i.last_seen DESC
+        LIMIT 100`, INCIDENT_STATUS.includes(status) ? [status] : []);
+    res.json(rows);
+  } catch (err) { next(err); }
+}
+
+/** PATCH /api/security/incidents/:id { status, outcome, notes } — closing needs an outcome. */
+async function updateIncident(req, res, next) {
+  try {
+    const { status, outcome, notes } = req.body || {};
+    if (!['acknowledged', 'closed'].includes(status)) return res.status(400).json({ error: 'Status must be acknowledged or closed.' });
+    if (status === 'closed' && !INCIDENT_OUTCOME.includes(outcome)) {
+      return res.status(400).json({ error: 'Closing an incident needs an outcome: true_positive, false_positive or benign.' });
+    }
+    const [[inc]] = await pool.query('SELECT id, rule_id, status FROM security_incidents WHERE id = ?', [req.params.id]);
+    if (!inc) return res.status(404).json({ error: 'Incident not found.' });
+    if (inc.status === 'closed') return res.status(409).json({ error: 'This incident is already closed.' });
+    if (status === 'acknowledged') {
+      await pool.query("UPDATE security_incidents SET status = 'acknowledged', acknowledged_by = ?, acknowledged_at = NOW(), notes = COALESCE(?, notes) WHERE id = ?",
+        [req.user.id, notes ? String(notes).slice(0, 2000) : null, inc.id]);
+    } else {
+      await pool.query("UPDATE security_incidents SET status = 'closed', outcome = ?, closed_by = ?, closed_at = NOW(), notes = COALESCE(?, notes) WHERE id = ?",
+        [outcome, req.user.id, notes ? String(notes).slice(0, 2000) : null, inc.id]);
+    }
+    await logAudit({ actor: req.user, ip: req.ip, action: 'security.incident_' + status, entityType: 'security_incident', entityId: inc.id,
+      summary: `${status === 'closed' ? 'Closed' : 'Acknowledged'} incident #${inc.id} (${inc.rule_id})${outcome ? ' as ' + outcome : ''}` });
+    res.json({ message: 'Incident updated.' });
+  } catch (err) { next(err); }
+}
+
+/** GET /api/security/incidents/:id/evidence — the recorded events behind an incident. */
+async function incidentEvidence(req, res, next) {
+  try {
+    const [[inc]] = await pool.query('SELECT subject_type, subject, first_seen, last_seen FROM security_incidents WHERE id = ?', [req.params.id]);
+    if (!inc) return res.status(404).json({ error: 'Incident not found.' });
+    const col = inc.subject_type === 'account' ? 'user_id' : inc.subject_type === 'address' ? 'source_ip' : null;
+    const [rows] = await pool.query(
+      `SELECT occurred_at, last_at, event_type, severity, source_ip, user_id, role, method, path_template, status, count, detail
+         FROM security_events
+        WHERE ${col ? col + ' = ? AND ' : "event_type = 'events.dropped' AND "}
+              last_at BETWEEN ? - INTERVAL 1 HOUR AND ? + INTERVAL 5 MINUTE
+        ORDER BY last_at DESC LIMIT 200`,
+      col ? [col === 'user_id' ? Number(inc.subject) : inc.subject, inc.first_seen, inc.last_seen] : [inc.first_seen, inc.last_seen]);
+    res.json(rows);
+  } catch (err) { next(err); }
+}
+
+module.exports = { overview, incidents, updateIncident, incidentEvidence, REVIEW };
