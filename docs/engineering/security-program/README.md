@@ -5,6 +5,7 @@ Engineering records for making the Technical Support System measurably safer. St
 
 | File | What it holds |
 |---|---|
+| [FINAL_REPORT.md](FINAL_REPORT.md) | The programme's final security and engineering report |
 | [SESSION_HANDOFF.md](SESSION_HANDOFF.md) | Where the work stands, what waits on the owner, what comes next |
 | [DECISIONS.md](DECISIONS.md) | Decisions taken, why, and when to revisit them |
 | [SECURITY_POLICY.md](SECURITY_POLICY.md) | The adopted policy: owner, access, sign-in, change control, reviews |

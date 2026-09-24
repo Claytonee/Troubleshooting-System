@@ -7,6 +7,8 @@ docs) refused the connection during the session and are marked as such.
 
 | Source | How read | Control / idea taken | Applies here because |
 |---|---|---|---|
+| [RFC 6238 — TOTP](https://www.rfc-editor.org/rfc/rfc6238) | Fetched (2026-09-24) | 30-second step from the Unix epoch; Appendix B test vectors (e.g. time 59 → 94287082, SHA-1, 8 digits) | `verify-mfa.js` checks our implementation against those vectors, not against itself |
+| [NIST SP 800-63B](https://pages.nist.gov/800-63-4/sp800-63b.html) | **Fetch refused** (both the -3 and -4 editions, 2026-09-24) | SMS codes as a restricted authenticator; one-time codes are not phishing-resistant | Cited from prior knowledge in D4; **confirm before quoting it to a stakeholder** |
 | [OWASP ASVS 5.0 — chapter list (GitHub)](https://github.com/OWASP/ASVS/tree/master/5.0/en) | Fetched | The 17 chapters used as the baseline checklist | Standard vocabulary for "which control, how verified" |
 | OWASP ASVS 5.0 release (May 2025), levels L1–L3, ~345 requirements | Search summary | Level structure | Not claimed; used as a checklist only |
 | [OWASP API Security Top 10 2023](https://owasp.org/API-Security/editions/2023/en/0x11-t10/) | Fetch failed (redirect, then reset) | API1 BOLA, API5 function-level authz | SEC-001/002/004 are BOLA |
