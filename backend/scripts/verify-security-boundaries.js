@@ -168,6 +168,25 @@ async function ensureStaff(role, suffix) {
     const [[still]] = await pool.query('SELECT COUNT(*) AS n FROM communications WHERE id = ?', [made.body && made.body.id]);
     ok('...and the row is still there', still.n === 1, still);
 
+    // ---- Security Overview endpoint ----------------------------------------
+    console.log('\nSEC-UI   the security overview is platform admin only, and leaks nothing');
+    const anon = await api('GET', '/security/overview');
+    ok('anonymous is refused (401)', anon.status === 401, anon.status);
+    for (const [who, tok] of [['teacher', teacher], ['school admin', schoolAdmin], ['field engineer', sub]]) {
+      const r = await api('GET', '/security/overview', { token: tok });
+      ok(`${who} is refused (403)`, r.status === 403, r.status);
+    }
+    const ov = await api('GET', '/security/overview', { token: admin });
+    ok('platform admin reads it (200)', ov.status === 200, ov.status);
+    const raw = JSON.stringify(ov.body || {});
+    const secrets = ['JWT_SECRET', 'WEBHOOK_SECRET', 'HEARTBEAT_KEY', 'WHATSAPP_APP_SECRET', 'PHONE_INTAKE_KEY', 'DB_PASSWORD']
+      .map(k => process.env[k]).filter(v => v && v.length >= 6);
+    ok('no configured secret value appears in the response', secrets.every(v => !raw.includes(v)), secrets.length + ' checked');
+    ok('no password hash appears in the response', !/\$2[aby]\$\d\d\$/.test(raw));
+    const register = fs.readFileSync(path.join(__dirname, '..', '..', 'docs', 'engineering', 'security-program', 'ISSUE_REGISTER.md'), 'utf8');
+    const ids = ((ov.body && ov.body.review && ov.body.review.findings) || []).map(f => f.id);
+    ok('every finding the page lists is in ISSUE_REGISTER.md', ids.length > 0 && ids.every(id => register.includes(id)),
+      ids.filter(id => !register.includes(id)));
   } finally {
     await pool.query("DELETE FROM weekly_checkins WHERE term = ?", [TERM]);
     await pool.query("DELETE FROM communications WHERE note = 'zzverify note'");

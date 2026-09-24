@@ -37,6 +37,7 @@ const visitRoutes = require('./routes/visits');
 const analyticsRoutes = require('./routes/analytics');
 const phoneIntakeRoutes = require('./routes/phoneIntake');
 const maintenanceRoutes = require('./routes/maintenance');
+const securityRoutes = require('./routes/security');
 
 const app = express();
 
@@ -55,6 +56,8 @@ const BUILD_COMMIT = (() => {
   }
 })();
 const PORT = process.env.PORT || 3000;
+// The security overview reports which build is running, same as /api/health.
+app.locals.build = BUILD_COMMIT;
 
 app.set('trust proxy', 1);
 
@@ -252,6 +255,7 @@ app.use('/api/analytics', analyticsRoutes);
 // USSD + inbound SMS: a handset on Vodacom/Airtel, authenticated by the shared
 // secret in the callback URL rather than by a session.
 app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/security', securityRoutes);
 app.use('/api', phoneIntakeRoutes);
 
 // Health check

@@ -433,7 +433,7 @@ update. Half of it happening leaves a student assigned to two devices or none.
 | Error Tracker | ✔ | ✔ | ✔ | ✔ (own reports) |
 | Analytics, School Profiles, Check-Ins, Communications, notifications | ✔ | ✔ | ✔ | — |
 | Visit Planner | ✔ | ✔ | — | — |
-| Sub-Admins, School Admins, Audit, LRS, Approvals, Branding | ✔ | — | — | — |
+| Sub-Admins, School Admins, Audit, LRS, Approvals, Branding, **Security Overview** | ✔ | — | — | — |
 | Teachers, registration links | — | — | ✔ | — |
 
 **The assistant is not head office's.** It helps whoever is standing in front of the
@@ -521,6 +521,28 @@ keeps the value in a **hidden input carrying the same `id` (and `name`)**, so
 Kilema Secondary was listed as worth a trip for one open fault and then attached **zero**,
 because that fault still carried `visit_id = 1` from a visit deleted long ago — the
 engineer would have driven out to an empty sheet.
+
+### Security programme — read before touching auth, scoping or rendering
+Records live in `docs/engineering/security-program/` (start at SESSION_HANDOFF.md).
+`backend/scripts/verify-security-boundaries.js` reproduces every fixed finding and must fail on
+the old code. Rules that came out of the 2026-09-24 review:
+
+- **A school id from the URL or body is a key, not a permission.** Single-record handlers call
+  `canActOnSchool(req.user, id)` (`services/scope.js`) — the same answer the list queries give
+  in SQL. SEC-001/002/004 were all a handler that forgot to ask.
+- **Access before files.** Check the record before reading `req.files`, or a 400 hides a
+  missing authorisation check.
+- **Every stored field is escaped where it is rendered**, including `<option>` labels and
+  anything a school admin can edit — school names included. Never splice a stored value into an
+  `onclick` string: pass the id and look the record up.
+- **Fixed-choice fields are validated on the server** (`isIn`), not just by the dropdown.
+- **The Security Overview never states more than is verified.** Each layer carries its
+  evidence (test / code / hosting record); a gap is shown as a gap; a signal not collected is
+  `null`, never 0. Its findings list is mirrored from ISSUE_REGISTER.md and the suite checks it.
+- **Third-party scripts are vendored, never CDN-loaded** (the CSP allows `'self'` only), and
+  loaded only by the page that needs them: `js/vendor/gsap.min.js` is injected by
+  `SecurityPage` alone. Motion respects `prefers-reduced-motion`, and every diagram has a text
+  equivalent beside it.
 
 ### Icons
 - Use ONLY Tabler Icons: `<i class="ti ti-icon-name"></i>`
@@ -657,6 +679,7 @@ and took both deployments down on 2026-09-07.
 | 14 | Teachers | #teachers | School | Teacher management, registration-link cap, inventory delegation |
 | 15 | Help / User Guide | #help | School | Support documentation with sidebar nav |
 | 16 | Visit Planner | #visits | Admin, Sub-admin | Queue grouped by school, on-site checklist, visit record |
+| 17 | Security Overview | #security | Admin | How security works, for briefing stakeholders; live checks from `GET /api/security/overview` |
 
 **Non-page intake channels** (no UI of their own; both stamp `errors.intake_channel`
 and are labelled in the error detail modal by `intakeLabel()`):

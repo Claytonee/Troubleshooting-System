@@ -836,22 +836,26 @@ Features: searchable, dark theme consistent, click-outside-close, keyboard acces
 
 ## 12. Security Measures
 
+Corrected 2026-09-24 against the code; the full record is `docs/engineering/security-program/`
+(threat model, 142-endpoint matrix, issue register, test results). Platform admins see the same
+material in plain language on **Security Overview** (`#security`).
+
 | Measure | Implementation |
 |---------|---------------|
-| Password hashing | bcryptjs (10 salt rounds) |
-| Authentication | JWT in Authorization header (7d expiry) |
-| Rate limiting | 20 login/15min, 200 API/15min |
-| CORS | Restricted origins |
-| HTTP headers | helmet middleware |
-| Input validation | express-validator schemas |
-| SQL injection | Parameterized queries (pg pool) |
-| XSS prevention | HTML escaping (frontend `esc()` helper) |
-| File validation | Extension whitelist + multer fileFilter |
-| SSL/TLS | Database connection via `DATABASE_URL` with SSL |
-| Role enforcement | Backend `authorize()` middleware on every route |
-| Data scoping | Query-level filtering by role (teachers see own errors only) |
-| Audit trail | All mutating actions logged with actor, IP, timestamp |
-| Account states | approval_status blocks pending/rejected users at login |
+| Password hashing | bcryptjs, cost 10–12 |
+| Authentication | JWT in the Authorization header, 7-day expiry; account status re-read on every request (suspension is immediate). Not revocable before expiry (SEC-005) |
+| Rate limiting | 900 req / 15 min **per account** (IP when anonymous); login 20 per account+network and 120 per network; registration 5 per IP |
+| CORS | `FRONTEND_URL` in production, else the request origin is reflected (bearer tokens, no cookies) |
+| HTTP headers | helmet: CSP (`default-src 'self'`, no `unsafe-eval`; inline still allowed), HSTS 1 year, referrer policy |
+| Input validation | express-validator on key writes; enum lists on fault and check-in fields |
+| SQL injection | Parameterised queries (mysql2); dynamic SQL limited to fixed column fragments |
+| XSS prevention | `esc()` on every rendered stored field (audited 2026-09-24, SEC-003) |
+| File validation | Extension allow-list + multer fileFilter; stored on Cloudinary |
+| Role enforcement | `authorize()` on every router |
+| Tenant scoping | Per-record checks; `services/scope.js` → `canActOnSchool()` for single-school reads and writes |
+| Integrations | HMAC (WhatsApp, deploy) and shared keys (heartbeat, USSD/SMS); all fail closed |
+| Audit trail | Administrative writes (accounts, faults, schools). Failed sign-ins and refusals are **not** recorded yet (SEC-006) |
+| Account states | approval_status blocks pending/rejected users at login and on every request |
 
 ---
 
@@ -896,6 +900,7 @@ Sample data seeded to demonstrate system capabilities.
 | 14 | Teachers | #teachers | school only | Teacher management + links |
 | 15 | Help | #help | school only | Support & documentation |
 | 16 | Tablet Inventory | #inventory | All | Device management, status tracking, CSV import/export |
+| 17 | Security Overview | #security | Admin | How the system protects school data, for briefing stakeholders: animated request journey, protection layers, live checks, latest review |
 
 *"staff" = admin + subadmin + school (NOT teacher)*
 

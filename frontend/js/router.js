@@ -3,7 +3,7 @@
  * Handles page navigation with hash-based routing for persistence
  */
 const Router = (() => {
-  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'manuals', 'analytics', 'team', 'schooladmins', 'branding', 'audit', 'search', 'chat', 'help', 'fieldguide', 'approvals', 'teachers', 'inventory', 'lrs', 'visits'];
+  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'manuals', 'analytics', 'team', 'schooladmins', 'branding', 'audit', 'search', 'chat', 'help', 'fieldguide', 'approvals', 'teachers', 'inventory', 'lrs', 'visits', 'security'];
 
   function getPageFromHash() {
     const hash = window.location.hash.replace('#', '');
@@ -79,7 +79,7 @@ const Router = (() => {
     // Every page with a data-role marker MUST be listed here too, or the hash
     // still reaches it. 'team' was missing: the Sub-Admins page rendered for any
     // role and simply 403'd its data (found by audit, 2026-09-09).
-    const adminPages = ['analytics', 'schooladmins', 'branding', 'audit', 'approvals', 'lrs', 'team'];
+    const adminPages = ['analytics', 'schooladmins', 'branding', 'audit', 'approvals', 'lrs', 'team', 'security'];
     const noAdminPages = ['chat'];
     const schoolPages = ['help', 'teachers'];
     const subadminPages = ['fieldguide'];

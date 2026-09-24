@@ -154,6 +154,7 @@ const API = (() => {
     createCommunication: (data) => request('POST', '/communications', data),
     getSettings: () => request('GET', '/settings'),
     updateSettings: (data) => request('PUT', '/settings', data),
+    getSecurityOverview: () => request('GET', '/security/overview'),
     getAuditLog: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/audit' + (qs ? '?' + qs : '')); },
     search: (q) => request('GET', '/search?q=' + encodeURIComponent(q)),
     getAiStatus: () => request('GET', '/ai/status'),
