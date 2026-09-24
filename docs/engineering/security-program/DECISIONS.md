@@ -107,7 +107,7 @@ duty everyone shares is a duty nobody performs. **Status: in place.**
 
 ### D14 — NIST Identify · Decided: the inventory checks itself
 
-`node scripts/api-matrix.js --check` compares the 142-endpoint matrix with the routers and fails
+`node scripts/api-matrix.js --check` compares the endpoint matrix (143 today) with the routers and fails
 on any new, changed or removed route. It runs inside `verify-security-boundaries`. A new
 endpoint cannot ship without someone recording its security gate. **Status: in place.**
 

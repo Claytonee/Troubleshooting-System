@@ -325,9 +325,11 @@ const Auth = (() => {
     if (newPw !== confirm) { showToast('Passwords do not match'); return; }
 
     try {
-      await API.changePassword({ current_password: current, new_password: newPw });
+      const res = await API.changePassword({ current_password: current, new_password: newPw });
+      // The server ended every other session (SEC-005) and issued this device a new token.
+      if (res && res.token) API.setToken(res.token);
       Modal.close();
-      showToast('Password changed successfully');
+      showToast('Password changed — your other devices have been signed out', 4500);
     } catch (e) {
       showToast(e.error || 'Failed to change password');
     }
@@ -372,7 +374,8 @@ const Auth = (() => {
     if (newPw !== confirm) { showToast('Passwords do not match'); return; }
 
     try {
-      await API.changePassword({ current_password: current, new_password: newPw });
+      const res = await API.changePassword({ current_password: current, new_password: newPw });
+      if (res && res.token) API.setToken(res.token);
       const user = API.getUser();
       if (user) { user.must_change_password = false; API.setUser(user); }
       Modal.unlock();
@@ -457,6 +460,23 @@ const Auth = (() => {
     showLogin();
   }
 
+  /**
+   * End this account's session on every device, this one included (SEC-005).
+   * For a lost phone or a borrowed tablet someone forgot to sign out of.
+   */
+  async function signOutEverywhere() {
+    closeProfileMenu();
+    if (!confirm('Sign out on every device, including this one?\n\nUse this if a phone was lost or you signed in on a shared tablet.')) return;
+    try {
+      await API.revokeAllSessions();
+      showToast('Signed out on every device', 4000);
+    } catch (e) {
+      showToast(e.error || 'Could not reach the server — try again');
+      return;
+    }
+    logout();
+  }
+
   function checkSession() {
     if (API.isLoggedIn()) {
       showApp();
@@ -489,5 +509,5 @@ const Auth = (() => {
     PasswordField.enhanceAll($('register-content'));
   }
 
-  return { init, showLogin, showApp, logout, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, showForcedPasswordChange, submitForcedPasswordChange, goRegister, _switchToEditProfile, _saveProfile, _onAvatarFile };
+  return { init, showLogin, showApp, logout, signOutEverywhere, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, showForcedPasswordChange, submitForcedPasswordChange, goRegister, _switchToEditProfile, _saveProfile, _onAvatarFile };
 })();

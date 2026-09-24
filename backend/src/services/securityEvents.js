@@ -37,6 +37,7 @@ const SEVERITY = {
   'auth.login_throttled': 'medium',
   'auth.login_refused': 'low',        // pending, rejected or deactivated account
   'auth.login_ok': 'info',
+  'auth.sessions_revoked': 'info',    // password change/reset, suspension, sign out everywhere
   'auth.token_rejected': 'low',       // no, bad or expired token; inactive account
   'auth.account_state': 'low',        // pending/rejected account used a token
   'authz.role_refused': 'medium',

@@ -524,6 +524,11 @@ async function applyExtensions(db) {
     FOREIGN KEY (error_id) REFERENCES errors(id) ON DELETE CASCADE
   )`);
 
+  // --- Session revocation (SEC-005, DECISIONS.md D3) ---
+  // Carried in every token as `tv`. The default 0 is also what a token without
+  // `tv` counts as, so adding the column signed nobody out.
+  await q(`ALTER TABLE users ADD COLUMN token_version INT NOT NULL DEFAULT 0`);
+
   // --- Security events (SEC-006, DECISIONS.md D2) ---
   // Evidence of refusals: failed and throttled sign-ins, role and school
   // refusals, rejected webhooks. Written in batches by services/securityEvents.js;

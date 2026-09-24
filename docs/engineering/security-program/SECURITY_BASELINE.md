@@ -31,7 +31,7 @@ Evidence: **T** automated test · **C** code read in this review · **D** hostin
 | Function | State | Basis |
 |---|---|---|
 | Govern | In place | SECURITY_POLICY.md adopted; platform admin is security owner; quarterly access review |
-| Identify | In place | API matrix (142 endpoints) kept true by `api-matrix.js --check` in the suite; threat model; data inventory |
+| Identify | In place | API matrix (143 endpoints) kept true by `api-matrix.js --check` in the suite; threat model; data inventory |
 | Protect | In place | V1–V9, V11–V13 above |
 | Detect | Partial | Every refusal recorded since 2026-09-24; no detection rules or alerts yet |
 | Respond | Partial | INCIDENT_RESPONSE.md adopted, with PDPC notification; first tabletop due within 30 days |
@@ -59,5 +59,5 @@ Evidence: **T** automated test · **C** code read in this review · **D** hostin
 | API6 Unrestricted access to sensitive business flows | Registration throttled; link caps | Code | Partial: appeal endpoint (SEC-008) |
 | API7 Server-side request forgery | The server fetches only fixed hosts (Bedrock, Meta, Africa's Talking, Cloudinary) | Code | Not exposed |
 | API8 Security misconfiguration | helmet, HSTS, fail-closed webhooks | Code, hosting record | Partial: CORS default, CSP inline |
-| API9 Improper inventory management | 142-endpoint matrix, checked against the code | `api-matrix.js --check` | **Covered, tested** |
+| API9 Improper inventory management | 143-endpoint matrix, checked against the code | `api-matrix.js --check` | **Covered, tested** |
 | API10 Unsafe consumption of APIs | WhatsApp HMAC verified; AI output rendered escaped | Code | Partial: AI output not validated beyond escaping |

@@ -15,7 +15,7 @@ async function authenticate(req, res, next) {
     // read on every request on purpose: a school admin who revokes it must have
     // that take effect immediately, not at the delegate's next login.
     const [rows] = await pool.query(
-      `SELECT u.id, u.username, u.full_name, u.role, u.zone, u.school_id, u.status, u.approval_status,
+      `SELECT u.id, u.username, u.full_name, u.role, u.zone, u.school_id, u.status, u.approval_status, u.token_version,
               COALESCE(t.can_manage_inventory, 0) AS can_manage_inventory
          FROM users u
          LEFT JOIN teachers t ON t.user_id = u.id
@@ -26,6 +26,13 @@ async function authenticate(req, res, next) {
       res.locals.secDetail = { reason: rows.length ? 'inactive_account' : 'unknown_account' };
       res.locals.secUserId = rows.length ? rows[0].id : null;
       return res.status(401).json({ error: 'Invalid or expired token.' });
+    }
+    // Signed out everywhere since this token was issued (SEC-005). A token from
+    // before versioning has no tv and counts as 0 — the column's default.
+    if ((decoded.tv || 0) !== (rows[0].token_version || 0)) {
+      res.locals.secDetail = { reason: 'revoked_token' };
+      res.locals.secUserId = rows[0].id;
+      return res.status(401).json({ error: 'This session has ended. Please sign in again.', code: 'SESSION_REVOKED' });
     }
     if (rows[0].approval_status === 'pending' || rows[0].approval_status === 'rejected') {
       res.locals.secRule = 'account_state';

@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const pool = require('../config/database');
+const { revokeSessions } = require('../services/sessions');
 const { logAudit, fromReq } = require('../services/audit');
 
 // How many teachers one registration link may admit. The cap is the school
@@ -468,6 +469,8 @@ async function registerTeacher(req, res, next) {
             `UPDATE users SET password_hash = ?, full_name = ?, phone = ?, school_id = ?, status = 'active', approval_status = 'pending', updated_at = NOW() WHERE id = ?`,
             [passwordHash, full_name, phone || null, link.school_id, eu.id]
           );
+          // A new password: nothing issued to the old registration may survive it.
+          await conn.query('UPDATE users SET token_version = token_version + 1 WHERE id = ?', [eu.id]);
           await conn.query('DELETE FROM teachers WHERE user_id = ?', [eu.id]);
           await conn.query(
             `INSERT INTO teachers (user_id, school_id, subject, employee_id, status, registered_via) VALUES (?, ?, ?, ?, 'pending', 'link')`,
@@ -822,6 +825,8 @@ async function updateTeacherStatus(req, res, next) {
 
     const userStatus = status === 'active' ? 'active' : 'inactive';
     await pool.query('UPDATE users SET status = ? WHERE id = ?', [userStatus, rows[0].user_id]);
+    // Suspended now, and a token taken before stays dead if they are reactivated.
+    if (userStatus !== 'active') await revokeSessions(rows[0].user_id, 'suspended_by_school_admin', req);
 
     res.json({ message: `Teacher status updated to ${status}.` });
   } catch (err) { next(err); }
@@ -840,6 +845,7 @@ async function deleteTeacher(req, res, next) {
 
     await pool.query('DELETE FROM teachers WHERE id = ?', [id]);
     await pool.query("UPDATE users SET status = 'inactive' WHERE id = ?", [rows[0].user_id]);
+    await revokeSessions(rows[0].user_id, 'removed_by_school_admin', req);
 
     res.json({ message: `Teacher ${rows[0].full_name} removed.` });
   } catch (err) { next(err); }

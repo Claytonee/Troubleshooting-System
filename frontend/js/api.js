@@ -104,6 +104,7 @@ const API = (() => {
       });
     },
     changePassword: (data) => request('PUT', '/auth/change-password', data),
+    revokeAllSessions: () => request('POST', '/auth/sessions/revoke-all'),
     getDashboard: () => request('GET', '/dashboard'),
     getSchools: () => request('GET', '/schools'),
     getSchool: (id) => request('GET', `/schools/${id}`),

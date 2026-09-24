@@ -182,18 +182,35 @@ app.use('/api/', limiter);
 // Two limiters together: 20 per account (stops guessing a password) and a
 // looser per-address cap (stops one machine working through a user list).
 // Mounted after the body parser — see below — because the key needs req.body.
+//
+// Production limits are the security control and are what is documented;
+// elsewhere they are ten times looser, as the general limiter already is, so a
+// verification run that signs its fixtures in many times does not lock itself out.
+const LOGIN_LIMITS = process.env.NODE_ENV === 'production'
+  ? { accountNetwork: 20, network: 120, account: 60 }
+  : { accountNetwork: 200, network: 1200, account: 600 };
+const loginName = (req) => String((req.body && req.body.username) || '(none)').toLowerCase().slice(0, 60);
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20,
-  keyGenerator: (req) => String((req.body && req.body.username) || '(none)').toLowerCase().slice(0, 60)
-    + '|' + (req.ip || 'unknown'),
+  max: LOGIN_LIMITS.accountNetwork,
+  keyGenerator: (req) => loginName(req) + '|' + (req.ip || 'unknown'),
   message: { error: 'Too many login attempts, please try again later.' }
 });
 const authIpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 120,
+  max: LOGIN_LIMITS.network,
   keyGenerator: (req) => 'ip' + (req.ip || 'unknown'),
   message: { error: 'Too many login attempts from this network, please try again later.' }
+});
+// SEC-009 (DECISIONS.md D9): the two limits above are per network, so the same
+// account guessed from many addresses had no shared ceiling. 60 per account in
+// 15 minutes, from anywhere — room for a whole staffroom's typos, far below
+// what guessing a password needs.
+const authAccountLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: LOGIN_LIMITS.account,
+  keyGenerator: (req) => 'acct|' + loginName(req),
+  message: { error: 'Too many login attempts for this account, please try again later.' }
 });
 
 const registrationLimiter = rateLimit({
@@ -218,7 +235,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Login limiters live here, not with the others: their key reads the username
 // out of the request body, which does not exist until the parser above has run.
-app.use('/api/auth/login', authIpLimiter, authLimiter);
+app.use('/api/auth/login', authIpLimiter, authAccountLimiter, authLimiter);
 
 // Logging
 if (process.env.NODE_ENV !== 'test') {

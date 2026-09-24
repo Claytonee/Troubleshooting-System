@@ -99,3 +99,19 @@ anonymous request. That is the new code: the old process answered 200 on the fir
 | `api-matrix.js --check` | matches 142 endpoints; a tampered row is caught (exit 1); `--write` round-trips with zero diff |
 | `verify-backup-restore.js --self` | first run **8 / 9**: found 7 orphaned `error_updates` rows left by the old heartbeat suite. After removing them **9 / 9**: dump 1.2 s, restore 1.4 s |
 | Browser, Security Overview | 9 standards with their new statuses and 5 labelled limits render; no overflow at 748 px |
+
+## SEC-005 / SEC-011 — session revocation (2026-09-24)
+
+| Check | Result |
+|---|---|
+| New assertions in verify-security-boundaries.js | **19 / 19**. Pre-versioning token still accepted (no mass sign-out); password change ends other devices, keeps this one with a fresh token; sign-out-everywhere; admin reset needs 8+ chars, forces change and ends sessions; a token from before a suspension stays refused after reactivation; every revocation recorded with its reason |
+| Endpoint inventory | caught the new POST /api/auth/sessions/revoke-all before it was recorded (exit 1), as designed; matrix regenerated to 143 |
+| Browser | profile menu shows Sign Out Everywhere; Auth.signOutEverywhere is wired |
+
+## SEC-009 and the throttle itself (2026-09-24)
+
+Nothing had ever tested the login throttle. Now 4 assertions do (see SEC-009). Found on the way:
+the gate's suites tripped the production login limit on their own fixture account. Non-production
+now runs 10× looser, production is unchanged, and a test pins the production numbers.
+`verify-teacher-scope.js` now asserts D3 as well (62/62): a token from before a suspension is
+still refused after reactivation, and the suite signs in again.

@@ -7,7 +7,7 @@ XSS findings fixed; the Security Overview page shipped. **READY FOR HUMAN REVIEW
 approved or closed.
 
 ### Done
-- Threat model, baseline (ASVS 5.0 / CSF 2.0), 142-endpoint API matrix, research library.
+- Threat model, baseline (ASVS 5.0 / CSF 2.0), 143-endpoint API matrix, research library.
 - SEC-001…004 fixed, each reproduced first (8/27 → 27/27).
 - `services/scope.js` → `canActOnSchool()`: one tenant-scope answer for all roles.
 - `GET /api/security/overview` (admin only) + `#security` page: plain-language layers with
@@ -22,10 +22,10 @@ approved or closed.
 - TEST-001 fixed (the heartbeat suite no longer deletes other rows).
 - OPS-001: deploys restart themselves after a preflight, or roll back (D23).
 - `scripts/prepush.js` is the gate to run before every push.
+- SEC-005 session revocation (D3) and SEC-011 admin resets fixed.
 
 ### Open — in the order fixed by DECISIONS.md D12
 1. **D2 / SEC-006 security events** — everything in detection depends on it.
-2. **D3 / SEC-005 token versioning** — tokens without `tv` count as version 0, so there is no mass sign-out.
 3. Verify proxy IP attribution on production (THREAT_MODEL T9, D5 a) **before** any IP block.
 4. **D4 / SEC-007 TOTP for platform admin** — 14-day enrolment window, then enforced.
 5. Detection rules **alert-only**, plus alerts to the bell (D5, D6).

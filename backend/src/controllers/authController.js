@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const streamifier = require('streamifier');
 const pool = require('../config/database');
 const cloudinary = require('../config/cloudinary');
+const { revokeSessions } = require('../services/sessions');
 
 function uploadToCloudinary(buffer, options) {
   return new Promise((resolve, reject) => {
@@ -16,7 +17,8 @@ function uploadToCloudinary(buffer, options) {
 
 function generateToken(user) {
   return jwt.sign(
-    { id: user.id, role: user.role, username: user.username },
+    // tv: the account's session version (SEC-005). Bumping it ends every token issued before.
+    { id: user.id, role: user.role, username: user.username, tv: user.token_version || 0 },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
@@ -31,7 +33,7 @@ async function login(req, res, next) {
     }
 
     const [rows] = await pool.query(
-      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, password_hash, school_id, approval_status, avatar_url, bio, must_change_password FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)',
+      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, password_hash, school_id, approval_status, avatar_url, bio, must_change_password, token_version FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)',
       [username, username]
     );
 
@@ -240,8 +242,22 @@ async function changePassword(req, res, next) {
     // Clear the forced-change flag once the user picks their own password.
     await pool.query('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?', [newHash, req.user.id]);
 
-    res.json({ message: 'Password changed successfully.' });
+    // Every other device is signed out; this one gets a fresh token so the
+    // person who just changed their password stays signed in where they are.
+    const tv = await revokeSessions(req.user.id, 'password_changed', req);
+    res.json({
+      message: 'Password changed successfully. Other devices have been signed out.',
+      token: generateToken({ ...req.user, token_version: tv })
+    });
   } catch (err) { next(err); }
 }
 
-module.exports = { login, register, getProfile, updateProfile, uploadAvatar, changePassword };
+/** POST /api/auth/sessions/revoke-all — sign this account out on every device, this one included. */
+async function revokeAllSessions(req, res, next) {
+  try {
+    await revokeSessions(req.user.id, 'sign_out_everywhere', req);
+    res.json({ message: 'Signed out on every device.' });
+  } catch (err) { next(err); }
+}
+
+module.exports = { login, register, getProfile, updateProfile, uploadAvatar, changePassword, revokeAllSessions };

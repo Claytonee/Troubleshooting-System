@@ -262,6 +262,84 @@ async function ensureStaff(role, suffix) {
     ok('the typed name of a non-existent account is not kept', !dump.includes(ghost));
     ok('ids in unmatched URLs are masked', !dump.includes('987654') && has('auth.token_rejected', r => r.path_template === '/api/errors/:id'));
     ok('events carry the source address', all.every(r => r.event_type === 'events.dropped' || !!r.source_ip));
+
+    // ---- SEC-005 / SEC-011: sessions end when they must, and only then -----
+    console.log('\nSEC-005  sessions can be revoked — without signing anyone out on rollout');
+    const jwt = require('jsonwebtoken');
+    const legacy = jwt.sign({ id: fx.teacher.userId, role: 'teacher', username: fx.teacher.username }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    ok('a token issued before versioning (no tv) still works — nobody signed out on rollout',
+      (await api('GET', '/dashboard', { token: legacy })).status === 200);
+
+    const tA = await login(fx.teacher.username, fx.password);
+    const tB = await login(fx.teacher.username, fx.password);
+    const NEWPW = 'Changed-Pass-2026!';
+    const cp = await api('PUT', '/auth/change-password', { token: tA, body: { current_password: fx.password, new_password: NEWPW } });
+    ok('changing a password answers with a fresh token for this device', cp.status === 200 && !!(cp.body && cp.body.token), cp.status);
+    ok('...the fresh token works', (await api('GET', '/dashboard', { token: cp.body && cp.body.token })).status === 200);
+    const rB = await api('GET', '/dashboard', { token: tB });
+    ok('...another device\'s session has ended', rB.status === 401 && rB.body && rB.body.code === 'SESSION_REVOKED', rB);
+    ok('...the old token of this device has ended too', (await api('GET', '/dashboard', { token: tA })).status === 401);
+    ok('...and so has the pre-versioning token', (await api('GET', '/dashboard', { token: legacy })).status === 401);
+
+    const s1tok = await login(fx.schoolAdmin.username, fx.password);
+    const s2tok = await login(fx.schoolAdmin.username, fx.password);
+    const out = await api('POST', '/auth/sessions/revoke-all', { token: s1tok });
+    ok('"sign out everywhere" answers 200', out.status === 200, out);
+    ok('...and every session of that account has ended',
+      (await api('GET', '/dashboard', { token: s1tok })).status === 401 && (await api('GET', '/dashboard', { token: s2tok })).status === 401);
+
+    console.log('\nSEC-011  an admin-set password is temporary, and ends every session');
+    const sBefore = await login(fx.schoolAdmin.username, fx.password);
+    const short = await api('PATCH', `/school-admins/${fx.schoolAdmin.id}/password`, { token: admin, body: { new_password: 'short1' } });
+    ok('a reset shorter than 8 characters is refused', short.status === 400, short.status);
+    const TEMP = 'Temp-Pass-2026!';
+    const reset = await api('PATCH', `/school-admins/${fx.schoolAdmin.id}/password`, { token: admin, body: { new_password: TEMP } });
+    ok('platform admin resets a school admin\'s password', reset.status === 200, reset);
+    ok('...the school admin\'s existing session has ended', (await api('GET', '/dashboard', { token: sBefore })).status === 401);
+    const relog = await api('POST', '/auth/login', { body: { username: fx.schoolAdmin.username, password: TEMP } });
+    ok('...they sign in with the temporary password and are told to change it',
+      relog.status === 200 && relog.body.user.must_change_password === true, relog.body && relog.body.user);
+    const sNew = relog.body && relog.body.token;
+
+    console.log('\nD3       reactivation does not revive a token taken before suspension');
+    const tStolen = await login(fx.teacher.username, NEWPW);
+    const susp = await api('PATCH', `/register/teachers/${fx.teacher.teacherId}/status`, { token: sNew, body: { status: 'suspended' } });
+    ok('school admin suspends the teacher', susp.status === 200, susp);
+    ok('...the teacher\'s token is refused', (await api('GET', '/dashboard', { token: tStolen })).status === 401);
+    const react = await api('PATCH', `/register/teachers/${fx.teacher.teacherId}/status`, { token: sNew, body: { status: 'active' } });
+    ok('school admin reactivates the teacher', react.status === 200, react);
+    ok('...the token from before the suspension is STILL refused', (await api('GET', '/dashboard', { token: tStolen })).status === 401);
+    ok('...a fresh sign-in works', (await api('POST', '/auth/login', { body: { username: fx.teacher.username, password: NEWPW } })).status === 200);
+
+    console.log('\nSEC-009  sign-in guessing is throttled — and the throttle is recorded');
+    const srv = fs.readFileSync(path.join(__dirname, '..', 'src', 'server.js'), 'utf8');
+    ok('production limits are 20 per account+network, 120 per network, 60 per account (the documented control)',
+      /NODE_ENV === 'production'\s*\n?\s*\?\s*\{ accountNetwork: 20, network: 120, account: 60 \}/.test(srv));
+    ok('the per-account limiter is mounted on /api/auth/login',
+      /app\.use\('\/api\/auth\/login', authIpLimiter, authAccountLimiter, authLimiter\)/.test(srv));
+    const victim = 'zzthrottle' + Date.now();
+    let throttledAt = 0;
+    for (let i = 1; i <= 1300 && !throttledAt; i++) {
+      const r = await fetch(BASE + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: victim, password: 'guess' + i }) });
+      if (r.status === 429) throttledAt = i;
+    }
+    ok('repeated guessing on one account is throttled (429)', throttledAt > 0, throttledAt);
+    const thr = await waitRows(
+      "SELECT count FROM security_events WHERE event_type = 'auth.login_throttled' AND (id > ? OR last_at >= ?)",
+      [since, eventsT0], r => r.length > 0);
+    ok('...and the throttling is recorded as auth.login_throttled', thr.length > 0);
+
+    const revokedRows = await waitRows(
+      "SELECT detail FROM security_events WHERE event_type = 'auth.sessions_revoked' AND (id > ? OR last_at >= ?)",
+      [since, eventsT0], r => r.length >= 4);
+    const reasons = revokedRows.map(r => (JSON.parse(r.detail || '{}').reason));
+    ok('every revocation is recorded with its reason',
+      ['password_changed', 'sign_out_everywhere', 'password_reset_by_admin', 'suspended_by_school_admin'].every(x => reasons.includes(x)), reasons);
+    const revTok = await waitRows(
+      "SELECT detail FROM security_events WHERE event_type = 'auth.token_rejected' AND detail LIKE '%revoked_token%' AND (id > ? OR last_at >= ?)",
+      [since, eventsT0], r => r.length > 0);
+    ok('use of a revoked token is recorded as revoked_token', revTok.length > 0);
   } finally {
     // Longer than one flush interval, so nothing this run caused lands after the delete.
     await new Promise(r => setTimeout(r, 2600));

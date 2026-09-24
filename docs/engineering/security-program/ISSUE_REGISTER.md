@@ -14,12 +14,13 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 | SEC-002 | P2 | **Fixed** 2026-09-24 | Schools | School forms unscoped; field engineer's school detail unscoped |
 | SEC-003 | P1 | **Fixed** 2026-09-24 | LRS, Inventory, Check-ins, Faults, Registration | Stored XSS into a platform admin's session |
 | SEC-004 | P2 | **Fixed** 2026-09-24 | Check-ins, Communications | Field engineer writes for schools not assigned to them |
-| SEC-005 | P2 | Open | Auth | A JWT cannot be revoked before it expires |
+| SEC-005 | P2 | **Fixed** 2026-09-24 | Auth | A JWT could not be revoked before it expired |
 | SEC-006 | P2 | **Fixed** 2026-09-24 | Auth, all | Failed sign-ins and 401/403 refusals were not recorded |
 | SEC-007 | P2 | Open | Auth | No second factor for platform admin |
 | SEC-008 | P3 | Open | Registration | Public appeal and teacher-status endpoints accept guessable input |
-| SEC-009 | P3 | Open | Auth | Login throttle is per account **per network** |
+| SEC-009 | P3 | **Fixed** 2026-09-24 | Auth | Login throttle was per account **per network** only |
 | SEC-010 | P3 | Open | Faults | Attachments: 5 × 100 MB held in memory, any signed-in user |
+| SEC-011 | P2 | **Fixed** 2026-09-24 | Auth | An admin-set password was permanent, could be 6 characters, and left sessions alive |
 | OPS-001 | P2 | **Fixed** 2026-09-24 (verify on next deploy) | Deploy | A deploy left the old process serving next to new files until a manual restart |
 | INT-001 | P3 | Open | Faults | Fault codes reissued after deletion; race can duplicate them |
 | TEST-001 | P2 | **Fixed** 2026-09-24 | Test harness | `verify-heartbeat.js` swept every real LRS device, and its cleanup deleted rows it did not create |
@@ -97,13 +98,36 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 - **Fix:** `canActOnSchool()` on create; on delete, the row's own school.
 - **Regression:** SEC-004 block, 5 assertions, including "the row is still there".
 
-## SEC-005 — JWT cannot be revoked before expiry · P2 · Open
+## SEC-005 — A JWT could not be revoked before expiry · P2 · Fixed
 
-7-day HS256 tokens. `authenticate()` re-reads account status per request, so **suspension is
-immediate** — but a password change, a logout, or a stolen token on an active account stays
-valid until expiry. Proposed: `users.token_version` (additive column) carried in the token
-and compared in `authenticate()`; bump on password change/reset and "sign out everywhere".
-Needs approval: it signs every current user out once.
+- **Was:** 7-day tokens. Suspension was immediate (status re-read per request), but a password
+  change, a stolen token on an active account, or a **reactivated** account kept every old token
+  valid until it expired.
+- **Fix (DECISIONS.md D3):** `users.token_version INT NOT NULL DEFAULT 0` (additive), carried
+  in tokens as `tv` and compared in `authenticate()` (`401 SESSION_REVOKED`). One helper,
+  `services/sessions.js → revokeSessions()`, is called on:
+  - a password change (this device gets a fresh token; every other device is signed out);
+  - an admin reset;
+  - a sub-admin or school-admin deactivation;
+  - a teacher's suspension or removal;
+  - a re-registration;
+  - `POST /api/auth/sessions/revoke-all` ("Sign Out Everywhere" in the profile menu).
+
+  Every revocation is recorded as `auth.sessions_revoked` with its reason.
+- **No mass sign-out:** a token without `tv` counts as 0, the column's default. Asserted.
+- **Regression:** 13 assertions in the SEC-005/D3 blocks of `verify-security-boundaries.js`,
+  including: *a token taken before a suspension is still refused after the account is reactivated.*
+
+## SEC-011 — Admin-set passwords were permanent, short, and left sessions alive · P2 · Fixed
+
+- **Was:** resetting a sub-admin's password set `changeme123` (or whatever was typed) and left
+  `must_change_password` at 0, so the default could stay forever. A school-admin reset accepted
+  6 characters, below the 8 the policy requires. Neither ended the person's existing sessions,
+  so someone who had stolen a session kept it through the reset meant to lock them out.
+- **Fix:** both resets require 8+ characters, set `must_change_password = 1` (the existing
+  forced-change screen appears at next sign-in), and call `revokeSessions()`. The admin UIs say so.
+- **Regression:** 4 assertions (short password refused; existing session ended; sign-in with the
+  temporary password reports `must_change_password: true`).
 
 ## SEC-006 — Failed sign-ins and refusals were not recorded · P2 · Fixed
 
@@ -136,12 +160,16 @@ confirms whether an email belongs to a teacher and returns the rejection reason.
 the registration email alongside the id; answer teacher-status only with the id issued at
 registration, or a uniform response.
 
-## SEC-009 — Login throttle is per account per network · P3 · Open
+## SEC-009 — Login throttle was per account per network only · P3 · Fixed
 
-`authLimiter` keys on `username|ip`, so the same account attacked from many addresses has no
-shared cap. Deliberate trade-off (a school shares one IP) that leaves distributed guessing
-unthrottled. Proposed: add a per-account-only limiter with a higher ceiling, plus SEC-006
-recording so the pattern is visible.
+- **Was:** `authLimiter` keyed on `username|ip`, so one account guessed from many addresses had
+  no shared ceiling.
+- **Fix (D9):** `authAccountLimiter`, 60 per account per 15 minutes from anywhere, mounted
+  alongside 20 per account+network and 120 per network. Production limits are unchanged and
+  pinned by a test; non-production runs 10× looser (as the general limiter already did), because
+  the suites' own fixture sign-ins were tripping the production limit.
+- **Regression:** 4 assertions. The limits in the source; the limiter mounted; a throwaway
+  account driven until throttled (429); the throttling recorded as `auth.login_throttled`.
 
 ## SEC-010 — Attachment memory ceiling · P3 · Open
 

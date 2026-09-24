@@ -373,9 +373,9 @@ const SchoolAdminsPage = (() => {
   async function resetPassword(id) {
     const a = admins.find(x => x.id === id);
     if (!a) return;
-    const pw = prompt(`Set a new password for ${a.full_name} (min 6 characters):`);
+    const pw = prompt(`Set a new password for ${a.full_name} (min 8 characters). They will be asked to choose their own at next sign-in, and signed out everywhere now:`);
     if (pw === null) return;
-    if (pw.trim().length < 6) { showToast('Password must be at least 6 characters'); return; }
+    if (pw.trim().length < 8) { showToast('Password must be at least 8 characters'); return; }
     try {
       await API.resetSchoolAdminPassword(id, pw.trim());
       showToast('Password reset');

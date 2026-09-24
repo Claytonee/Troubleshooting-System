@@ -287,8 +287,14 @@ async function login(creds) {
     const grantSuspended = await api('PATCH', `/register/teachers/${teacher.id}/inventory-access`, { token: adminToken, body: { granted: 'yes' } });
     ok('a non-boolean grant flag is refused', grantSuspended.status === 400, grantSuspended);
 
+    // The suspension ended the teacher's sessions, and reactivating does not
+    // revive them (SEC-005, DECISIONS.md D3): the old token stays refused.
+    const stale = await api('GET', '/inventory/stats', { token: teacherToken });
+    ok('the token from before the suspension is still refused after reactivation', stale.status === 401, stale.status);
+    const freshTeacher = await login(TEACHER);
+
     // A teacher cannot grant it to themselves.
-    const selfGrant = await api('PATCH', `/register/teachers/${teacher.id}/inventory-access`, { token: teacherToken, body: { granted: true } });
+    const selfGrant = await api('PATCH', `/register/teachers/${teacher.id}/inventory-access`, { token: freshTeacher, body: { granted: true } });
     ok('a teacher cannot grant it to themselves', selfGrant.status === 403, selfGrant.status);
   } finally {
     // ---- restore ---------------------------------------------------------

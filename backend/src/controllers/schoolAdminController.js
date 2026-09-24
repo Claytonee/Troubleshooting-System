@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const pool = require('../config/database');
 const { logAudit } = require('../services/audit');
+const { revokeSessions } = require('../services/sessions');
 
 /**
  * School Admins = users with role 'school', each linked to a school via school_id.
@@ -96,6 +97,7 @@ async function update(req, res, next) {
     );
 
     if (!result.affectedRows) return res.status(404).json({ error: 'School admin not found.' });
+    if (status && status !== 'active') await revokeSessions(req.params.id, 'deactivated', req);
     await logAudit({
       actor: req.user, ip: req.ip, action: 'school_admin.updated', entityType: 'school_admin', entityId: req.params.id,
       summary: `Updated school admin "${full_name}"`, meta: { status, school_id }
@@ -107,15 +109,18 @@ async function update(req, res, next) {
 async function resetPassword(req, res, next) {
   try {
     const { new_password } = req.body;
-    if (!new_password || new_password.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+    // 8, as the security policy and the self-service change require (SEC-011).
+    if (!new_password || String(new_password).length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters.' });
     }
     const passwordHash = await bcrypt.hash(new_password, 10);
+    // Temporary password: chosen by the admin, so the person replaces it at next sign-in.
     const [result] = await pool.query(
-      "UPDATE users SET password_hash = ? WHERE id = ? AND role = 'school'",
+      "UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ? AND role = 'school'",
       [passwordHash, req.params.id]
     );
     if (!result.affectedRows) return res.status(404).json({ error: 'School admin not found.' });
+    await revokeSessions(req.params.id, 'password_reset_by_admin', req);
     await logAudit({
       actor: req.user, ip: req.ip, action: 'school_admin.password_reset', entityType: 'school_admin', entityId: req.params.id,
       summary: 'Reset school admin password'

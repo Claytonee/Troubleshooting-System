@@ -218,7 +218,8 @@ const TeamPage = (() => {
     try {
       const res = await API.resetTeamPassword(id, password || undefined);
       Modal.close();
-      showToast(`Password reset to: ${res.password || 'changeme123'}`);
+      // A temporary password: they must replace it at next sign-in, and every session they had has ended.
+      showToast(`Temporary password: ${res.password || 'changeme123'} — they must choose their own at next sign-in`, 7000);
     } catch (e) {
       showToast(e.error || 'Could not reset password');
       btn.disabled = false; btn.innerHTML = '<i class="ti ti-key" style="font-size:12px"></i> Reset Password';

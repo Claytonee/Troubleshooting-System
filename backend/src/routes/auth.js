@@ -34,6 +34,8 @@ router.post('/register', [
 ], authController.register);
 
 router.get('/profile', authenticate, authController.getProfile);
+// Sign this account out on every device (SEC-005).
+router.post('/sessions/revoke-all', authenticate, authController.revokeAllSessions);
 router.put('/profile', authenticate, authController.updateProfile);
 router.post('/profile/avatar', authenticate, (req, res, next) => {
   avatarUpload.single('avatar')(req, res, (err) => {

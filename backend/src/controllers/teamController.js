@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const pool = require('../config/database');
 const { logAudit } = require('../services/audit');
+const { revokeSessions } = require('../services/sessions');
 
 async function getAll(req, res, next) {
   try {
@@ -67,6 +68,8 @@ async function update(req, res, next) {
       'UPDATE users SET full_name=?, email=?, phone=?, zone=?, color=?, title=?, status=? WHERE id=? AND role=?',
       [full_name, email, phone, zone, color, title, status, req.params.id, 'subadmin']
     );
+    // A deactivated sub-admin's tokens end now, and stay ended if they are reactivated.
+    if (status && status !== 'active' && status !== 'onsite') await revokeSessions(req.params.id, 'deactivated', req);
 
     await logAudit({
       actor: req.user, ip: req.ip, action: 'sub_admin.updated', entityType: 'sub_admin', entityId: req.params.id,
@@ -116,9 +119,13 @@ async function resetPassword(req, res, next) {
   try {
     const { password } = req.body;
     const newPass = password || 'changeme123';
+    if (String(newPass).length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters.' });
     const hash = await bcrypt.hash(newPass, 10);
-    const [result] = await pool.query('UPDATE users SET password_hash = ? WHERE id = ? AND role = ?', [hash, req.params.id, 'subadmin']);
+    // SEC-011: an admin-set password is a temporary one. The person must choose
+    // their own at next sign-in, and every existing session ends now.
+    const [result] = await pool.query('UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ? AND role = ?', [hash, req.params.id, 'subadmin']);
     if (!result.affectedRows) return res.status(404).json({ error: 'Sub-admin not found.' });
+    await revokeSessions(req.params.id, 'password_reset_by_admin', req);
 
     await logAudit({
       actor: req.user, ip: req.ip, action: 'sub_admin.password_reset', entityType: 'sub_admin', entityId: req.params.id,
