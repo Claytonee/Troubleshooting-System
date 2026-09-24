@@ -143,10 +143,9 @@ const STRICT_CSP_REPORT_ONLY = [
 ].join('; ');
 app.use((req, res, next) => { res.setHeader('Content-Security-Policy-Report-Only', STRICT_CSP_REPORT_ONLY); next(); });
 
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? (process.env.FRONTEND_URL || true) : '*',
-  credentials: true
-}));
+// Same origin only in production unless FRONTEND_URL names others (SEC-014, D26).
+// No credentials flag: sessions are bearer tokens, never cookies.
+app.use(cors({ origin: require('./config/httpPolicy').corsOrigin() }));
 
 /**
  * Rate limiting, keyed per ACCOUNT rather than per IP wherever we know one.

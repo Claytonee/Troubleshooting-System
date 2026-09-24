@@ -853,7 +853,8 @@ material in plain language on **Security Overview** (`#security`).
 | Authentication | JWT in the Authorization header, 7-day expiry, carrying the account's `token_version`. Raising it ends every session of that account: password change, admin reset, suspension, "Sign out everywhere" (SEC-005). Account status re-read on every request |
 | Two-step sign-in | TOTP (RFC 6238) for platform admins, required from 2026-10-08; secrets AES-256-GCM encrypted; 10 one-time recovery codes; a password alone earns a 5-minute ticket; break-glass `scripts/mfa-reset.js --yes` on the server console (SEC-007) |
 | Rate limiting | 900 req / 15 min **per account** (IP when anonymous); login 20 per account+network, 120 per network and 60 per account from anywhere; two-step codes 10 per 15 min; registration 5 per IP |
-| CORS | `FRONTEND_URL` in production, else the request origin is reflected (bearer tokens, no cookies) |
+| CORS | Production answers only origins listed in `FRONTEND_URL`; none when unset (the SPA is same-origin). No credentials flag: bearer tokens, no cookies (SEC-014) |
+| Token algorithm | HS256 only, pinned at every verify site (SEC-013) |
 | HTTP headers | helmet: CSP enforced (`default-src 'self'`, no `unsafe-eval`; inline still allowed) plus a strict policy (`script-src 'self'`) in **report-only** mode whose reports form a bounded migration inventory (D24); HSTS 1 year, referrer policy |
 | Input validation | express-validator on key writes; enum lists on fault and check-in fields |
 | SQL injection | Parameterised queries (mysql2); dynamic SQL limited to fixed column fragments |

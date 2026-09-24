@@ -237,6 +237,21 @@ rejected too: a row that is still stored is not deleted under s.28.
 fails on the cached version and a baseline check that stops the suite before enforce mode if any
 real row is due, so the test cannot delete somebody's data.
 
+## D26 — The verifier chooses: one token algorithm, no cross-origin answers
+
+**Decided:** tokens are HS256 only and every verify site says so (SEC-013); production answers
+cross-origin requests only for origins named in `FRONTEND_URL`, none by default (SEC-014). Both
+live in `config/httpPolicy.js`, so the next person to add a verify call or an origin finds the rule
+in one place, and `verify-token-policy.js` fails on a verify call that skips it.
+
+**Why now:** both were found while correcting SECURITY_BASELINE.md, whose V9 row said
+"algorithm not pinned explicitly" and whose V4 row named the CORS default. A known gap written
+down and left is still a gap. Neither change affects a user: every token we issue is HS256, and
+nothing legitimate calls the API from another origin.
+
+**Revisit when:** a second frontend on another origin appears (name it in `FRONTEND_URL`), or
+tokens move to asymmetric signing (the list changes, the rule does not).
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.

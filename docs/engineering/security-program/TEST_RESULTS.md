@@ -175,3 +175,14 @@ still refused after reactivation, and the suite signs in again.
 | Regression | the overview's count after a row disappears: **failed on the cached first version** (25/26), passes on the fix |
 | Safety | the suite checks that no real row is due before it enforces, and stops if one is |
 | Browser | the Security Overview's live checks show "Data retention (report-only)" with each period |
+
+## SEC-013 / SEC-014 — token algorithm and CORS (2026-09-24)
+
+| Check | Before | After |
+|---|---|---|
+| HS384 token under our secret → `/api/auth/profile` | **200** | 401 |
+| HS512 token under our secret → `/api/auth/profile` | **200** | 401 |
+| `alg: none` token | 401 | 401 |
+| Every `jwt.verify(` in `src/` passes `JWT_VERIFY` | — | 2 / 2 call sites; **fails** with the old `auth.js` restored |
+| `corsOrigin()` production, no `FRONTEND_URL` | reflect any origin | `false` (none) |
+| `verify-token-policy.js` | 3 passed, 2 failed | **10 / 10** |

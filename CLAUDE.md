@@ -562,6 +562,10 @@ the old code. Rules that came out of the 2026-09-24 review:
   loaded only by the page that needs them: `js/vendor/gsap.min.js` is injected by
   `SecurityPage` alone. Motion respects `prefers-reduced-motion`, and every diagram has a text
   equivalent beside it.
+- **The verifier chooses the algorithm.** Every `jwt.verify` passes `JWT_VERIFY` from
+  `config/httpPolicy.js` (HS256 only, SEC-013); a source check in `verify-token-policy.js`
+  fails on one that does not. Cross-origin answers in production go only to `FRONTEND_URL`
+  (none when unset, SEC-014) — the SPA is same-origin, the integrations server-to-server.
 - **Retention reports before it deletes** (`services/retention.js`, D25). Daily, it counts
   what each policy (DATA_PROTECTION.md) would remove; it deletes only with
   `RETENTION_ENFORCE=1`, which the owner sets after confirming a backup. Accounts are counted

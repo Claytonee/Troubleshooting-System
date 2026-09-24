@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { JWT_VERIFY } = require('../config/httpPolicy');
 const pool = require('../config/database');
 const totp = require('../services/totp');
 const policy = require('../services/mfaPolicy');
@@ -112,7 +113,7 @@ async function enable(req, res, next) {
 async function verify(req, res, next) {
   try {
     let claim;
-    try { claim = jwt.verify(String(req.body.ticket || ''), process.env.JWT_SECRET); } catch (e) { claim = null; }
+    try { claim = jwt.verify(String(req.body.ticket || ''), process.env.JWT_SECRET, JWT_VERIFY); } catch (e) { claim = null; }
     if (!claim || claim.purpose !== 'mfa') {
       res.locals.secDetail = { reason: 'bad_ticket' };
       return res.status(401).json({ error: 'This sign-in has expired. Enter your password again.', code: 'MFA_TICKET_INVALID' });

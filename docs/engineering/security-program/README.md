@@ -5,7 +5,7 @@ Engineering records for making the Technical Support System measurably safer. St
 
 | File | What it holds |
 |---|---|
-| [SESSION_HANDOFF.md](SESSION_HANDOFF.md) | Current phase, open work, decisions pending, exact next action |
+| [SESSION_HANDOFF.md](SESSION_HANDOFF.md) | Where the work stands, what waits on the owner, what comes next |
 | [DECISIONS.md](DECISIONS.md) | Decisions taken, why, and when to revisit them |
 | [SECURITY_POLICY.md](SECURITY_POLICY.md) | The adopted policy: owner, access, sign-in, change control, reviews |
 | [INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) | The first hour, playbooks, evidence queries, PDPC notification |
@@ -14,8 +14,8 @@ Engineering records for making the Technical Support System measurably safer. St
 | [ISSUE_REGISTER.md](ISSUE_REGISTER.md) | Every finding: evidence, root cause, fix, regression test |
 | [THREAT_MODEL.md](THREAT_MODEL.md) | Assets, actors, request path, trust boundaries, what is impossible |
 | [SECURITY_BASELINE.md](SECURITY_BASELINE.md) | Controls that exist, mapped to ASVS 5.0 and NIST CSF 2.0 |
-| [API_SECURITY_MATRIX.md](API_SECURITY_MATRIX.md) | All 143 endpoints: auth, role gate, notes |
-| [SECURITY_DESIGN.md](SECURITY_DESIGN.md) | Phase 2 proposal: security events, detection, alerts, reviewed IP blocking |
+| [API_SECURITY_MATRIX.md](API_SECURITY_MATRIX.md) | All 154 endpoints: auth, role gate, notes (checked against the routers before every push) |
+| [SECURITY_DESIGN.md](SECURITY_DESIGN.md) | Phase 2 design: security events, detection, alerts (built), reviewed IP blocking (not yet — D5) |
 | [RESEARCH_LIBRARY.md](RESEARCH_LIBRARY.md) | Sources, and whether each was actually read |
 | [TEST_RESULTS.md](TEST_RESULTS.md) | Commands run and their real output, before and after |
 

@@ -23,6 +23,8 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 | SEC-011 | P2 | **Fixed** 2026-09-24 | Auth | An admin-set password was permanent, could be 6 characters, and left sessions alive |
 | OPS-001 | P2 | **Fixed** 2026-09-24 (verify on next deploy) | Deploy | A deploy left the old process serving next to new files until a manual restart |
 | SEC-012 | P1 | **Fixed** 2026-09-24 | Dependencies | 6 known-vulnerable production dependencies (1 high: nodemailer) |
+| SEC-013 | P3 | **Fixed** 2026-09-24 | Auth | Tokens verified without a pinned algorithm: HS384/HS512 accepted beside HS256 |
+| SEC-014 | P3 | **Fixed** 2026-09-24 | HTTP | CORS reflected every origin in production when `FRONTEND_URL` was unset |
 | INT-001 | P3 | **Fixed** 2026-09-24 | Faults | Fault codes reissued after deletion; a race duplicated them |
 | TEST-001 | P2 | **Fixed** 2026-09-24 | Test harness | `verify-heartbeat.js` swept every real LRS device, and its cleanup deleted rows it did not create |
 | TEST-002 | P3 | **Fixed** 2026-09-24 | Test harness | The pre-push gate tidied test incidents but left their evidence, so detection reopened one a minute later |
@@ -248,6 +250,31 @@ updates and notifications), and restores every device exactly. Verified: 21/21, 
 snapshot of devices, faults, updates, audit, history and notifications is byte-identical. The same suite also leaves its
 `auto_recovery` rows in `error_updates` after deleting its test faults: the restore drill found
 seven such orphans from 9–10 September, and they were removed on 2026-09-24.
+
+## SEC-013 — Token algorithm not pinned · P3 · Fixed
+
+- **Evidence:** `jwt.verify(token, secret)` in `middleware/auth.js` and `mfaController.js` passed
+  no `algorithms`. A token for a real account signed **HS384** or **HS512** under our secret got
+  **200** from `/api/auth/profile` (reproduced 2026-09-24, `verify-token-policy.js` 2 FAIL).
+  `alg: none` was already refused by the library.
+- **Impact:** low on its own — forging still needs the secret. It is ASVS V9's rule that the
+  verifier, not the token, chooses the algorithm; relying on the library's defaults means a
+  dependency change could widen what we accept without anyone deciding it.
+- **Fix:** `config/httpPolicy.js` → `JWT_VERIFY = { algorithms: ['HS256'] }`, passed at both sites.
+- **Regression:** HS384/HS512/none refused, HS256 accepted, and a source check that **every**
+  `jwt.verify(` in `src/` passes `JWT_VERIFY` (fails with the old `auth.js` restored).
+
+## SEC-014 — CORS answered every website in production · P3 · Fixed
+
+- **Evidence:** `origin: process.env.FRONTEND_URL || true` with `credentials: true`: with the
+  variable unset (as the documented cPanel list had it) the server echoed any `Origin` back.
+- **Impact:** low — sessions are bearer tokens in `localStorage`, never cookies, so another site's
+  script had no credential to send. But it answered questions nobody needed to ask.
+- **Fix:** `corsOrigin()`: production answers only the origins in `FRONTEND_URL` (comma-separated),
+  otherwise **none** — the SPA is same-origin and every integration is server-to-server. The
+  credentials flag is gone. Development keeps `*`, which browsers never pair with credentials.
+- **Regression:** `verify-token-policy.js` (the policy per environment, and the live server never
+  grants credentials to an arbitrary origin).
 
 ## TEST-002 — The gate left evidence that reopened an incident · P3 · Fixed
 

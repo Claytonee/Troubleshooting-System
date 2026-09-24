@@ -18,6 +18,7 @@ Nothing is described as approved, certified or closed beyond what the owner has 
 | Browser policy | strict CSP in report-only mode with a bounded inventory; foreign scripts → R8 | D24 |
 | Retention | daily report per policy; deletes only with `RETENTION_ENFORCE=1`; accounts never auto-deleted | D21, D25 |
 | Guessing | per-account ceiling across networks; public registration needs proof | D8, D9 |
+| Tokens and origins | HS256 pinned at every verify site; production CORS same-origin only | D26, SEC-013/014 |
 | Integrity | fault codes from a sequence table | INT-001 |
 | Supply chain | dependencies patched; `npm audit` high/critical fails the gate | SEC-012 |
 | Deploys | preflight, rollback, self-restart; the pre-push gate | D23, OPS-001 |

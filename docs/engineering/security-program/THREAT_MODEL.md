@@ -53,18 +53,18 @@ which is exactly what SEC-001/002/004 were. The regression suites are therefore 
 
 | # | Threat | Boundary | Current control | Gap |
 |---|---|---|---|---|
-| T1 | Password guessing / credential stuffing | 3 | bcrypt; 20/account+IP, 120/IP per 15 min | Distributed guessing uncapped (SEC-009); nothing recorded (SEC-006) |
-| T2 | Stolen token (XSS, shared tablet, stolen laptop) | 3 | Account status re-read per request; esc() on output; CSP blocks foreign scripts | Token in localStorage; CSP allows inline; no revocation (SEC-005) |
-| T3 | Phished platform admin | 3 | Password only | No MFA (SEC-007) |
+| T1 | Password guessing / credential stuffing | 3 | bcrypt; 20/account+IP, 120/IP, 60/account from anywhere per 15 min; every failure recorded; R1–R3 alert | An address shared by a school cannot be blocked without blocking the school (D5) |
+| T2 | Stolen token (XSS, shared tablet, stolen laptop) | 3 | Status re-read per request; revocable sessions ("Sign out everywhere", D3); esc() on output; CSP blocks foreign scripts, R8 alerts on them | Token in localStorage; enforced CSP still allows inline (D24) |
+| T3 | Phished platform admin | 3 | TOTP two-step, required from 2026-10-08 (D4); R3 alerts on success after failures | A real-time phishing proxy can relay a TOTP code; only a passkey stops that |
 | T4 | Cross-school read/write by id (BOLA) | 5 | Per-handler scope checks, now `canActOnSchool()` | App-layer only; guarded by suites |
-| T5 | Stored XSS from a lower role into a higher one | 5→browser | esc() everywhere audited; server enums | `'unsafe-inline'` still allowed |
+| T5 | Stored XSS from a lower role into a higher one | 5→browser | esc() everywhere audited; server enums; strict CSP report-only | `'unsafe-inline'` still enforced-allowed until the migration (D24) |
 | T6 | Forged webhook / callback | 2 | HMAC (WhatsApp, deploy), shared keys (heartbeat, USSD/SMS), all fail closed | Shared keys travel in URL/header — rotate if leaked |
 | T7 | Abuse of deploy webhook | 2 | HMAC, fast-forward only, fixed branch | — |
-| T8 | Resource exhaustion | 2 | 900 req/15 min/account, JSON 10 MB | Uploads 5×100 MB in memory (SEC-010) |
-| T9 | Spoofed client IP | 2 | `trust proxy 1` | Unverified whether LiteSpeed overwrites a client-sent X-Forwarded-For. Matters before any IP blocking is enabled |
-| T10 | Repudiation / no evidence | all | `audit_log` for admin writes | No refusals, no failed logins, not tamper-evident |
+| T8 | Resource exhaustion | 2 | 900 req/15 min/account, JSON 10 MB, 15 MB attachments | No edge protection against network floods (no CDN) |
+| T9 | Spoofed client IP | 2 | `trust proxy 1`; `GET /api/security/seen-as` built to test it | **Still unverified on production**: the check waits for the owner's restart. No IP block before it passes (D5 a) |
+| T10 | Repudiation / no evidence | all | `audit_log` for admin writes; `security_events` for every refusal and sign-in (SEC-006) | Not tamper-evident |
 | T11 | Secrets exposure | host | Env vars in panel; `/api/health` booleans only | `.env.*` files exist on dev machines — never commit, never zip |
-| T12 | Data loss | host | Host backups (expected) | Restore never tested |
+| T12 | Data loss | host | Host backups (expected); restore drill script (RECOVERY.md), proven on a local copy | First production restore drill outstanding |
 
 ## Things that are technically impossible here, said plainly
 

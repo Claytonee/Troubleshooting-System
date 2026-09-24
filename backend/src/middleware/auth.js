@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { JWT_VERIFY } = require('../config/httpPolicy');
 const pool = require('../config/database');
 const mfaPolicy = require('../services/mfaPolicy');
 
@@ -11,7 +12,7 @@ async function authenticate(req, res, next) {
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, JWT_VERIFY);
     // A two-step sign-in ticket proves only the password; it is never a session.
     if (decoded.purpose) {
       res.locals.secDetail = { reason: 'ticket_not_a_session' };
