@@ -18,7 +18,7 @@ const pool = require('../config/database');
 // asserts every id below appears in that file.
 const REVIEW = {
   date: '2026-09-24',
-  scope: 'Whole application: 143 API endpoints, 4 roles, every page that renders stored data',
+  scope: 'Whole application: 144 API endpoints, 4 roles, every page that renders stored data',
   findings: [
     { id: 'SEC-001', severity: 'P1', status: 'fixed', title: 'Any signed-in user could attach files to another school\'s fault' },
     { id: 'SEC-002', severity: 'P2', status: 'fixed', title: 'School forms, and a field engineer\'s school detail, were not scoped' },
@@ -27,9 +27,9 @@ const REVIEW = {
     { id: 'SEC-005', severity: 'P2', status: 'fixed', title: 'Sign-in tokens could not be revoked before they expired (7 days)' },
     { id: 'SEC-006', severity: 'P2', status: 'fixed', title: 'Failed sign-ins and refused requests were not recorded' },
     { id: 'SEC-007', severity: 'P2', status: 'open', title: 'No second factor on platform admin sign-in' },
-    { id: 'SEC-008', severity: 'P3', status: 'open', title: 'Public appeal and teacher-status endpoints accept guessable input' },
+    { id: 'SEC-008', severity: 'P3', status: 'fixed', title: 'Public appeal and teacher-status endpoints accepted guessable input' },
     { id: 'SEC-009', severity: 'P3', status: 'fixed', title: 'Password throttle was per account per network, not per account' },
-    { id: 'SEC-010', severity: 'P3', status: 'open', title: 'Fault attachments allow up to 5 × 100 MB held in memory' },
+    { id: 'SEC-010', severity: 'P3', status: 'fixed', title: 'Fault attachments allowed up to 5 × 100 MB held in memory' },
     { id: 'SEC-011', severity: 'P2', status: 'fixed', title: 'An admin-set password was permanent, could be 6 characters, and left sessions alive' }
   ]
 };

@@ -22,14 +22,14 @@ approved or closed.
 - TEST-001 fixed (the heartbeat suite no longer deletes other rows).
 - OPS-001: deploys restart themselves after a preflight, or roll back (D23).
 - `scripts/prepush.js` is the gate to run before every push.
-- SEC-005 session revocation (D3) and SEC-011 admin resets fixed.
+- SEC-005 session revocation (D3), SEC-011 admin resets, SEC-009 per-account throttle fixed.
+- SEC-008 status tokens, SEC-010 15 MB attachments, INT-001 fault-code sequence fixed.
 
 ### Open — in the order fixed by DECISIONS.md D12
 1. **D2 / SEC-006 security events** — everything in detection depends on it.
 3. Verify proxy IP attribution on production (THREAT_MODEL T9, D5 a) **before** any IP block.
 4. **D4 / SEC-007 TOTP for platform admin** — 14-day enrolment window, then enforced.
 5. Detection rules **alert-only**, plus alerts to the bell (D5, D6).
-6. SEC-008/009/010, INT-001, TEST-001 (D7–D9).
 7. Remove `'unsafe-inline'` from `script-src` — large (every inline handler), the long-term XSS control.
 
 ### Decisions

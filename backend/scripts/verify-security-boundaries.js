@@ -118,6 +118,15 @@ async function ensureStaff(role, suffix) {
     const nf = await api('POST', '/errors/99999999/attachments', { token: admin });
     ok('a fault that does not exist answers 404', nf.status === 404, nf);
 
+    // ---- SEC-010: fault attachments are capped at 15 MB --------------------
+    console.log('\nSEC-010  a fault attachment over 15 MB is refused before it is held');
+    const big = new FormData();
+    big.append('attachments', new Blob([Buffer.alloc(16 * 1024 * 1024, 97)], { type: 'text/plain' }), 'zzverify-16mb.txt');
+    const tooBig = await fetch(BASE + `/api/errors/${mineId}/attachments`, { method: 'POST', headers: { Authorization: 'Bearer ' + teacher }, body: big });
+    const tooBigBody = await tooBig.json().catch(() => ({}));
+    ok('a 16 MB attachment answers 413', tooBig.status === 413, tooBig.status);
+    ok('...with a message that states the real limit', /15 MB/.test(tooBigBody.error || ''), tooBigBody.error);
+
     // ---- SEC-002: school detail and forms ----------------------------------
     console.log('\nSEC-002  school records are scoped for school admins and field engineers');
     const f1 = await api('GET', `/schools/${other.id}/forms`, { token: schoolAdmin });
@@ -310,6 +319,41 @@ async function ensureStaff(role, suffix) {
     ok('school admin reactivates the teacher', react.status === 200, react);
     ok('...the token from before the suspension is STILL refused', (await api('GET', '/dashboard', { token: tStolen })).status === 401);
     ok('...a fresh sign-in works', (await api('POST', '/auth/login', { body: { username: fx.teacher.username, password: NEWPW } })).status === 200);
+
+    console.log('\nSEC-008  the public registration endpoints give nothing away');
+    const byEmail = await api('POST', '/register/teacher-status', { body: { email: fx.teacher.username + '@verify.local' } });
+    const byGhost = await api('POST', '/register/teacher-status', { body: { email: 'nobody-' + Date.now() + '@verify.local' } });
+    ok('teacher status by email no longer answers — a real teacher and a stranger get the same reply',
+      byEmail.status === 200 && JSON.stringify(byEmail.body) === JSON.stringify(byGhost.body) && byEmail.body.status === 'unknown', [byEmail.body, byGhost.body]);
+    ok('...and never shows a rejection reason to a stranger', !('rejection_reason' in (byEmail.body || {})));
+    // A pending teacher gets their status token only after the password is checked.
+    await pool.query("UPDATE users SET approval_status = 'pending' WHERE id = ?", [fx.teacher.userId]);
+    const pend = await api('POST', '/auth/login', { body: { username: fx.teacher.username, password: NEWPW } });
+    await pool.query("UPDATE users SET approval_status = 'approved' WHERE id = ?", [fx.teacher.userId]);
+    const tok = pend.body && pend.body.status_token;
+    ok('a pending teacher who signs in gets a status token (192 random bits)', pend.status === 403 && /^[a-f0-9]{48}$/.test(tok || ''), pend.body);
+    const byTok = await api('POST', '/register/teacher-status', { body: { status_token: tok } });
+    ok('...which, and only which, reveals their own status', byTok.status === 200 && byTok.body.status && byTok.body.status !== 'unknown', byTok.body);
+    const wrongTok = await api('POST', '/register/teacher-status', { body: { status_token: 'f'.repeat(48) } });
+    ok('a wrong token gets the neutral answer', wrongTok.body && wrongTok.body.status === 'unknown', wrongTok.body);
+
+    const [[aSchool]] = await pool.query('SELECT id FROM schools ORDER BY id LIMIT 1');
+    const [reqRow] = await pool.query(
+      `INSERT INTO registration_requests (full_name, email, password_hash, school_id, status, rejection_reason)
+       VALUES ('zzverify appeal', 'zzverify-appeal@verify.local', 'x', ?, 'rejected', 'fixture')`, [aSchool.id]);
+    const appealBody = (email) => ({ request_id: reqRow.insertId, full_name: 'zzverify appeal', email, message: 'zzverify appeal message' });
+    const wrongAppeal = await api('POST', '/register/appeal', { body: appealBody('someone-else@verify.local') });
+    ok('an appeal with a guessed id but the wrong email is refused', wrongAppeal.status === 400, wrongAppeal);
+    const [[stillRejected]] = await pool.query('SELECT status FROM registration_requests WHERE id = ?', [reqRow.insertId]);
+    ok('...and does not reopen the request', stillRejected.status === 'rejected', stillRejected.status);
+    const rightAppeal = await api('POST', '/register/appeal', { body: appealBody('zzverify-appeal@verify.local') });
+    ok('the applicant\'s own appeal (id + their email) is accepted', rightAppeal.status === 201, rightAppeal);
+    await pool.query('DELETE FROM registration_appeals WHERE request_id = ?', [reqRow.insertId]);
+    await pool.query('DELETE FROM registration_requests WHERE id = ?', [reqRow.insertId]);
+
+    const seen = await api('GET', '/security/seen-as');
+    ok('GET /api/security/seen-as reports the address the server attributes (for the production spoofing check)',
+      seen.status === 200 && typeof (seen.body && seen.body.ip) === 'string', seen.body);
 
     console.log('\nSEC-009  sign-in guessing is throttled — and the throttle is recorded');
     const srv = fs.readFileSync(path.join(__dirname, '..', 'src', 'server.js'), 'utf8');

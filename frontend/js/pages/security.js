@@ -50,7 +50,7 @@ const SecurityPage = (() => {
       tech: 'Parameterised SQL throughout; output escaped; fixed-choice fields validated on the server; Content-Security-Policy blocks scripts from other sites. Gap: the policy still allows inline scripts.' },
     { icon: 'ti-file-certificate', color: 'var(--accent)', title: 'File uploads', status: 'partial', evidence: 'code',
       plain: 'Only known document, image, audio and video types are accepted, and files are kept on a separate storage service — never run on our server.',
-      tech: 'Extension allow-list; stored on Cloudinary, a different web origin. Gaps: no malware scan; up to 100 MB per file (SEC-010).' },
+      tech: 'Extension allow-list; 15 MB per fault attachment (tested); stored on Cloudinary, a different web origin. Gap: no malware scan.' },
     { icon: 'ti-plug-connected', color: 'var(--teal)', title: 'Connections from other systems', status: 'in', evidence: 'tested',
       plain: 'WhatsApp, SMS/USSD, school servers and the deployment hook must present a secret key or signature. Without it the request is refused — and if the key is not configured, the door stays shut rather than open.',
       tech: 'HMAC-SHA256 with timing-safe comparison on WhatsApp and deploy; shared keys on heartbeat and phone intake; all fail closed.' },

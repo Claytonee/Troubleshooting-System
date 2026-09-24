@@ -67,10 +67,8 @@ async function notifySchoolAdmin({ schoolId, errorId, errorCode, priority, categ
 
 /** Next QFT-#### code, derived from the highest number rather than the last row. */
 async function nextErrorCode() {
-  const [mx] = await pool.query(
-    "SELECT MAX(CAST(SUBSTRING(error_code, 5) AS UNSIGNED)) AS maxnum FROM errors WHERE error_code LIKE 'QFT-%'"
-  );
-  return `QFT-0${((mx[0] && mx[0].maxnum) ? mx[0].maxnum : 240) + 1}`;
+  // Delegates to the single sequence (INT-001); kept so existing callers still work.
+  return require('./errorCodes').nextErrorCode();
 }
 
 /** Normalise a Tanzanian number toward E.164. Best-effort; passes through if unsure. */

@@ -524,6 +524,21 @@ async function applyExtensions(db) {
     FOREIGN KEY (error_id) REFERENCES errors(id) ON DELETE CASCADE
   )`);
 
+  // --- Fault code sequence (INT-001) ---
+  // Numbers come from an AUTO_INCREMENT insert, never from MAX()+1; services/errorCodes.js
+  // seeds it above the highest code already issued. The unique index is the backstop.
+  await q(`CREATE TABLE IF NOT EXISTS error_code_seq (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await q('CREATE UNIQUE INDEX uq_errors_code ON errors (error_code)');
+
+  // --- Teacher registration status token (SEC-008, DECISIONS.md D8) ---
+  // A teacher checks their approval status with this, not with an email address
+  // anyone could type. Issued at registration and at a password-checked sign-in.
+  await q('ALTER TABLE teachers ADD COLUMN status_token VARCHAR(64) NULL');
+  await q('CREATE INDEX idx_teachers_status_token ON teachers (status_token)');
+
   // --- Session revocation (SEC-005, DECISIONS.md D3) ---
   // Carried in every token as `tv`. The default 0 is also what a token without
   // `tv` counts as, so adding the column signed nobody out.

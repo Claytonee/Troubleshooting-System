@@ -24,6 +24,19 @@ function generateToken(user) {
   );
 }
 
+/**
+ * The teacher's registration status token (SEC-008), minted if an older row has
+ * none. Only ever returned after the password has been checked.
+ */
+async function teacherStatusToken(userId) {
+  const [[t]] = await pool.query('SELECT id, status_token FROM teachers WHERE user_id = ? ORDER BY id DESC LIMIT 1', [userId]);
+  if (!t) return null;
+  if (t.status_token) return t.status_token;
+  const token = require('crypto').randomBytes(24).toString('hex');
+  await pool.query('UPDATE teachers SET status_token = ? WHERE id = ?', [token, t.id]);
+  return token;
+}
+
 async function login(req, res, next) {
   try {
     const { username, password } = req.body;
@@ -91,11 +104,11 @@ async function login(req, res, next) {
 
     // Check teacher approval status before generic inactive check
     if (user.role === 'teacher' && user.approval_status === 'pending') {
-      return res.status(403).json({ error: 'teacher_pending', user_id: user.id, email: user.email });
+      return res.status(403).json({ error: 'teacher_pending', user_id: user.id, email: user.email, status_token: await teacherStatusToken(user.id) });
     }
     if (user.role === 'teacher' && user.approval_status === 'rejected') {
       const [teacherRows] = await pool.query('SELECT rejection_reason FROM teachers WHERE user_id = ?', [user.id]);
-      return res.status(403).json({ error: 'teacher_rejected', user_id: user.id, email: user.email, rejection_reason: teacherRows[0]?.rejection_reason || null });
+      return res.status(403).json({ error: 'teacher_rejected', user_id: user.id, email: user.email, rejection_reason: teacherRows[0]?.rejection_reason || null, status_token: await teacherStatusToken(user.id) });
     }
 
     if (user.status === 'inactive') {

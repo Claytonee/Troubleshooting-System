@@ -237,10 +237,7 @@ async function fileFromDraft(conv) {
     return reply(conv, 'Before I log it — which school is this for?');
   }
 
-  const [[mx]] = await pool.query(
-    "SELECT MAX(CAST(SUBSTRING(error_code, 5) AS UNSIGNED)) AS maxnum FROM errors WHERE error_code LIKE 'QFT-%'"
-  );
-  const errorCode = `QFT-0${((mx && mx.maxnum) ? mx.maxnum : 240) + 1}`;
+  const errorCode = await require('../services/errorCodes').nextErrorCode();   // INT-001
 
   const [schoolRows] = await pool.query(
     'SELECT name, assigned_admin_id FROM schools WHERE id = ?', [conv.school_id]);

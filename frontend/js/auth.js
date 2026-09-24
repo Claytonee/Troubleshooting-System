@@ -428,7 +428,7 @@ const Auth = (() => {
         $('register-content').innerHTML = RegisterPage.render();
     PasswordField.enhanceAll($('register-content'));
       } else if (err.error === 'teacher_pending' || err.error === 'teacher_rejected') {
-        TeacherRegisterPage.showStatus(err.error, err.user_id, err.email, err.rejection_reason);
+        TeacherRegisterPage.showStatus(err.error, err.user_id, err.email, err.rejection_reason, err.status_token);
         $('login-page').style.display = 'none';
         $('app-container').style.display = 'none';
         $('register-page').style.display = 'flex';

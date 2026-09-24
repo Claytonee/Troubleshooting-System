@@ -115,3 +115,12 @@ the gate's suites tripped the production login limit on their own fixture accoun
 now runs 10× looser, production is unchanged, and a test pins the production numbers.
 `verify-teacher-scope.js` now asserts D3 as well (62/62): a token from before a suspension is
 still refused after reactivation, and the suite signs in again.
+
+## SEC-008, SEC-010, INT-001 and the address check (2026-09-24)
+
+| Check | Result |
+|---|---|
+| `verify-integrity.js` (new) | **7 / 7**: 25 simultaneous reports get 25 codes; a deleted fault's code is not reissued; unique index present; no code path computes MAX()+1 |
+| Old logic, same race | 25 concurrent `MAX()+1` callers → **1** code (QFT-0384). The new sequence → 25 |
+| `verify-security-boundaries.js` | **86 / 86** (+8 SEC-008, +2 SEC-010, +1 seen-as) |
+| `GET /api/security/seen-as` | works locally. Locally a forged `X-Forwarded-For` *does* win, because there is no proxy in front and `trust proxy 1` trusts the last hop. **The real test is on production**, where LiteSpeed is that hop |

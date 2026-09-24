@@ -9,7 +9,10 @@ const router = express.Router();
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE) || 104857600 },
+  // 15 MB per file, 5 files (SEC-010, D7). Any signed-in account can post here, and
+  // multer holds files in memory: 5 × 100 MB was 500 MB per request. Manuals —
+  // admin-only — keep MAX_FILE_SIZE.
+  limits: { fileSize: 15 * 1024 * 1024, files: 5 },
   fileFilter: (req, file, cb) => {
     const allowed = [
       '.pdf', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.txt', '.html',

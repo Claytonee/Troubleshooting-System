@@ -4,6 +4,8 @@ const TeacherRegisterPage = (() => {
   let step = 'loading'; // loading, form, submitted, approved, rejected, error
   let errorMsg = '';
   let statusEmail = '';
+  // SEC-008: the status check answers to this token, never to the email.
+  let statusToken = '';
   let statusUserId = null;
   let rejectionReason = '';
   let pollInterval = null;
@@ -197,6 +199,7 @@ const TeacherRegisterPage = (() => {
       const data = await res.json();
       if (res.ok) {
         statusEmail = document.getElementById('tr-email').value.trim();
+        statusToken = data.status_token || '';
         step = 'submitted';
         renderPage();
         startPolling();
@@ -224,9 +227,10 @@ const TeacherRegisterPage = (() => {
     }
   }
 
-  function showStatus(error, userId, email, reason) {
+  function showStatus(error, userId, email, reason, token) {
     statusUserId = userId;
     statusEmail = email || '';
+    statusToken = token || '';
     rejectionReason = reason || '';
     if (error === 'teacher_pending') {
       step = 'submitted';
@@ -239,12 +243,12 @@ const TeacherRegisterPage = (() => {
   function startPolling() {
     if (pollInterval) clearInterval(pollInterval);
     pollInterval = setInterval(async () => {
-      if (!statusEmail) return;
+      if (!statusToken) return;
       try {
         const res = await fetch('/api/register/teacher-status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: statusEmail })
+          body: JSON.stringify({ status_token: statusToken })
         });
         if (res.ok) {
           const data = await res.json();

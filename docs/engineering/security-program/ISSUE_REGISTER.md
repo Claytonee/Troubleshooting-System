@@ -17,12 +17,12 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 | SEC-005 | P2 | **Fixed** 2026-09-24 | Auth | A JWT could not be revoked before it expired |
 | SEC-006 | P2 | **Fixed** 2026-09-24 | Auth, all | Failed sign-ins and 401/403 refusals were not recorded |
 | SEC-007 | P2 | Open | Auth | No second factor for platform admin |
-| SEC-008 | P3 | Open | Registration | Public appeal and teacher-status endpoints accept guessable input |
+| SEC-008 | P3 | **Fixed** 2026-09-24 | Registration | Public appeal and teacher-status endpoints accepted guessable input |
 | SEC-009 | P3 | **Fixed** 2026-09-24 | Auth | Login throttle was per account **per network** only |
-| SEC-010 | P3 | Open | Faults | Attachments: 5 × 100 MB held in memory, any signed-in user |
+| SEC-010 | P3 | **Fixed** 2026-09-24 | Faults | Attachments: 5 × 100 MB held in memory, any signed-in user |
 | SEC-011 | P2 | **Fixed** 2026-09-24 | Auth | An admin-set password was permanent, could be 6 characters, and left sessions alive |
 | OPS-001 | P2 | **Fixed** 2026-09-24 (verify on next deploy) | Deploy | A deploy left the old process serving next to new files until a manual restart |
-| INT-001 | P3 | Open | Faults | Fault codes reissued after deletion; race can duplicate them |
+| INT-001 | P3 | **Fixed** 2026-09-24 | Faults | Fault codes reissued after deletion; a race duplicated them |
 | TEST-001 | P2 | **Fixed** 2026-09-24 | Test harness | `verify-heartbeat.js` swept every real LRS device, and its cleanup deleted rows it did not create |
 
 ---
@@ -152,13 +152,21 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 One password protects every school's data. TOTP for the `admin` role is the proportionate
 control. Changes the sign-in flow for head office — needs approval.
 
-## SEC-008 — Guessable input on public registration endpoints · P3 · Open
+## SEC-008 — Guessable input on public registration endpoints · P3 · Fixed
 
-`POST /api/register/appeal` takes a sequential `request_id` and resets any *rejected* request to
-`pending` (no ownership proof; general 900/15 min limit only). `POST /api/register/teacher-status`
-confirms whether an email belongs to a teacher and returns the rejection reason. Fix: require
-the registration email alongside the id; answer teacher-status only with the id issued at
-registration, or a uniform response.
+- **Was:** `POST /api/register/appeal` reopened any rejected request given its sequential id.
+  `POST /api/register/teacher-status` told anyone whether an email belonged to a teacher, and
+  showed that teacher's rejection reason.
+- **Fix (D8):** an appeal needs the id **and** the email the request was made with (the form
+  already sent it). Teacher status answers only to a **status token**: 192 random bits in
+  `teachers.status_token` (additive column), issued at registration, and at sign-in only after
+  the password has been checked. An email, or a wrong token, gets the same neutral reply as a
+  stranger. The registration page polls with the token.
+- **Accepted residual:** `POST /api/register/teacher/:token` still answers 409 "email already
+  registered", but only behind a valid registration-link token.
+- **Regression:** 8 assertions: identical replies for a real teacher's email and a stranger's; no
+  rejection reason; token issued only after the password check; token works, wrong token
+  doesn't; wrong-email appeal refused and the request stays rejected; right appeal accepted.
 
 ## SEC-009 — Login throttle was per account per network only · P3 · Fixed
 
@@ -171,14 +179,28 @@ registration, or a uniform response.
 - **Regression:** 4 assertions. The limits in the source; the limiter mounted; a throwaway
   account driven until throttled (429); the throttling recorded as `auth.login_throttled`.
 
-## SEC-010 — Attachment memory ceiling · P3 · Open
+## SEC-010 — Attachment memory ceiling · P3 · Fixed
 
-`multer.memoryStorage()` with `MAX_FILE_SIZE` 100 MB × 5 files, open to every signed-in role on
-`POST /api/errors` and `/attachments`: a few concurrent requests can exhaust the Passenger
-process. The report form already shrinks images to ~80 KB. Proposed: 15 MB per file for fault
-attachments (manuals keep 100 MB, admin-only). A policy change — needs a yes.
+- **Was:** `multer.memoryStorage()` with 100 MB × 5 files, open to every signed-in role: 500 MB
+  held per request.
+- **Fix (D7):** fault attachments are capped at 15 MB each, 5 files (75 MB worst case). Manuals
+  (admin-only) keep `MAX_FILE_SIZE`. The 413 message used to say "5MB", which was true
+  nowhere; it now states the real limits.
+- **Regression:** 2 assertions (a 16 MB upload gets 413 with the real limit in the message). No
+  file reaches Cloudinary: multer refuses before the handler runs.
 
-## INT-001 — Fault codes reissued · P3 · Open (data integrity, not security)
+## INT-001 — Fault codes reissued · P3 · Fixed (data integrity)
+
+**Fix:** `services/errorCodes.js`. One `error_code_seq` table issues every number through an
+AUTO_INCREMENT insert: atomic under concurrency, and never reused because sequence rows are
+never deleted. It is seeded above the highest existing code, so numbering continues. All four
+intake paths (web, WhatsApp, heartbeat, USSD/SMS) call it, and `UNIQUE(error_code)` is the
+backstop (no duplicates existed, so the index applied). **Proven both ways:** the old
+`MAX()+1`, called 25 times at once, gave all 25 callers QFT-0384; the sequence gave 25 distinct
+codes. `verify-integrity.js` (7 assertions) drives 25 simultaneous reports through the API and
+checks that a deleted fault's code is not reissued.
+
+Original finding:
 
 `nextErrorCode()` = `MAX(number)+1` over existing rows, in three places (`errorController`,
 `services/intake.js`, `heartbeatController`). Deleting the newest fault reissues its code —

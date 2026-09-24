@@ -1,7 +1,7 @@
 # API security matrix
 
 Generated from the router source on 2026-09-24 (`routes/*.js` + `server.js`), then annotated by hand.
-**143 endpoints.** "Role gate" is what the router enforces; per-record school scoping lives in the
+**144 endpoints.** "Role gate" is what the router enforces; per-record school scoping lives in the
 controllers and is listed in *Notes* where it was audited or changed. Regenerate the first four columns
 rather than editing them.
 
@@ -87,7 +87,7 @@ Auth: `JWT` = `authenticate()` (signature + account status re-read per request).
 | DELETE | `/api/manuals/:id` | JWT | admin |  |
 | GET | `/api/manuals/:id/download` | JWT | any signed-in |  |
 | POST | `/api/manuals/link` | JWT | admin |  |
-| POST | `/api/register/appeal` | — | public | Guessable sequential request_id reopens a rejected request (SEC-008). |
+| POST | `/api/register/appeal` | — | public | SEC-008 fixed: needs the request id AND the email it was made with. |
 | GET | `/api/register/approvals` | JWT | admin |  |
 | GET | `/api/register/approvals/:id` | JWT | admin |  |
 | POST | `/api/register/approvals/:id/approve` | JWT | admin |  |
@@ -104,7 +104,7 @@ Auth: `JWT` = `authenticate()` (signature + account status re-read per request).
 | POST | `/api/register/teacher-links` | JWT | school |  |
 | DELETE | `/api/register/teacher-links/:id` | JWT | school |  |
 | PATCH | `/api/register/teacher-links/:id` | JWT | school |  |
-| POST | `/api/register/teacher-status` | — | public | Confirms whether an email belongs to a teacher; returns rejection reason (SEC-008). |
+| POST | `/api/register/teacher-status` | — | public | SEC-008 fixed: answers only to a 192-bit status token; an email gets the same neutral reply as a stranger. |
 | POST | `/api/register/teacher/:token` | — | public | Link token + max_uses cap; 5 per 15 min per IP. |
 | GET | `/api/register/teachers` | JWT | school |  |
 | POST | `/api/register/teachers` | JWT | school |  |
@@ -133,6 +133,7 @@ Auth: `JWT` = `authenticate()` (signature + account status re-read per request).
 | PATCH | `/api/schools/notifications/:id/read` | JWT | admin,subadmin,school | Subadmin may mark any notification read (P3, not yet registered as a vuln — no data exposed). |
 | GET | `/api/search` | JWT | any signed-in |  |
 | GET | `/api/security/overview` | JWT | admin | New. Booleans and counts only; asserted to leak no secret. |
+| GET | `/api/security/seen-as` | — | public | New (D5 a): echoes only the caller's own address as the server sees it, to prove from outside that X-Forwarded-For cannot be forged. |
 | GET | `/api/settings` | — | public | Branding keys only (settings table holds nothing else). |
 | PUT | `/api/settings` | JWT | admin |  |
 | POST | `/api/sms/inbound` | — | public | Shared key PHONE_INTAKE_KEY checked in handler; fails closed. |

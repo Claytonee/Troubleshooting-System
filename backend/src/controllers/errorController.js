@@ -251,13 +251,9 @@ async function create(req, res, next) {
       }
     }
 
-    // Derive next code from the highest numeric code (not last-inserted row),
-    // so seeded data with non-sequential ids can't cause a duplicate code.
-    const [mx] = await pool.query(
-      "SELECT MAX(CAST(SUBSTRING(error_code, 5) AS UNSIGNED)) AS maxnum FROM errors WHERE error_code LIKE 'QFT-%'"
-    );
-    const seq = ((mx[0] && mx[0].maxnum) ? mx[0].maxnum : 240) + 1;
-    const errorCode = `QFT-0${seq}`;
+    // One atomic sequence for every intake path (INT-001): MAX()+1 gave two
+    // simultaneous reports the same code and reissued a deleted fault's code.
+    const errorCode = await require('../services/errorCodes').nextErrorCode();
 
     const [school] = await pool.query('SELECT assigned_admin_id FROM schools WHERE id = ?', [school_id]);
     const fieldEngineer = school.length ? school[0].assigned_admin_id : null;

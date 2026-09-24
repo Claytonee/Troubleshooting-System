@@ -120,8 +120,10 @@ async function submitAppeal(req, res, next) {
       return res.status(400).json({ error: 'Message must be at least 10 characters.' });
     }
 
+    // SEC-008: the id alone is sequential and guessable; the appeal must come
+    // from the address the request was made with (the appeal form sends it).
     const [request] = await pool.query(
-      "SELECT id FROM registration_requests WHERE id = ? AND status = 'rejected'", [request_id]
+      "SELECT id FROM registration_requests WHERE id = ? AND status = 'rejected' AND LOWER(email) = LOWER(?)", [request_id, email]
     );
     if (!request.length) {
       return res.status(400).json({ error: 'No rejected request found to appeal.' });
@@ -454,6 +456,8 @@ async function registerTeacher(req, res, next) {
       return res.status(410).json({ error: 'Registration link has reached maximum uses.' });
     }
 
+    // What this teacher will check their approval with (SEC-008): not their email.
+    const statusToken = crypto.randomBytes(24).toString('hex');
     const [existingUser] = await pool.query('SELECT id, role, status, approval_status FROM users WHERE LOWER(email) = LOWER(?)', [email]);
     if (existingUser.length) {
       const eu = existingUser[0];
@@ -473,8 +477,8 @@ async function registerTeacher(req, res, next) {
           await conn.query('UPDATE users SET token_version = token_version + 1 WHERE id = ?', [eu.id]);
           await conn.query('DELETE FROM teachers WHERE user_id = ?', [eu.id]);
           await conn.query(
-            `INSERT INTO teachers (user_id, school_id, subject, employee_id, status, registered_via) VALUES (?, ?, ?, ?, 'pending', 'link')`,
-            [eu.id, link.school_id, subject || null, employee_id || null]
+            `INSERT INTO teachers (user_id, school_id, subject, employee_id, status, registered_via, status_token) VALUES (?, ?, ?, ?, 'pending', 'link', ?)`,
+            [eu.id, link.school_id, subject || null, employee_id || null, statusToken]
           );
           await conn.query('UPDATE registration_links SET use_count = use_count + 1 WHERE id = ?', [link.id]);
           await conn.commit();
@@ -484,7 +488,7 @@ async function registerTeacher(req, res, next) {
         } finally {
           conn.release();
         }
-        return res.status(201).json({ message: 'Registration submitted. Awaiting approval from your school administrator.', status: 'pending' });
+        return res.status(201).json({ message: 'Registration submitted. Awaiting approval from your school administrator.', status: 'pending', status_token: statusToken });
       }
       return res.status(409).json({ error: 'Email already registered.' });
     }
@@ -502,9 +506,9 @@ async function registerTeacher(req, res, next) {
         [username, email, passwordHash, full_name, phone || null, link.school_id]
       );
       await conn.query(
-        `INSERT INTO teachers (user_id, school_id, subject, employee_id, status, registered_via)
-         VALUES (?, ?, ?, ?, 'pending', 'link')`,
-        [userResult.insertId, link.school_id, subject || null, employee_id || null]
+        `INSERT INTO teachers (user_id, school_id, subject, employee_id, status, registered_via, status_token)
+         VALUES (?, ?, ?, ?, 'pending', 'link', ?)`,
+        [userResult.insertId, link.school_id, subject || null, employee_id || null, statusToken]
       );
       await conn.query(
         'UPDATE registration_links SET use_count = use_count + 1 WHERE id = ?', [link.id]
@@ -519,24 +523,29 @@ async function registerTeacher(req, res, next) {
 
     res.status(201).json({
       message: 'Registration submitted. Awaiting approval from your school administrator.',
-      status: 'pending'
+      status: 'pending',
+      status_token: statusToken
     });
   } catch (err) { next(err); }
 }
 
+/**
+ * POST /api/register/teacher-status { status_token } — public.
+ *
+ * SEC-008 (D8). It used to answer to an email address, which told anyone
+ * whether that address belonged to a teacher and showed them the rejection
+ * reason. It now answers only to the status token issued at registration or at
+ * a password-checked sign-in (192 random bits). Anything else — an email, a
+ * wrong token — gets the same neutral answer, so nothing can be enumerated.
+ */
 async function getTeacherStatus(req, res, next) {
   try {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'Email required.' });
-
+    const token = typeof req.body.status_token === 'string' ? req.body.status_token : '';
+    const neutral = { status: 'unknown', message: 'Sign in to see the status of your registration.' };
+    if (!/^[a-f0-9]{48}$/.test(token)) return res.json(neutral);
     const [rows] = await pool.query(
-      `SELECT t.status, t.rejection_reason FROM teachers t
-       JOIN users u ON t.user_id = u.id
-       WHERE LOWER(u.email) = LOWER(?)
-       ORDER BY t.id DESC LIMIT 1`,
-      [email]
-    );
-    if (!rows.length) return res.status(404).json({ error: 'Not found.' });
+      'SELECT status, rejection_reason FROM teachers WHERE status_token = ? ORDER BY id DESC LIMIT 1', [token]);
+    if (!rows.length) return res.json(neutral);
     res.json({ status: rows[0].status, rejection_reason: rows[0].rejection_reason || null });
   } catch (err) { next(err); }
 }

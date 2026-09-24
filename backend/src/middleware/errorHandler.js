@@ -26,7 +26,9 @@ function errorHandler(err, req, res, next) {
   }
 
   if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(413).json({ error: 'File too large. Maximum size is 5MB.' });
+    // The limit depends on the route: fault attachments 15 MB each, the resource library
+    // MAX_FILE_SIZE (100 MB). The old text said 5 MB, which was true nowhere.
+    return res.status(413).json({ error: 'File too large. Fault attachments can be up to 15 MB each; resource library files up to 100 MB.' });
   }
 
   // Deliberate, user-facing errors: keep the message. Controllers currently answer

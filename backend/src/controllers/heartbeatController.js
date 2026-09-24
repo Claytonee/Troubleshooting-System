@@ -257,10 +257,7 @@ async function warrantySweep() {
 
 /** Opens one CRITICAL connectivity error for a silent LRS and notifies. */
 async function openOutageError(d) {
-  const [[{ maxnum }]] = await pool.query(
-    "SELECT MAX(CAST(SUBSTRING(error_code, 5) AS UNSIGNED)) AS maxnum FROM errors WHERE error_code LIKE 'QFT-%'"
-  );
-  const errorCode = `QFT-0${(maxnum || 240) + 1}`;
+  const errorCode = await require('../services/errorCodes').nextErrorCode();   // INT-001
   const slaHours = SLA_TARGET_HOURS.critical;
   const silentFor = d.silent_minutes == null ? DOWN_AFTER_MINUTES : d.silent_minutes;
 
