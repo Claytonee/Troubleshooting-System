@@ -84,6 +84,8 @@ const SecurityPage = (() => {
       text: 'By decision: automatic blocking waits for 30 days of evidence on how often each rule raises a false alarm, because a whole school shares one address.' },
     { kind: 'impossible', title: 'No website can see a device\'s hardware (MAC) address.',
       text: 'It never leaves the school\'s network — the router replaces it, and modern phones randomise it. We block by account, by session and by network address instead; device-level blocking belongs in the school\'s own Wi-Fi router.' },
+    { kind: 'constraint', title: 'The host lets a visitor choose the address we see.',
+      text: 'Its proxy believes an address the visitor supplies (measured 24 September). We detect it and record such requests as "address unknown": they share one allowance and are never filed under the claimed address. No block by address can be trusted until the host changes the setting.' },
     { kind: 'constraint', title: 'A whole school shares one internet address.',
       text: 'So we refuse by account first, never block a school\'s known address automatically, and keep any automatic block short and reviewed.' },
     { kind: 'partial', title: 'Recovery is proven on a copy, not yet on a production backup.',
@@ -300,7 +302,7 @@ const SecurityPage = (() => {
       <td class="sec-mono">${esc(f.id)}</td>
       <td><span class="sec-sev" style="color:${sev[f.severity] || 'var(--text3)'}">${esc(f.severity)}</span></td>
       <td>${esc(f.title)}</td>
-      <td>${f.status === 'fixed' ? chip('in').replace('In place', 'Fixed') : chip('planned').replace('Planned', 'Open')}</td>
+      <td>${f.status === 'fixed' ? chip('in').replace('In place', 'Fixed') : f.status === 'mitigated' ? chip('partial').replace('Partial', 'Mitigated') : chip('planned').replace('Planned', 'Open')}</td>
     </tr>`).join('');
     return `<div class="sec-review-meta"><i class="ti ti-calendar-event"></i>${esc(fmtDay(data.review.date))} · ${esc(data.review.scope)}</div>
       <div class="table-wrap"><table class="sec-review">

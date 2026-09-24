@@ -189,3 +189,15 @@ be pointed at production.
 | `8e57eea` | Retention job (D25); the gate cleans up after itself (TEST-002) |
 | `3e81814` | Token algorithm pinned; same-origin CORS (SEC-013, 014, D26) |
 | `51d2a25` | The Security Overview's statements corrected and pinned by a test |
+
+
+---
+
+## Addendum: the production attribution check (2026-09-24, evening)
+
+After the restart, §7.3 ran for the first time and **failed**. The host's proxy trusts a
+visitor-supplied `X-Forwarded-For`, so a visitor could choose the address the system records.
+Recorded as **SEC-015 (P2)** and **mitigated** in the app (D28): such requests are recorded as
+`0.0.0.0`, share one rate-limit allowance, and cannot plant a made-up address in the evidence.
+The cause is a host setting (§7, new first action). It also confirms D5: no blocking by address
+until the check passes. Totals now: **19 findings, 18 fixed, 1 mitigated**.

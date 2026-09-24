@@ -278,6 +278,23 @@ all four roles.
 already accepts `page:tracker`, `inventory`, `visits`, `teachers` and `security`), or the
 sidebar changes (the content test fails if a stop points at a page its role cannot open).
 
+## D28 — When the address is a claim, record it as unknown
+
+**Problem:** SEC-015. On this host a visitor can make the app see any address they choose,
+and the real one is lost before the request reaches Node.
+
+**Options considered:**
+1. Believe the proxy (the old behaviour): every address-keyed control can be dodged.
+2. Refuse requests that carry a client-supplied header: breaks nothing legitimate today (the
+   site is HTTPS-only, so no proxy on the way adds one), but it tells an attacker exactly what
+   we check, and a refused request leaves less evidence than a recorded one.
+3. **Attribute them to `0.0.0.0`** — chosen. They still work, but they share one allowance, and
+   they are recorded as "address unknown" with a flag.
+
+**Consequences:** D5 (blocking by address) stays off. The attribution check failed, so its
+precondition is not met, and it cannot be met in the app. It is re-run after the host change.
+Audit entries for claimed requests say `0.0.0.0`, which is true: the address is not known.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.

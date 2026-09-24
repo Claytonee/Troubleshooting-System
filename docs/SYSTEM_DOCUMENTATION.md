@@ -855,6 +855,7 @@ material in plain language on **Security Overview** (`#security`).
 | Rate limiting | 900 req / 15 min **per account** (IP when anonymous); login 20 per account+network, 120 per network and 60 per account from anywhere; two-step codes 10 per 15 min; registration 5 per IP |
 | CORS | Production answers only origins listed in `FRONTEND_URL`; none when unset (the SPA is same-origin). No credentials flag: bearer tokens, no cookies (SEC-014) |
 | Token algorithm | HS256 only, pinned at every verify site (SEC-013) |
+| Client address | The host proxy trusts a visitor-supplied X-Forwarded-For (SEC-015). A request whose address is a claim is recorded as `0.0.0.0`, shares one rate-limit allowance, and never files evidence under the claimed address (`services/clientIp.js`). Host setting change pending |
 | HTTP headers | helmet: CSP enforced (`default-src 'self'`, no `unsafe-eval`; inline still allowed) plus a strict policy (`script-src 'self'`) in **report-only** mode whose reports form a bounded migration inventory (D24); HSTS 1 year, referrer policy |
 | Input validation | express-validator on key writes; enum lists on fault and check-in fields |
 | SQL injection | Parameterised queries (mysql2); dynamic SQL limited to fixed column fragments |

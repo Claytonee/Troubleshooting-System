@@ -231,7 +231,9 @@ function middleware(req, res, next) {
         method: req.method,
         path_template: pathTemplate(req),
         status,
-        detail: res.locals.secDetail || null
+        // A claimed address is recorded as 0.0.0.0 with a constant flag, never the claim
+        // itself: rotating made-up addresses must fold into one row, not bloat the evidence.
+        detail: req.ipClaimed !== undefined ? { ...(res.locals.secDetail || {}), ip_claimed: true } : (res.locals.secDetail || null)
       });
     } catch (e) { /* never */ }
   });

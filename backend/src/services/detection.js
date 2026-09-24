@@ -114,7 +114,9 @@ let running = false;
 
 /** Words a person can act on, without leaking anything they should not see. */
 function describe(rule, m) {
-  const who = m.subject_type === 'account' ? `account #${m.subject}` : m.subject_type === 'address' ? `address ${m.subject}` : 'the monitoring';
+  const who = m.subject_type === 'account' ? `account #${m.subject}`
+    : m.subject_type === 'address' ? (m.subject === '0.0.0.0' ? 'requests with a made-up address (the host proxy hides the real one, SEC-015)' : `address ${m.subject}`)
+    : 'the monitoring';
   const extra = m.accounts ? `, ${m.accounts} accounts` : m.routes ? `, ${m.routes} routes` : m.sources ? `, from ${m.sources} address${Number(m.sources) === 1 ? '' : 'es'}` : '';
   return `${rule.name}: ${who} — ${m.n} event${Number(m.n) === 1 ? '' : 's'} in ${rule.window} min${extra}.`;
 }

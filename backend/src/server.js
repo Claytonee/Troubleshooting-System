@@ -61,6 +61,10 @@ const PORT = process.env.PORT || 3000;
 app.locals.build = BUILD_COMMIT;
 
 app.set('trust proxy', 1);
+// The host proxy trusts a client-sent X-Forwarded-For (SEC-015, measured on production).
+// A request whose address is the client's own claim is attributed to 0.0.0.0, never
+// to the claim, before anything reads req.ip: limiters, security events, the audit trail.
+app.use(require('./services/clientIp').middleware);
 
 // Retired hostnames. troubleshooting.pathfindereducation.or.tz was replaced by
 // support.mkatolikikiganjani.com on 2026-09-08. Both names still resolve here and

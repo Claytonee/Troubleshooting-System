@@ -27,10 +27,11 @@ Nothing is described as approved, certified or closed beyond what the owner has 
 | Explaining it | Security Overview (`#security`, platform admin only): animated request journey, layers with evidence, live checks, incidents, standards, labelled limits | D10, D22 |
 
 ### Waiting on the owner (the code cannot do these)
-1. **Press Restart once** in cPanel → Setup Node.js App. Production still runs `0eb36d5` (checked
-   2026-09-24 for an hour): the deploys after it pulled files but the old process kept serving.
-   From the next deploy on, the app restarts itself (D23). Then confirm that `/api/health`'s
-   `build` equals `git rev-parse --short HEAD`.
+1. **Ask the host to stop trusting a visitor-supplied `X-Forwarded-For`** (LiteSpeed's *Use Client
+   IP in Header* setting). This is SEC-015: until it changes, a visitor can choose the address the
+   system sees, which the app now records as unknown. Then re-run the check in TEST_RESULTS.md (D5 a).
+   *(The one-time restart is done: production restarted on 2026-09-24 and now deploys itself.
+   It ran `4eda5df` within minutes of the push, so OPS-001 is proven.)*
 2. **Set `MFA_ENCRYPTION_KEY`** in the panel before any admin enrols, then have every platform
    admin enrol before 2026-10-08.
 3. **Confirm the hosting backup and run the first production restore drill** (RECOVERY.md), then
@@ -40,9 +41,9 @@ Nothing is described as approved, certified or closed beyond what the owner has 
 5. **Tabletop exercise** within 30 days (INCIDENT_RESPONSE.md).
 
 ### Next engineering work, in order
-1. After the restart: run the IP-attribution check on production (`GET /api/security/seen-as`
-   with and without a forged `X-Forwarded-For`, THREAT_MODEL T9). No IP block may be built before
-   it passes (D5 a).
+1. The IP-attribution check ran on production on 2026-09-24 and **failed** (SEC-015, mitigated in the
+   app, D28). Re-run it after the host change (`GET /api/security/seen-as` with and without a
+   forged `X-Forwarded-For`, THREAT_MODEL T9). Only a pass allows any IP block (D5 a).
 2. After 30 days of incidents with outcomes: review false positives, then decide temporary
    blocks (D5 d). Until then nothing is blocked.
 3. Migrate the 321 inline handlers to delegated `data-action` handlers, module by module; enforce

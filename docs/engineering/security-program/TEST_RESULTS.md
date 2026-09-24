@@ -202,3 +202,17 @@ All corrected. `verify-detection.js` now fails if any rule count on the page dif
 | `verify-tour.js` | **75 / 75**: API 15, content 18, headless Chrome 42 |
 | Browser coverage | all four roles at 1440 px and 375 px (plus 920 px); spotlight on target, bubble on screen and clear of the target, focus inside, drawer open for sidebar stops on a phone |
 | Bugs found by the suite before shipping | (1) the offer was spent the moment the card appeared, so a reload lost it for good: now recorded at the first real stop. (2) replaying a finished tour and pressing Esc turned "completed" into "dismissed": statuses are now ranked. (3) the report form's button was empty: a build script had evaluated `${…}` in Node. (4) harness: `load()` returned while the old page still answered "complete"; and a browser that failed to start was reported as a skip, a false green. It now throws. |
+
+## D5 a — production IP attribution (2026-09-24, first run after the restart)
+
+`curl --resolve support.mkatolikikiganjani.com:443:213.139.204.238 …/api/security/seen-as`, from 197.186.57.130:
+
+| Sent | ip before the fix | After the fix (`d7c5d44` → this commit) |
+|---|---|---|
+| nothing | 197.186.57.130 | 197.186.57.130 |
+| `X-Forwarded-For: 203.0.113.77` | **203.0.113.77** | 0.0.0.0, `claimed: true` |
+| `X-Forwarded-For: 203.0.113.77, 198.51.100.9` | **203.0.113.77** | 0.0.0.0, `claimed: true` |
+| `X-Real-IP: 203.0.113.99` | 197.186.57.130 | 197.186.57.130 |
+
+**Result: FAILED**, and recorded as SEC-015. `verify-client-ip.js`: **1/9 before, 9/9 after**; on the old
+code, three made-up addresses became three evidence rows and rotating addresses was never refused.

@@ -61,7 +61,7 @@ which is exactly what SEC-001/002/004 were. The regression suites are therefore 
 | T6 | Forged webhook / callback | 2 | HMAC (WhatsApp, deploy), shared keys (heartbeat, USSD/SMS), all fail closed | Shared keys travel in URL/header — rotate if leaked |
 | T7 | Abuse of deploy webhook | 2 | HMAC, fast-forward only, fixed branch | — |
 | T8 | Resource exhaustion | 2 | 900 req/15 min/account, JSON 10 MB, 15 MB attachments | No edge protection against network floods (no CDN) |
-| T9 | Spoofed client IP | 2 | `trust proxy 1`; `GET /api/security/seen-as` built to test it | **Still unverified on production**: the check waits for the owner's restart. No IP block before it passes (D5 a) |
+| T9 | Spoofed client IP | 2 | Measured on production: **the host proxy trusts a client-sent X-Forwarded-For** (SEC-015). A claimed address is detected and attributed to `0.0.0.0` (`services/clientIp.js`) | The real address of a spoofing client is unrecoverable until the host changes its setting; no IP block until then (D5 a, D28) |
 | T10 | Repudiation / no evidence | all | `audit_log` for admin writes; `security_events` for every refusal and sign-in (SEC-006) | Not tamper-evident |
 | T11 | Secrets exposure | host | Env vars in panel; `/api/health` booleans only | `.env.*` files exist on dev machines — never commit, never zip |
 | T12 | Data loss | host | Host backups (expected); restore drill script (RECOVERY.md), proven on a local copy | First production restore drill outstanding |

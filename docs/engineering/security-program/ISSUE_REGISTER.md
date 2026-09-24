@@ -25,6 +25,7 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 | SEC-012 | P1 | **Fixed** 2026-09-24 | Dependencies | 6 known-vulnerable production dependencies (1 high: nodemailer) |
 | SEC-013 | P3 | **Fixed** 2026-09-24 | Auth | Tokens verified without a pinned algorithm: HS384/HS512 accepted beside HS256 |
 | SEC-014 | P3 | **Fixed** 2026-09-24 | HTTP | CORS reflected every origin in production when `FRONTEND_URL` was unset |
+| SEC-015 | P2 | **Mitigated** 2026-09-24 (cause is a host setting) | HTTP, all | The host's proxy let a visitor choose the address the system records |
 | INT-001 | P3 | **Fixed** 2026-09-24 | Faults | Fault codes reissued after deletion; a race duplicated them |
 | TEST-001 | P2 | **Fixed** 2026-09-24 | Test harness | `verify-heartbeat.js` swept every real LRS device, and its cleanup deleted rows it did not create |
 | TEST-002 | P3 | **Fixed** 2026-09-24 | Test harness | The pre-push gate tidied test incidents but left their evidence, so detection reopened one a minute later |
@@ -275,6 +276,37 @@ seven such orphans from 9–10 September, and they were removed on 2026-09-24.
   credentials flag is gone. Development keeps `*`, which browsers never pair with credentials.
 - **Regression:** `verify-token-policy.js` (the policy per environment, and the live server never
   grants credentials to an arbitrary origin).
+
+## SEC-015 — A visitor could choose the address the system records · P2 · Mitigated
+
+- **Evidence (production, 2026-09-24, the first run of the D5 a attribution check):**
+
+  | Client sent | Reached the app as | Recorded |
+  |---|---|---|
+  | nothing | `197.186.57.130` | the real address |
+  | `X-Forwarded-For: 203.0.113.77` | `203.0.113.77, 203.0.113.77,203.0.113.77` | **203.0.113.77** |
+  | `X-Forwarded-For: 203.0.113.77, 198.51.100.9` | `…, 203.0.113.77` | **203.0.113.77** |
+  | `X-Real-IP` / `Forwarded` | passed through untouched | the real address |
+
+  The host's LiteSpeed takes the leftmost address of a client-sent header as the client and
+  appends only that. The real connection address then appears in **no** header: the app
+  cannot recover it.
+- **Impact:** every limit keyed by address could be dodged by sending a new made-up address
+  each time: sign-in per network, registration, two-step codes without a ticket. Security events
+  and the audit trail recorded the made-up address, so an attacker could hide, or put the blame
+  on someone else's address. R2 (spraying from one address) could be evaded. The per-account
+  limits were unaffected (60 sign-ins per account per 15 minutes from anywhere, SEC-009), which
+  is why this is P2 and not P1.
+- **Mitigation (`services/clientIp.js`):** a clean request always arrives with exactly one
+  address, the one the proxy writes. More than one means the client wrote the header, since
+  the site is HTTPS-only and no proxy on the way can add one. Such a request is attributed to
+  `0.0.0.0` ("address unspecified") before anything reads `req.ip`: all claimed requests
+  share one rate-limit allowance, events record `0.0.0.0` with a constant `ip_claimed` flag
+  (rotating claims fold into one row), and the audit trail no longer repeats the claim.
+- **What remains:** the cause. **Owner action:** ask the host to change LiteSpeed's *Use Client
+  IP in Header* setting so that a visitor-supplied header is not trusted. Then re-run the check
+  in TEST_RESULTS.md. Until it passes, no block by address may be built (D5, D28).
+- **Regression:** `verify-client-ip.js` (9): 1 passed / 8 failed on the old code, 9/9 on the fix.
 
 ## TEST-002 — The gate left evidence that reopened an incident · P3 · Fixed
 

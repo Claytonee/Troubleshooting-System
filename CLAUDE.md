@@ -566,6 +566,10 @@ the old code. Rules that came out of the 2026-09-24 review:
   `config/httpPolicy.js` (HS256 only, SEC-013); a source check in `verify-token-policy.js`
   fails on one that does not. Cross-origin answers in production go only to `FRONTEND_URL`
   (none when unset, SEC-014) — the SPA is same-origin, the integrations server-to-server.
+- **Never trust `req.ip` more than the host does** (SEC-015, D28). The host proxy believes a
+  visitor-supplied X-Forwarded-For. `services/clientIp.js` runs first and turns any request
+  whose header holds more than one address into `0.0.0.0` (`req.ipClaimed` keeps the claim).
+  Key limits on `req.ip` as before; never build an IP block until the production check passes.
 - **Retention reports before it deletes** (`services/retention.js`, D25). Daily, it counts
   what each policy (DATA_PROTECTION.md) would remove; it deletes only with
   `RETENTION_ENFORCE=1`, which the owner sets after confirming a backup. Accounts are counted

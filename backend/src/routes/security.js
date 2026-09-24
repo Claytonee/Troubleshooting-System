@@ -19,6 +19,8 @@ router.get('/seen-as', (req, res) => {
   const h = (n) => (req.headers[n] === undefined ? null : String(req.headers[n]).slice(0, 200));
   res.json({
     ip: req.ip,
+    // true when the address was the client's own claim (SEC-015): ip is then 0.0.0.0.
+    claimed: req.ipClaimed !== undefined,
     headers: {
       'x-forwarded-for': h('x-forwarded-for'), 'x-real-ip': h('x-real-ip'), forwarded: h('forwarded'),
       'x-client-ip': h('x-client-ip'), 'x-forwarded-proto': h('x-forwarded-proto')
