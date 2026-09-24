@@ -214,8 +214,9 @@ Then:
 ### 2.7 First login
 
 `bootstrap()` runs on every start, creates the schema when the database is empty, and
-seeds demo data plus an `admin` user with password `admin123` (override with
-`ADMIN_PASSWORD` before the first boot). A password change is forced at first login.
+seeds demo data plus an `admin` user whose one-time password is printed to the log (or
+`ADMIN_PASSWORD`, set before the first boot). A password change is forced at first login.
+The demo field engineers get no usable password until the admin resets them (SEC-016).
 Seeding only happens when no `admin` user exists, so restarts never touch existing data.
 
 ---

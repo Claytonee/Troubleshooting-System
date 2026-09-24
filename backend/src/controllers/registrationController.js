@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const passwords = require('../services/passwords');
 const pool = require('../config/database');
 const { revokeSessions } = require('../services/sessions');
 const { logAudit, fromReq } = require('../services/audit');
@@ -61,6 +62,7 @@ async function registerSchoolAdmin(req, res, next) {
       return res.status(400).json({ error: 'Invalid school selected.' });
     }
 
+    { const why = passwords.problem(password); if (why) return res.status(400).json({ error: why }); }
     const passwordHash = await bcrypt.hash(password, 12);
 
     const [result] = await pool.query(
@@ -465,6 +467,7 @@ async function registerTeacher(req, res, next) {
       // The user update, teacher row replacement and link counter must be
       // atomic so a failure can't leave an orphan/miscounted state.
       if (eu.role === 'teacher' && (eu.status === 'inactive' || eu.approval_status === 'rejected')) {
+        { const why = passwords.problem(password); if (why) return res.status(400).json({ error: why }); }
         const passwordHash = await bcrypt.hash(password, 12);
         const conn = await pool.getConnection();
         try {
@@ -493,6 +496,7 @@ async function registerTeacher(req, res, next) {
       return res.status(409).json({ error: 'Email already registered.' });
     }
 
+    { const why = passwords.problem(password); if (why) return res.status(400).json({ error: why }); }
     const passwordHash = await bcrypt.hash(password, 12);
     const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '') + Math.floor(Math.random() * 99);
 
@@ -733,7 +737,10 @@ async function createTeacher(req, res, next) {
       return res.status(409).json({ error: 'Email already registered.' });
     }
 
-    const pw = password || 'Teacher@' + Math.floor(Math.random() * 9000 + 1000);
+    // SEC-016: "Teacher@" + four digits was guessable. A random temporary password,
+    // shown once to the school admin, replaced by the teacher at first sign-in.
+    if (password) { const why = passwords.problem(password); if (why) return res.status(400).json({ error: why }); }
+    const pw = password || passwords.temporary();
     const passwordHash = await bcrypt.hash(pw, 12);
     const username = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '') + Math.floor(Math.random() * 99);
 
@@ -744,8 +751,8 @@ async function createTeacher(req, res, next) {
     try {
       await conn.beginTransaction();
       const [userResult] = await conn.query(
-        `INSERT INTO users (username, email, password_hash, full_name, role, phone, school_id, approval_status)
-         VALUES (?, ?, ?, ?, 'teacher', ?, ?, 'approved')`,
+        `INSERT INTO users (username, email, password_hash, full_name, role, phone, school_id, approval_status, must_change_password)
+         VALUES (?, ?, ?, ?, 'teacher', ?, ?, 'approved', 1)`,
         [username, email, passwordHash, full_name, phone || null, schoolId]
       );
       [teacherResult] = await conn.query(

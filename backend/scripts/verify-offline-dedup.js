@@ -10,6 +10,7 @@
  */
 require('dotenv').config({ path: '.env' });
 const pool = require('../src/config/database');
+const fixtures = require('./lib/fixtures');
 const BASE = process.env.VERIFY_BASE || 'http://localhost:3100';
 
 let pass = 0, fail = 0;
@@ -26,9 +27,11 @@ const check = (name, ok, detail) => {
   check('schema: errors.client_ref exists', cols.length === 1);
   check('schema: unique index on client_ref', idx.length >= 1);
 
+  // A platform admin of the suite's own, not the seeded one with its published password (SEC-016).
+  const pa = await fixtures.ensurePlatformAdmin();
   const login = await fetch(BASE + '/api/auth/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+    body: JSON.stringify({ username: pa.username, password: pa.password })
   }).then(r => r.json());
   if (!login.token) { console.error('  login failed:', JSON.stringify(login)); process.exit(1); }
   const H = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + login.token };
@@ -78,6 +81,7 @@ const check = (name, ok, detail) => {
   console.log('    rows left with a client_ref or that title: ' + left.n);
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed');
+  await fixtures.cleanup();
   await pool.end();
   // Set the code and let Node wind down on its own. Calling process.exit() the
   // instant after pool.end() aborted libuv on Windows —

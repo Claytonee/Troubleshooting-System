@@ -26,10 +26,9 @@ router.put('/:id', [
   validate
 ], schoolAdminController.update);
 
-router.patch('/:id/password', [
-  body('new_password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  validate
-], schoolAdminController.resetPassword);
+// Blank means "generate a temporary password" (SEC-016); a typed one is checked by
+// services/passwords.js in the controller — 8 characters, never a published one.
+router.patch('/:id/password', schoolAdminController.resetPassword);
 
 router.delete('/:id', schoolAdminController.remove);
 

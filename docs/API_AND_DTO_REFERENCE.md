@@ -99,7 +99,7 @@ Stamps `first_response_at` on first move off `open`; audits `error.status_change
 
 - `GET /school-admins` → `SchoolAdminDTO[]`
 - `GET /school-admins/:id` → `SchoolAdminDTO`
-- `POST /school-admins` — `CreateSchoolAdminDTO` `{ username* (≥3), email*, full_name*, school_id*, password? (def changeme123), phone?, color?, title?, status? }`
+- `POST /school-admins` — `CreateSchoolAdminDTO` `{ username* (≥3), email*, full_name*, school_id*, password? (blank: random temporary_password returned once), phone?, color?, title?, status? }`
 - `PUT /school-admins/:id` — `UpdateSchoolAdminDTO` `{ full_name*, email?, phone?, color?, title?, status?, school_id? }`
 - `PATCH /school-admins/:id/password` — `{ new_password* (≥6) }`
 - `DELETE /school-admins/:id`

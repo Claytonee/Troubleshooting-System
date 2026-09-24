@@ -31,8 +31,8 @@ Content-Type: application/json
 #### POST /auth/login
 ```json
 {
-  "username": "admin",
-  "password": "admin123"
+  "username": "your.username",
+  "password": "your password"
 }
 ```
 **Response:**
@@ -183,7 +183,7 @@ Returns role-scoped data (admin sees all, subadmin sees their schools, school se
 {
   "username": "amushi",
   "email": "amushi@questforward.org",
-  "password": "changeme123",
+  "password": "optional — leave out to receive a temporary_password in the response",
   "full_name": "A. Mushi",
   "phone": "+255 700 111 222",
   "zone": "Moshi Rural",

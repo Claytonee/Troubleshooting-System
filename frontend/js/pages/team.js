@@ -138,8 +138,8 @@ const TeamPage = (() => {
       </div>
       ${!isEdit ? `<div class="form-group" style="grid-column:1/-1">
         <label>Password</label>
-        <input type="text" id="tm-password" placeholder="Leave blank for default (changeme123)">
-        <div style="font-size:10px;color:var(--text3);margin-top:4px">Sub-admin should change this on first login</div>
+        <input type="text" id="tm-password" placeholder="Leave blank to generate a temporary password">
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">Temporary either way — they choose their own at first sign-in</div>
       </div>` : ''}
     </div>`;
   }
@@ -159,11 +159,13 @@ const TeamPage = (() => {
     btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Creating...';
 
     try {
-      await API.createTeamMember({ full_name, username, email, phone, zone, title, password: password || undefined });
+      const res = await API.createTeamMember({ full_name, username, email, phone, zone, title, password: password || undefined });
       Modal.close();
       showToast('Sub-admin created successfully');
       await load();
       App.render();
+      // Blank password: the server generated a temporary one, shown once (SEC-016).
+      if (res && res.temporary_password) TempPassword.show(full_name, res.temporary_password);
     } catch (e) {
       showToast(e.error || 'Could not create sub-admin');
       btn.disabled = false; btn.innerHTML = '<i class="ti ti-plus" style="font-size:12px"></i> Create';
@@ -201,7 +203,7 @@ const TeamPage = (() => {
       <div style="font-size:13px;color:var(--text2)">Reset password for <strong>${esc(t.full_name)}</strong></div>
       <div class="form-group">
         <label>New Password</label>
-        <input type="text" id="tm-reset-pw" placeholder="Leave blank for default (changeme123)">
+        <input type="text" id="tm-reset-pw" placeholder="Leave blank to generate a temporary password">
         <div style="font-size:10px;color:var(--text3);margin-top:4px">The sub-admin should change this on next login</div>
       </div>
     </div>`;
@@ -219,7 +221,9 @@ const TeamPage = (() => {
       const res = await API.resetTeamPassword(id, password || undefined);
       Modal.close();
       // A temporary password: they must replace it at next sign-in, and every session they had has ended.
-      showToast(`Temporary password: ${res.password || 'changeme123'} — they must choose their own at next sign-in`, 7000);
+      const t = team.find(x => x.id === id);
+      if (res && res.password) TempPassword.show(t ? t.full_name : 'the sub-admin', res.password);
+      else showToast('Password reset — they must choose their own at next sign-in');
     } catch (e) {
       showToast(e.error || 'Could not reset password');
       btn.disabled = false; btn.innerHTML = '<i class="ti ti-key" style="font-size:12px"></i> Reset Password';

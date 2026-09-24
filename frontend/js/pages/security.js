@@ -63,7 +63,7 @@ const SecurityPage = (() => {
       plain: 'Important administrative actions are written to an audit trail, and every refused request — a wrong password, a page outside a person\'s role, another school\'s record, a message without its key — is recorded as evidence.',
       tech: 'audit_log for administrative writes; security_events for every 401/403/429 since 24 September 2026 (no passwords, tokens or typed usernames — tested). The detection rules below read them and alert the platform admin. Gap: neither log is tamper-evident.' },
     { icon: 'ti-radar-2', color: 'var(--red)', title: 'Detection and alerting', status: 'partial', evidence: 'tested',
-      plain: 'Eight rules watch the recorded evidence every minute — password guessing, spraying, a success after many failures, probing another school, forged messages, a removed second factor, a foreign script on our pages, lost evidence — and tell the platform admin on the bell, once per incident.',
+      plain: 'Nine rules watch the recorded evidence every minute — password guessing, spraying, a success after many failures, probing another school, forged messages, a removed second factor, a foreign script on our pages, a sign-in with a published password, lost evidence — and tell the platform admin on the bell, once per incident.',
       tech: 'Alert-only by decision (D5): nothing is blocked until 30 days of closed incidents show how often each rule is wrong. Email alerts wait for SMTP. 24 tested assertions, including that nothing gets blocked.' },
     { icon: 'ti-database-export', color: 'var(--text3)', title: 'Backup and recovery', status: 'unverified', evidence: 'none',
       plain: 'Copies of the data kept so the system can be restored after a failure or an attack.',
@@ -92,6 +92,8 @@ const SecurityPage = (() => {
       text: 'The restore drill exists and passes; its first run on a real backup from the host is due.' }
   ];
 
+  const ROLE_LABEL = { admin: 'platform admin', subadmin: 'field engineer', school: 'school admin', teacher: 'teacher' };
+
   const ROLES = [
     { role: 'Teacher', icon: 'ti-user', color: 'var(--green)', sees: 'Their own fault reports, guides, their school\'s inventory (read-only unless granted)' },
     { role: 'School admin', icon: 'ti-school', color: 'var(--teal)', sees: 'Their own school only — faults, teachers, inventory, check-ins' },
@@ -103,7 +105,7 @@ const SecurityPage = (() => {
     { name: 'NIST CSF 2.0 — Govern', status: 'in', note: 'A written security policy is adopted: one accountable owner (the platform admin), access rules, change control and a quarterly access review.' },
     { name: 'NIST CSF 2.0 — Identify', status: 'in', note: 'Every endpoint, role, threat and item of personal data is inventoried — and a test fails if the endpoint list drifts from the code.' },
     { name: 'NIST CSF 2.0 — Protect', status: 'in', note: 'Access control, two-step sign-in, encryption, input and output safety, signed integrations.' },
-    { name: 'NIST CSF 2.0 — Detect', status: 'in', note: 'Every refusal is recorded; eight rules turn patterns into incidents with one alert each on the platform admin\'s bell. Email joins when it is configured.' },
+    { name: 'NIST CSF 2.0 — Detect', status: 'in', note: 'Every refusal is recorded; nine rules turn patterns into incidents with one alert each on the platform admin\'s bell. Email joins when it is configured.' },
     { name: 'NIST CSF 2.0 — Respond', status: 'partial', note: 'Incident runbook adopted, including when to tell the Data Protection Commission. First rehearsal due within 30 days.' },
     { name: 'NIST CSF 2.0 — Recover', status: 'partial', note: 'Targets set: data at most 24 hours old, service back within 4 hours. The restore drill is proven on a copy; the first drill on a production backup is due.' },
     { name: 'OWASP ASVS 5.0', status: 'partial', note: 'Target: every Level 1 requirement, and Level 2 for sign-in, sessions and access. Not a certification — no outside party has assessed the system.' },
@@ -164,7 +166,7 @@ const SecurityPage = (() => {
     const dpVal = dp === undefined ? '—' : dp === null ? '…' : dp;
     const dpColor = dp > 0 ? 'var(--red)' : dp === 0 ? 'var(--green)' : 'var(--text3)';
     const dpSub = dp === undefined ? 'live check unavailable' : dp === null ? 'checking accounts…'
-      : `of ${data.accounts.checked_for_default_password} active accounts`;
+      : `of ${data.accounts.checked_for_default_password} accounts that can sign in`;
     const audit = data ? data.audit.events_last_30_days : '—';
     return `
       <div class="stat-card g">
@@ -178,7 +180,7 @@ const SecurityPage = (() => {
         <div class="stat-sub">findings fixed · ${data ? esc(fmtDay(data.review.date)) : '—'}</div>
       </div>
       <div class="stat-card ${dp > 0 ? 'r' : 't'}">
-        <div class="stat-label">Default passwords</div>
+        <div class="stat-label">Published passwords</div>
         <div class="stat-val" style="color:${dpColor}">${dpVal}</div>
         <div class="stat-sub">${esc(dpSub)}</div>
       </div>
@@ -193,9 +195,13 @@ const SecurityPage = (() => {
     if (!data) return '';
     const dp = data.accounts.on_default_password;
     if (dp > 0) {
+      // SEC-016: the passwords are printed in the public repository. Sign-in now refuses
+      // them, so these people are locked out until reset — name them, so the admin can act.
+      const who = (data.accounts.on_published_password || []).map(a => `${esc(a.username)} (${esc(ROLE_LABEL[a.role] || a.role)})`).join(', ');
       return `<div class="alert-banner"><i class="ti ti-alert-triangle"></i>
-        <div class="alert-banner-text"><strong>${dp} active account${dp === 1 ? '' : 's'} still accept${dp === 1 ? 's' : ''} the default password.</strong>
-        Anyone who knows the default can sign in as them. Reset those passwords from Sub-Admins or School Admins.</div></div>`;
+        <div class="alert-banner-text"><strong>${dp} account${dp === 1 ? ' has' : 's have'} a password that is published in this system's public code repository.</strong>
+        Each is made to choose a new one at their next sign-in; the seeded accounts whose usernames were published too are refused until reset. ${who ? 'Affected: ' + who + '.' : ''}
+        To fix one now — field engineers: Sub-Admins → Reset Pass; school admins: School Admins → reset; a locked-out platform admin: <code>node scripts/password-reset.js &lt;username&gt; --yes</code> on the server.</div></div>`;
     }
     // D4: a platform admin without two-step sign-in, before (or after) the deadline.
     const m = data.mfa;
@@ -685,7 +691,7 @@ const SecurityPage = (() => {
       <div class="card-title"><span><i class="ti ti-alarm" style="margin-right:6px"></i>Security incidents</span>
         <span class="sec-chip" style="background:var(--bg3);color:var(--text3)">alert-only — nothing is blocked</span></div>
       <div class="inc-list">${rows}</div>
-      <div class="sec-foot">Eight rules (guessing, spraying, success after failures, probing another school, forged messages, two-step removed, a foreign script, dropped evidence) run every minute. One incident per rule, subject and hour, and one alert on the bell. Closing one records whether it was real, which is what sets the thresholds before anything is ever blocked.</div>
+      <div class="sec-foot">Nine rules (guessing, spraying, success after failures, probing another school, forged messages, two-step removed, a foreign script, a published password, dropped evidence) run every minute. One incident per rule, subject and hour, and one alert on the bell. Closing one records whether it was real, which is what sets the thresholds before anything is ever blocked.</div>
     </div>`;
   }
 

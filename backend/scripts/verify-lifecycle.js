@@ -11,6 +11,7 @@
 require('dotenv').config({ path: '.env' });
 const pool = require('../src/config/database');
 const lc = require('../src/config/lifecycle');
+const fixtures = require('./lib/fixtures');
 
 const BASE = process.env.VERIFY_BASE || 'http://localhost:3100';
 const TAG_PREFIX = 'LC-TEST-';
@@ -69,9 +70,11 @@ const D = n => {
        AND IS_NULLABLE = 'YES'`);
   check('schema: every new column is nullable', Number(nullable[0].n) === 6);
 
+  // A platform admin of the suite's own, not the seeded one with its published password (SEC-016).
+  const pa = await fixtures.ensurePlatformAdmin();
   const login = await fetch(BASE + '/api/auth/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+    body: JSON.stringify({ username: pa.username, password: pa.password })
   }).then(r => r.json());
   if (!login.token) { console.error('  login failed'); process.exit(1); }
   H = { Authorization: 'Bearer ' + login.token };
@@ -220,6 +223,7 @@ const D = n => {
 
   console.log('\n  cleanup:');
   await cleanup();
+  await fixtures.cleanup();
   const [[left]] = await pool.query('SELECT COUNT(*) n FROM tablets WHERE asset_tag LIKE ?', [TAG_PREFIX + '%']);
   const [[t]] = await pool.query('SELECT COUNT(*) n FROM tablets');
   console.log('    test devices left: ' + left.n + '; tablets total: ' + t.n);

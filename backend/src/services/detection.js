@@ -99,6 +99,16 @@ const RULES = [
            GROUP BY source_ip`
   },
   {
+    id: 'R9', name: 'Sign-in with a published password', severity: 'high', window: 60,
+    why: 'The right password was typed for this account, and it is one printed in the public repository. If the username was published too, the sign-in was refused and the account needs a reset. Otherwise the person was made to choose a new password at once — confirm it was the account\'s owner.',
+    sql: `SELECT CAST(user_id AS CHAR) AS subject, 'account' AS subject_type, SUM(count) AS n,
+                 COUNT(DISTINCT source_ip) AS sources, MIN(occurred_at) AS first_at, MAX(last_at) AS last_at
+            FROM security_events
+           WHERE event_type = 'auth.published_password' AND user_id IS NOT NULL
+             AND last_at >= NOW() - INTERVAL 60 MINUTE
+           GROUP BY user_id`
+  },
+  {
     id: 'R7', name: 'Security monitoring dropped events', severity: 'high', window: 60,
     why: 'More distinct events arrived than the recorder could hold — evidence was lost, which is itself a sign of an attack or an overload.',
     sql: `SELECT 'monitoring' AS subject, 'system' AS subject_type, SUM(count) AS n,

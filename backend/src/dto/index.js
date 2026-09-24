@@ -37,7 +37,7 @@ const requests = {
 
   CreateSchoolAdmin: {
     username: 'string* (min 3)', email: 'email*', full_name: 'string*', school_id: 'int*',
-    password: 'string? (default changeme123)', phone: 'string?', color: 'string?',
+    password: 'string? (blank: a random temporary password, returned once as temporary_password)', phone: 'string?', color: 'string?',
     title: 'string?', status: `enum? active|inactive`
   },
   UpdateSchoolAdmin: {

@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const passwords = require('../services/passwords');
 const streamifier = require('streamifier');
 const pool = require('../config/database');
 const cloudinary = require('../config/cloudinary');
@@ -118,15 +119,37 @@ async function login(req, res, next) {
     res.locals.secUserId = user.id;
     res.locals.secRole = user.role;
 
+    // SEC-016 (D29): a password printed in this public repository is compromised.
+    // Where the USERNAME was printed beside it, the whole sign-in is public: refuse,
+    // before any ticket or session — a forced change would hand the account to
+    // whoever signs in first. Anyone else must still guess the username, and real
+    // teachers were using these passwords every day: sign in, but choose a new one
+    // before anything else, and tell the platform admin (R9).
+    if (passwords.isPublishedPair(user.username, password)) {
+      res.locals.secEvent = 'auth.published_password';
+      res.locals.secDetail = { reason: 'published_username_and_password' };
+      return res.status(403).json({ code: 'PUBLISHED_PASSWORD',
+        error: 'This account\'s username and password have both been published, so it cannot be used to sign in. Ask your platform administrator to reset it.' });
+    }
+    if (passwords.isPublished(password)) {
+      res.locals.secEvent = 'auth.published_password';
+      res.locals.secDetail = { reason: 'published_password_forced_change' };
+    }
+    // Published, or the old generated "Teacher@1234": sign in, but a new password first.
+    if ((passwords.isPublished(password) || passwords.isGuessable(password)) && !user.must_change_password) {
+      await pool.query('UPDATE users SET must_change_password = 1 WHERE id = ?', [user.id]);
+      user.must_change_password = 1;
+    }
+
     // Two-step sign-in (SEC-007, D4): with it on, the password earns only a
     // five-minute ticket that can do one thing — be exchanged, with a code, at
     // POST /api/auth/mfa/verify. It is not a session and authenticate() refuses it.
     if (user.mfa_enabled) {
-      res.locals.secEvent = 'auth.mfa_required';
+      res.locals.secEvent = res.locals.secEvent || 'auth.mfa_required';   // keep auth.published_password (R9)
       return res.json({ mfa_required: true, mfa_ticket: mfaTicket(user) });
     }
 
-    res.locals.secEvent = 'auth.login_ok';
+    res.locals.secEvent = res.locals.secEvent || 'auth.login_ok';   // keep auth.published_password (R9)
     res.json(await sessionPayload(user));
   } catch (err) { next(err); }
 }
@@ -181,6 +204,7 @@ async function register(req, res, next) {
       return res.status(409).json({ error: 'Username or email already exists.' });
     }
 
+    { const why = passwords.problem(password); if (why) return res.status(400).json({ error: why }); }
     const passwordHash = await bcrypt.hash(password, 10);
     const [result] = await pool.query(
       'INSERT INTO users (username, email, password_hash, full_name, role, phone, zone, title) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -259,9 +283,7 @@ async function changePassword(req, res, next) {
     if (!current_password || !new_password) {
       return res.status(400).json({ error: 'Current and new password are required.' });
     }
-    if (new_password.length < 8) {
-      return res.status(400).json({ error: 'New password must be at least 8 characters.' });
-    }
+    { const why = passwords.problem(new_password); if (why) return res.status(400).json({ error: why }); }
 
     const [rows] = await pool.query('SELECT password_hash FROM users WHERE id = ?', [req.user.id]);
     if (!rows.length) return res.status(404).json({ error: 'User not found.' });

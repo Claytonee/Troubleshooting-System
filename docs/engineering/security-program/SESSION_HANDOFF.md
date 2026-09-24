@@ -14,7 +14,7 @@ Nothing is described as approved, certified or closed beyond what the owner has 
 | Sessions | `token_version` in the JWT; password change, reset, suspension and "Sign out everywhere" end sessions | D3, SEC-005/011 |
 | Two-step sign-in | TOTP + recovery codes for platform admins, required from 2026-10-08; console break-glass | D4, SEC-007 |
 | Evidence | `security_events`: every refusal, route templates only, 90 days | D2, SEC-006 |
-| Detection | R1–R8 → incidents → one bell alert each; **alert-only** | D5 b, D6 |
+| Detection | R1–R9 → incidents → one bell alert each; **alert-only** | D5 b, D6 |
 | Browser policy | strict CSP in report-only mode with a bounded inventory; foreign scripts → R8 | D24 |
 | Retention | daily report per policy; deletes only with `RETENTION_ENFORCE=1`; accounts never auto-deleted | D21, D25 |
 | Guessing | per-account ceiling across networks; public registration needs proof | D8, D9 |
@@ -27,6 +27,10 @@ Nothing is described as approved, certified or closed beyond what the owner has 
 | Explaining it | Security Overview (`#security`, platform admin only): animated request journey, layers with evidence, live checks, incidents, standards, labelled limits | D10, D22 |
 
 ### Waiting on the owner (the code cannot do these)
+0. **Open the Security Overview on production and reset every account it lists under "Published
+   passwords"** (SEC-016). Field engineers: Sub-Admins → Reset Pass; school admins: School Admins →
+   reset; if `admin` itself is listed and refused: `cd backend && node scripts/password-reset.js admin --yes`
+   in the cPanel terminal. Teachers on a printed password are made to change it at their next sign-in.
 1. **Ask the host to stop trusting a visitor-supplied `X-Forwarded-For`** (LiteSpeed's *Use Client
    IP in Header* setting). This is SEC-015: until it changes, a visitor can choose the address the
    system sees, which the app now records as unknown. Then re-run the check in TEST_RESULTS.md (D5 a).

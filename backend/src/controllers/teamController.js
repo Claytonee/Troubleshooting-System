@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const passwords = require('../services/passwords');
 const pool = require('../config/database');
 const { logAudit } = require('../services/audit');
 const { revokeSessions } = require('../services/sessions');
@@ -45,9 +46,13 @@ async function create(req, res, next) {
     const [existing] = await pool.query('SELECT id FROM users WHERE username = ? OR email = ?', [username, email]);
     if (existing.length) return res.status(409).json({ error: 'Username or email already exists.' });
 
-    const passwordHash = await bcrypt.hash(password || 'changeme123', 10);
+    // SEC-016: never a published default. Blank means a random temporary password,
+    // shown once; either way the person chooses their own at first sign-in.
+    if (password) { const why = passwords.problem(password); if (why) return res.status(400).json({ error: why }); }
+    const pw = password || passwords.temporary();
+    const passwordHash = await bcrypt.hash(pw, 10);
     const [result] = await pool.query(
-      'INSERT INTO users (username, email, password_hash, full_name, role, phone, zone, color, title, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO users (username, email, password_hash, full_name, role, phone, zone, color, title, status, must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)',
       [username, email, passwordHash, full_name, 'subadmin', phone || null, zone || null, color || '#4f7cff', title || 'Field Engineer', status || 'active']
     );
 
@@ -56,7 +61,7 @@ async function create(req, res, next) {
       summary: `Created sub-admin "${full_name}" (@${username})`
     });
 
-    res.status(201).json({ id: result.insertId, message: 'Sub-admin created successfully.' });
+    res.status(201).json({ id: result.insertId, message: 'Sub-admin created successfully.', temporary_password: password ? undefined : pw });
   } catch (err) { next(err); }
 }
 
@@ -118,8 +123,8 @@ async function assignSchools(req, res, next) {
 async function resetPassword(req, res, next) {
   try {
     const { password } = req.body;
-    const newPass = password || 'changeme123';
-    if (String(newPass).length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters.' });
+    if (password) { const why = passwords.problem(password); if (why) return res.status(400).json({ error: why }); }
+    const newPass = password || passwords.temporary();
     const hash = await bcrypt.hash(newPass, 10);
     // SEC-011: an admin-set password is a temporary one. The person must choose
     // their own at next sign-in, and every existing session ends now.

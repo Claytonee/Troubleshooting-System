@@ -416,7 +416,7 @@ Authorization: Bearer <jwt_token>
 | PATCH | /:id/schools | Yes | admin | Assign schools to sub-admin |
 | DELETE | /:id | Yes | admin | Remove |
 
-**Default Password:** When a sub-admin is created without specifying a password, the system assigns `changeme123` as the default. The admin should share this with the sub-admin, who must change it on first login via Profile > Change Password.
+**Temporary password:** When a sub-admin is created or reset without a password, the system generates a random temporary one and shows it once to the admin (a dialog with a Copy button). The sub-admin must choose their own at first sign-in. Published passwords are refused everywhere (SEC-016).
 
 #### Check-Ins (`/api/checkins`)
 | Method | Path | Auth | Role | Description |
@@ -850,6 +850,7 @@ material in plain language on **Security Overview** (`#security`).
 | Measure | Implementation |
 |---------|---------------|
 | Password hashing | bcryptjs, cost 10–12 |
+| Printed passwords | The repository is public; the passwords it once printed are refused on the seeded usernames and force a change on any other; none can be set again; blank fields generate a one-time temporary password (SEC-016) |
 | Authentication | JWT in the Authorization header, 7-day expiry, carrying the account's `token_version`. Raising it ends every session of that account: password change, admin reset, suspension, "Sign out everywhere" (SEC-005). Account status re-read on every request |
 | Two-step sign-in | TOTP (RFC 6238) for platform admins, required from 2026-10-08; secrets AES-256-GCM encrypted; 10 one-time recovery codes; a password alone earns a 5-minute ticket; break-glass `scripts/mfa-reset.js --yes` on the server console (SEC-007) |
 | Rate limiting | 900 req / 15 min **per account** (IP when anonymous); login 20 per account+network, 120 per network and 60 per account from anywhere; two-step codes 10 per 15 min; registration 5 per IP |
@@ -865,7 +866,7 @@ material in plain language on **Security Overview** (`#security`).
 | Tenant scoping | Per-record checks; `services/scope.js` → `canActOnSchool()` for single-school reads and writes |
 | Integrations | HMAC (WhatsApp, deploy) and shared keys (heartbeat, USSD/SMS); all fail closed |
 | Security events | `security_events`: failed and throttled sign-ins, two-step failures, 401/403/429 refusals, rejected webhooks, foreign scripts. Route templates only — never a body, token or password. Kept 90 days (SEC-006) |
-| Detection | Rules R1–R8 every minute → one `security_incidents` row per rule, subject and hour → one bell alert (SMS for high, when configured). **Alert-only**: nothing is blocked (D5) |
+| Detection | Rules R1–R9 every minute → one `security_incidents` row per rule, subject and hour → one bell alert (SMS for high, when configured). **Alert-only**: nothing is blocked (D5) |
 | Audit trail | Administrative writes (accounts, faults, schools), security actions, incident outcomes, retention removals |
 | Retention | Daily job per DATA_PROTECTION.md; reports only until the owner sets `RETENTION_ENFORCE=1` (D25) |
 | Deploys | Pre-push gate (syntax, versions, endpoint matrix, `npm audit`, every suite); deploy preflight with rollback (D23) |
@@ -880,11 +881,14 @@ On first startup with empty tables, the system seeds:
 ### Users
 | Username | Password | Role | Zone |
 |----------|----------|------|------|
-| admin | admin123 | admin | System |
-| knjoro | changeme123 | subadmin | Moshi Urban |
-| famani | changeme123 | subadmin | Kilema |
-| thassan | changeme123 | subadmin | Hai |
-| cmbowe | changeme123 | subadmin | Rombo |
+| admin | one-time, printed to the server log (or `ADMIN_PASSWORD`) | admin | System |
+| knjoro | none until reset by the admin | subadmin | Moshi Urban |
+| famani | none until reset by the admin | subadmin | Kilema |
+| thassan | none until reset by the admin | subadmin | Hai |
+| cmbowe | none until reset by the admin | subadmin | Rombo |
+
+No password is published in this repository (SEC-016). Accounts seeded before this change
+with the passwords the docs used to print are refused at sign-in until reset.
 
 ### Schools (9 total)
 Spread across Moshi Urban, Kilema, Hai, and Rombo zones with realistic student/tablet counts.

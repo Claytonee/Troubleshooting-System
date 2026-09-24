@@ -428,8 +428,10 @@ const TeachersPage = (() => {
       const data = await res.json();
       if (res.ok) {
         Modal.close();
-        showToast(data.temporary_password ? `Teacher added! Temp password: ${data.temporary_password}` : 'Teacher added!');
+        showToast('Teacher added');
         await load(); App.render();
+        // Shown once, in a dialog that waits — not a toast that vanishes (SEC-016).
+        if (data.temporary_password) TempPassword.show(body.full_name, data.temporary_password);
       } else {
         showToast(data.error || 'Failed');
       }

@@ -28,7 +28,7 @@ Render web service; the database is **Render Managed PostgreSQL** (persistent, a
 4. Deploy.
 
 ## Login after deploy
-`admin` / `admin123` (change immediately).
+`admin` with the one-time password printed in the server log on the first start (or `ADMIN_PASSWORD`, if you set it before). No password is published here (SEC-016).
 
 ## Notes
 - **No manual migration step needed** — `node src/server.js` runs `bootstrap()` on startup, which

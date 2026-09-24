@@ -201,3 +201,12 @@ Recorded as **SEC-015 (P2)** and **mitigated** in the app (D28): such requests a
 `0.0.0.0`, share one rate-limit allowance, and cannot plant a made-up address in the evidence.
 The cause is a host setting (§7, new first action). It also confirms D5: no blocking by address
 until the check passes. Totals now: **19 findings, 18 fixed, 1 mitigated**.
+
+## Addendum: printed passwords (2026-09-24, night)
+
+**SEC-016 (P1, fixed).** The repository is public and printed the seed's passwords with its
+usernames, and the password a blank field gave new accounts. The Security Overview's "0" missed
+them; the corrected scan found 18 on the local database. Sign-in now refuses a printed password on a
+printed username and forces a change on any other; nothing can set one again; blank fields generate a
+one-time temporary password. The owner's first action is to reset the accounts the page lists.
+Totals now: **20 findings, 19 fixed, 1 mitigated**.

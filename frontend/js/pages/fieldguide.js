@@ -121,7 +121,7 @@ const FieldGuidePage = (() => {
         6. Fanya <strong>Weekly Check-In</strong> kwa kila school yako
       `)}
 
-      ${tip('Password yako ya mwanzo ni <strong>changeme123</strong> — ibadilishe mara ya kwanza unavyoingia kwa usalama wako.')}
+      ${tip('Your first password is a temporary one from the platform admin, shown to them once. You will be asked to choose your own the first time you sign in.')}
     `,
 
     dashboard: () => `
@@ -366,7 +366,7 @@ const FieldGuidePage = (() => {
       `)}
 
       ${sec('Password ya Mwanzo', `
-        Akaunti yako iliundwa na System Administrator. Password yako ya mwanzo ni <strong>changeme123</strong> (isipokuwa admin alikupa nyingine).<br><br>
+        Akaunti yako iliundwa na System Administrator. Your first password is the temporary one the admin gave you; you choose your own at first sign-in.<br><br>
         <strong style="color:var(--red)">MUHIMU:</strong> Badilisha password mara ya kwanza unavyoingia! Nenda Profile → Change Password.
       `)}
 
@@ -379,7 +379,7 @@ const FieldGuidePage = (() => {
         • Ukisahau password, omba admin afanye Reset Password
       `)}
 
-      ${tip('Admin anaweza ku-reset password yako wakati wowote. Password mpya itakuwa "changeme123" kwa default — ibadilishe tena baada ya reset.')}
+      ${tip('The admin can reset your password at any time. You will get a new temporary password and choose your own again at the next sign-in.')}
     `,
   };
 

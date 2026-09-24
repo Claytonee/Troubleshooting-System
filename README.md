@@ -47,7 +47,7 @@ npm start
 # Open http://localhost:3000
 ```
 
-**Default login:** `admin` / `admin123`
+**First sign-in:** no password is published (SEC-016). Set `ADMIN_PASSWORD` before the first start, or use the one-time password the first start prints to the server log; see `backend/src/docs/SETUP.md`.
 
 ## Deploy to Render (Production)
 

@@ -191,9 +191,7 @@ Users seeded.
 Schools seeded.
 Errors seeded.
 ...
-Seed complete! Default login:
-  Username: admin
-  Password: admin123
+  ⚠ Admin seeded with a one-time password: XXXX-XXXX-XXXX (shown once; it must be changed at first sign-in).
 ```
 
 **If you get "Access denied" error:**
@@ -223,9 +221,7 @@ Database:         localhost:3306/qft_support
 
 Now open your browser and go to: **http://localhost:3000**
 
-**Login credentials:**
-- Username: `admin`
-- Password: `admin123`
+**Sign in:** username `admin`, with the one-time password printed in the server log on the first start (or `ADMIN_PASSWORD`, if you set it before). You will be asked to choose your own. No password is published in this repository (SEC-016).
 
 You should see the dashboard with data (schools, errors, etc.)
 

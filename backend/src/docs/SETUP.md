@@ -77,17 +77,17 @@ Server starts at: **http://localhost:3000**
 
 ---
 
-## Default Login Credentials
+## First sign-in
 
-| Username | Password | Role |
-|----------|----------|------|
-| admin | admin123 | System Admin |
-| knjoro | admin123 | Sub-Admin (Moshi Zone) |
-| famani | admin123 | Sub-Admin (Kilema-Kibosho) |
-| thassan | admin123 | Sub-Admin (Rombo) |
-| cmbowe | admin123 | Sub-Admin (Remote/HQ) |
+No password is published here (SEC-016: this repository is public, and a published
+password is a compromised one; sign-in refuses the ones this repository used to print).
 
-**Important:** Change all passwords after first login in production!
+- **Platform admin:** set `ADMIN_PASSWORD` before the first start, or read the one-time
+  password the first start prints to the server log. It must be changed at first sign-in.
+- **Seeded demo field engineers:** have no usable password until the platform admin resets
+  them from **Sub-Admins → Reset Pass**.
+- **Locked out as platform admin:** `cd backend && node scripts/password-reset.js <username> --yes`
+  on the server prints a new temporary password.
 
 ---
 
@@ -148,7 +148,7 @@ Login:
 ```bash
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
+  -d '{"username":"your.username","password":"your password"}'
 ```
 
 Get dashboard (replace TOKEN with the JWT from login):

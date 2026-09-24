@@ -25,6 +25,7 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 | SEC-012 | P1 | **Fixed** 2026-09-24 | Dependencies | 6 known-vulnerable production dependencies (1 high: nodemailer) |
 | SEC-013 | P3 | **Fixed** 2026-09-24 | Auth | Tokens verified without a pinned algorithm: HS384/HS512 accepted beside HS256 |
 | SEC-014 | P3 | **Fixed** 2026-09-24 | HTTP | CORS reflected every origin in production when `FRONTEND_URL` was unset |
+| SEC-016 | P1 | **Fixed** 2026-09-24 (accounts on a printed password: reset them — the Security Overview lists them) | Auth, accounts | Passwords printed in the public repository still signed people in |
 | SEC-015 | P2 | **Mitigated** 2026-09-24 (cause is a host setting) | HTTP, all | The host's proxy let a visitor choose the address the system records |
 | INT-001 | P3 | **Fixed** 2026-09-24 | Faults | Fault codes reissued after deletion; a race duplicated them |
 | TEST-001 | P2 | **Fixed** 2026-09-24 | Test harness | `verify-heartbeat.js` swept every real LRS device, and its cleanup deleted rows it did not create |
@@ -276,6 +277,38 @@ seven such orphans from 9–10 September, and they were removed on 2026-09-24.
   credentials flag is gone. Development keeps `*`, which browsers never pair with credentials.
 - **Regression:** `verify-token-policy.js` (the policy per environment, and the live server never
   grants credentials to an arbitrary origin).
+
+## SEC-016 — Printed passwords still signed people in · P1 · Fixed
+
+- **Evidence:** the repository is **public**. README, SYSTEM_DOCUMENTATION, CLAUDE.md, SETUP.md,
+  API.md and the Field Guide printed `admin123` (the seed's platform admin **and** four field
+  engineers, with their usernames) and `changeme123` (what a blank password field gave a new field
+  engineer or school admin — **without** forcing a change). A teacher added by hand got
+  `Teacher@` + four digits: 9,000 possibilities in a public pattern. The Security Overview's
+  "Default passwords: 0" checked only `changeme123` and only `status = 'active'` accounts, skipping
+  `admin123` and the seeded engineers (`onsite`, `remote`). On the local database it said 0; the
+  corrected scan found **18**: the platform admin, three field engineers and thirteen teachers.
+- **Impact:** anyone who read the repository could sign in to any account still on a printed
+  password whose username they knew or guessed, and the seed's usernames were printed too. A
+  "change it at first sign-in" flag does not help when anybody can do that first sign-in.
+- **Fix (D29, `services/passwords.js`):**
+  - printed username **and** password (the seed): sign-in **refused** before any session or two-step
+    ticket; `scripts/password-reset.js <username> --yes` on the server for a locked-out admin;
+  - printed password, private username: signs in but must choose a new password first (real
+    teachers used these daily; refusing would have locked schools out on deploy);
+  - both recorded as high-severity `auth.published_password`; **rule R9** opens an incident;
+  - no path can set a printed or guessable password again (create, reset, change, register);
+  - every "leave blank" path generates a random temporary password (12 characters, no look-alikes,
+    ~59 bits), shown **once** in a dialog with a Copy button, and forces a change;
+  - a fresh install seeds a one-time admin password to the log and unusable demo passwords;
+  - the Security Overview counts every printed password on every account that can sign in, and
+    **names** them so the admin can reset each;
+  - the passwords are removed from every document (they stay in git history, which is why
+    sign-in must refuse them rather than rely on them being forgotten).
+- **Also found and fixed on the way:** five suites signed in with the printed password, two of them
+  skipped their field-engineer checks silently when that failed, one overwrote the real admin's
+  password for the length of its run, and one left its fixture behind on an early exit.
+- **Regression:** `verify-passwords.js` (32): **6 passed / 24 failed on the old code**, 32/32 after.
 
 ## SEC-015 — A visitor could choose the address the system records · P2 · Mitigated
 

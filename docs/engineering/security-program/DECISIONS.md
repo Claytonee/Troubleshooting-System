@@ -295,6 +295,26 @@ and the real one is lost before the request reaches Node.
 precondition is not met, and it cannot be met in the app. It is re-run after the host change.
 Audit entries for claimed requests say `0.0.0.0`, which is true: the address is not known.
 
+## D29 — A printed password is compromised: refuse the public pair, force a change otherwise
+
+**Problem:** SEC-016. Passwords printed in a public repository were in daily use.
+
+**Options:** (1) refuse every printed password at sign-in: correct in principle, but the local
+database showed thirteen real teachers and the owner's own account on `admin123`; the same on
+production would lock schools out the moment it deployed. (2) Force a change only: leaves the
+seeded accounts, whose **usernames** were printed too, to whoever signs in first. (3) **Both, by
+risk**: chosen.
+
+**Decided:** the seed's usernames with a printed password are refused (the whole credential is
+public). Any other account on a printed password signs in but must choose a new one first; the
+attacker would need to guess the username and beat the real person to it, and R9 tells the
+platform admin about every such sign-in. Nothing can set a printed or guessable password again.
+Blank means a random temporary password, shown once. A locked-out platform admin uses
+`scripts/password-reset.js` on the server, which a stranger cannot reach.
+
+**Revisit when:** the Security Overview's list is empty on production. Then refusing every printed
+password costs nobody anything, and the forced-change path can go.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.

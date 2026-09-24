@@ -547,7 +547,7 @@ the old code. Rules that came out of the 2026-09-24 review:
   earns only a 5-minute ticket when it is on. Never return a stored secret, never accept a ticket
   as a session, and never add a web path that turns it off for an admin: the break-glass is
   `scripts/mfa-reset.js` on the server console.
-- **Detection is alert-only** (`services/detection.js`, D5): eight rules (R1–R8) every minute, one incident
+- **Detection is alert-only** (`services/detection.js`, D5): nine rules (R1–R9) every minute, one incident
   per rule, subject and hour, one bell alert per incident. Nothing blocks traffic until 30 days of
   closed incidents (with outcomes) justify it. Decide "new incident" with `INSERT IGNORE`, never
   from `ON DUPLICATE KEY UPDATE`'s affected-rows count.
@@ -566,6 +566,11 @@ the old code. Rules that came out of the 2026-09-24 review:
   `config/httpPolicy.js` (HS256 only, SEC-013); a source check in `verify-token-policy.js`
   fails on one that does not. Cross-origin answers in production go only to `FRONTEND_URL`
   (none when unset, SEC-014) — the SPA is same-origin, the integrations server-to-server.
+- **No printed password works** (SEC-016, D29, `services/passwords.js`). Every place that sets a
+  password calls `passwords.problem()` (8+ characters, not printed, not the old `Teacher@NNNN`) and a
+  blank field gets `passwords.temporary()`, returned once and shown with `TempPassword.show()`, with
+  `must_change_password = 1`. `verify-passwords.js` fails on a `bcrypt.hash()` without the policy nearby,
+  and on any printed password in `src/`. Never write a real or example password in a document here.
 - **Never trust `req.ip` more than the host does** (SEC-015, D28). The host proxy believes a
   visitor-supplied X-Forwarded-For. `services/clientIp.js` runs first and turns any request
   whose header holds more than one address into `0.0.0.0` (`req.ipClaimed` keeps the claim).
@@ -665,7 +670,9 @@ Every page/feature MUST be tested and functional at all 4 breakpoints:
 - Demo data seeding when schools table is empty
 - JWT in Authorization header, 7-day expiry
 - Role-based access: admin > subadmin > school > teacher
-- Sub-admin accounts are created by admin via #team page; **default password: `changeme123`** (when none specified)
+- Sub-admin accounts are created by admin via #team page. **No default password** (SEC-016): blank generates a
+  random temporary one, returned once as `temporary_password` and shown in `TempPassword.show()`. Never write a
+  password into this public repository — `services/passwords.js` refuses the ones it used to print.
 - Admin can reset a sub-admin's password via PATCH /api/team/:id/reset-password
 - API prefix: `/api/` (auth, errors, schools, checkins, team, settings, dashboard, communications, guides, manuals)
 - File uploads go to Cloudinary (not local disk)

@@ -48,15 +48,22 @@ async function launch() {
 
 async function start(exe, port) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'qft-verify-'));
-  const proc = spawn(exe, ['--headless=new', `--remote-debugging-port=${port}`, '--no-first-run', '--no-default-browser-check',
-    '--hide-scrollbars', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
+  const args = ['--headless=new', `--remote-debugging-port=${port}`, '--no-first-run', '--no-default-browser-check',
+    '--hide-scrollbars', `--user-data-dir=${profile}`];
+  // GitHub's Ubuntu runners restrict the user namespaces Chrome's sandbox needs.
+  // Only there: a throwaway CI machine loading our own local pages.
+  if (process.env.CI) args.push('--no-sandbox');
+  const proc = spawn(exe, [...args, 'about:blank'], { stdio: 'ignore' });
+  // By the clock, not by attempts, and each attempt bounded: on a loaded machine
+  // Chrome was seen listening (stderr said so) while /json/list took over 5 s to answer.
   let target;
-  for (let i = 0; i < 100 && !target; i++) {
-    try { target = (await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()).find(t => t.type === 'page'); }
-    catch (e) { /* not listening yet */ }
-    if (!target) await sleep(200);
+  const until = Date.now() + 60000;
+  while (!target && Date.now() < until) {
+    try { target = (await (await fetch(`http://127.0.0.1:${port}/json/list`, { signal: AbortSignal.timeout(3000) })).json()).find(t => t.type === 'page'); }
+    catch (e) { /* not listening yet, or slow to answer */ }
+    if (!target) await sleep(250);
   }
-  if (!target) { proc.kill(); throw new Error(`no page target on port ${port} after 20 s`); }
+  if (!target) { proc.kill(); throw new Error(`no page target on port ${port} after 60 s`); }
   const ws = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((res, rej) => { ws.addEventListener('open', res, { once: true }); ws.addEventListener('error', rej, { once: true }); });
   let id = 0;

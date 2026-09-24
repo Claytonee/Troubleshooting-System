@@ -10,6 +10,7 @@
  */
 require('dotenv').config({ path: '.env' });
 const pool = require('../src/config/database');
+const fixtures = require('./lib/fixtures');
 const { _internal } = require('../src/controllers/analyticsController');
 const { pct, deflectionRate } = _internal;
 
@@ -63,9 +64,11 @@ async function cleanup() {
 }
 
 (async () => {
+  // A platform admin of the suite's own, not the seeded one with its published password (SEC-016).
+  const pa = await fixtures.ensurePlatformAdmin();
   const login = await fetch(BASE + '/api/auth/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+    body: JSON.stringify({ username: pa.username, password: pa.password })
   }).then(r => r.json());
   if (!login.token) { console.error('  login failed'); process.exit(1); }
   H = { Authorization: 'Bearer ' + login.token };
@@ -81,6 +84,8 @@ async function cleanup() {
      GROUP BY s.id HAVING COUNT(e.id) = 0 ORDER BY s.id LIMIT 1`);
   if (!candidates.length) {
     console.error('  No school without existing faults; this suite needs one to measure exactly.');
+    // The fixture admin signed in above; it must not outlive an early exit.
+    await fixtures.cleanup();
     console.error('  Nothing was changed.');
     process.exit(1);
   }
@@ -236,27 +241,31 @@ async function cleanup() {
     chans.web === 1 && chans.whatsapp === 1 && chans.monitor === 1, JSON.stringify(chans));
 
   // --- scoping ---
-  if (sub) {
-    const [subUser] = await pool.query('SELECT username FROM users WHERE id = ?', [sub.id]);
+  // A field engineer of the suite's own with no schools: anything it sees is a leak.
+  // This used to borrow a seeded engineer's published password and skip when refused.
+  {
+    const fe = await fixtures.ensureFieldEngineer();
     const sl = await fetch(BASE + '/api/auth/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: subUser[0].username, password: 'admin123' })
+      body: JSON.stringify({ username: fe.username, password: fe.password })
     }).then(r => r.json());
+    check('scope: the fixture field engineer can sign in', !!sl.token);
     if (sl.token) {
-      const [[owned]] = await pool.query('SELECT COUNT(*) n FROM schools WHERE assigned_admin_id = ?', [sub.id]);
+      const [[owned]] = await pool.query('SELECT COUNT(*) n FROM schools WHERE assigned_admin_id = ?', [fe.id]);
       const st = await fetch(BASE + '/api/analytics/trends', { headers: { Authorization: 'Bearer ' + sl.token } }).then(r => r.json());
       const isTheirs = Number(owned.n) > 0;
       check('scope: a sub-admin sees only their own schools',
         st.schools.length <= Number(owned.n), st.schools.length + ' of ' + owned.n + ' assigned');
       check('scope: their engineer view still loads', Array.isArray(st.engineers));
       void isTheirs;
-    } else { console.log('  SKIP  sub-admin scope (could not sign in)'); }
+    }
   }
   const anon = await fetch(BASE + '/api/analytics/trends');
   check('scope: an unauthenticated request is rejected', anon.status === 401, 'HTTP ' + anon.status);
 
   console.log('\n  cleanup:');
   await cleanup();
+  await fixtures.cleanup();
   const [[e]] = await pool.query('SELECT COUNT(*) n FROM errors');
   const [[c]] = await pool.query('SELECT COUNT(*) n FROM ai_chats');
   console.log(`    errors=${e.n} ai_chats=${c.n}`);

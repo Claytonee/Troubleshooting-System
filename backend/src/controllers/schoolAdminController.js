@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const passwords = require('../services/passwords');
 const pool = require('../config/database');
 const { logAudit } = require('../services/audit');
 const { revokeSessions } = require('../services/sessions');
@@ -57,10 +58,13 @@ async function create(req, res, next) {
     const [existing] = await pool.query('SELECT id FROM users WHERE username = ? OR email = ?', [username, email]);
     if (existing.length) return res.status(409).json({ error: 'Username or email already exists.' });
 
-    const passwordHash = await bcrypt.hash(password || 'changeme123', 10);
+    // SEC-016: never a published default; a temporary password either way.
+    if (password) { const why = passwords.problem(password); if (why) return res.status(400).json({ error: why }); }
+    const pw = password || passwords.temporary();
+    const passwordHash = await bcrypt.hash(pw, 10);
     const [result] = await pool.query(
-      `INSERT INTO users (username, email, password_hash, full_name, role, phone, zone, color, title, status, school_id)
-       VALUES (?, ?, ?, ?, 'school', ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users (username, email, password_hash, full_name, role, phone, zone, color, title, status, school_id, must_change_password)
+       VALUES (?, ?, ?, ?, 'school', ?, ?, ?, ?, ?, ?, 1)`,
       [username, email, passwordHash, full_name, phone || null, null,
        color || '#2dd98a', title || 'School Administrator', status || 'active', school_id]
     );
@@ -70,7 +74,8 @@ async function create(req, res, next) {
       summary: `Created school admin "${full_name}" (@${username})`, meta: { school_id }
     });
 
-    res.status(201).json({ id: result.insertId, message: 'School admin created successfully.' });
+    // Shown once to the admin who created the account; never stored in plain text.
+    res.status(201).json({ id: result.insertId, message: 'School admin created successfully.', temporary_password: password ? undefined : pw });
   } catch (err) { next(err); }
 }
 
@@ -108,11 +113,9 @@ async function update(req, res, next) {
 
 async function resetPassword(req, res, next) {
   try {
-    const { new_password } = req.body;
-    // 8, as the security policy and the self-service change require (SEC-011).
-    if (!new_password || String(new_password).length < 8) {
-      return res.status(400).json({ error: 'New password must be at least 8 characters.' });
-    }
+    // Blank means a random temporary password (SEC-016); a typed one must pass the policy.
+    if (req.body.new_password) { const why = passwords.problem(req.body.new_password); if (why) return res.status(400).json({ error: why }); }
+    const new_password = req.body.new_password || passwords.temporary();
     const passwordHash = await bcrypt.hash(new_password, 10);
     // Temporary password: chosen by the admin, so the person replaces it at next sign-in.
     const [result] = await pool.query(
@@ -125,7 +128,7 @@ async function resetPassword(req, res, next) {
       actor: req.user, ip: req.ip, action: 'school_admin.password_reset', entityType: 'school_admin', entityId: req.params.id,
       summary: 'Reset school admin password'
     });
-    res.json({ message: 'Password reset successfully.' });
+    res.json({ message: 'Password reset successfully.', password: req.body.new_password ? undefined : new_password });
   } catch (err) { next(err); }
 }
 

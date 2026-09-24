@@ -36,6 +36,7 @@ const SEVERITY = {
   'auth.login_failed': 'low',
   'auth.login_throttled': 'medium',
   'auth.login_refused': 'low',        // pending, rejected or deactivated account
+  'auth.published_password': 'high',  // right password, but one printed in the public repo (SEC-016)
   'auth.login_ok': 'info',
   'auth.sessions_revoked': 'info',    // password change/reset, suspension, sign out everywhere
   'auth.mfa_required': 'info',        // password right; second step asked for

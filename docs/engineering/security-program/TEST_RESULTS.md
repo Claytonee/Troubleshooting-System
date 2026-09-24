@@ -216,3 +216,15 @@ All corrected. `verify-detection.js` now fails if any rule count on the page dif
 
 **Result: FAILED**, and recorded as SEC-015. `verify-client-ip.js`: **1/9 before, 9/9 after**; on the old
 code, three made-up addresses became three evidence rows and rotating addresses was never refused.
+
+## SEC-016 — printed passwords (2026-09-24)
+
+| Check | Before | After |
+|---|---|---|
+| `verify-passwords.js` | **6 passed, 24 failed** | **32 / 32** |
+| Seeded username + printed password (`admin` / `admin123`, local) | signed in | 403 `PUBLISHED_PASSWORD`, account unchanged |
+| Private username + printed password | signed in | signs in, must change first; high event; R9 incident |
+| Blank password on create / reset (field engineer, school admin, teacher) | `changeme123` / `Teacher@NNNN` | random `XXXX-XXXX-XXXX`, shown once, must change |
+| Security Overview count, local database | "0" | **18**, named (1 platform admin, 3 field engineers, 13 teachers, 1 fixture) |
+| Suites that used the printed password | 5 | 0; 2 silent skips removed; 1 suite no longer overwrites the real admin's password |
+| Browser | — | refusal message on the sign-in form; the Security Overview banner names the accounts; the temporary-password dialog copies and closes |

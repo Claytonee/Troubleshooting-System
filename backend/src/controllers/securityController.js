@@ -11,7 +11,8 @@ const { logAudit } = require('../services/audit');
  * register; nothing is estimated. Where a signal is not collected yet the
  * value is null and `why` says so — a null is not a zero.
  *
- * Never returns a secret, a hash, a prefix or a length: booleans and counts only.
+ * Never returns a secret, a hash, a prefix or a length: booleans and counts, and
+ * the usernames on a printed password (SEC-016), so the admin knows whom to reset.
  */
 
 // Mirrors docs/engineering/security-program/ISSUE_REGISTER.md. Kept here so the
@@ -35,17 +36,20 @@ const REVIEW = {
     { id: 'SEC-011', severity: 'P2', status: 'fixed', title: 'An admin-set password was permanent, could be 6 characters, and left sessions alive' },
     { id: 'SEC-013', severity: 'P3', status: 'fixed', title: 'Sign-in tokens were accepted in any HMAC algorithm, not only the one we issue' },
     { id: 'SEC-014', severity: 'P3', status: 'fixed', title: 'In production, any website\'s script got a cross-origin answer' },
-    { id: 'SEC-015', severity: 'P2', status: 'mitigated', title: 'The host\'s proxy let a visitor choose the address the system records' }
+    { id: 'SEC-015', severity: 'P2', status: 'mitigated', title: 'The host\'s proxy let a visitor choose the address the system records' },
+    { id: 'SEC-016', severity: 'P1', status: 'fixed', title: 'Passwords printed in the public code repository still signed people in' }
   ]
 };
 
-const DEFAULT_PASSWORD = 'changeme123';   // what teamController hands a new sub-admin
+// Every password this public repository has printed (SEC-016): services/passwords.js.
+const PUBLISHED_PASSWORDS = [...require('../services/passwords').PUBLISHED];
 const CACHE_MS = 10 * 60 * 1000;
 let defaultPwCache = null;                // { at, count, checked }
 let defaultPwRunning = null;              // the in-flight scan, so two page loads share one
 
 /**
- * How many ACTIVE accounts still accept the documented default password.
+ * Which accounts that can sign in still accept a password this public repository
+ * printed (SEC-016) — all of them, whatever their status label, and by name.
  *
  * bcrypt is slow on purpose — 24 accounts took 8.5 s measured — so the scan
  * runs in the background, at most every ten minutes, and never holds the
@@ -56,12 +60,18 @@ function defaultPasswordStatus() {
   const fresh = defaultPwCache && Date.now() - defaultPwCache.at < CACHE_MS;
   if (!fresh && !defaultPwRunning) {
     defaultPwRunning = (async () => {
-      const [rows] = await pool.query("SELECT password_hash FROM users WHERE status = 'active' AND password_hash IS NOT NULL");
-      let count = 0;
+      // Every account that can sign in: not only status 'active' — the seeded field
+      // engineers are 'onsite' and 'remote', and the old filter skipped exactly them.
+      const [rows] = await pool.query(
+        "SELECT username, role, password_hash FROM users WHERE (status IS NULL OR status <> 'inactive') AND password_hash IS NOT NULL");
+      const found = [];
       for (const r of rows) {
-        try { if (await bcrypt.compare(DEFAULT_PASSWORD, r.password_hash)) count++; } catch (e) { /* malformed hash: not a match */ }
+        for (const pw of PUBLISHED_PASSWORDS) {
+          try { if (await bcrypt.compare(pw, r.password_hash)) { found.push({ username: r.username, role: r.role }); break; } } catch (e) { /* malformed hash: not a match */ }
+        }
       }
-      defaultPwCache = { at: Date.now(), count, checked: rows.length };
+      // Who, not just how many: the platform admin has to reset each one (SEC-016).
+      defaultPwCache = { at: Date.now(), count: found.length, checked: rows.length, accounts: found.slice(0, 50) };
     })().catch(e => console.error('[security] default-password scan failed:', e.message))
       .finally(() => { defaultPwRunning = null; });
   }
@@ -104,6 +114,8 @@ async function overview(req, res, next) {
         })),
         on_default_password: defaults.count,
         checked_for_default_password: defaults.checked,
+        // Which accounts, so the admin can reset each (SEC-016). Platform admin only; never a hash.
+        on_published_password: defaults.accounts || null,
         default_password_checked_at: defaults.at ? new Date(defaults.at).toISOString() : null,
         pending_registrations: Number(pending.n)
       },

@@ -129,18 +129,13 @@ async function login(u, p) {
     console.log('\n5. Access');
     eq('suggestions need a session', (await api('GET', '/guides/suggest?category=Power')).status, 401);
     eq('a teacher may not read guide performance', (await api('GET', '/guides/performance', { token: teacher })).status, 403);
-    const adminUser = (await pool.query("SELECT username FROM users WHERE role = 'admin' LIMIT 1"))[0][0];
-    if (adminUser) {
-      const [old] = await pool.query('SELECT password_hash FROM users WHERE username = ?', [adminUser.username]);
-      const bcrypt = require('bcryptjs');
-      await pool.query('UPDATE users SET password_hash = ? WHERE username = ?',
-        [await bcrypt.hash(fixtures.PASSWORD, 10), adminUser.username]);
-      const adminToken = await login(adminUser.username, fixtures.PASSWORD);
-      const adminView = await api('GET', '/guides/performance', { token: adminToken });
-      eq('head office may', adminView.status, 200);
-      ok('and sees every guide', adminView.body.guides.length === guides.length, adminView.body.guides.length);
-      await pool.query('UPDATE users SET password_hash = ? WHERE username = ?', [old[0].password_hash, adminUser.username]);
-    }
+    // A platform admin of the suite's own. This used to overwrite the REAL admin's
+    // password for the length of the run — interrupted, it would have left it changed.
+    const pa = await fixtures.ensurePlatformAdmin();
+    const adminToken = await login(pa.username, pa.password);
+    const adminView = await api('GET', '/guides/performance', { token: adminToken });
+    eq('head office may', adminView.status, 200);
+    ok('and sees every guide', adminView.body.guides.length === guides.length, adminView.body.guides.length);
 
     // ---- 6. the form actually asks ---------------------------------------
     console.log('\n6. The suggestion is in the way, and there is a way past it');

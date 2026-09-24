@@ -18,7 +18,7 @@ const pool = require('../src/config/database');
 
 const BASE = process.env.VERIFY_BASE || 'http://localhost:3100';
 const fixtures = require('./lib/fixtures');
-const PLATFORM_ADMIN = { username: process.env.VERIFY_ADMIN_USER || 'admin', password: process.env.VERIFY_ADMIN_PASS || 'admin123' };
+let PLATFORM_ADMIN;   // provisioned in main(): never the seeded admin (SEC-016)
 let TEACHER, SCHOOL_ADMIN;
 
 let passed = 0, failed = 0;
@@ -60,9 +60,10 @@ async function login(creds) {
   SCHOOL_ADMIN = { username: fx.schoolAdmin.username, password: fx.password };
   const teacherToken = await login(TEACHER);
   const adminToken = await login(SCHOOL_ADMIN);
-  let platformToken = null;
-  try { platformToken = await login(PLATFORM_ADMIN); }
-  catch (e) { console.log('  (no platform admin credentials — platform-side checks will be skipped)'); }
+  // Provisioned like the others. It used to fall back to skipping the platform-side
+  // checks when a login failed — a run that checked less and still said "passed".
+  PLATFORM_ADMIN = await fixtures.ensurePlatformAdmin();
+  const platformToken = await login(PLATFORM_ADMIN);
 
   const teacherUser = { id: fx.teacher.userId, school_id: fx.school.id };
   const [[sch]] = [await pool.query('SELECT assigned_admin_id FROM schools WHERE id = ?', [teacherUser.school_id])];

@@ -23,7 +23,7 @@ Evidence: **T** automated test · **C** code read in this review · **D** hostin
 | V13 Configuration | Secrets in panel env; `/api/health` exposes booleans only; deploy fails closed without a secret; deploy preflight + rollback (D23) | T C D | `DATABASE_URL` override hazard (documented, logged at start) |
 | V14 Data protection | Role-scoped caches dropped on logout; offline queue records owner; PDPA record; retention job (D25); the AI gets no names (D21) | T C | Retention deletes only once the owner enforces it; student names on devices |
 | V15 Secure coding & architecture | Dependencies pinned by lockfile; `npm audit` in the pre-push gate (fails on high/critical; 0 today); no `eval` (CSP + `verify-frontend-safety.js`); secret scan of history clean | T C | — |
-| V16 Logging & error handling | `audit_log` for admin writes; `security_events` for every 401/403/429 and sign-in (SEC-006); detection rules R1–R8 alert the platform admin (D5 b); error handler hides detail in production | T C | Not tamper-evident (a database admin could edit rows) |
+| V16 Logging & error handling | `audit_log` for admin writes; `security_events` for every 401/403/429 and sign-in (SEC-006); detection rules R1–R9 alert the platform admin (D5 b); error handler hides detail in production | T C | Not tamper-evident (a database admin could edit rows) |
 | V17 WebRTC | Not used | — | n/a |
 
 ## NIST CSF 2.0 functions

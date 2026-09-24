@@ -289,8 +289,8 @@ const SchoolAdminsPage = (() => {
         ${a.id ? '' : `
         <div class="form-group">
           <label>Initial Password</label>
-          <input type="text" id="sa-password" placeholder="Leave blank for default: changeme123">
-          <div style="font-size:11px;color:var(--text3);margin-top:4px">The admin should change this after first login.</div>
+          <input type="text" id="sa-password" placeholder="Leave blank to generate a temporary password">
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">Temporary either way — they choose their own at first sign-in.</div>
         </div>`}
       </div>`;
   }
@@ -342,10 +342,11 @@ const SchoolAdminsPage = (() => {
     const btn = document.getElementById('sa-submit');
     btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Creating...';
     try {
-      await API.createSchoolAdmin(d);
+      const res = await API.createSchoolAdmin(d);
       Modal.close();
       showToast('School admin created');
       await load(); App.render();
+      if (res && res.temporary_password) TempPassword.show(d.full_name, res.temporary_password);
     } catch (e) {
       showToast(e.error || 'Could not create school admin');
       btn.disabled = false; btn.innerHTML = '<i class="ti ti-user-plus"></i> Create';
@@ -373,12 +374,13 @@ const SchoolAdminsPage = (() => {
   async function resetPassword(id) {
     const a = admins.find(x => x.id === id);
     if (!a) return;
-    const pw = prompt(`Set a new password for ${a.full_name} (min 8 characters). They will be asked to choose their own at next sign-in, and signed out everywhere now:`);
+    const pw = prompt(`New temporary password for ${a.full_name} — or leave it blank and one will be generated. They choose their own at next sign-in, and are signed out everywhere now:`);
     if (pw === null) return;
-    if (pw.trim().length < 8) { showToast('Password must be at least 8 characters'); return; }
+    if (pw.trim() && pw.trim().length < 8) { showToast('Password must be at least 8 characters'); return; }
     try {
-      await API.resetSchoolAdminPassword(id, pw.trim());
-      showToast('Password reset');
+      const res = await API.resetSchoolAdminPassword(id, pw.trim() || undefined);
+      if (res && res.password) TempPassword.show(a.full_name, res.password);
+      else showToast('Password reset');
     } catch (e) { showToast(e.error || 'Could not reset password'); }
   }
 

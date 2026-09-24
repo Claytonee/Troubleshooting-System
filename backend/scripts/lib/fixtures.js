@@ -132,4 +132,27 @@ async function cleanup() {
   return { removed: ids.length };
 }
 
-module.exports = { ensure, cleanup, PREFIX, PASSWORD };
+/**
+ * A platform admin of the suite's own. Suites used to sign in as the seeded
+ * `admin` with its published password — which sign-in now refuses (SEC-016) —
+ * and one suite overwrote the real admin's password for the duration of the run.
+ */
+async function ensurePlatformAdmin() {
+  const username = PREFIX + 'admin';
+  const id = await upsertUser({ username, email: username + '@verify.local', full_name: 'Verify Platform Admin', role: 'admin', school_id: null });
+  return { id, username, password: PASSWORD };
+}
+
+/**
+ * A field engineer with NO schools assigned. Scope checks against it are exact:
+ * everything it can see beyond nothing is a leak. Suites used to borrow a seeded
+ * engineer with the published password and, when that failed, skip the check.
+ */
+async function ensureFieldEngineer() {
+  const username = PREFIX + 'field';
+  const id = await upsertUser({ username, email: username + '@verify.local', full_name: 'Verify Field Engineer', role: 'subadmin', school_id: null });
+  await pool.query('UPDATE schools SET assigned_admin_id = NULL WHERE assigned_admin_id = ?', [id]);
+  return { id, username, password: PASSWORD };
+}
+
+module.exports = { ensure, ensurePlatformAdmin, ensureFieldEngineer, cleanup, PREFIX, PASSWORD };

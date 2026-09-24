@@ -823,3 +823,44 @@ const PasswordField = (() => {
 
   return { init, enhance, enhanceAll };
 })();
+
+/**
+ * A temporary password, shown ONCE to the admin who created or reset an account
+ * (SEC-016, DECISIONS.md D29). It used to be a seven-second toast — easy to miss,
+ * and the only copy. Now a dialog that stays until dismissed, with a copy button.
+ * No inline handlers (D24): [data-copy] and [data-modal-close] are delegated below.
+ */
+const TempPassword = (() => {
+  function show(name, password) {
+    const body = `
+      <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px">
+        Give this to <b style="color:var(--text)">${esc(name)}</b>. It is shown only now. At their first sign-in
+        they must choose their own, and every earlier session of theirs has ended.
+      </div>
+      <table style="width:100%;border-collapse:separate;border-spacing:0;background:var(--bg3);border-radius:10px;border:1px solid var(--border);overflow:hidden">
+        <tr>
+          <td style="padding:12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)">
+            <i class="ti ti-key" style="font-size:13px;color:var(--amber)"></i>Temporary password</span></td>
+          <td style="padding:12px;font-family:var(--font-mono);font-size:16px;font-weight:600;letter-spacing:1px;color:var(--text)" data-temp-password>${esc(password)}</td>
+        </tr>
+      </table>`;
+    const footer = `
+      <button type="button" data-copy="${esc(password)}" style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-copy" style="font-size:13px"></i> Copy</button>
+      <button type="button" data-modal-close style="padding:8px 16px;font-size:12px;background:rgba(54,217,204,.12);color:var(--teal);border:1px solid rgba(54,217,204,.25);border-radius:8px;cursor:pointer">Done</button>`;
+    Modal.open('Temporary password', body, footer);
+  }
+
+  document.addEventListener('click', (e) => {
+    const c = e.target.closest && e.target.closest('[data-copy]');
+    if (c) {
+      const text = c.getAttribute('data-copy');
+      const done = () => showToast('Copied');
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => showToast('Select the password and copy it'));
+      else showToast('Select the password and copy it');
+      return;
+    }
+    if (e.target.closest && e.target.closest('[data-modal-close]')) Modal.close();
+  });
+
+  return { show };
+})();

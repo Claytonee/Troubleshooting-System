@@ -9,6 +9,7 @@
  */
 require('dotenv').config({ path: '.env' });
 const pool = require('../src/config/database');
+const fixtures = require('./lib/fixtures');
 
 const BASE = process.env.VERIFY_BASE || 'http://localhost:3100';
 const MARK = 'VISIT-TEST';
@@ -54,9 +55,11 @@ async function cleanup() {
     "SELECT IS_NULLABLE n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='errors' AND COLUMN_NAME='visit_id'");
   check('schema: errors.visit_id exists and is nullable', col.length === 1 && col[0].n === 'YES');
 
+  // A platform admin of the suite's own, not the seeded one with its published password (SEC-016).
+  const pa = await fixtures.ensurePlatformAdmin();
   const login = await fetch(BASE + '/api/auth/login', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+    body: JSON.stringify({ username: pa.username, password: pa.password })
   }).then(r => r.json());
   if (!login.token) { console.error('  login failed'); process.exit(1); }
   H = { Authorization: 'Bearer ' + login.token };
@@ -209,12 +212,15 @@ async function cleanup() {
   check('update: rejects an unknown status', badStatus.status === 400, badStatus.body.error);
 
   // --- access control ---
-  const [subs] = await pool.query("SELECT id, username FROM users WHERE role = 'subadmin' LIMIT 1");
-  if (subs.length) {
+  // A field engineer of the suite's own with no schools (SEC-016): the check always runs.
+  const fe = await fixtures.ensureFieldEngineer();
+  const subs = [{ id: fe.id, username: fe.username }];
+  {
     const subLogin = await fetch(BASE + '/api/auth/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: subs[0].username, password: 'admin123' })
+      body: JSON.stringify({ username: fe.username, password: fe.password })
     }).then(r => r.json());
+    check('scope: the fixture field engineer can sign in', !!subLogin.token);
     if (subLogin.token) {
       const subH = { Authorization: 'Bearer ' + subLogin.token };
       const [[owned]] = await pool.query(
@@ -228,8 +234,8 @@ async function cleanup() {
       check('scope: suggestions for another engineer\'s school are refused',
         isTheirs ? notMine.status === 200 : notMine.status === 403,
         isTheirs ? 'school A is theirs (200 expected)' : 'HTTP ' + notMine.status);
-    } else { console.log('  SKIP  sub-admin scope (could not sign in)'); }
-  } else { console.log('  SKIP  sub-admin scope (no sub-admin in this database)'); }
+    }
+  }
 
   // A throwaway school-role account, so this is a real 403 from the real
   // middleware rather than a skipped assertion. Removed below.
@@ -277,6 +283,7 @@ async function cleanup() {
   const [[tt]] = await pool.query('SELECT COUNT(*) n FROM tablets');
   console.log(`    errors=${e.n} visits=${vv.n} tablets=${tt.n}`);
 
+  await fixtures.cleanup();
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed');
   await pool.end();
   process.exit(fail ? 1 : 0);
