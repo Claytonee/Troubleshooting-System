@@ -6,6 +6,7 @@ Engineering records for making the Technical Support System measurably safer. St
 | File | What it holds |
 |---|---|
 | [SESSION_HANDOFF.md](SESSION_HANDOFF.md) | Current phase, open work, decisions pending, exact next action |
+| [DECISIONS.md](DECISIONS.md) | Decisions taken, why, and when to revisit them |
 | [ISSUE_REGISTER.md](ISSUE_REGISTER.md) | Every finding: evidence, root cause, fix, regression test |
 | [THREAT_MODEL.md](THREAT_MODEL.md) | Assets, actors, request path, trust boundaries, what is impossible |
 | [SECURITY_BASELINE.md](SECURITY_BASELINE.md) | Controls that exist, mapped to ASVS 5.0 and NIST CSF 2.0 |

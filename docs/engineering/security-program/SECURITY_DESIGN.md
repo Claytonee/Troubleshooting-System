@@ -1,6 +1,6 @@
 # Security Center — design proposal (phase 2)
 
-**Status: proposal. Nothing here is built.** Phase 1 (2026-09-24) fixed the confirmed
+**Status: designed and decided (DECISIONS.md), not yet built.** Phase 1 (2026-09-24) fixed the confirmed
 authorisation and XSS findings and shipped the explanatory Security Overview page. This is what
 turns "attacks are slowed" into "attacks are seen, and someone is told".
 
@@ -69,11 +69,10 @@ Bedrock is already configured. It may summarise an incident's events on demand, 
 structured fields only (no request bodies — they are attacker-controlled text). It recommends;
 it never blocks. Enforcement works unchanged if the AI is down.
 
-## Decisions that need the owner's approval
+## Decisions
 
-1. Turning on `security_events` in production (new table, ~negligible load).
-2. Any automatic block, even temporary — and its thresholds.
-3. SEC-005 token versioning (signs everyone out once).
-4. SEC-007 TOTP for platform admin.
-5. SEC-010 lower attachment cap.
-6. Where alerts go (which email, which phone) — SMTP is not configured on production.
+Taken on 2026-09-24 under the owner's delegation. Each is recorded, with its reasoning, in
+[DECISIONS.md](DECISIONS.md): ship phase 1 (D1); record events (D2); token versioning
+**without** a mass sign-out (D3); TOTP rather than SMS for platform admin (D4); **no automatic
+blocking** until proxy attribution is verified and 30 days of alert-only data exist (D5); bell
+first, email and SMS when configured (D6); 15 MB attachments (D7).

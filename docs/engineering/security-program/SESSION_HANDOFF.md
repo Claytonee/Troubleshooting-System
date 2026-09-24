@@ -15,21 +15,22 @@ approved or closed.
   own origin), rings for the layers, live deployment checks, the review table, honest limits.
 - Six suites made to honour `VERIFY_BASE`.
 
-### Open, in the order I would take them
-1. **SEC-006 security events** (SECURITY_DESIGN.md §1) — everything in detection depends on it.
-2. **SEC-005 token versioning** — needs approval (signs everyone out once).
-3. **SEC-007 TOTP for platform admin** — needs approval.
-4. Verify proxy IP attribution on production (THREAT_MODEL T9) **before** any IP block.
-5. SEC-008/009/010, INT-001, TEST-001.
-6. Remove `'unsafe-inline'` from `script-src` — large (every inline handler), the long-term XSS control.
+### Open — in the order fixed by DECISIONS.md D12
+1. **D2 / SEC-006 security events** — everything in detection depends on it.
+2. **D3 / SEC-005 token versioning** — tokens without `tv` count as version 0, so there is no mass sign-out.
+3. Verify proxy IP attribution on production (THREAT_MODEL T9, D5 a) **before** any IP block.
+4. **D4 / SEC-007 TOTP for platform admin** — 14-day enrolment window, then enforced.
+5. Detection rules **alert-only**, plus alerts to the bell (D5, D6).
+6. SEC-008/009/010, INT-001, TEST-001 (D7–D9).
+7. Remove `'unsafe-inline'` from `script-src` — large (every inline handler), the long-term XSS control.
 
-### Pending decisions for the owner
-See SECURITY_DESIGN.md, "Decisions that need the owner's approval". Also: whether the
-Security Overview should be shareable outside the app (it is admin-only today).
+### Decisions
+All the pending decisions were taken on 2026-09-24 under the owner's delegation: see
+[DECISIONS.md](DECISIONS.md). Phase 1 was approved for production and pushed (D1).
 
 ### Git
 Branch `main`. Commits of this session are listed in `git log --since=2026-09-24`.
-Pushed to `origin` only (CLAUDE.md). Untracked user files in the repo root (`.pptx`, `.zip`,
+Pushed to `origin` only (CLAUDE.md), with the owner's approval (D1). Untracked user files in the repo root (`.pptx`, `.zip`,
 `.xlsx`, `presentation/`, `.codex-diagnostics/`, `AGENTS.md`) and modified `.claude/launch.json`,
 `package.json` were **not touched and not committed**.
 
