@@ -46,7 +46,7 @@ async function login(req, res, next) {
     }
 
     const [rows] = await pool.query(
-      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, password_hash, school_id, approval_status, avatar_url, bio, must_change_password, token_version FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)',
+      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, password_hash, school_id, approval_status, avatar_url, bio, must_change_password, token_version, mfa_enabled FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)',
       [username, username]
     );
 
@@ -115,18 +115,37 @@ async function login(req, res, next) {
       return res.status(403).json({ error: 'Account is deactivated.' });
     }
 
-    const token = generateToken(user);
-    res.locals.secEvent = 'auth.login_ok';
     res.locals.secUserId = user.id;
     res.locals.secRole = user.role;
 
-    let school_name = null;
-    if (user.school_id) {
-      const [schoolRows] = await pool.query('SELECT name FROM schools WHERE id = ?', [user.school_id]);
-      if (schoolRows.length) school_name = schoolRows[0].name;
+    // Two-step sign-in (SEC-007, D4): with it on, the password earns only a
+    // five-minute ticket that can do one thing — be exchanged, with a code, at
+    // POST /api/auth/mfa/verify. It is not a session and authenticate() refuses it.
+    if (user.mfa_enabled) {
+      res.locals.secEvent = 'auth.mfa_required';
+      return res.json({ mfa_required: true, mfa_ticket: mfaTicket(user) });
     }
 
-    res.json({
+    res.locals.secEvent = 'auth.login_ok';
+    res.json(await sessionPayload(user));
+  } catch (err) { next(err); }
+}
+
+/** A short-lived, single-purpose ticket: proof the password was right, nothing more. */
+function mfaTicket(user) {
+  return jwt.sign({ id: user.id, tv: user.token_version || 0, purpose: 'mfa' },
+    process.env.JWT_SECRET, { expiresIn: '5m' });
+}
+
+/** What a successful sign-in returns — the same whether it took one step or two. */
+async function sessionPayload(user) {
+  const token = generateToken(user);
+  let school_name = null;
+  if (user.school_id) {
+    const [schoolRows] = await pool.query('SELECT name FROM schools WHERE id = ?', [user.school_id]);
+    if (schoolRows.length) school_name = schoolRows[0].name;
+  }
+  return {
       token,
       user: {
         id: user.id,
@@ -143,10 +162,10 @@ async function login(req, res, next) {
         school_name,
         avatar_url: user.avatar_url || null,
         bio: user.bio || null,
-        must_change_password: !!user.must_change_password
+        must_change_password: !!user.must_change_password,
+        mfa_enabled: !!user.mfa_enabled
       }
-    });
-  } catch (err) { next(err); }
+  };
 }
 
 async function register(req, res, next) {
@@ -248,7 +267,9 @@ async function changePassword(req, res, next) {
     if (!rows.length) return res.status(404).json({ error: 'User not found.' });
     const valid = await bcrypt.compare(current_password, rows[0].password_hash);
     if (!valid) {
-      return res.status(401).json({ error: 'Current password is incorrect.' });
+      // 400, not 401: a wrong current password is a failed check, not a missing
+      // session — the client signs out on 401, which threw people out of the form.
+      return res.status(400).json({ error: 'Current password is incorrect.' });
     }
 
     const newHash = await bcrypt.hash(new_password, 12);
@@ -273,4 +294,4 @@ async function revokeAllSessions(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { login, register, getProfile, updateProfile, uploadAvatar, changePassword, revokeAllSessions };
+module.exports = { login, register, getProfile, updateProfile, uploadAvatar, changePassword, revokeAllSessions, sessionPayload, generateToken };

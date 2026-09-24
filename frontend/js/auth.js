@@ -407,18 +407,9 @@ const Auth = (() => {
 
     try {
       const data = await API.login(username, password);
-      API.setToken(data.token);
-      API.setUser(data.user);
-      if (data.user.must_change_password) {
-        showForcedPasswordChange(password);
-      } else {
-        showApp();
-        App.init();
-        // Offline.init() runs before a token exists, so warm the offline
-        // reference caches here — otherwise the report form's school list is
-        // missing the first time the network drops.
-        if (typeof Offline !== 'undefined') Offline.warm();
-      }
+      // Two-step sign-in on: the password earned a ticket, not a session (SEC-007).
+      if (data.mfa_required) { showMfaStep(data.mfa_ticket, password); return; }
+      completeSignIn(data, password);
     } catch (err) {
       if (err.error === 'pending_approval' || err.error === 'registration_rejected') {
         RegisterPage.showStatus(err.error, err.request_id, err.email, err.rejection_reason);
@@ -486,8 +477,261 @@ const Auth = (() => {
     return false;
   }
 
+  /** What happens after a successful sign-in, whether it took one step or two. */
+  function completeSignIn(data, password) {
+    API.setToken(data.token);
+    API.setUser(data.user);
+    if (data.user.must_change_password) {
+      showForcedPasswordChange(password);
+      return;
+    }
+    showApp();
+    App.init();
+    // Offline.init() runs before a token exists, so warm the offline
+    // reference caches here — otherwise the report form's school list is
+    // missing the first time the network drops.
+    if (typeof Offline !== 'undefined') Offline.warm();
+    if (typeof data.recovery_codes_left === 'number') {
+      showToast(`Signed in with a recovery code — ${data.recovery_codes_left} left. Make new ones under Two-Step Sign-In.`, 7000);
+    } else if (data.user.role === 'admin' && !data.user.mfa_enabled) {
+      // D4: the reminder before it becomes mandatory.
+      setTimeout(() => showToast('Two-step sign-in becomes required for platform admins on 8 October — set it up from your profile menu.', 7000), 1200);
+    }
+  }
+
+  // ---- Two-step sign-in (SEC-007, DECISIONS.md D4) ---------------------------
+  let mfaTicket = null, mfaPassword = null, mfaUseRecovery = false;
+
+  /** The second step of signing in: a 6-digit code, or a recovery code. */
+  function showMfaStep(ticket, password) {
+    mfaTicket = ticket; mfaPassword = password; mfaUseRecovery = false;
+    Modal.open('Two-Step Sign-In', mfaStepBody(), `
+      <button class="btn btn-secondary" onclick="Auth.cancelMfaStep()">Cancel</button>
+      <button class="btn btn-primary" id="mfa-verify-btn" onclick="Auth.submitMfaStep()"><i class="ti ti-shield-check"></i> Verify</button>`);
+    Modal.lock();
+    focusMfaInput();
+  }
+
+  function mfaStepBody() {
+    return `<div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:13px;color:var(--text2);line-height:1.6">${mfaUseRecovery
+        ? 'Enter one of the recovery codes you saved when you set up two-step sign-in. Each works once.'
+        : 'Open your authenticator app and enter the 6-digit code shown for <strong>OE Technical Support</strong>.'}</div>
+      <div class="form-group">
+        <label>${mfaUseRecovery ? 'Recovery code' : 'Code'}</label>
+        <input id="mfa-code" ${mfaUseRecovery
+          ? 'placeholder="xxxx-xxxx-xxxx" autocomplete="off" autocapitalize="off" spellcheck="false"'
+          : 'inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" autocomplete="one-time-code"'}
+          style="font-family:var(--font-mono);font-size:18px;letter-spacing:${mfaUseRecovery ? '1px' : '6px'};text-align:center"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();Auth.submitMfaStep()}">
+      </div>
+      <button type="button" class="mfa-link" onclick="Auth.toggleMfaRecovery()">${mfaUseRecovery ? 'Use a code from my app instead' : 'Lost your phone? Use a recovery code'}</button>
+    </div>`;
+  }
+
+  function focusMfaInput() { setTimeout(() => { const i = document.getElementById('mfa-code'); if (i) i.focus(); }, 60); }
+
+  function toggleMfaRecovery() {
+    mfaUseRecovery = !mfaUseRecovery;
+    const body = document.querySelector('.modal-body');
+    if (body) { body.innerHTML = mfaStepBody(); focusMfaInput(); }
+  }
+
+  async function submitMfaStep() {
+    const input = document.getElementById('mfa-code');
+    const code = input ? input.value.trim() : '';
+    if (!code) { showToast(mfaUseRecovery ? 'Enter a recovery code' : 'Enter the 6-digit code'); return; }
+    const btn = document.getElementById('mfa-verify-btn');
+    if (btn) btn.disabled = true;
+    try {
+      const data = await API.mfaVerify(mfaTicket, code);
+      Modal.unlock(); Modal.close();
+      const pw = mfaPassword;
+      mfaTicket = null; mfaPassword = null;
+      completeSignIn(data, pw);
+    } catch (e) {
+      if (e.code === 'MFA_TICKET_INVALID') {
+        cancelMfaStep();
+        showToast('That sign-in took too long — enter your password again.', 5000);
+      } else {
+        showToast(e.error || 'That code is not right.');
+        if (input) { input.value = ''; input.focus(); }
+      }
+    } finally { if (btn) btn.disabled = false; }
+  }
+
+  function cancelMfaStep() {
+    mfaTicket = null; mfaPassword = null;
+    Modal.unlock(); Modal.close();
+  }
+
+  /** Lazily fetch the vendored QR library — only this screen needs it. */
+  let qrLoading = null;
+  function loadQr() {
+    if (typeof qrcode !== 'undefined') return Promise.resolve(true);
+    if (qrLoading) return qrLoading;
+    const own = document.querySelector('script[src*="js/auth.js"]');
+    const v = own && own.getAttribute('src').match(/[?&]v=(\d+)/);
+    qrLoading = new Promise(resolve => {
+      const s = document.createElement('script');
+      s.src = 'js/vendor/qrcode.js' + (v ? '?v=' + v[1] : '');
+      s.onload = () => resolve(typeof qrcode !== 'undefined');
+      s.onerror = () => { qrLoading = null; resolve(false); };
+      document.head.appendChild(s);
+    });
+    return qrLoading;
+  }
+
+  /** The Two-Step Sign-In screen: status, setup, recovery codes, turn off. */
+  async function showMfa(opts = {}) {
+    closeProfileMenu();
+    let st;
+    try { st = await API.mfaStatus(); } catch (e) { showToast(e.error || 'Could not load two-step sign-in'); return; }
+    const forced = !!opts.forced || st.must_enrol_now;
+    const when = st.required_from ? new Date(st.required_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Dar_es_Salaam' }) : '';
+    let body, footer;
+    if (!st.enabled) {
+      body = `<div style="display:flex;flex-direction:column;gap:14px">
+        ${forced ? `<div class="mfa-note amber"><i class="ti ti-shield-lock"></i>Two-step sign-in is required for platform admins${when ? ' since ' + esc(when) : ''}. Set it up to continue.</div>` : ''}
+        <div style="font-size:13px;color:var(--text2);line-height:1.65">After your password, you will also enter a 6-digit code from an
+          authenticator app on your phone (Google Authenticator, Microsoft Authenticator, Authy…). A stolen password on its own is then
+          not enough to get in.${st.required_for_role && !forced && when ? ` <strong>Required for platform admins from ${esc(when)}.</strong>` : ''}</div>
+        <div class="mfa-note"><i class="ti ti-info-circle"></i>No SMS codes: a stolen or swapped SIM card would defeat them.</div>
+      </div>`;
+      footer = `${forced ? '' : '<button class="btn btn-secondary" onclick="Modal.close()">Not now</button>'}
+        <button class="btn btn-primary" onclick="Auth.startMfaSetup(${forced})"><i class="ti ti-qrcode"></i> Set up</button>`;
+    } else {
+      const since = st.enrolled_at ? new Date(st.enrolled_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Dar_es_Salaam' }) : '';
+      body = `<div style="display:flex;flex-direction:column;gap:14px">
+        <div class="mfa-note green"><i class="ti ti-shield-check"></i>Two-step sign-in is on${since ? ' since ' + esc(since) : ''}.</div>
+        <div style="font-size:13px;color:var(--text2)">Recovery codes left: <strong style="color:${st.recovery_codes_left < 3 ? 'var(--red)' : 'var(--text)'}">${st.recovery_codes_left}</strong> of 10.
+          ${st.recovery_codes_left < 3 ? ' Make new ones now — when they run out, a lost phone locks you out.' : ''}</div>
+        <div class="form-group"><label>Current code from your app</label>
+          <input id="mfa-manage-code" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code" style="font-family:var(--font-mono);letter-spacing:4px"></div>
+        ${st.required_for_role ? '' : `<div class="form-group"><label>Password (only to turn it off)</label><input type="password" id="mfa-manage-pw" autocomplete="current-password"></div>`}
+      </div>`;
+      footer = `${st.required_for_role ? '' : '<button class="btn btn-secondary" onclick="Auth.disableMfa()" style="color:var(--red)">Turn off</button>'}
+        <button class="btn btn-primary" onclick="Auth.regenerateRecovery()"><i class="ti ti-refresh"></i> New recovery codes</button>`;
+    }
+    Modal.open('Two-Step Sign-In', body, footer);
+    if (forced) Modal.lock();
+  }
+
+  async function startMfaSetup(forced) {
+    let s;
+    try { s = await API.mfaSetup(); } catch (e) { showToast(e.error || 'Could not start the setup'); return; }
+    const qrOk = await loadQr();
+    let qrSvg = '';
+    if (qrOk) {
+      const q = qrcode(0, 'M'); q.addData(s.otpauth); q.make();
+      qrSvg = q.createSvgTag({ cellSize: 5, margin: 3, scalable: true });
+    }
+    const grouped = String(s.secret).replace(/(.{4})/g, '$1 ').trim();
+    const body = `<div class="mfa-setup">
+      <div class="mfa-steps">
+        <div><span>1</span>Open your authenticator app and add an account.</div>
+        <div><span>2</span>Scan this code${qrOk ? '' : ' (the QR image could not load — use the key below)'}, or type the key.</div>
+        <div><span>3</span>Enter the 6-digit code it shows.</div>
+      </div>
+      ${qrOk ? `<div class="mfa-qr">${qrSvg}</div>` : ''}
+      <div class="mfa-key"><label>Key</label><code>${esc(grouped)}</code></div>
+      <div class="form-group"><label>Code from the app</label>
+        <input id="mfa-setup-code" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code"
+          style="font-family:var(--font-mono);font-size:18px;letter-spacing:6px;text-align:center"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();Auth.confirmMfaSetup(${!!forced})}"></div>
+    </div>`;
+    Modal.unlock();
+    Modal.open('Set Up Two-Step Sign-In', body, `
+      ${forced ? '' : '<button class="btn btn-secondary" onclick="Modal.close()">Cancel</button>'}
+      <button class="btn btn-primary" onclick="Auth.confirmMfaSetup(${!!forced})"><i class="ti ti-check"></i> Confirm</button>`);
+    if (forced) Modal.lock();
+    setTimeout(() => { const i = document.getElementById('mfa-setup-code'); if (i) i.focus(); }, 60);
+  }
+
+  async function confirmMfaSetup(forced) {
+    const code = (document.getElementById('mfa-setup-code') || {}).value || '';
+    if (!/^\d{6}$/.test(code.trim())) { showToast('Enter the 6-digit code from the app'); return; }
+    try {
+      const r = await API.mfaEnable(code.trim());
+      if (r.token) API.setToken(r.token);
+      const u = API.getUser(); if (u) { u.mfa_enabled = true; API.setUser(u); }
+      showRecoveryCodes(r.recovery_codes, forced);
+    } catch (e) { showToast(e.error || 'That code is not right'); }
+  }
+
+  let shownCodes = [];
+  function showRecoveryCodes(codes, forced) {
+    shownCodes = codes || [];
+    Modal.unlock();
+    Modal.open('Save Your Recovery Codes', `<div style="display:flex;flex-direction:column;gap:12px">
+      <div class="mfa-note amber"><i class="ti ti-alert-triangle"></i>Each code gets you in once if you lose your phone. They will not be shown again — save them somewhere safe, away from the phone.</div>
+      <div class="mfa-codes">${shownCodes.map(c => `<code>${esc(c)}</code>`).join('')}</div>
+      <div style="font-size:12px;color:var(--text3)">Other devices were signed out when two-step sign-in was turned on.</div>
+    </div>`, `
+      <button class="btn btn-secondary" onclick="Auth.copyRecovery()"><i class="ti ti-copy"></i> Copy</button>
+      <button class="btn btn-secondary" onclick="Auth.downloadRecovery()"><i class="ti ti-download"></i> Download</button>
+      <button class="btn btn-primary" onclick="Auth.finishMfa(${!!forced})"><i class="ti ti-check"></i> I saved them</button>`);
+    Modal.lock();
+  }
+
+  function recoveryText() {
+    return 'OE Technical Support — two-step sign-in recovery codes\n'
+      + `Account: ${(API.getUser() || {}).username || ''}\nCreated: ${new Date().toLocaleString('en-GB')}\n\n`
+      + shownCodes.join('\n') + '\n\nEach code works once. Keep this away from your phone.\n';
+  }
+
+  function copyRecovery() {
+    const ta = document.createElement('textarea');
+    ta.value = recoveryText(); ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+    ta.remove();
+    showToast(ok ? 'Recovery codes copied' : 'Copy failed — use Download instead');
+  }
+
+  function downloadRecovery() {
+    downloadBlob(new Blob([recoveryText()], { type: 'text/plain;charset=utf-8' }), 'oe-support-recovery-codes.txt');
+  }
+
+  function finishMfa(forced) {
+    shownCodes = [];
+    Modal.unlock(); Modal.close();
+    showToast('Two-step sign-in is on', 4000);
+    // An admin blocked by enforcement can now use the app.
+    if (forced && typeof App !== 'undefined') App.loadAndRender();
+  }
+
+  async function regenerateRecovery() {
+    const code = (document.getElementById('mfa-manage-code') || {}).value || '';
+    if (!/^\d{6}$/.test(code.trim())) { showToast('Enter a current 6-digit code first'); return; }
+    try {
+      const r = await API.mfaRecoveryCodes(code.trim());
+      showRecoveryCodes(r.recovery_codes, false);
+    } catch (e) { showToast(e.error || 'Could not make new codes'); }
+  }
+
+  async function disableMfa() {
+    const code = (document.getElementById('mfa-manage-code') || {}).value || '';
+    const pw = (document.getElementById('mfa-manage-pw') || {}).value || '';
+    if (!pw || !code.trim()) { showToast('Your password and a current code are both needed'); return; }
+    if (!confirm('Turn off two-step sign-in? Your password alone will then be enough to sign in.')) return;
+    try {
+      const r = await API.mfaDisable(pw, code.trim());
+      if (r.token) API.setToken(r.token);
+      const u = API.getUser(); if (u) { u.mfa_enabled = false; API.setUser(u); }
+      Modal.close();
+      showToast('Two-step sign-in is off. Other devices were signed out.', 5000);
+    } catch (e) { showToast(e.error || 'Could not turn it off'); }
+  }
+
   function init() {
     $('login-form').addEventListener('submit', handleLogin);
+    // The server refused a request because this platform admin must enrol first (D4).
+    window.addEventListener('mfa:required', () => {
+      if (document.querySelector('.mfa-setup') || document.querySelector('.mfa-codes')) return;
+      showMfa({ forced: true });
+    });
     window.addEventListener('auth:expired', () => {
       const regPage = document.getElementById('register-page');
       if (regPage && regPage.style.display !== 'none') return;
@@ -509,5 +753,5 @@ const Auth = (() => {
     PasswordField.enhanceAll($('register-content'));
   }
 
-  return { init, showLogin, showApp, logout, signOutEverywhere, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, showForcedPasswordChange, submitForcedPasswordChange, goRegister, _switchToEditProfile, _saveProfile, _onAvatarFile };
+  return { init, showLogin, showApp, logout, signOutEverywhere, showMfa, startMfaSetup, confirmMfaSetup, submitMfaStep, cancelMfaStep, toggleMfaRecovery, copyRecovery, downloadRecovery, finishMfa, regenerateRecovery, disableMfa, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, showForcedPasswordChange, submitForcedPasswordChange, goRegister, _switchToEditProfile, _saveProfile, _onAvatarFile };
 })();

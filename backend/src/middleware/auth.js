@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/database');
+const mfaPolicy = require('../services/mfaPolicy');
 
 async function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -11,11 +12,16 @@ async function authenticate(req, res, next) {
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // A two-step sign-in ticket proves only the password; it is never a session.
+    if (decoded.purpose) {
+      res.locals.secDetail = { reason: 'ticket_not_a_session' };
+      return res.status(401).json({ error: 'Invalid token.' });
+    }
     // The inventory grant lives on the teacher's own row, not on users, and is
     // read on every request on purpose: a school admin who revokes it must have
     // that take effect immediately, not at the delegate's next login.
     const [rows] = await pool.query(
-      `SELECT u.id, u.username, u.full_name, u.role, u.zone, u.school_id, u.status, u.approval_status, u.token_version,
+      `SELECT u.id, u.username, u.full_name, u.role, u.zone, u.school_id, u.status, u.approval_status, u.token_version, u.mfa_enabled,
               COALESCE(t.can_manage_inventory, 0) AS can_manage_inventory
          FROM users u
          LEFT JOIN teachers t ON t.user_id = u.id
@@ -43,6 +49,13 @@ async function authenticate(req, res, next) {
     }
     if (rows[0].approval_status === 'rejected') {
       return res.status(403).json({ error: 'Account registration was rejected.', code: 'REJECTED' });
+    }
+    // A platform admin past the enrolment date without two-step sign-in can reach
+    // only the enrolment endpoints (D4); the app opens the setup screen on this code.
+    if (mfaPolicy.mustEnrolNow(rows[0]) && !mfaPolicy.isEnrolmentPath(req.originalUrl)) {
+      res.locals.secRule = 'mfa_enrolment';
+      res.locals.secUserId = rows[0].id;
+      return res.status(403).json({ error: 'Set up two-step sign-in to continue.', code: 'MFA_ENROLLMENT_REQUIRED' });
     }
     req.user = rows[0];
     next();

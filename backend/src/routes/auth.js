@@ -34,6 +34,32 @@ router.post('/register', [
 ], authController.register);
 
 router.get('/profile', authenticate, authController.getProfile);
+// Two-step sign-in (SEC-007, D4). /verify is public — it is the second step of
+// signing in — and carries its own throttle: 10 attempts per account per 15
+// minutes in production against a million possible codes.
+const rateLimit = require('express-rate-limit');
+const mfaController = require('../controllers/mfaController');
+const mfaVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 10 : 100,
+  keyGenerator: (req) => {
+    // Keyed by the account inside the ticket (read without verifying: a fairness
+    // key, not a decision — verify() checks the signature), else by address.
+    try {
+      const p = JSON.parse(Buffer.from(String(req.body.ticket || '').split('.')[1], 'base64url').toString('utf8'));
+      if (p && p.id) return 'mfa-u' + p.id;
+    } catch (e) { /* fall through */ }
+    return 'mfa-ip' + (req.ip || 'unknown');
+  },
+  message: { error: 'Too many codes tried. Wait fifteen minutes and sign in again.' }
+});
+router.post('/mfa/verify', mfaVerifyLimiter, mfaController.verify);
+router.get('/mfa', authenticate, mfaController.status);
+router.post('/mfa/setup', authenticate, mfaController.setup);
+router.post('/mfa/enable', authenticate, mfaController.enable);
+router.post('/mfa/recovery-codes', authenticate, mfaController.regenerateRecovery);
+router.post('/mfa/disable', authenticate, mfaController.disable);
+
 // Sign this account out on every device (SEC-005).
 router.post('/sessions/revoke-all', authenticate, authController.revokeAllSessions);
 router.put('/profile', authenticate, authController.updateProfile);

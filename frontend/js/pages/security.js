@@ -38,7 +38,7 @@ const SecurityPage = (() => {
       tech: 'HTTPS only — plain HTTP is redirected in production; HSTS for one year; Let\'s Encrypt certificate on the host.' },
     { icon: 'ti-key', color: 'var(--purple)', title: 'Personal sign-in', status: 'in', evidence: 'code',
       plain: 'Every person has their own account. Passwords are stored scrambled one way, so nobody — head office included — can read them back. Repeated guessing is slowed down automatically.',
-      tech: 'bcrypt hashes (cost 10–12). Per 15 minutes: 20 attempts per account from one network, 60 per account from anywhere, 120 per network — all tested, and every throttled attempt recorded.' },
+      tech: 'bcrypt hashes (cost 10–12). Two-step sign-in (authenticator app, RFC 6238) — required for platform admins from 8 October 2026, open to everyone. Throttles per 15 minutes: 20 per account per network, 60 per account, 120 per network — all tested.' },
     { icon: 'ti-clock-shield', color: 'var(--teal)', title: 'Sessions', status: 'in', evidence: 'tested',
       plain: 'After sign-in the browser holds a signed pass that expires after 7 days. Changing a password signs out every other device; anyone can sign out everywhere from their profile menu; a suspended account stays signed out even when it is reactivated.',
       tech: 'Signed JWT carrying the account\'s session version, re-checked on every request (SEC-005, 19 tested assertions). Remaining gap: the pass is kept in browser storage, so escaping everything rendered stays essential.' },
@@ -76,8 +76,8 @@ const SecurityPage = (() => {
     constraint: { label: 'Constraint — handled by design', color: 'var(--teal)', bg: 'rgba(54,217,204,.12)' }
   };
   const LIMITS = [
-    { kind: 'planned', title: 'No second sign-in factor yet.',
-      text: 'A stolen platform admin password is enough to sign in today. Next: a code from an authenticator app for the platform admin — not SMS, which a stolen SIM defeats.' },
+    { kind: 'partial', title: 'Two-step sign-in is ready; platform admins must use it from 8 October 2026.',
+      text: 'A code from an authenticator app after the password — not SMS, which a stolen SIM defeats. Until each platform admin has enrolled, a stolen admin password is still enough on its own.' },
     { kind: 'partial', title: 'Attacks are recorded, not yet alerted on.',
       text: 'Every refusal has been kept as evidence since 24 September 2026. Rules that recognise an attack and alert head office come next.' },
     { kind: 'impossible', title: 'No website can see a device\'s hardware (MAC) address.',
@@ -98,7 +98,7 @@ const SecurityPage = (() => {
   const STANDARDS = [
     { name: 'NIST CSF 2.0 — Govern', status: 'in', note: 'A written security policy is adopted: one accountable owner (the platform admin), access rules, change control and a quarterly access review.' },
     { name: 'NIST CSF 2.0 — Identify', status: 'in', note: 'Every endpoint, role, threat and item of personal data is inventoried — and a test fails if the endpoint list drifts from the code.' },
-    { name: 'NIST CSF 2.0 — Protect', status: 'in', note: 'Access control, encryption, input and output safety, signed integrations. Next: a second sign-in factor.' },
+    { name: 'NIST CSF 2.0 — Protect', status: 'in', note: 'Access control, two-step sign-in, encryption, input and output safety, signed integrations.' },
     { name: 'NIST CSF 2.0 — Detect', status: 'partial', note: 'Every refusal is recorded since 24 September 2026. Nothing raises an alert on it yet — detection rules come next.' },
     { name: 'NIST CSF 2.0 — Respond', status: 'partial', note: 'Incident runbook adopted, including when to tell the Data Protection Commission. First rehearsal due within 30 days.' },
     { name: 'NIST CSF 2.0 — Recover', status: 'partial', note: 'Targets set: data at most 24 hours old, service back within 4 hours. The restore drill is proven on a copy; the first drill on a production backup is due.' },
@@ -115,6 +115,7 @@ const SecurityPage = (() => {
     whatsapp_signature_set: 'WhatsApp messages require a signature',
     phone_intake_key_set: 'SMS / USSD callbacks require a key',
     database_url_absent: 'Database target set only by DB_* variables',
+    platform_admin_two_step: 'Every platform admin uses two-step sign-in',
     email_alerts_configured: 'Email configured for notifications'
   };
 
@@ -168,7 +169,7 @@ const SecurityPage = (() => {
       </div>
       <div class="stat-card ${rc.open.length ? 'a' : 'g'}">
         <div class="stat-label">Latest review</div>
-        <div class="stat-val" style="color:var(--amber)">${rc.fixed}<span class="sec-stat-of">/${rc.total}</span></div>
+        <div class="stat-val" style="color:${rc.open.length ? 'var(--amber)' : 'var(--green)'}">${rc.fixed}<span class="sec-stat-of">/${rc.total}</span></div>
         <div class="stat-sub">findings fixed · ${data ? esc(fmtDay(data.review.date)) : '—'}</div>
       </div>
       <div class="stat-card ${dp > 0 ? 'r' : 't'}">
@@ -190,6 +191,17 @@ const SecurityPage = (() => {
       return `<div class="alert-banner"><i class="ti ti-alert-triangle"></i>
         <div class="alert-banner-text"><strong>${dp} active account${dp === 1 ? '' : 's'} still accept${dp === 1 ? 's' : ''} the default password.</strong>
         Anyone who knows the default can sign in as them. Reset those passwords from Sub-Admins or School Admins.</div></div>`;
+    }
+    // D4: a platform admin without two-step sign-in, before (or after) the deadline.
+    const m = data.mfa;
+    if (m && m.admins_active > m.admins_enrolled) {
+      // Dar es Salaam time: the deadline is midnight there, 21:00 UTC the day before.
+      const when = new Date(m.required_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Dar_es_Salaam' });
+      const missing = m.admins_active - m.admins_enrolled;
+      return `<div class="alert-banner" style="background:rgba(245,166,35,.08);border-color:rgba(245,166,35,.25)"><i class="ti ti-shield-lock" style="color:var(--amber)"></i>
+        <div class="alert-banner-text"><strong style="color:var(--amber)">${missing} platform admin${missing === 1 ? ' has' : 's have'} not set up two-step sign-in.</strong>
+        It is required from ${esc(when)}; after that, their sign-in will open only the setup screen.</div>
+        <button class="sec-btn" onclick="Auth.showMfa()"><i class="ti ti-qrcode"></i>Set up mine</button></div>`;
     }
     return '';
   }

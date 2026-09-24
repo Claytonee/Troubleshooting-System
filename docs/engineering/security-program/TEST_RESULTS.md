@@ -134,3 +134,14 @@ still refused after reactivation, and the suite signs in again.
 | nodemailer 10 smoke test (`jsonTransport`) | sendMail builds and addresses the message correctly |
 | Secret scan, tracked files + full history | clean (one documentation placeholder) |
 | `.env` ever committed | never; only `.env.example` |
+
+## SEC-007 — two-step sign-in (2026-09-24)
+
+| Check | Result |
+|---|---|
+| RFC 6238 appendix-B vectors (SHA-1, 8 digits) | **6 / 6** |
+| `verify-mfa.js` | **36 / 36**: policy as a pure function; secret encrypted at rest; wrong code doesn't enable; enabling ends other sessions; password alone → ticket only; ticket isn't a session; codes and recovery codes work once; a session token isn't a ticket; admin can't disable; teacher opt-in and opt-out with password + code; all six event types recorded |
+| Browser, end to end | enrolled via the menu (QR + key + code), recovery codes shown once in a locked screen; sign-out; password → code step; wrong code refused **without** signing out; right code (computed in the page with WebCrypto, at human speed) signed in |
+| A code computed ~4.5 min before submission | refused: expired, as intended. That's how the test harness's latency showed up; the flow itself is fine |
+| Banner date | first showed "7 October" (UTC formatting of a midnight-EAT deadline); now formatted in Africa/Dar_es_Salaam → "8 October 2026" |
+| `scripts/mfa-reset.js` (break-glass) | without `--yes`: refuses (exit 2). With it: two-step off, secret and recovery hashes wiped, token_version 1 to 2 (every session ended), audit row `auth.mfa_reset_break_glass` written; a second run changes nothing; password-only sign-in works again |

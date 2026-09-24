@@ -38,6 +38,12 @@ const SEVERITY = {
   'auth.login_refused': 'low',        // pending, rejected or deactivated account
   'auth.login_ok': 'info',
   'auth.sessions_revoked': 'info',    // password change/reset, suspension, sign out everywhere
+  'auth.mfa_required': 'info',        // password right; second step asked for
+  'auth.mfa_ok': 'info',
+  'auth.mfa_failed': 'medium',        // wrong code — at sign-in, enrolment or disable
+  'auth.mfa_recovery_used': 'medium', // a one-time recovery code was spent
+  'auth.mfa_enabled': 'info',
+  'auth.mfa_disabled': 'medium',
   'auth.token_rejected': 'low',       // no, bad or expired token; inactive account
   'auth.account_state': 'low',        // pending/rejected account used a token
   'authz.role_refused': 'medium',

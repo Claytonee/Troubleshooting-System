@@ -63,10 +63,16 @@ const API = (() => {
     const cachedAt = res.headers.get('X-OE-Cached-At');
     if (cachedAt) _cachedAt.set(path, cachedAt); else if (res.ok) _cachedAt.delete(path);
 
-    if (res.status === 401 && !path.includes('/auth/login')) {
+    // A 401 from signing in (a wrong password, a wrong two-step code) is an
+    // answer, not an expired session: it must not sign anybody out.
+    if (res.status === 401 && !path.includes('/auth/login') && !path.includes('/auth/mfa/verify')) {
       clearToken();
       clearUser();
       window.dispatchEvent(new CustomEvent('auth:expired'));
+    }
+    // A platform admin past the enrolment date must set up two-step sign-in first (D4).
+    if (res.status === 403 && data && data.code === 'MFA_ENROLLMENT_REQUIRED') {
+      window.dispatchEvent(new CustomEvent('mfa:required'));
     }
     if (!res.ok) throw { status: res.status, ...data };
     return data;
@@ -105,6 +111,13 @@ const API = (() => {
     },
     changePassword: (data) => request('PUT', '/auth/change-password', data),
     revokeAllSessions: () => request('POST', '/auth/sessions/revoke-all'),
+    // Two-step sign-in (SEC-007)
+    mfaVerify: (ticket, code) => request('POST', '/auth/mfa/verify', { ticket, code }),
+    mfaStatus: () => request('GET', '/auth/mfa'),
+    mfaSetup: () => request('POST', '/auth/mfa/setup'),
+    mfaEnable: (code) => request('POST', '/auth/mfa/enable', { code }),
+    mfaRecoveryCodes: (code) => request('POST', '/auth/mfa/recovery-codes', { code }),
+    mfaDisable: (password, code) => request('POST', '/auth/mfa/disable', { password, code }),
     getDashboard: () => request('GET', '/dashboard'),
     getSchools: () => request('GET', '/schools'),
     getSchool: (id) => request('GET', `/schools/${id}`),

@@ -539,6 +539,16 @@ async function applyExtensions(db) {
   await q('ALTER TABLE teachers ADD COLUMN status_token VARCHAR(64) NULL');
   await q('CREATE INDEX idx_teachers_status_token ON teachers (status_token)');
 
+  // --- Two-step sign-in (SEC-007, DECISIONS.md D4) ---
+  // Secrets are AES-256-GCM ciphertext (services/totp.js), never plaintext. Recovery
+  // codes are SHA-256 hashes. mfa_last_step makes each code work once.
+  await q('ALTER TABLE users ADD COLUMN mfa_enabled TINYINT(1) NOT NULL DEFAULT 0');
+  await q('ALTER TABLE users ADD COLUMN mfa_secret_enc TEXT NULL');
+  await q('ALTER TABLE users ADD COLUMN mfa_pending_enc TEXT NULL');
+  await q('ALTER TABLE users ADD COLUMN mfa_last_step BIGINT NULL');
+  await q('ALTER TABLE users ADD COLUMN mfa_recovery TEXT NULL');
+  await q('ALTER TABLE users ADD COLUMN mfa_enrolled_at DATETIME NULL');
+
   // --- Session revocation (SEC-005, DECISIONS.md D3) ---
   // Carried in every token as `tv`. The default 0 is also what a token without
   // `tv` counts as, so adding the column signed nobody out.

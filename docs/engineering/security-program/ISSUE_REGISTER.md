@@ -16,7 +16,7 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 | SEC-004 | P2 | **Fixed** 2026-09-24 | Check-ins, Communications | Field engineer writes for schools not assigned to them |
 | SEC-005 | P2 | **Fixed** 2026-09-24 | Auth | A JWT could not be revoked before it expired |
 | SEC-006 | P2 | **Fixed** 2026-09-24 | Auth, all | Failed sign-ins and 401/403 refusals were not recorded |
-| SEC-007 | P2 | Open | Auth | No second factor for platform admin |
+| SEC-007 | P2 | **Fixed** 2026-09-24 (enforced from 2026-10-08) | Auth | No second factor for platform admin |
 | SEC-008 | P3 | **Fixed** 2026-09-24 | Registration | Public appeal and teacher-status endpoints accepted guessable input |
 | SEC-009 | P3 | **Fixed** 2026-09-24 | Auth | Login throttle was per account **per network** only |
 | SEC-010 | P3 | **Fixed** 2026-09-24 | Faults | Attachments: 5 × 100 MB held in memory, any signed-in user |
@@ -148,10 +148,33 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
   became 1 row with count 200 in 0.84 s.
 - **Still open:** nothing raises an alert on these events yet (DECISIONS.md D5/D6).
 
-## SEC-007 — No second factor for platform admin · P2 · Open
+## SEC-007 — No second factor for platform admin · P2 · Fixed (enforced from 2026-10-08)
 
-One password protects every school's data. TOTP for the `admin` role is the proportionate
-control. Changes the sign-in flow for head office — needs approval.
+- **Was:** one password protected every school's data.
+- **Fix (D4):** two-step sign-in with TOTP (RFC 6238) on Node's crypto, and no new dependency:
+  - with it on, a correct password earns only a 5-minute single-purpose ticket, which
+    `authenticate()` refuses as a session;
+  - `POST /api/auth/mfa/verify` exchanges ticket + code for a session;
+  - each code works once (`mfa_last_step`, claimed atomically);
+  - ten one-time recovery codes are stored as SHA-256 hashes, and spending one is atomic;
+  - secrets are encrypted at rest with AES-256-GCM (`MFA_ENCRYPTION_KEY`, else derived from
+    `JWT_SECRET` with HKDF);
+  - enabling it ends every other session;
+  - the admin role cannot turn it off; other roles need password + code;
+  - from 2026-10-08 an unenrolled admin reaches only the enrolment endpoints
+    (`403 MFA_ENROLLMENT_REQUIRED`, and the app opens the setup screen);
+  - break-glass: `scripts/mfa-reset.js <username> --yes`, server console only, audited.
+- **Found on the way:** the client signed people out on **any** 401, so a wrong current
+  password in Change Password (answered 401) threw the user out mid-form. That endpoint now
+  answers 400, and the second-step endpoint's 401 no longer signs anyone out.
+- **Regression:** `verify-mfa.js`, 36 assertions: the six RFC 6238 appendix-B vectors, the
+  enforcement rule as a pure function, and the whole flow through the API. **Browser, end to
+  end:** enrolled through the real menu (QR rendered from the vendored library, key shown,
+  confirmed with a computed code, ten recovery codes shown once); signed out; the password led
+  to the code step; a wrong code was refused without signing out; the right code signed in.
+- **Operational:** set `MFA_ENCRYPTION_KEY` in the hosting panel. Otherwise rotating
+  `JWT_SECRET`, which the incident runbook requires after an admin compromise, would also
+  invalidate every enrolment.
 
 ## SEC-008 — Guessable input on public registration endpoints · P3 · Fixed
 

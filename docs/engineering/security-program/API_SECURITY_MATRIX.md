@@ -1,7 +1,7 @@
 # API security matrix
 
 Generated from the router source on 2026-09-24 (`routes/*.js` + `server.js`), then annotated by hand.
-**144 endpoints.** "Role gate" is what the router enforces; per-record school scoping lives in the
+**150 endpoints.** "Role gate" is what the router enforces; per-record school scoping lives in the
 controllers and is listed in *Notes* where it was audited or changed. Regenerate the first four columns
 rather than editing them.
 
@@ -18,6 +18,12 @@ Auth: `JWT` = `authenticate()` (signature + account status re-read per request).
 | GET | `/api/audit` | JWT | admin |  |
 | PUT | `/api/auth/change-password` | JWT | any signed-in | Ends every other session; returns a fresh token for this device (SEC-005). |
 | POST | `/api/auth/login` | — | public | Throttled: 20/account+network, 120/network per 15 min. Failures not recorded (SEC-006). |
+| GET | `/api/auth/mfa` | JWT | any signed-in | Own two-step status only. Reachable by an admin who must enrol. |
+| POST | `/api/auth/mfa/disable` | JWT | any signed-in | Refused for roles that require it (admin); others need password AND code. |
+| POST | `/api/auth/mfa/enable` | JWT | any signed-in | Needs a code; ends other sessions; returns recovery codes once. |
+| POST | `/api/auth/mfa/recovery-codes` | JWT | any signed-in | Needs a current code. |
+| POST | `/api/auth/mfa/setup` | JWT | any signed-in | New secret, stored encrypted as pending; the only time a secret leaves the server. |
+| POST | `/api/auth/mfa/verify` | — | public | Second step of sign-in: needs the 5-minute ticket from a correct password AND a code. 10 tries per account per 15 min. |
 | GET | `/api/auth/profile` | JWT | any signed-in |  |
 | PUT | `/api/auth/profile` | JWT | any signed-in |  |
 | POST | `/api/auth/profile/avatar` | JWT | any signed-in |  |

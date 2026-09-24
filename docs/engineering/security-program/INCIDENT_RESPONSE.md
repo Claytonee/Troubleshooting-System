@@ -32,11 +32,12 @@ within 30 days of adoption.
 | Situation | Contain | Then |
 |---|---|---|
 | One account compromised | Suspend the account (takes effect on the next request). Reset its password. | Read its `security_events` and `audit_log` for the last 30 days; list every record it touched. |
-| **Platform admin compromised** | Rotate `JWT_SECRET` in the hosting panel and restart. **This signs everyone out**; that is intended. Reset every admin password. | Review every admin action in `audit_log` since the suspected start. |
+| **Platform admin compromised** | Rotate `JWT_SECRET` in the hosting panel and restart. **This signs everyone out**; that is intended. Reset every admin password. If `MFA_ENCRYPTION_KEY` is **not** set, rotating `JWT_SECRET` also invalidates every two-step enrolment: reset them with `scripts/mfa-reset.js` and have people enrol again. Set `MFA_ENCRYPTION_KEY` to avoid this. | Review every admin action in `audit_log` since the suspected start. |
 | Secret leaked (`WEBHOOK_SECRET`, `HEARTBEAT_KEY`, `WHATSAPP_APP_SECRET`, `PHONE_INTAKE_KEY`, Cloudinary, Bedrock) | Rotate it at the source and in the panel; restart the app. | Check `security_events` for `webhook.rejected` spikes before and after. |
 | Cross-school exposure (a bug) | Remove the route or hide the page; deploy the fix. | List exactly which records were reachable, by whom, and when. That list decides PDPC notification. |
 | Malicious upload | Delete the file from Cloudinary and its row from `error_attachments`. | Find who uploaded it (`uploaded_by`); treat that account as compromised. |
 | Deploy path abused / site defaced | Reset the checkout to the last known good commit; rotate `WEBHOOK_SECRET`; restart. | Compare the server checkout against GitHub; check the `deploy/backups/` patches. |
+| Admin locked out of two-step sign-in (lost phone and recovery codes) | On the server console: `cd backend && node scripts/mfa-reset.js <username> --yes`. It ends their sessions and is audited. Confirm the person's identity out of band first; treat it as an incident. | They sign in with the password and enrol again. |
 | Data destroyed or corrupted | Stop writes if needed (maintenance mode or suspend accounts). | Restore by [RECOVERY.md](RECOVERY.md). |
 
 ## Evidence queries

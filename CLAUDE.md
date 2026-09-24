@@ -543,6 +543,10 @@ the old code. Rules that came out of the 2026-09-24 review:
   anything a school admin can edit — school names included. Never splice a stored value into an
   `onclick` string: pass the id and look the record up.
 - **Fixed-choice fields are validated on the server** (`isIn`), not just by the dropdown.
+- **Two-step sign-in** (`services/totp.js`, `controllers/mfaController.js`, D4): a password alone
+  earns only a 5-minute ticket when it is on. Never return a stored secret, never accept a ticket
+  as a session, and never add a web path that turns it off for an admin: the break-glass is
+  `scripts/mfa-reset.js` on the server console.
 - **Refusals are evidence.** `services/securityEvents.js` records every 401/403/429 from one
   response hook. A controller adds precision through `res.locals` (`secEvent`, `secUserId`,
   `secRule`, `secDetail`) and never writes rows itself. Never put a password, token, header,
@@ -659,6 +663,10 @@ AWS_BEARER_TOKEN_BEDROCK=your_bedrock_token  # REQUIRED for the AI Assistant. Un
                                           # gets "AI service not configured" — this variable was
                                           # missing from this list, so it was never set on cPanel
                                           # and teachers hit it first (2026-09-09).
+MFA_ENCRYPTION_KEY=long_random_string     # RECOMMENDED: encrypts two-step secrets. Unset, the key
+                                          # is derived from JWT_SECRET, so rotating JWT_SECRET after
+                                          # an incident would invalidate every enrolment.
+MFA_ENFORCE_ADMIN_AFTER=2026-10-08T00:00:00+03:00   # optional; when platform admins must have two-step
 AI_MODEL=us.anthropic.claude-opus-4-6-v1   # optional; this account has no Opus 5 access
 AWS_BEDROCK_HOST=bedrock-runtime.us-east-1.amazonaws.com   # optional
 CLOUDINARY_CLOUD_NAME=your_cloud_name

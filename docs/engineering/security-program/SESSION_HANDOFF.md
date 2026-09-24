@@ -24,11 +24,12 @@ approved or closed.
 - `scripts/prepush.js` is the gate to run before every push.
 - SEC-005 session revocation (D3), SEC-011 admin resets, SEC-009 per-account throttle fixed.
 - SEC-008 status tokens, SEC-010 15 MB attachments, INT-001 fault-code sequence fixed.
+- SEC-012 dependencies patched (npm audit 0, now in the gate); secret scan clean.
+- SEC-007 two-step sign-in (D4): enforced for platform admins from 2026-10-08.
 
 ### Open — in the order fixed by DECISIONS.md D12
 1. **D2 / SEC-006 security events** — everything in detection depends on it.
 3. Verify proxy IP attribution on production (THREAT_MODEL T9, D5 a) **before** any IP block.
-4. **D4 / SEC-007 TOTP for platform admin** — 14-day enrolment window, then enforced.
 5. Detection rules **alert-only**, plus alerts to the bell (D5, D6).
 7. Remove `'unsafe-inline'` from `script-src` — large (every inline handler), the long-term XSS control.
 

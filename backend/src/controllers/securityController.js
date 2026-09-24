@@ -18,7 +18,7 @@ const pool = require('../config/database');
 // asserts every id below appears in that file.
 const REVIEW = {
   date: '2026-09-24',
-  scope: 'Whole application: 144 API endpoints, 4 roles, every page that renders stored data',
+  scope: 'Whole application: 150 API endpoints, 4 roles, every page that renders stored data',
   findings: [
     { id: 'SEC-001', severity: 'P1', status: 'fixed', title: 'Any signed-in user could attach files to another school\'s fault' },
     { id: 'SEC-002', severity: 'P2', status: 'fixed', title: 'School forms, and a field engineer\'s school detail, were not scoped' },
@@ -26,7 +26,7 @@ const REVIEW = {
     { id: 'SEC-004', severity: 'P2', status: 'fixed', title: 'A field engineer could write for schools not assigned to them' },
     { id: 'SEC-005', severity: 'P2', status: 'fixed', title: 'Sign-in tokens could not be revoked before they expired (7 days)' },
     { id: 'SEC-006', severity: 'P2', status: 'fixed', title: 'Failed sign-ins and refused requests were not recorded' },
-    { id: 'SEC-007', severity: 'P2', status: 'open', title: 'No second factor on platform admin sign-in' },
+    { id: 'SEC-007', severity: 'P2', status: 'fixed', title: 'No second factor on platform admin sign-in (required from 8 October 2026)' },
     { id: 'SEC-008', severity: 'P3', status: 'fixed', title: 'Public appeal and teacher-status endpoints accepted guessable input' },
     { id: 'SEC-009', severity: 'P3', status: 'fixed', title: 'Password throttle was per account per network, not per account' },
     { id: 'SEC-010', severity: 'P3', status: 'fixed', title: 'Fault attachments allowed up to 5 × 100 MB held in memory' },
@@ -84,6 +84,11 @@ async function overview(req, res, next) {
         WHERE occurred_at >= NOW() - INTERVAL 7 DAY AND event_type <> 'auth.login_ok'
         GROUP BY event_type`);
     const [[since]] = await pool.query('SELECT MIN(occurred_at) AS first_at FROM security_events');
+    // Two-step sign-in coverage (SEC-007): the live answer to "is the admin protected?"
+    const [[mfa]] = await pool.query(
+      `SELECT SUM(role = 'admin' AND status = 'active') AS admins,
+              SUM(role = 'admin' AND status = 'active' AND mfa_enabled = 1) AS admins_mfa,
+              SUM(status = 'active' AND mfa_enabled = 1) AS anyone_mfa FROM users`);
 
     const secret = process.env.JWT_SECRET || '';
     res.json({
@@ -97,6 +102,12 @@ async function overview(req, res, next) {
         checked_for_default_password: defaults.checked,
         default_password_checked_at: defaults.at ? new Date(defaults.at).toISOString() : null,
         pending_registrations: Number(pending.n)
+      },
+      mfa: {
+        admins_active: Number(mfa.admins) || 0,
+        admins_enrolled: Number(mfa.admins_mfa) || 0,
+        accounts_enrolled: Number(mfa.anyone_mfa) || 0,
+        required_from: require('../services/mfaPolicy').enforceAfter().toISOString()
       },
       audit: { events_last_30_days: Number(audit.last_30_days), latest_event_at: audit.latest },
       signals: {
@@ -120,6 +131,7 @@ async function overview(req, res, next) {
         phone_intake_key_set: !!process.env.PHONE_INTAKE_KEY,
         // DATABASE_URL overrides every DB_* variable and caused the 2026-09-07 outage.
         database_url_absent: !process.env.DATABASE_URL,
+        platform_admin_two_step: Number(mfa.admins) > 0 && Number(mfa.admins) === Number(mfa.admins_mfa),
         email_alerts_configured: require('../services/notify').isConfigured()
       },
       review: REVIEW
