@@ -12,7 +12,7 @@ require('dotenv').config({ path: '.env' });
 const pool = require('../src/config/database');
 const lc = require('../src/config/lifecycle');
 
-const BASE = 'http://localhost:3100';
+const BASE = process.env.VERIFY_BASE || 'http://localhost:3100';
 const TAG_PREFIX = 'LC-TEST-';
 
 let pass = 0, fail = 0;

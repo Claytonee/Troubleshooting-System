@@ -10,7 +10,7 @@
  */
 require('dotenv').config({ path: '.env' });
 const pool = require('../src/config/database');
-const BASE = 'http://localhost:3100';
+const BASE = process.env.VERIFY_BASE || 'http://localhost:3100';
 const HB_KEY = process.env.HEARTBEAT_KEY;
 const WH = process.env.WEBHOOK_SECRET;
 

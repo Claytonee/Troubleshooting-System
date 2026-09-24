@@ -16,7 +16,7 @@ require('dotenv').config({ path: '.env' });
 const crypto = require('crypto');
 const pool = require('../src/config/database');
 
-const BASE = 'http://localhost:3100';
+const BASE = process.env.VERIFY_BASE || 'http://localhost:3100';
 const SECRET = process.env.WHATSAPP_APP_SECRET;
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
 

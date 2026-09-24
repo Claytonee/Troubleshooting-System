@@ -13,7 +13,7 @@ const pool = require('../src/config/database');
 const { _internal } = require('../src/controllers/analyticsController');
 const { pct, deflectionRate } = _internal;
 
-const BASE = 'http://localhost:3100';
+const BASE = process.env.VERIFY_BASE || 'http://localhost:3100';
 const MARK = 'TREND-TEST';
 
 let pass = 0, fail = 0;
