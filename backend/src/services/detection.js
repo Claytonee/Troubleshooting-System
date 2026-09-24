@@ -89,6 +89,16 @@ const RULES = [
            GROUP BY entity_id`]
   },
   {
+    id: 'R8', name: 'A browser blocked a foreign script', severity: 'high', window: 60,
+    why: 'The strict content policy stopped a script from another website, or an eval, on one of our pages. The app loads no such script, so this is what injected code looks like.',
+    sql: `SELECT source_ip AS subject, 'address' AS subject_type, SUM(count) AS n,
+                 MIN(occurred_at) AS first_at, MAX(last_at) AS last_at
+            FROM security_events
+           WHERE event_type = 'csp.foreign_script' AND source_ip IS NOT NULL
+             AND last_at >= NOW() - INTERVAL 60 MINUTE
+           GROUP BY source_ip`
+  },
+  {
     id: 'R7', name: 'Security monitoring dropped events', severity: 'high', window: 60,
     why: 'More distinct events arrived than the recorder could hold — evidence was lost, which is itself a sign of an attack or an overload.',
     sql: `SELECT 'monitoring' AS subject, 'system' AS subject_type, SUM(count) AS n,

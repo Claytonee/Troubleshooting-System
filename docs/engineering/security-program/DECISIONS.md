@@ -187,6 +187,30 @@ manual restart; every deploy after it restarts itself. **Verified:** 10 assertio
 `verify-deploy-preflight.js` on real directories broken on purpose. The proof in production is
 the next deploy changing `/api/health`'s `build` without anyone pressing Restart.
 
+## D24 — The strict script policy: report first, migrate, then enforce
+
+**Problem:** the enforced CSP allows inline script because the app has 321 inline event handlers
+and one inline script block. Escaping is therefore the only thing standing between a stored-XSS
+bug and a stolen session (SEC-003 showed that is not hypothetical).
+
+**Decided:** the order Google's CSP guidance and OWASP both describe.
+1. Send the strict policy (`script-src 'self'`) as **Content-Security-Policy-Report-Only** next to
+   the enforced one. Nothing breaks.
+2. Keep what the browsers report as a **bounded inventory**: one row per site (directive, blocked,
+   file, line) with a counter, flushed every 5 minutes. It holds hundreds of rows at most,
+   however busy the system is. Recording each report as an event would have meant over a million
+   rows a day.
+3. Treat a **foreign script or an eval** as what it looks like: injected code. It is recorded as a
+   security event, and rule **R8** turns it into a high incident.
+4. Migrate module by module to delegated handlers (`data-action`); the Security Overview shows
+   how many sites browsers still report.
+5. **Enforce** when that number has been zero for 30 days.
+
+**Verified:** `verify-csp.js` 15/15: the header on HTML, API and script responses; the endpoint in
+both report formats, refusing oversized bodies; 1,000 reports becoming one row; no query
+strings or tokens kept; foreign scripts and eval becoming events while inline handlers don't. In
+Chrome, real reports were sent (`disposition: report`) and the inline handler still ran.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.

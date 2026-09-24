@@ -15,6 +15,15 @@ router.get('/seen-as', (req, res) => {
   res.json({ ip: req.ip });
 });
 
+/**
+ * POST /api/security/csp-report — public: browsers send it without a session.
+ * Its own parser (the CSP content types are not application/json) with a 16 KB
+ * cap. Aggregated, never stored per request (services/cspReports.js).
+ */
+router.post('/csp-report',
+  express.json({ type: ['application/csp-report', 'application/reports+json', 'application/json'], limit: '16kb' }),
+  (req, res) => { require('../services/cspReports').ingest(req); res.status(204).end(); });
+
 // Posture facts for the whole platform: platform admin only. A school admin
 // must never read another school's accounts, or the platform's configuration.
 router.use(authenticate);

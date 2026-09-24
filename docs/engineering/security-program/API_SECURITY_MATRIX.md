@@ -1,7 +1,7 @@
 # API security matrix
 
 Generated from the router source on 2026-09-24 (`routes/*.js` + `server.js`), then annotated by hand.
-**153 endpoints.** "Role gate" is what the router enforces; per-record school scoping lives in the
+**154 endpoints.** "Role gate" is what the router enforces; per-record school scoping lives in the
 controllers and is listed in *Notes* where it was audited or changed. Regenerate the first four columns
 rather than editing them.
 
@@ -138,6 +138,7 @@ Auth: `JWT` = `authenticate()` (signature + account status re-read per request).
 | GET | `/api/schools/notifications` | JWT | admin,subadmin,school |  |
 | PATCH | `/api/schools/notifications/:id/read` | JWT | admin,subadmin,school | Subadmin may mark any notification read (P3, not yet registered as a vuln — no data exposed). |
 | GET | `/api/search` | JWT | any signed-in |  |
+| POST | `/api/security/csp-report` | — | public | Browser CSP reports (D24): 16 KB cap, aggregated per site, never stored per request; foreign scripts become events (R8). |
 | GET | `/api/security/incidents` | JWT | admin | Incidents from the detection rules (D5 b), with the named subject. |
 | PATCH | `/api/security/incidents/:id` | JWT | admin | Acknowledge, or close with an outcome (required); audited. |
 | GET | `/api/security/incidents/:id/evidence` | JWT | admin | The recorded events behind one incident (safe fields only). |

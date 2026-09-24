@@ -26,12 +26,13 @@ approved or closed.
 - SEC-008 status tokens, SEC-010 15 MB attachments, INT-001 fault-code sequence fixed.
 - SEC-012 dependencies patched (npm audit 0, now in the gate); secret scan clean.
 - SEC-007 two-step sign-in (D4): enforced for platform admins from 2026-10-08.
-- Detection rules R1–R7 + incidents + bell alerts (D5 b, D6), alert-only.
+- Detection rules R1–R8 + incidents + bell alerts (D5 b, D6), alert-only.
+- Strict CSP in report-only mode with a bounded migration inventory (D24).
 
 ### Open — in the order fixed by DECISIONS.md D12
 1. **D2 / SEC-006 security events** — everything in detection depends on it.
 3. Verify proxy IP attribution on production (THREAT_MODEL T9, D5 a) **before** any IP block.
-7. Remove `'unsafe-inline'` from `script-src` — large (every inline handler), the long-term XSS control.
+7. Migrate the 321 inline handlers to delegated `data-action` handlers, module by module; enforce the strict CSP when the report-only inventory stays at zero for 30 days (D24).
 
 ### Decisions
 All the pending decisions were taken on 2026-09-24 under the owner's delegation: see

@@ -154,3 +154,11 @@ still refused after reactivation, and the suite signs in again.
 | Bug found and fixed before shipping | `INSERT … ON DUPLICATE KEY UPDATE` reported an unchanged duplicate as "1 affected row, insertId 0", so repeats sent a second alert pointing at incident 0. Now `INSERT IGNORE` + `UPDATE`, with a regression assertion that no alert points at a missing incident |
 | R6 across two tables | the UNION failed on this server (different collations in `security_events` and `audit_log`); now two queries |
 | Browser | the incidents card names account, role, school, count and time; evidence expands to the events; the bell lists security alerts with their own icon, and one click opens the Security Overview |
+
+## D24 — strict CSP, report-only (2026-09-24)
+
+| Check | Result |
+|---|---|
+| Inline handlers measured | 321 (`on*=` attributes) + 1 inline script block |
+| `verify-csp.js` | **15 / 15** |
+| Chrome, real page | `securitypolicyviolation` fired with `disposition: report`; `POST /api/security/csp-report` → 204; the inline handler still ran |

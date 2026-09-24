@@ -539,6 +539,21 @@ async function applyExtensions(db) {
   await q('ALTER TABLE teachers ADD COLUMN status_token VARCHAR(64) NULL');
   await q('CREATE INDEX idx_teachers_status_token ON teachers (status_token)');
 
+  // --- Strict-CSP migration inventory (DECISIONS.md D24) ---
+  // One row per distinct place a browser reported (directive, blocked, file, line),
+  // with a counter — bounded by the number of inline handlers, not by traffic.
+  await q(`CREATE TABLE IF NOT EXISTS csp_reports (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    directive VARCHAR(40) NOT NULL,
+    blocked VARCHAR(80) NOT NULL,
+    source VARCHAR(160) NOT NULL,
+    line INT NOT NULL DEFAULT 0,
+    count INT NOT NULL DEFAULT 0,
+    first_seen DATETIME NULL,
+    last_seen DATETIME NULL,
+    UNIQUE KEY uq_csp_site (directive, blocked, source, line)
+  )`);
+
   // --- Security incidents (DECISIONS.md D5 b, D6) ---
   // Opened by services/detection.js from the recorded evidence; one per rule,
   // subject and hour (dedup_key). Closing one requires an outcome, so false

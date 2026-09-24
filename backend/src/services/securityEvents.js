@@ -50,6 +50,7 @@ const SEVERITY = {
   'authz.refused': 'medium',          // record-level: another school, not your row
   'api.rate_limited': 'low',
   'webhook.rejected': 'medium',
+  'csp.foreign_script': 'medium',     // a browser blocked a script from another origin, or an eval
   'events.dropped': 'high'
 };
 

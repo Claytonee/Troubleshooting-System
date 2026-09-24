@@ -129,6 +129,20 @@ app.use(helmet({
   hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
+// The strict policy the app is migrating to (D24): identical, except scripts
+// must come from our own files — no inline handlers. Report-only, so nothing
+// breaks; browsers report every place that would, and those reports are the
+// migration inventory (services/cspReports.js).
+const STRICT_CSP_REPORT_ONLY = [
+  "default-src 'self'", "script-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+  "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
+  "img-src 'self' data: https:", "media-src 'self' https:", "connect-src 'self'",
+  "object-src 'none'", "base-uri 'self'", "frame-ancestors 'self'", "form-action 'self'",
+  'report-uri /api/security/csp-report'
+].join('; ');
+app.use((req, res, next) => { res.setHeader('Content-Security-Policy-Report-Only', STRICT_CSP_REPORT_ONLY); next(); });
+
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' ? (process.env.FRONTEND_URL || true) : '*',
   credentials: true

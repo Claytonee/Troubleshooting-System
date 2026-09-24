@@ -49,7 +49,7 @@ const SecurityPage = (() => {
       tech: 'Role check on every API router plus a per-record school check. 196 automated assertions across the role matrix (125) and the security suite (71).' },
     { icon: 'ti-code', color: 'var(--amber)', title: 'Safe handling of what people type', status: 'partial', evidence: 'tested',
       plain: 'Text one person types is always shown to others as text and never run as code. Database commands and data are kept apart, so typed text cannot change a query.',
-      tech: 'Parameterised SQL throughout; output escaped; fixed-choice fields validated on the server; Content-Security-Policy blocks scripts from other sites. Gap: the policy still allows inline scripts.' },
+      tech: 'Parameterised SQL throughout; output escaped; fixed-choice fields validated on the server; Content-Security-Policy blocks scripts from other sites. A strict policy with no inline script runs in report-only mode: browsers report what is left to migrate, and any foreign script raises an incident (R8).' },
     { icon: 'ti-file-certificate', color: 'var(--accent)', title: 'File uploads', status: 'partial', evidence: 'code',
       plain: 'Only known document, image, audio and video types are accepted, and files are kept on a separate storage service — never run on our server.',
       tech: 'Extension allow-list; 15 MB per fault attachment (tested); stored on Cloudinary, a different web origin. Gap: no malware scan.' },
@@ -277,7 +277,10 @@ const SecurityPage = (() => {
     }).join('');
     const nc = (data.not_collected || []).map(n => `<div class="sec-check"><i class="ti ti-circle-dashed" style="color:var(--text3)"></i>
       <span>${esc(n.why)}</span></div>`).join('');
-    return `${rows}${nc}
+    // D24: the strict script policy runs report-only; this is how far the migration has to go.
+    const cspRow = data.csp ? `<div class="sec-check"><i class="ti ti-code-dots" style="color:${data.csp.inline_sites_30d ? 'var(--amber)' : 'var(--green)'}"></i>
+      <span>Strict script policy (report-only): ${data.csp.inline_sites_30d ? `${data.csp.inline_sites_30d} place${data.csp.inline_sites_30d === 1 ? '' : 's'} still use inline script, as reported by browsers in the last 30 days` : 'no inline script reported in 30 days — ready to enforce'}</span></div>` : '';
+    return `${rows}${cspRow}${nc}
       <div class="sec-foot">Running build <code>${esc(data.build)}</code> · checked ${esc(relTime(data.generated_at))}</div>`;
   }
 

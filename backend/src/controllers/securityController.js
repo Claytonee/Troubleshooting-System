@@ -19,7 +19,7 @@ const { logAudit } = require('../services/audit');
 // asserts every id below appears in that file.
 const REVIEW = {
   date: '2026-09-24',
-  scope: 'Whole application: 153 API endpoints, 4 roles, every page that renders stored data',
+  scope: 'Whole application: 154 API endpoints, 4 roles, every page that renders stored data',
   findings: [
     { id: 'SEC-001', severity: 'P1', status: 'fixed', title: 'Any signed-in user could attach files to another school\'s fault' },
     { id: 'SEC-002', severity: 'P2', status: 'fixed', title: 'School forms, and a field engineer\'s school detail, were not scoped' },
@@ -116,6 +116,12 @@ async function overview(req, res, next) {
         const o = { high: 0, medium: 0, low: 0 };
         r.forEach(x => { o[x.severity] = Number(x.n); });
         return o;
+      })(),
+      csp: await (async () => {
+        try {
+          const [[c]] = await pool.query("SELECT COUNT(*) AS sites, COALESCE(SUM(count), 0) AS reports, MAX(last_seen) AS latest FROM csp_reports WHERE blocked = 'inline' AND last_seen >= NOW() - INTERVAL 30 DAY");
+          return { inline_sites_30d: Number(c.sites), reports_30d: Number(c.reports), latest: c.latest };
+        } catch (e) { return null; }
       })(),
       signals: {
         window_days: 7,
