@@ -18,6 +18,8 @@ docs) refused the connection during the session and are marked as such.
 | [AWS Well-Architected security pillar](https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/security.html) | Fetched | Traceability, security at all layers, prepare for events | Detect/Respond gaps are the traceability gap |
 | [Cloudflare WAF docs](https://developers.cloudflare.com/waf/) | Fetch refused | — | No CDN in front of this site today (THREAT_MODEL.md) |
 | Tanzania Personal Data Protection Act 2022 ([PDPC text](https://www.pdpc.go.tz/media/media/THE_PERSONAL_DATA_PROTECTION_ACT.pdf), [TanzLII](https://tanzlii.org/akn/tz/act/gn/2023/395b-1/eng@2023-06-13)) | Search summary | Reasonable safeguards; breach notification to PDPC and data subjects; controller registration | The system holds staff and student personal data |
+| [FPF — Tanzania's data protection law, overview](https://fpf.org/blog/tanzanias-personal-information-protection-act-overview-key-takeaways-and-context/) | Fetched | s.14 registration, s.27 safeguards and breach notice, s.28 retention, s.31–32 cross-border, s.33/38 rights | DATA_PROTECTION.md, the AI minimisation (D21) |
+| [Clyde & Co — breach notification in Tanzania (Feb 2026)](https://www.clydeco.com/en/insights/2026/02/notification-obligations-arising-from-personal-dat) | Fetched | "Without undue delay", no fixed deadline; GN 449C of 2023 lists the contents; processors must tell controllers | Our 24 h / 72 h rule (D17) |
 
 ## Not yet researched (explicitly in the programme brief)
 

@@ -371,6 +371,13 @@ restart (cPanel → Setup Node.js App → Restart, or
 `touch ~/troubleshooting.pathfindereducation.or.tz/backend/tmp/restart.txt`).
 The deploy webhook now reports `restart_requested` and the path it touched.
 
+**Since 2026-09-24 a deploy restarts itself** (DECISIONS.md D23): after pulling it runs
+`services/deployPreflight.js` (every `src/` file compiles, every dependency resolves). On
+failure it `git reset`s to the previous commit and keeps serving (`status: rolled_back`). On
+success it answers, then exits the process so the host starts the new build.
+`DEPLOY_SELF_RESTART_MS=0` disables the exit. **Before every push:**
+`cd backend && VERIFY_BASE=http://localhost:3210 node scripts/prepush.js`.
+
 ### /api/health carries feature flags
 `features: { ai, email, sms, whatsapp_inbound, whatsapp_send, heartbeat, uploads }` — booleans
 only, asked of the services' own `isConfigured()` where one exists. It exists so "the AI says it

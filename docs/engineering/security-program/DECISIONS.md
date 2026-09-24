@@ -93,6 +93,100 @@ CLAUDE.md (checked into the repository) requires it and every recent commit carr
 personal note said the opposite; the repository's rule wins because it is the one the whole
 history follows. The note has been corrected.
 
+## Standards — how each moves to "in place"
+
+Decided 2026-09-24 on the owner's second delegation ("fanya world class decision pia na haya").
+A standard is marked *in place* only when the thing it asks for exists **and** is kept true by
+a test or a routine. A document alone is not enough.
+
+### D13 — NIST Govern · Decided: adopt a written policy; the platform admin owns security
+
+[SECURITY_POLICY.md](SECURITY_POLICY.md): roles, access, sign-in, change control, monitoring,
+incidents, recovery, and a quarterly access review. It names one accountable owner, because a
+duty everyone shares is a duty nobody performs. **Status: in place.**
+
+### D14 — NIST Identify · Decided: the inventory checks itself
+
+`node scripts/api-matrix.js --check` compares the 142-endpoint matrix with the routers and fails
+on any new, changed or removed route. It runs inside `verify-security-boundaries`. A new
+endpoint cannot ship without someone recording its security gate. **Status: in place.**
+
+### D15 — NIST Protect · Decided: stays in place; the gaps are queued, not hidden
+
+The two real gaps are the second factor (D4) and `'unsafe-inline'` in the CSP. Both are listed on the page.
+
+### D16 — NIST Detect · Decided: record now, rules and alerts next
+
+Recording shipped (SEC-006). It becomes *in place* when D5's alert-only rules raise alerts on the
+bell (D6). **Status: partial.**
+
+### D17 — NIST Respond · Decided: adopt the runbook; our own 72-hour notification rule; rehearse quarterly
+
+[INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md). The PDPA says "without undue delay" and sets no
+deadline. We decide within 24 hours whether personal data was affected, and notify the PDPC within
+72 hours of confirming it: a fixed rule is easier to meet than a judgement made during a crisis.
+People affected are told when harm is likely, although the Act does not require it. **Status:
+partial until the first tabletop exercise, due within 30 days.**
+
+### D18 — NIST Recover · Decided: RPO 24 h, RTO 4 h, monthly restore drill
+
+[RECOVERY.md](RECOVERY.md) and `scripts/verify-backup-restore.js`. The drill is proven on a copy
+(9/9, and on its first run it found seven orphaned rows left by a test suite). **Status: partial
+until the first drill on a production backup, which needs the owner to download one.**
+
+### D19 — OWASP ASVS 5.0 · Decided: target Level 1 in full, Level 2 for sign-in, sessions and access; no certification claim
+
+Level 1 is the baseline ASVS itself recommends as a first step. Level 2 on V6–V8 matches what an
+attacker here would actually aim at: accounts and school isolation. We claim no level until each
+requirement is ticked in SECURITY_BASELINE.md, and "certified" only after an outside assessor has looked.
+
+### D20 — OWASP API Security Top 10 (2023) · Decided: map all ten and test the ones that bit us
+
+The mapping is in SECURITY_BASELINE.md. API1 (object-level authorisation) caused three of the four
+fixed findings and is tested on every run. API9 (inventory) is now tested too. Open: API2 (second
+factor, D4) and API4 (upload size, D7).
+
+### D21 — Tanzania PDPA 2022 · Decided: document, minimise, and name what only head office can do
+
+[DATA_PROTECTION.md](DATA_PROTECTION.md): every personal-data column, who sees it, the processors
+and where they are, and retention periods. **Minimised today:** the AI assistant no longer sends
+the asker's name to AWS in the US. It gets the role only, and a test pins this. Retention periods
+are decided, and only `security_events` is enforced so far. Registration with the PDPC, the ground
+for each cross-border transfer, and the privacy notice are organisational steps for head office.
+
+### D22 — "Honest limits" on the page · Decided: say which kind of limit each one is
+
+Each limit carries one label: **Planned**, **Partly done**, **Impossible: here is what we do
+instead**, or **Constraint: how we handle it**. A reader must be able to tell "we cannot" from
+"we have not yet".
+
+## D23 — Deploys restart themselves, after a preflight, or roll back
+
+**Problem, measured:** on 2026-09-24 the push of `0eb36d5` pulled the files, but the old process
+kept serving for more than an hour, next to the new static files, until someone pressed Restart
+in cPanel. The webhook touches `backend/tmp/restart.txt`, and this LiteSpeed/CloudLinux host does
+not act on it reliably. The same half-state was recorded on 2026-09-09.
+
+**Decided:** after `git reset` and `npm install`, the webhook asks whether the new checkout can
+boot (`services/deployPreflight.js`: every file under `src/` compiles, and every dependency in
+`package.json` resolves).
+- **If not**, it resets to the commit that was serving, keeps the old process, and answers
+  `rolled_back` with the problems. A half-broken build never replaces a working one.
+- **If so**, it answers, then exits its own process 1.5 s later; the host starts the new build
+  on the next request. The restart file is still touched as well.
+
+`DEPLOY_SELF_RESTART_MS=0` turns the self-restart off.
+
+**Why this and not more:** a shared cPanel host offers no blue/green slots and no health-checked
+rolling restart. A preflight plus rollback plus self-restart is the closest equivalent that
+host allows.
+
+**Limits:** the preflight does not prove the app *runs*: a thrown error at boot would still get
+through. The first deploy of this change is handled by the old webhook and still needs one
+manual restart; every deploy after it restarts itself. **Verified:** 10 assertions in
+`verify-deploy-preflight.js` on real directories broken on purpose. The proof in production is
+the next deploy changing `/api/health`'s `build` without anyone pressing Restart.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.
@@ -102,6 +196,8 @@ history follows. The note has been corrected.
 5. D5 detection rules, alert-only, plus D6 alerts.
 6. D7, D8, D9 small fixes, together with INT-001 and TEST-001.
 7. After 30 days of alert data: review, then D5 (d).
+8. Standards (D13–D22): first tabletop exercise within 30 days; first production restore drill;
+   enforce the decided retention periods; the owner's PDPA steps.
 
 ## Revisit when
 

@@ -102,7 +102,10 @@ async function resolveSchoolId(user) {
  * gives generic advice and re-asks things the system already knows.
  */
 async function getUserContext(user) {
-  const lines = [`Name: ${user.full_name}`, `Role: ${ROLE_LABELS[user.role] || user.role}`];
+  // The role, never the name. This context is sent to AWS Bedrock in us-east-1,
+  // a transfer of personal data out of Tanzania (PDPA s.31–32), and nothing in
+  // troubleshooting needs to know who is asking (DECISIONS.md D21).
+  const lines = [`Role: ${ROLE_LABELS[user.role] || user.role}`];
 
   try {
     const schoolId = await resolveSchoolId(user);

@@ -48,6 +48,27 @@ const check = (name, ok, detail) => {
   console.log('\n  using ' + school.name + ' (' + school.code + '), lrs_devices.id=' + deviceId +
     (createdDevice ? ' [created for test]' : '') + '\n');
 
+  // TEST-001. The sweep looks at EVERY device, so on a database with silent
+  // devices of its own this suite used to open real critical tickets for them,
+  // and its cleanup then deleted every heartbeat ticket, audit row and history
+  // row in the table — its own and anyone else's. Now: snapshot, park the other
+  // devices (a device that never reported is ignored by the sweep), and remove
+  // only rows created after the baseline for this device.
+  const [[base]] = await pool.query(`SELECT
+      (SELECT COALESCE(MAX(id), 0) FROM errors) AS errors,
+      (SELECT COALESCE(MAX(id), 0) FROM audit_log) AS audit,
+      (SELECT COALESCE(MAX(id), 0) FROM lrs_history) AS history,
+      (SELECT COALESCE(MAX(id), 0) FROM admin_notifications) AS notifs`);
+  const [others] = await pool.query(
+    'SELECT id, status, last_heartbeat, heartbeat_missed_since FROM lrs_devices WHERE id <> ?', [deviceId]);
+  const [[own]] = await pool.query(
+    'SELECT status, last_heartbeat, heartbeat_missed_since, heartbeat_disk_free_pct, heartbeat_agent_version FROM lrs_devices WHERE id = ?', [deviceId]);
+  if (others.length) {
+    await pool.query('UPDATE lrs_devices SET last_heartbeat = NULL, heartbeat_missed_since = NULL WHERE id IN (?)', [others.map(o => o.id)]);
+    console.log('  parked ' + others.length + ' other device(s) for the duration\n');
+  }
+  try {
+
   // --- auth and validation ---
   check('auth: wrong key rejected',
     (await post('/api/heartbeat', { school_code: school.code }, { 'X-Heartbeat-Key': 'nope' })).status === 401);
@@ -128,23 +149,42 @@ const check = (name, ok, detail) => {
     "SELECT action FROM audit_log WHERE entity_type='error' AND action LIKE 'error.auto_%' ORDER BY id DESC LIMIT 2");
   check('audit recorded both auto events', audits.length === 2, audits.map(a => a.action).join(', '));
 
-  // --- cleanup ---
-  console.log('\n  cleanup:');
-  const [del] = await pool.query('DELETE FROM errors WHERE auto_source LIKE ?', ['lrs_heartbeat:%']);
-  console.log('    removed ' + del.affectedRows + ' auto-error(s)');
-  await pool.query("DELETE FROM audit_log WHERE action LIKE 'error.auto_%'");
-  await pool.query('DELETE FROM lrs_history WHERE action = ?', ['heartbeat_lost']);
-  if (createdDevice) {
-    await pool.query('DELETE FROM lrs_devices WHERE id = ?', [deviceId]);
-    console.log('    removed the test LRS row');
-  } else {
-    await pool.query('UPDATE lrs_devices SET last_heartbeat = NULL, heartbeat_missed_since = NULL, heartbeat_disk_free_pct = NULL, heartbeat_agent_version = NULL WHERE id = ?', [deviceId]);
-    console.log('    reset the pre-existing LRS row');
+  } finally {
+    // --- cleanup: only what this run created, then put every device back ---
+    console.log('\n  cleanup:');
+    const [mine] = await pool.query('SELECT id FROM errors WHERE id > ? AND auto_source = ?', [base.errors, 'lrs_heartbeat:' + deviceId]);
+    const ids = mine.map(r => r.id);
+    if (ids.length) {
+      await pool.query('DELETE FROM error_updates WHERE error_id IN (?)', [ids]);
+      await pool.query('DELETE FROM error_attachments WHERE error_id IN (?)', [ids]);
+      await pool.query('DELETE FROM errors WHERE id IN (?)', [ids]);
+      await pool.query(
+        `DELETE FROM admin_notifications WHERE id > ?
+           AND CAST(JSON_UNQUOTE(JSON_EXTRACT(meta, '$.error_id')) AS UNSIGNED) IN (?)`, [base.notifs, ids]);
+    }
+    console.log('    removed ' + ids.length + ' auto-error(s) this run opened, with their updates');
+    await pool.query("DELETE FROM audit_log WHERE id > ? AND action LIKE 'error.auto_%' AND entity_id IN (?)",
+      [base.audit, ids.length ? ids.map(String) : ['-']]);
+    await pool.query('DELETE FROM lrs_history WHERE id > ? AND lrs_id = ?', [base.history, deviceId]);
+    if (createdDevice) {
+      await pool.query('DELETE FROM lrs_devices WHERE id = ?', [deviceId]);
+      console.log('    removed the test LRS row');
+    } else {
+      await pool.query(
+        `UPDATE lrs_devices SET status = ?, last_heartbeat = ?, heartbeat_missed_since = ?,
+                heartbeat_disk_free_pct = ?, heartbeat_agent_version = ? WHERE id = ?`,
+        [own.status, own.last_heartbeat, own.heartbeat_missed_since, own.heartbeat_disk_free_pct, own.heartbeat_agent_version, deviceId]);
+      console.log('    restored the pre-existing LRS row exactly');
+    }
+    for (const o of others) {
+      await pool.query('UPDATE lrs_devices SET status = ?, last_heartbeat = ?, heartbeat_missed_since = ? WHERE id = ?',
+        [o.status, o.last_heartbeat, o.heartbeat_missed_since, o.id]);
+    }
+    if (others.length) console.log('    un-parked ' + others.length + ' other device(s)');
   }
-  const [[left]] = await pool.query('SELECT COUNT(*) n FROM errors WHERE auto_source IS NOT NULL');
-  console.log('    errors still carrying auto_source: ' + left.n);
 
   console.log('\n  ' + pass + ' passed, ' + fail + ' failed');
   await pool.end();
-  process.exit(fail ? 1 : 0);
-})().catch(e => { console.error(e); process.exit(1); });
+  // exitCode, not exit(): exit() right after pool.end() aborts libuv on Windows.
+  process.exitCode = fail ? 1 : 0;
+})().catch(async e => { console.error(e); try { await pool.end(); } catch (x) {} process.exitCode = 1; });

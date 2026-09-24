@@ -68,8 +68,11 @@ function ensureTimer() {
 function record(evt) {
   try {
     if (!evt || !SEVERITY[evt.event_type]) return;
+    // The reason is part of the key: a forged token and a missing one on the same
+    // route are different evidence, and folding one into the other kept only the
+    // first reason — erasing the forgery, which is the one that matters.
     const key = [evt.event_type, evt.source_ip || '', evt.user_id || '', evt.method || '',
-      evt.path_template || '', evt.status || ''].join('|');
+      evt.path_template || '', evt.status || '', evt.detail ? JSON.stringify(evt.detail) : ''].join('|');
     const now = Date.now();
     const seen = recent.get(key);
     if (seen && now - seen.at < DEDUP_MS) {

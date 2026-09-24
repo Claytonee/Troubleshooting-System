@@ -87,3 +87,15 @@ seen to stay pending in the embedded browser.
 Production check (read-only): after the owner restarted the app, `/api/health` reported build
 `0eb36d5`, and `/api/security/overview` and `/api/errors/1/attachments` answered 401 to an
 anonymous request. That is the new code: the old process answered 200 on the first.
+
+## Standards batch, TEST-001 and OPS-001 (2026-09-24, afternoon)
+
+| Check | Result |
+|---|---|
+| `scripts/prepush.js` (new gate): syntax of 131 files, asset versions, endpoint inventory, every suite | see the final run in the commit message |
+| `verify-heartbeat.js` after the TEST-001 rewrite | **21 / 21**; before/after snapshot of devices, faults, updates, audit, history, notifications **identical**; 5 devices parked and restored |
+| `verify-security-boundaries.js` right after `verify-heartbeat.js` (the dedup collision) | first **49 / 51**: exposed that the dedup key ignored the reason, so a forged token folded into a missing-token row. After the fix **52 / 52**, including a new regression for exactly that |
+| `verify-deploy-preflight.js` | **10 / 10**; the real backend passes, and copies broken four ways each fail for the right reason; 16.3 s → 0.1 s after switching to in-process compilation |
+| `api-matrix.js --check` | matches 142 endpoints; a tampered row is caught (exit 1); `--write` round-trips with zero diff |
+| `verify-backup-restore.js --self` | first run **8 / 9**: found 7 orphaned `error_updates` rows left by the old heartbeat suite. After removing them **9 / 9**: dump 1.2 s, restore 1.4 s |
+| Browser, Security Overview | 9 standards with their new statuses and 5 labelled limits render; no overflow at 748 px |

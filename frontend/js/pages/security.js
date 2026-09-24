@@ -65,7 +65,27 @@ const SecurityPage = (() => {
       tech: 'Security Center — event log, detection rules, alerts, reviewed IP blocking. Next phase; nothing will block live traffic without your approval.' },
     { icon: 'ti-database-export', color: 'var(--text3)', title: 'Backup and recovery', status: 'unverified', evidence: 'none',
       plain: 'Copies of the data kept so the system can be restored after a failure or an attack.',
-      tech: 'Expected from the hosting provider. A restore has not been tested by this review — until it is, treat recovery as unproven.' }
+      tech: 'Hosting backups; targets of 24 hours of data and 4 hours to recover. The restore drill passes on a copy of the database; until it has run on a production backup, recovery is unverified.' }
+  ];
+
+  // DECISIONS.md D22: every limit is labelled with the kind of limit it is.
+  const LIMIT_KIND = {
+    planned:    { label: 'Planned',     color: 'var(--accent)', bg: 'rgba(79,124,255,.12)' },
+    partial:    { label: 'Partly done', color: 'var(--amber)',  bg: 'rgba(245,166,35,.12)' },
+    impossible: { label: 'Impossible — alternative in place', color: 'var(--red)', bg: 'rgba(255,82,99,.12)' },
+    constraint: { label: 'Constraint — handled by design', color: 'var(--teal)', bg: 'rgba(54,217,204,.12)' }
+  };
+  const LIMITS = [
+    { kind: 'planned', title: 'No second sign-in factor yet.',
+      text: 'A stolen platform admin password is enough to sign in today. Next: a code from an authenticator app for the platform admin — not SMS, which a stolen SIM defeats.' },
+    { kind: 'partial', title: 'Attacks are recorded, not yet alerted on.',
+      text: 'Every refusal has been kept as evidence since 24 September 2026. Rules that recognise an attack and alert head office come next.' },
+    { kind: 'impossible', title: 'No website can see a device\'s hardware (MAC) address.',
+      text: 'It never leaves the school\'s network — the router replaces it, and modern phones randomise it. We block by account, by session and by network address instead; device-level blocking belongs in the school\'s own Wi-Fi router.' },
+    { kind: 'constraint', title: 'A whole school shares one internet address.',
+      text: 'So we refuse by account first, never block a school\'s known address automatically, and keep any automatic block short and reviewed.' },
+    { kind: 'partial', title: 'Recovery is proven on a copy, not yet on a production backup.',
+      text: 'The restore drill exists and passes; its first run on a real backup from the host is due.' }
   ];
 
   const ROLES = [
@@ -76,15 +96,15 @@ const SecurityPage = (() => {
   ];
 
   const STANDARDS = [
-    { name: 'NIST CSF 2.0 — Govern', status: 'partial', note: 'Roles and responsibilities defined; security programme started; no written security policy yet.' },
-    { name: 'NIST CSF 2.0 — Identify', status: 'partial', note: 'Every endpoint, role and threat is inventoried in the engineering records.' },
-    { name: 'NIST CSF 2.0 — Protect', status: 'in', note: 'Access control, encryption, input and output safety, signed integrations.' },
+    { name: 'NIST CSF 2.0 — Govern', status: 'in', note: 'A written security policy is adopted: one accountable owner (the platform admin), access rules, change control and a quarterly access review.' },
+    { name: 'NIST CSF 2.0 — Identify', status: 'in', note: 'Every endpoint, role, threat and item of personal data is inventoried — and a test fails if the endpoint list drifts from the code.' },
+    { name: 'NIST CSF 2.0 — Protect', status: 'in', note: 'Access control, encryption, input and output safety, signed integrations. Next: a second sign-in factor.' },
     { name: 'NIST CSF 2.0 — Detect', status: 'partial', note: 'Every refusal is recorded since 24 September 2026. Nothing raises an alert on it yet — detection rules come next.' },
-    { name: 'NIST CSF 2.0 — Respond', status: 'planned', note: 'Incident procedure drafted in the engineering records; not yet rehearsed.' },
-    { name: 'NIST CSF 2.0 — Recover', status: 'unverified', note: 'Depends on hosting backups; a restore has not been tested.' },
-    { name: 'OWASP ASVS 5.0', status: 'partial', note: 'Used as the checklist for this review. Not a certification — no outside party has assessed the system.' },
-    { name: 'OWASP API Security Top 10 (2023)', status: 'partial', note: 'Three of the four fixed findings were API1-type — an id reaching another school\'s record. The fourth was stored cross-site scripting.' },
-    { name: 'Tanzania Personal Data Protection Act, 2022', status: 'partial', note: 'Requires reasonable safeguards and breach notification to the PDPC. Registering as a data controller is an organisational step outside the software.' }
+    { name: 'NIST CSF 2.0 — Respond', status: 'partial', note: 'Incident runbook adopted, including when to tell the Data Protection Commission. First rehearsal due within 30 days.' },
+    { name: 'NIST CSF 2.0 — Recover', status: 'partial', note: 'Targets set: data at most 24 hours old, service back within 4 hours. The restore drill is proven on a copy; the first drill on a production backup is due.' },
+    { name: 'OWASP ASVS 5.0', status: 'partial', note: 'Target: every Level 1 requirement, and Level 2 for sign-in, sessions and access. Not a certification — no outside party has assessed the system.' },
+    { name: 'OWASP API Security Top 10 (2023)', status: 'partial', note: 'All ten risks mapped. Object-level access (API1) and the endpoint inventory (API9) are tested on every release. Open: second factor, upload size.' },
+    { name: 'Tanzania Personal Data Protection Act, 2022', status: 'partial', note: 'Personal data, processors, transfers abroad and retention are documented, and the AI assistant no longer sends anyone\'s name abroad. Registering with the PDPC is a step for head office.' }
   ];
 
   const CHECK_LABELS = {
@@ -718,12 +738,9 @@ const SecurityPage = (() => {
 
     <div class="card">
       <div class="card-title"><span><i class="ti ti-alert-octagon" style="margin-right:6px"></i>Honest limits</span></div>
-      <ul class="sec-limits">
-        <li><strong>No second sign-in factor yet.</strong> A stolen platform admin password is enough to sign in (SEC-007).</li>
-        <li><strong>Attacks are recorded, not yet alerted on.</strong> Every refusal is kept as evidence, but nobody is told in the moment until the detection rules ship.</li>
-        <li><strong>A device's hardware (MAC) address cannot be seen over the internet.</strong> No website can block a device that way; blocking works on accounts, sessions and network addresses.</li>
-        <li><strong>A school shares one internet address.</strong> Blocking an address can lock out a whole staffroom, which is why automatic blocking will stay temporary and reviewed.</li>
-        <li><strong>Recovery is unproven until a backup is restored.</strong> That test is on the plan.</li>
+      <div class="sec-layer-intro">Each limit says which kind it is — so "we cannot" is never confused with "we have not yet".</div>
+      <ul class="sec-limits">${LIMITS.map(l => `<li><span class="sec-limit-tag" style="color:${LIMIT_KIND[l.kind].color};background:${LIMIT_KIND[l.kind].bg}">${LIMIT_KIND[l.kind].label}</span>
+        <div><strong>${esc(l.title)}</strong> ${esc(l.text)}</div></li>`).join('')}
       </ul>
     </div>
     </div>`;

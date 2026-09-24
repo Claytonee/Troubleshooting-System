@@ -84,7 +84,7 @@ async function ensureStaff(role, suffix) {
   const [[foreignError]] = await pool.query('SELECT id FROM errors WHERE school_id = ? ORDER BY id LIMIT 1', [other.id]);
   const [[{ maxNotif }]] = await pool.query('SELECT COALESCE(MAX(id), 0) AS maxNotif FROM admin_notifications');
   // Everything this run causes to be recorded is removed at the end.
-  const [[{ eventsBaseline }]] = await pool.query('SELECT COALESCE(MAX(id), 0) AS eventsBaseline FROM security_events');
+  const [[{ eventsBaseline, eventsT0 }]] = await pool.query('SELECT COALESCE(MAX(id), 0) AS eventsBaseline, NOW() AS eventsT0 FROM security_events');
 
   await ensureStaff('admin', 'admin');
   const subId = await ensureStaff('subadmin', 'sub');
@@ -185,6 +185,14 @@ async function ensureStaff(role, suffix) {
       .map(k => process.env[k]).filter(v => v && v.length >= 6);
     ok('no configured secret value appears in the response', secrets.every(v => !raw.includes(v)), secrets.length + ' checked');
     ok('no password hash appears in the response', !/\$2[aby]\$\d\d\$/.test(raw));
+    // PDPA s.31–32 (D21): the assistant's context leaves Tanzania for AWS us-east-1,
+    // so it carries the role and the school's facts, never who is asking.
+    const ai = fs.readFileSync(path.join(__dirname, '..', 'src', 'controllers', 'aiChatController.js'), 'utf8');
+    const ctx = ai.slice(ai.indexOf('async function getUserContext'), ai.indexOf('\n}\n', ai.indexOf('async function getUserContext')));
+    ok('the AI context sends no name, email, phone or username abroad', ctx.length > 0 && !/\buser\.(full_name|email|phone|username)\b/.test(ctx));
+    // NIST "Identify" holds only while the endpoint inventory matches the code.
+    const matrix = require('child_process').spawnSync(process.execPath, [path.join(__dirname, 'api-matrix.js'), '--check'], { encoding: 'utf8' });
+    ok('the endpoint inventory matches the routers (api-matrix --check)', matrix.status === 0, (matrix.stdout || '').trim().split('\n').slice(0, 4));
     const register = fs.readFileSync(path.join(__dirname, '..', '..', 'docs', 'engineering', 'security-program', 'ISSUE_REGISTER.md'), 'utf8');
     const ids = ((ov.body && ov.body.review && ov.body.review.findings) || []).map(f => f.id);
     ok('every finding the page lists is in ISSUE_REGISTER.md', ids.length > 0 && ids.every(id => register.includes(id)),
@@ -204,8 +212,8 @@ async function ensureStaff(role, suffix) {
     const WRONG = 'zz-Wrong-Pass-' + Date.now();
     for (let i = 0; i < 3; i++) await api('POST', '/auth/login', { body: { username: fx.teacher.username, password: WRONG } });
     const failed = await waitRows(
-      "SELECT * FROM security_events WHERE id > ? AND event_type = 'auth.login_failed' AND user_id = ?",
-      [since, fx.teacher.userId], r => r.length && r[0].count >= 3);
+      "SELECT * FROM security_events WHERE (id > ? OR last_at >= ?) AND event_type = 'auth.login_failed' AND user_id = ?",
+      [since, eventsT0, fx.teacher.userId], r => r.length && r[0].count >= 3);
     ok('three wrong passwords on one account are recorded', failed.length >= 1, failed.length);
     ok('...as one row with count 3, not three rows', failed.length === 1 && failed[0].count === 3, failed.map(r => r.count));
     ok('...marked wrong_password against the account', failed[0] && /wrong_password/.test(failed[0].detail || ''), failed[0] && failed[0].detail);
@@ -213,8 +221,8 @@ async function ensureStaff(role, suffix) {
     const ghost = 'zzghost' + Date.now();
     await api('POST', '/auth/login', { body: { username: ghost, password: WRONG } });
     const unknown = await waitRows(
-      "SELECT * FROM security_events WHERE id > ? AND event_type = 'auth.login_failed' AND user_id IS NULL",
-      [since], r => r.length > 0);
+      "SELECT * FROM security_events WHERE (id > ? OR last_at >= ?) AND event_type = 'auth.login_failed' AND user_id IS NULL",
+      [since, eventsT0], r => r.length > 0);
     ok('a sign-in for an account that does not exist is recorded', unknown.length > 0);
 
     const badTok = 'eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MX0.zzForgedSignatureValue';
@@ -224,10 +232,24 @@ async function ensureStaff(role, suffix) {
     await api('GET', `/schools/${other.id}/forms`, { token: schoolAdmin });         // record refusal
     await api('POST', '/heartbeat', { body: { device: 'zz' } });                    // no key
 
-    const all = await waitRows('SELECT * FROM security_events WHERE id > ?', [since],
-      r => ['auth.token_rejected', 'authz.role_refused', 'authz.refused', 'webhook.rejected'].every(t => r.some(x => x.event_type === t)));
+    // A repeat within 60 s of an earlier suite's identical event folds into that row
+    // (by design), so "this run's evidence" is a new row OR one touched since the start.
+    const all = await waitRows('SELECT * FROM security_events WHERE id > ? OR last_at >= ?', [since, eventsT0],
+      // Wait for each specific row, not merely for each type: rows of one type can
+      // land in different 2-second flushes.
+      r => r.some(x => x.event_type === 'auth.token_rejected' && /bad_token/.test(x.detail || ''))
+        && r.some(x => x.event_type === 'auth.token_rejected' && x.path_template === '/api/errors/:id')
+        && ['authz.role_refused', 'authz.refused', 'webhook.rejected'].every(t => r.some(x => x.event_type === t)));
     const has = (type, pred = () => true) => all.some(r => r.event_type === type && pred(r));
     ok('a forged token is recorded as bad_token', has('auth.token_rejected', r => /bad_token/.test(r.detail || '')));
+    // Regression for the dedup key: a forged token must not fold into a missing-token row.
+    await api('GET', '/dashboard/zzprobe');                                            // no token → no_token
+    await api('GET', '/dashboard/zzprobe', { token: badTok });                         // forged → bad_token
+    const both = await waitRows(
+      "SELECT detail FROM security_events WHERE path_template = '/api/dashboard/zzprobe' AND (id > ? OR last_at >= ?)",
+      [since, eventsT0], r => r.length >= 2);
+    ok('a forged token and a missing token on the same route stay separate evidence',
+      both.some(r => /no_token/.test(r.detail || '')) && both.some(r => /bad_token/.test(r.detail || '')), both.map(r => r.detail));
     ok('a teacher on a staff-only route is recorded as a role refusal', has('authz.role_refused', r => r.role === 'teacher'));
     ok('a school admin on another school is recorded as a record refusal, by route template',
       has('authz.refused', r => r.path_template === '/api/schools/:id/forms' && r.role === 'school'));

@@ -30,12 +30,12 @@ Evidence: **T** automated test · **C** code read in this review · **D** hostin
 
 | Function | State | Basis |
 |---|---|---|
-| Govern | Partial | Roles defined; this programme; no written policy |
-| Identify | Partial | API matrix (142 endpoints), threat model, asset list |
+| Govern | In place | SECURITY_POLICY.md adopted; platform admin is security owner; quarterly access review |
+| Identify | In place | API matrix (142 endpoints) kept true by `api-matrix.js --check` in the suite; threat model; data inventory |
 | Protect | In place | V1–V9, V11–V13 above |
 | Detect | Partial | Every refusal recorded since 2026-09-24; no detection rules or alerts yet |
-| Respond | Missing | No rehearsed procedure; PDPA breach notification not yet written into one |
-| Recover | Unverified | Host backups expected; no restore test |
+| Respond | Partial | INCIDENT_RESPONSE.md adopted, with PDPC notification; first tabletop due within 30 days |
+| Recover | Partial | RPO 24 h / RTO 4 h; restore drill proven on a copy; first production drill due |
 
 ## Infrastructure — what we can and cannot configure
 
@@ -46,3 +46,18 @@ Evidence: **T** automated test · **C** code read in this review · **D** hostin
 - **Application-level controls** are therefore the only ones this project fully owns: an IP
   block, when built, is an *application* block — it runs after TLS and Node, and does nothing
   against network-level floods.
+
+## OWASP API Security Top 10 (2023)
+
+| Risk | Here | Evidence | State |
+|---|---|---|---|
+| API1 Broken object-level authorisation | Per-record checks, `canActOnSchool()` | SEC-001/002/004 fixed; suite | **Covered, tested** |
+| API2 Broken authentication | bcrypt, throttles, status re-read per request | Code, suite | Gap: no second factor (D4), no revocation (SEC-005) |
+| API3 Broken object property-level authorisation | Whitelisted UPDATE columns; DTO shapers on responses | Code | Partial: some handlers take free-text author fields (SEC-004 note) |
+| API4 Unrestricted resource consumption | Per-account rate limits; JSON 10 MB | Code | Gap: 5 × 100 MB uploads in memory (SEC-010, D7) |
+| API5 Broken function-level authorisation | `authorize()` on every router; role matrix | 125-assertion suite | **Covered, tested** |
+| API6 Unrestricted access to sensitive business flows | Registration throttled; link caps | Code | Partial: appeal endpoint (SEC-008) |
+| API7 Server-side request forgery | The server fetches only fixed hosts (Bedrock, Meta, Africa's Talking, Cloudinary) | Code | Not exposed |
+| API8 Security misconfiguration | helmet, HSTS, fail-closed webhooks | Code, hosting record | Partial: CORS default, CSP inline |
+| API9 Improper inventory management | 142-endpoint matrix, checked against the code | `api-matrix.js --check` | **Covered, tested** |
+| API10 Unsafe consumption of APIs | WhatsApp HMAC verified; AI output rendered escaped | Code | Partial: AI output not validated beyond escaping |

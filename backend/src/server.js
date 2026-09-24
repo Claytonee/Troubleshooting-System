@@ -297,6 +297,9 @@ const { execSync } = require('child_process');
 const BRANCH_ENV = { 'refs/heads/main': 'main', 'refs/heads/staging': 'staging', 'refs/heads/develop': 'develop' };
 const CURRENT_ENV = process.env.NODE_ENV || 'production';
 const ENV_BRANCH = { production: 'main', staging: 'staging', development: 'develop' };
+// After a successful, preflighted deploy the process exits this long after answering
+// the webhook so the host starts the new build (D23). 0 disables it.
+const SELF_RESTART_MS = process.env.DEPLOY_SELF_RESTART_MS === undefined ? 1500 : Number(process.env.DEPLOY_SELF_RESTART_MS);
 
 // WEBHOOK_SECRET wins over DEPLOY_SECRET in the handler below, so rotating the
 // secret under the *other* name is a silent no-op that leaves the old one live.
@@ -352,7 +355,8 @@ app.post('/api/deploy', express.json({ limit: '1mb' }), (req, res) => {
 
     git(`fetch origin ${myBranch}`);
     const target = git(`rev-parse origin/${myBranch}`);
-    if (target === git('rev-parse HEAD')) {
+    const previous = git('rev-parse HEAD');
+    if (target === previous) {
       console.log('[DEPLOY] Already up to date, nothing to do');
       return res.json({ status: 'up-to-date', commit: target.slice(0, 7) });
     }
@@ -382,10 +386,17 @@ app.post('/api/deploy', express.json({ limit: '1mb' }), (req, res) => {
     // What matters is whether the app can resolve its dependencies, not whether npm
     // succeeded. Ask Node, so upward resolution is followed exactly as at runtime —
     // express may legitimately live in a parent node_modules.
-    try {
-      require.resolve('express', { paths: [backendDir] });
-    } catch {
-      throw new Error('express cannot be resolved from ' + backendDir + ' — dependencies are missing');
+    // Can the new checkout boot? Every src file parses and every dependency
+    // resolves — or we go back to the commit that was serving, and stay on it.
+    // A half-broken build never gets to replace a working one (DECISIONS.md D23).
+    const check = require('./services/deployPreflight').preflight(backendDir);
+    if (!check.ok) {
+      git(`reset --hard ${previous}`);
+      console.error(`[DEPLOY] Preflight FAILED for ${target.slice(0, 7)} — rolled back to ${previous.slice(0, 7)}:\n  ` + check.problems.join('\n  '));
+      return res.status(500).json({
+        status: 'rolled_back', target: target.slice(0, 7), serving: previous.slice(0, 7),
+        problems: check.problems.slice(0, 10).map(p => p.replace(appRoot, '.'))
+      });
     }
 
     // Ask Passenger to respawn. Its restart file lives inside its application
@@ -406,15 +417,28 @@ app.post('/api/deploy', express.json({ limit: '1mb' }), (req, res) => {
       restartTouched = false;
       console.error(`[DEPLOY] Could NOT touch ${restartFile}: ${e.message} — the new code is on disk but this process is still the old one. Restart the app from cPanel.`);
     }
-    console.log(`[DEPLOY] Deployed ${target.slice(0, 7)} — Passenger restart ${restartTouched ? 'requested' : 'FAILED'}`);
+    console.log(`[DEPLOY] Deployed ${target.slice(0, 7)} (preflight: ${check.checked} files parse, dependencies resolve) — restarting`);
     res.json({
       status: 'deployed',
       branch: myBranch,
       commit: target.slice(0, 7),
+      preflight_files: check.checked,
       restart_requested: restartTouched,
       restart_file: restartFile.replace(process.env.HOME || '~', '~'),
+      self_restart_in_ms: SELF_RESTART_MS,
       timestamp: new Date().toISOString()
     });
+    // The restart file alone did not restart the app on this host: on 2026-09-24
+    // the old process served for over an hour after a deploy, next to the new
+    // static files, until someone pressed Restart in cPanel. So after answering,
+    // this process leaves, and the host starts the new build on the next request.
+    // The preflight above is what makes that safe. SELF_RESTART_MS=0 turns it off.
+    if (SELF_RESTART_MS > 0) {
+      setTimeout(() => {
+        console.log('[DEPLOY] Exiting so the host starts ' + target.slice(0, 7));
+        process.exit(0);
+      }, SELF_RESTART_MS);
+    }
   } catch (e) {
     // git/npm output can carry absolute server paths — log it, don't return it.
     console.error('[DEPLOY] Failed:', e.message);

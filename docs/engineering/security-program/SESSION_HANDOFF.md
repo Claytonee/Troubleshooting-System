@@ -15,6 +15,14 @@ approved or closed.
   own origin), rings for the layers, live deployment checks, the review table, honest limits.
 - Six suites made to honour `VERIFY_BASE`.
 
+### Also done since (afternoon)
+- SEC-006 recording shipped (`1d90d70`).
+- Standards decided (D13–D22): policy, incident runbook, data-protection record, recovery plan,
+  inventory self-check, restore drill, AI no longer sends names abroad, honest limits labelled.
+- TEST-001 fixed (the heartbeat suite no longer deletes other rows).
+- OPS-001: deploys restart themselves after a preflight, or roll back (D23).
+- `scripts/prepush.js` is the gate to run before every push.
+
 ### Open — in the order fixed by DECISIONS.md D12
 1. **D2 / SEC-006 security events** — everything in detection depends on it.
 2. **D3 / SEC-005 token versioning** — tokens without `tv` count as version 0, so there is no mass sign-out.

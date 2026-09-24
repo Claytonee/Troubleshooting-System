@@ -1027,6 +1027,12 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .sec-ring-box { max-width: 240px; }
 }
 
+/* Security Overview — honest limits, each labelled with its kind (D22) */
+.sec-limits { list-style: none; padding-left: 0; gap: 12px; }
+.sec-limits li { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.sec-limits li:last-child { border-bottom: 0; padding-bottom: 0; }
+.sec-limit-tag { font-size: 10px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; padding: 3px 8px; border-radius: 20px; }
+
 /* Security Overview — what the system refused (security_events) */
 .sig-rows { display: flex; flex-direction: column; gap: 10px; }
 .sig-row { display: grid; grid-template-columns: minmax(200px, 280px) 1fr 150px; gap: 14px; align-items: center; }

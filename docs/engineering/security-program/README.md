@@ -7,6 +7,10 @@ Engineering records for making the Technical Support System measurably safer. St
 |---|---|
 | [SESSION_HANDOFF.md](SESSION_HANDOFF.md) | Current phase, open work, decisions pending, exact next action |
 | [DECISIONS.md](DECISIONS.md) | Decisions taken, why, and when to revisit them |
+| [SECURITY_POLICY.md](SECURITY_POLICY.md) | The adopted policy: owner, access, sign-in, change control, reviews |
+| [INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) | The first hour, playbooks, evidence queries, PDPC notification |
+| [DATA_PROTECTION.md](DATA_PROTECTION.md) | Personal data held, processors, transfers, retention (Tanzania PDPA) |
+| [RECOVERY.md](RECOVERY.md) | RPO/RTO, the monthly restore drill, restoring production |
 | [ISSUE_REGISTER.md](ISSUE_REGISTER.md) | Every finding: evidence, root cause, fix, regression test |
 | [THREAT_MODEL.md](THREAT_MODEL.md) | Assets, actors, request path, trust boundaries, what is impossible |
 | [SECURITY_BASELINE.md](SECURITY_BASELINE.md) | Controls that exist, mapped to ASVS 5.0 and NIST CSF 2.0 |

@@ -20,8 +20,9 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 | SEC-008 | P3 | Open | Registration | Public appeal and teacher-status endpoints accept guessable input |
 | SEC-009 | P3 | Open | Auth | Login throttle is per account **per network** |
 | SEC-010 | P3 | Open | Faults | Attachments: 5 × 100 MB held in memory, any signed-in user |
+| OPS-001 | P2 | **Fixed** 2026-09-24 (verify on next deploy) | Deploy | A deploy left the old process serving next to new files until a manual restart |
 | INT-001 | P3 | Open | Faults | Fault codes reissued after deletion; race can duplicate them |
-| TEST-001 | P3 | Open | Test harness | `verify-heartbeat.js` sweeps every real LRS device, not only its own |
+| TEST-001 | P2 | **Fixed** 2026-09-24 | Test harness | `verify-heartbeat.js` swept every real LRS device, and its cleanup deleted rows it did not create |
 
 ---
 
@@ -157,10 +158,28 @@ observed: `QFT-0379` issued to faults 459, 471 and 478 on 2026-09-24 — and two
 reports can receive the same code. Fix: a sequence table or `UNIQUE(error_code)` + retry
 (check for existing duplicates first).
 
-## TEST-001 — `verify-heartbeat.js` sweeps real devices · P3 · Open
+## TEST-001 — `verify-heartbeat.js` swept real devices and deleted others' rows · P2 · Fixed
 
 Its sweep opens critical tickets for **every** silent LRS device, not only the one it created,
 and asserts none are silent. On a database with silent seed devices it fails, and it leaves
 tickets behind: on 2026-09-24 it opened QFT-0379…0383 for devices 9–13, which were removed by
-hand afterwards (TEST_RESULTS.md). Fix: scope the sweep assertion to the suite's own device, or
-park other devices for the duration and restore them.
+hand afterwards (TEST_RESULTS.md). Worse than first recorded: its cleanup deleted **every** `lrs_heartbeat:*` ticket, **every**
+`error.auto_*` audit row and **every** `heartbeat_lost` history row, so running it against a
+database with genuine heartbeat tickets destroyed them. Raised to P2 for that reason.
+
+**Fix:** it now snapshots baselines, parks every other device (a device that never reported is
+ignored by the sweep), removes only rows created after the baseline for its own device (with their
+updates and notifications), and restores every device exactly. Verified: 21/21, and a before/after
+snapshot of devices, faults, updates, audit, history and notifications is byte-identical. The same suite also leaves its
+`auto_recovery` rows in `error_updates` after deleting its test faults: the restore drill found
+seven such orphans from 9–10 September, and they were removed on 2026-09-24.
+
+## OPS-001 — Deploys did not restart the app · P2 · Fixed, pending proof on the next deploy
+
+- **Evidence:** at 07:28–07:31 on 2026-09-24, production served `index.html` at v53 and
+  `security.js` (new files) while `/api/health` reported `c564c2f`, and `/api/security/overview`
+  answered 200 through the page catch-all instead of 401. The new backend was not running. It
+  stayed that way for over an hour, until a manual restart. The same happened on 2026-09-09.
+- **Impact:** security fixes pushed are not live; the frontend and backend disagree.
+- **Fix:** DECISIONS.md D23: preflight, roll back on failure, self-restart on success.
+- **Regression:** `verify-deploy-preflight.js` (10 assertions).
