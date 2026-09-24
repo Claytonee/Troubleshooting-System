@@ -238,3 +238,4 @@ code, three made-up addresses became three evidence rows and rotating addresses 
 | A deploy still in progress (expected commit 1 minute old) | passes, marked "deploy in progress" |
 | An unreachable host | fails on the first check and stops (no minutes of repeated timeouts) |
 | `verify.yml` | runs on the push that adds it; its result is on the Actions tab |
+| First runs on GitHub (`2882ff7`) | **not started**: "account is locked due to a billing issue". Workflow correct as far as GitHub read it; the jobs never ran. Scheduled watch paused (`disabled_manually`) until billing is fixed |

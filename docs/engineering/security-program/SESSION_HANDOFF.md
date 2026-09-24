@@ -29,6 +29,12 @@ Nothing is described as approved, certified or closed beyond what the owner has 
 | Explaining it | Security Overview (`#security`, platform admin only): animated request journey, layers with evidence, live checks, incidents, standards, labelled limits | D10, D22 |
 
 ### Waiting on the owner (the code cannot do these)
+**First: GitHub has locked Actions on the account for a billing issue** (every run on 2026-09-25 ended
+"The job was not started because your account is locked due to a billing issue"). Until it is
+resolved in GitHub → Settings → Billing, neither CI nor the production watch can run. The scheduled
+watch is paused so it does not email a failure every 30 minutes; after the fix, turn it back on with
+`gh workflow enable watch.yml` (or Actions → Production watch → Enable workflow) and re-run Verify.
+
 0. **Open the Security Overview on production and reset every account it lists under "Published
    passwords"** (SEC-016). Field engineers: Sub-Admins → Reset Pass; school admins: School Admins →
    reset; if `admin` itself is listed and refused: `cd backend && node scripts/password-reset.js admin --yes`
