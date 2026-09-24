@@ -315,6 +315,31 @@ Blank means a random temporary password, shown once. A locked-out platform admin
 **Revisit when:** the Security Overview's list is empty on production. Then refusing every printed
 password costs nobody anything, and the forced-change path can go.
 
+## D30 — The gate runs on a clean machine, and production is watched from outside
+
+**Problem:** 788+ checks existed, but only on the machine that pushed. Pushing to `origin`
+deploys the live site, so nothing stopped broken code from shipping. Nothing told anyone
+when the site went down either: the in-app bell is part of the app.
+
+**Decided:**
+1. **`.github/workflows/verify.yml`** runs the whole pre-push gate on every push and pull
+   request: a fresh MariaDB 10.6, the app from its own bootstrap and seed, headless Chrome for
+   the browser suites, throwaway secrets generated per run. No production secret is used.
+2. **`.github/workflows/watch.yml`** runs `scripts/watch-production.js` every 30 minutes against
+   the live site: up, database reachable, latest commit running (20 minutes allowed for a deploy),
+   certificate valid with 14+ days left, security headers present, protected routes returning 401,
+   and a forged address still not believed (SEC-015). Read-only GET requests, no credentials.
+   GitHub emails the owner when a run fails, which does not depend on the site being up.
+3. **Free, and no new account:** the repository is public, so Actions minutes are free. A
+   third-party uptime service would have meant creating an account on the owner's behalf.
+
+**Not decided here:** whether the repository should stay public. SEC-016 showed what a public
+repository costs when a secret is written into it. That is the owner's call; CI and the watch
+keep working if it goes private, within the free private-repository minutes.
+
+**Revisit when:** a staging site exists (deploy there first, then promote), or the watch's
+30-minute interval proves too slow for the schools' needs.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.

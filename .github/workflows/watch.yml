@@ -1,0 +1,41 @@
+# Production watch, every 30 minutes (DECISIONS.md D30, backend/scripts/watch-production.js).
+#
+# Up? Database reachable? Running the latest commit? Certificate 14+ days from
+# expiry? Security headers present? Protected routes still protected? A forged
+# client address still not believed (SEC-015)?
+#
+# A failed run is emailed by GitHub to the repository owner — an alarm that does
+# not depend on the site being up, which the in-app bell cannot be. Read-only GET
+# requests; no credentials. Free: the repository is public.
+#
+# GitHub pauses scheduled workflows after 60 days without repository activity;
+# re-enable it from the Actions tab if that ever happens.
+name: Production watch
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the live site
+        working-directory: backend
+        run: |
+          export EXPECT_BUILD=$(git rev-parse --short HEAD)
+          export EXPECT_BUILD_AGE=$(( $(date +%s) - $(git log -1 --format=%ct) ))
+          node scripts/watch-production.js https://support.mkatolikikiganjani.com

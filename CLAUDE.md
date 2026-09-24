@@ -6,6 +6,9 @@
 - Push to the branch currently checked out, and push **`origin` (GitHub) only** — cPanel deploys from it. Do **not** push the `gitlab` remote: it feeds only the non-live Render mirror and its TLS is flaky (user instruction, 2026-09-08). Only commit code that has been verified/tested.
 - Always verify the feature works (syntax check + run/test) **before** committing. Never commit known-broken code.
 - One commit per feature/fix with a focused message; group only tightly-related changes.
+- **CI runs the same gate on every push** (`.github/workflows/verify.yml`, D30). A red run on `main` means the
+  live site may already have the broken code: fix forward at once. `watch.yml` checks production every 30 minutes
+  (`backend/scripts/watch-production.js`, runnable locally); a failed run is GitHub emailing the owner.
 
 ## Database Safety (additive · expand-and-contract — NEVER lose data)
 All schema changes MUST be **additive and backward-compatible** so a new deploy can never destroy existing data (the discipline Google/AWS use for zero-downtime migrations).

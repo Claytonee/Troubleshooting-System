@@ -24,6 +24,8 @@ Nothing is described as approved, certified or closed beyond what the owner has 
 | Deploys | preflight, rollback, self-restart; the pre-push gate | D23, OPS-001 |
 | Test harness | suites provision and remove their own data; the gate removes the events and incidents it causes | TEST-001, TEST-002 |
 | Onboarding | Guided tours: offered once per account, five stops per role, "Show me how" on the report form; tested in headless Chrome | D27 |
+| Checks on every push | `.github/workflows/verify.yml`: the whole gate on a clean machine (MariaDB, headless Chrome) | D30 |
+| Production watch | `.github/workflows/watch.yml` every 30 min: up, database, latest commit, certificate, headers, 401s, SEC-015; GitHub emails the owner on failure | D30 |
 | Explaining it | Security Overview (`#security`, platform admin only): animated request journey, layers with evidence, live checks, incidents, standards, labelled limits | D10, D22 |
 
 ### Waiting on the owner (the code cannot do these)

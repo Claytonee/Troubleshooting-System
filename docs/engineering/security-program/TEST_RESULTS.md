@@ -228,3 +228,13 @@ code, three made-up addresses became three evidence rows and rotating addresses 
 | Security Overview count, local database | "0" | **18**, named (1 platform admin, 3 field engineers, 13 teachers, 1 fixture) |
 | Suites that used the printed password | 5 | 0; 2 silent skips removed; 1 suite no longer overwrites the real admin's password |
 | Browser | — | refusal message on the sign-in form; the Security Overview banner names the accounts; the temporary-password dialog copies and closes |
+
+## D30 — production watch (2026-09-25)
+
+| Check | Result |
+|---|---|
+| `watch-production.js` against the live site (`600d0ed`) | **13 / 13**: up, database, latest commit, certificate (73 days left), HSTS, CSP enforced and report-only, nosniff, two protected routes 401, forged address recorded as 0.0.0.0 |
+| A stale deploy (expected commit 83 minutes newer than the running one) | **fails**, "the deploy did not restart the app" |
+| A deploy still in progress (expected commit 1 minute old) | passes, marked "deploy in progress" |
+| An unreachable host | fails on the first check and stops (no minutes of repeated timeouts) |
+| `verify.yml` | runs on the push that adds it; its result is on the Actions tab |

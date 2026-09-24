@@ -829,7 +829,9 @@ Features: searchable, dark theme consistent, click-outside-close, keyboard acces
 2. Push `origin` (GitHub) only. The GitHub webhook calls `POST /api/deploy` on cPanel.
 3. The webhook fetches, fast-forwards, installs, **preflights** the new code (every file compiles,
    every `require` resolves), rolls back on failure, and otherwise restarts the app itself (D23).
-4. Confirm: `/api/health` → `build` equals `git rev-parse --short HEAD`.
+4. Confirm: `/api/health` → `build` equals `git rev-parse --short HEAD`. GitHub Actions does both for you:
+   `verify.yml` runs the gate on a clean machine for every push, and `watch.yml` checks the live site every
+   30 minutes and emails the owner when something is wrong (D30).
 5. On every start `bootstrap.js` creates missing tables (seeding only empty ones) and
    `schemaExtensions.js` applies additive migrations.
 

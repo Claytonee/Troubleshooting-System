@@ -1,0 +1,97 @@
+# The pre-push gate, on every push and pull request (DECISIONS.md D30).
+#
+# Pushing to main deploys the live site (cPanel pulls origin), and until now the
+# gate only ran on whichever machine pushed. This runs the same gate on a clean
+# machine: a fresh MariaDB, the app started from its own bootstrap and seed, and
+# every verification suite — the browser suites in real headless Chrome.
+#
+# Secrets here are throwaway values generated per run, for a database that exists
+# for ten minutes. No production secret is used or needed.
+name: Verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      db:
+        image: mariadb:10.6
+        env:
+          MARIADB_ROOT_PASSWORD: ci-root-only
+          MARIADB_DATABASE: qft_ci
+          MARIADB_USER: qft
+          MARIADB_PASSWORD: qft-ci-only
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Throwaway configuration for this run
+        working-directory: backend
+        run: |
+          r() { openssl rand -hex 32; }
+          {
+            echo "PORT=3210"
+            echo "NODE_ENV=development"
+            echo "DB_HOST=127.0.0.1"
+            echo "DB_PORT=3306"
+            echo "DB_USER=qft"
+            echo "DB_PASSWORD=qft-ci-only"
+            echo "DB_NAME=qft_ci"
+            echo "JWT_SECRET=$(r)"
+            echo "JWT_EXPIRES_IN=7d"
+            echo "WEBHOOK_SECRET=$(r)"
+            echo "HEARTBEAT_KEY=$(r)"
+            echo "WHATSAPP_APP_SECRET=$(r)"
+            echo "WHATSAPP_VERIFY_TOKEN=$(r)"
+            echo "PHONE_INTAKE_KEY=$(r)"
+            echo "MFA_ENCRYPTION_KEY=$(r)"
+          } > .env
+
+      - name: Start the app (bootstrap creates the schema and seed)
+        working-directory: backend
+        run: |
+          nohup node src/server.js > server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3210/api/health > /dev/null; then echo "up after ${i}s"; exit 0; fi
+            sleep 1
+          done
+          echo "the app did not start"; tail -100 server.log; exit 1
+
+      - name: Pre-push gate
+        working-directory: backend
+        env:
+          VERIFY_BASE: http://localhost:3210
+          CI: 'true'
+        run: node scripts/prepush.js
+
+      - name: App log (on failure)
+        if: failure()
+        working-directory: backend
+        run: tail -200 server.log
