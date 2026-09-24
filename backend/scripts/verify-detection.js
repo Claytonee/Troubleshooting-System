@@ -137,6 +137,16 @@ async function upsert(username, role, schoolId) {
     console.log('\nD5       alert-only: nothing was blocked');
     ok('the guessed account can still sign in with its real password', (await api('POST', '/auth/login', { body: { username: fx.teacher.username, password: fx.password } })).status === 200);
     ok('the "spraying" address can still reach the API', (await api('GET', '/settings')).status === 200);
+
+    console.log('\nPage     what the Security Overview says matches the code');
+    // It said "seven rules" for a day after R8 shipped. The page is read aloud to
+    // stakeholders, so a stale number there is a false statement, not a typo.
+    const page = require('fs').readFileSync(require('path').join(__dirname, '..', '..', 'frontend', 'js', 'pages', 'security.js'), 'utf8');
+    const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+    const stated = [...page.matchAll(/\b(\w+) rules\b/gi)].map(m => m[1].toLowerCase()).filter(w => WORDS.includes(w) || /^\d+$/.test(w));
+    const actual = detection.RULES.length;
+    ok(`every rule count on the page says ${WORDS[actual]} (${actual} rules in services/detection.js)`,
+      stated.length > 0 && stated.every(w => w === WORDS[actual] || w === String(actual)), stated);
   } finally {
     await pool.query('DELETE FROM security_events WHERE id > ?', [base.ev]);
     await pool.query("DELETE FROM security_events WHERE event_type = 'events.dropped' AND detail LIKE '%verify-detection fixture%'");

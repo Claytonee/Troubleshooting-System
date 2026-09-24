@@ -186,3 +186,11 @@ still refused after reactivation, and the suite signs in again.
 | Every `jwt.verify(` in `src/` passes `JWT_VERIFY` | — | 2 / 2 call sites; **fails** with the old `auth.js` restored |
 | `corsOrigin()` production, no `FRONTEND_URL` | reflect any origin | `false` (none) |
 | `verify-token-policy.js` | 3 passed, 2 failed | **10 / 10** |
+
+## Security Overview accuracy pass (2026-09-24)
+
+Found while taking the review screenshots: the page still said "seven rules" after R8 shipped,
+"nothing alerts on them yet" after detection shipped, "196 assertions" after the security suite
+grew to 86, and listed the second factor and upload size as open API risks after both closed.
+All corrected. `verify-detection.js` now fails if any rule count on the page differs from
+`RULES.length` — it failed on the old page (`["seven","seven","seven"]`), 25/25 on the fix.

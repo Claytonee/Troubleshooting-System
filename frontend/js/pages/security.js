@@ -46,7 +46,7 @@ const SecurityPage = (() => {
       tech: 'Signed JWT carrying the account\'s session version, re-checked on every request (SEC-005, 19 tested assertions). Remaining gap: the pass is kept in browser storage, so escaping everything rendered stays essential.' },
     { icon: 'ti-building-community', color: 'var(--green)', title: 'Roles and school isolation', status: 'in', evidence: 'tested',
       plain: 'A teacher sees their own reports, a school administrator sees their own school, a field engineer sees the schools assigned to them, and only head office sees every school. The server decides this on every request — hiding a button is never the protection.',
-      tech: 'Role check on every API router plus a per-record school check. 196 automated assertions across the role matrix (125) and the security suite (71).' },
+      tech: 'Role check on every API router plus a per-record school check. 211 automated assertions across the role matrix (125) and the security suite (86).' },
     { icon: 'ti-code', color: 'var(--amber)', title: 'Safe handling of what people type', status: 'partial', evidence: 'tested',
       plain: 'Text one person types is always shown to others as text and never run as code. Database commands and data are kept apart, so typed text cannot change a query.',
       tech: 'Parameterised SQL throughout; output escaped; fixed-choice fields validated on the server; Content-Security-Policy blocks scripts from other sites. A strict policy with no inline script runs in report-only mode: browsers report what is left to migrate, and any foreign script raises an incident (R8).' },
@@ -61,9 +61,9 @@ const SecurityPage = (() => {
       tech: 'MySQL on localhost of the hosting account; credentials only in the hosting panel.' },
     { icon: 'ti-history', color: 'var(--amber)', title: 'Accountability', status: 'partial', evidence: 'tested',
       plain: 'Important administrative actions are written to an audit trail, and every refused request — a wrong password, a page outside a person\'s role, another school\'s record, a message without its key — is recorded as evidence.',
-      tech: 'audit_log for administrative writes; security_events for every 401/403/429 since 24 September 2026 (no passwords, tokens or typed usernames — tested). Gaps: nothing alerts on them yet; neither log is tamper-evident.' },
+      tech: 'audit_log for administrative writes; security_events for every 401/403/429 since 24 September 2026 (no passwords, tokens or typed usernames — tested). The detection rules below read them and alert the platform admin. Gap: neither log is tamper-evident.' },
     { icon: 'ti-radar-2', color: 'var(--red)', title: 'Detection and alerting', status: 'partial', evidence: 'tested',
-      plain: 'Seven rules watch the recorded evidence every minute — password guessing, spraying, a success after many failures, probing another school, forged messages, a removed second factor, lost evidence — and tell the platform admin on the bell, once per incident.',
+      plain: 'Eight rules watch the recorded evidence every minute — password guessing, spraying, a success after many failures, probing another school, forged messages, a removed second factor, a foreign script on our pages, lost evidence — and tell the platform admin on the bell, once per incident.',
       tech: 'Alert-only by decision (D5): nothing is blocked until 30 days of closed incidents show how often each rule is wrong. Email alerts wait for SMTP. 24 tested assertions, including that nothing gets blocked.' },
     { icon: 'ti-database-export', color: 'var(--text3)', title: 'Backup and recovery', status: 'unverified', evidence: 'none',
       plain: 'Copies of the data kept so the system can be restored after a failure or an attack.',
@@ -101,12 +101,12 @@ const SecurityPage = (() => {
     { name: 'NIST CSF 2.0 — Govern', status: 'in', note: 'A written security policy is adopted: one accountable owner (the platform admin), access rules, change control and a quarterly access review.' },
     { name: 'NIST CSF 2.0 — Identify', status: 'in', note: 'Every endpoint, role, threat and item of personal data is inventoried — and a test fails if the endpoint list drifts from the code.' },
     { name: 'NIST CSF 2.0 — Protect', status: 'in', note: 'Access control, two-step sign-in, encryption, input and output safety, signed integrations.' },
-    { name: 'NIST CSF 2.0 — Detect', status: 'in', note: 'Every refusal is recorded; seven rules turn patterns into incidents with one alert each on the platform admin\'s bell. Email joins when it is configured.' },
+    { name: 'NIST CSF 2.0 — Detect', status: 'in', note: 'Every refusal is recorded; eight rules turn patterns into incidents with one alert each on the platform admin\'s bell. Email joins when it is configured.' },
     { name: 'NIST CSF 2.0 — Respond', status: 'partial', note: 'Incident runbook adopted, including when to tell the Data Protection Commission. First rehearsal due within 30 days.' },
     { name: 'NIST CSF 2.0 — Recover', status: 'partial', note: 'Targets set: data at most 24 hours old, service back within 4 hours. The restore drill is proven on a copy; the first drill on a production backup is due.' },
     { name: 'OWASP ASVS 5.0', status: 'partial', note: 'Target: every Level 1 requirement, and Level 2 for sign-in, sessions and access. Not a certification — no outside party has assessed the system.' },
-    { name: 'OWASP API Security Top 10 (2023)', status: 'partial', note: 'All ten risks mapped. Object-level access (API1) and the endpoint inventory (API9) are tested on every release. Open: second factor, upload size.' },
-    { name: 'Tanzania Personal Data Protection Act, 2022', status: 'partial', note: 'Personal data, processors, transfers abroad and retention are documented, and the AI assistant no longer sends anyone\'s name abroad. Registering with the PDPC is a step for head office.' }
+    { name: 'OWASP API Security Top 10 (2023)', status: 'partial', note: 'All ten risks mapped. Object-level access, authentication, function-level access and the endpoint inventory are tested before every release. Open: the enforced script policy still allows inline script while it migrates (API8); AI answers are escaped but not otherwise checked (API10).' },
+    { name: 'Tanzania Personal Data Protection Act, 2022', status: 'partial', note: 'Personal data, processors, transfers abroad and retention are documented, and the AI assistant no longer sends anyone\'s name abroad, and a daily job reports what is past its retention period, deleting it once head office switches that on. Registering with the PDPC is a step for head office.' }
   ];
 
   const CHECK_LABELS = {
@@ -683,7 +683,7 @@ const SecurityPage = (() => {
       <div class="card-title"><span><i class="ti ti-alarm" style="margin-right:6px"></i>Security incidents</span>
         <span class="sec-chip" style="background:var(--bg3);color:var(--text3)">alert-only — nothing is blocked</span></div>
       <div class="inc-list">${rows}</div>
-      <div class="sec-foot">Seven rules (guessing, spraying, success after failures, probing another school, forged messages, two-step removed, dropped evidence) run every minute. One incident per rule, subject and hour, and one alert on the bell. Closing one records whether it was real, which is what sets the thresholds before anything is ever blocked.</div>
+      <div class="sec-foot">Eight rules (guessing, spraying, success after failures, probing another school, forged messages, two-step removed, a foreign script, dropped evidence) run every minute. One incident per rule, subject and hour, and one alert on the bell. Closing one records whether it was real, which is what sets the thresholds before anything is ever blocked.</div>
     </div>`;
   }
 
