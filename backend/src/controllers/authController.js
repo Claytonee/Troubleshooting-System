@@ -36,6 +36,9 @@ async function login(req, res, next) {
     );
 
     if (!rows.length) {
+      // Recorded without the typed name: an unknown username may be a password
+      // pasted into the wrong box, and it is not ours to keep.
+      res.locals.secDetail = { reason: 'unknown_account' };
       // Check if this is a pending registration (case-insensitive email match)
       const [regRows] = await pool.query(
         'SELECT id, status, email, password_hash, rejection_reason FROM registration_requests WHERE LOWER(email) = LOWER(?)',
@@ -60,6 +63,9 @@ async function login(req, res, next) {
 
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
+      res.locals.secUserId = user.id;
+      res.locals.secRole = user.role;
+      res.locals.secDetail = { reason: 'wrong_password' };
       // Check if this email has a pending/rejected registration with correct password
       const emailToCheck = user.email || username;
       const [regRows] = await pool.query(
@@ -95,6 +101,9 @@ async function login(req, res, next) {
     }
 
     const token = generateToken(user);
+    res.locals.secEvent = 'auth.login_ok';
+    res.locals.secUserId = user.id;
+    res.locals.secRole = user.role;
 
     let school_name = null;
     if (user.school_id) {

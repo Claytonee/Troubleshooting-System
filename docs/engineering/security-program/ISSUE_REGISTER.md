@@ -15,7 +15,7 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 | SEC-003 | P1 | **Fixed** 2026-09-24 | LRS, Inventory, Check-ins, Faults, Registration | Stored XSS into a platform admin's session |
 | SEC-004 | P2 | **Fixed** 2026-09-24 | Check-ins, Communications | Field engineer writes for schools not assigned to them |
 | SEC-005 | P2 | Open | Auth | A JWT cannot be revoked before it expires |
-| SEC-006 | P2 | Open | Auth, all | Failed sign-ins and 401/403 refusals are not recorded |
+| SEC-006 | P2 | **Fixed** 2026-09-24 | Auth, all | Failed sign-ins and 401/403 refusals were not recorded |
 | SEC-007 | P2 | Open | Auth | No second factor for platform admin |
 | SEC-008 | P3 | Open | Registration | Public appeal and teacher-status endpoints accept guessable input |
 | SEC-009 | P3 | Open | Auth | Login throttle is per account **per network** |
@@ -104,12 +104,23 @@ valid until expiry. Proposed: `users.token_version` (additive column) carried in
 and compared in `authenticate()`; bump on password change/reset and "sign out everywhere".
 Needs approval: it signs every current user out once.
 
-## SEC-006 — Failed sign-ins and refusals are not recorded · P2 · Open
+## SEC-006 — Failed sign-ins and refusals were not recorded · P2 · Fixed
 
-Throttling exists; evidence does not. `authLimiter` refuses silently; 401/403 answers leave no
-trace; `audit_log` records only successful administrative writes. Without this there is
-nothing for detection or incident response to read. First deliverable of the Security Center
-phase (SECURITY_DESIGN.md).
+- **Was:** throttling existed but left no evidence. `authLimiter` refused silently, 401/403
+  answers left no trace, and `audit_log` recorded only successful administrative writes.
+- **Fix:** `security_events` (additive table) and `services/securityEvents.js`. One response
+  hook on `/api/` classifies every 401/403/429, so a refusal added to any controller later is
+  recorded without anyone remembering to. It records sign-ins as well. Rows are buffered and
+  flushed every 2 s, repeats within 60 s fold into one row's `count`, pending rows are capped
+  at 500 (overflow is counted), and rows are kept 90 days.
+- **Never stored:** passwords, tokens, headers, bodies, query strings, raw URLs (only route
+  templates, with ids masked), or the typed name of an account that does not exist.
+- **Found while testing it:** a repeat folded into a row that had since been deleted (by
+  retention or a cleanup) was lost. Repeats now start a new row instead.
+- **Regression:** SEC-006 block in `verify-security-boundaries.js`, 14 assertions. The suite
+  was run twice back to back to cover the deleted-row case. Measured: 200 concurrent probes
+  became 1 row with count 200 in 0.84 s.
+- **Still open:** nothing raises an alert on these events yet (DECISIONS.md D5/D6).
 
 ## SEC-007 — No second factor for platform admin · P2 · Open
 

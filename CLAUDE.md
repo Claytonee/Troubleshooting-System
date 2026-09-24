@@ -536,6 +536,10 @@ the old code. Rules that came out of the 2026-09-24 review:
   anything a school admin can edit — school names included. Never splice a stored value into an
   `onclick` string: pass the id and look the record up.
 - **Fixed-choice fields are validated on the server** (`isIn`), not just by the dropdown.
+- **Refusals are evidence.** `services/securityEvents.js` records every 401/403/429 from one
+  response hook. A controller adds precision through `res.locals` (`secEvent`, `secUserId`,
+  `secRule`, `secDetail`) and never writes rows itself. Never put a password, token, header,
+  body or raw URL into `secDetail`.
 - **The Security Overview never states more than is verified.** Each layer carries its
   evidence (test / code / hosting record); a gap is shown as a gap; a signal not collected is
   `null`, never 0. Its findings list is mirrored from ISSUE_REGISTER.md and the suite checks it.

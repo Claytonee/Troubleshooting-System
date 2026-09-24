@@ -57,9 +57,9 @@ const SecurityPage = (() => {
     { icon: 'ti-database', color: 'var(--purple)', title: 'Database', status: 'in', evidence: 'documented',
       plain: 'The database sits on the same server as the application and is not reachable from the internet.',
       tech: 'MySQL on localhost of the hosting account; credentials only in the hosting panel.' },
-    { icon: 'ti-history', color: 'var(--amber)', title: 'Accountability', status: 'partial', evidence: 'code',
-      plain: 'Important administrative actions — creating accounts, resetting passwords, changing and closing faults — are written to an audit trail that the platform admin can read.',
-      tech: 'audit_log table. Gaps: failed sign-ins and refused requests are not recorded (SEC-006); the trail is not tamper-evident.' },
+    { icon: 'ti-history', color: 'var(--amber)', title: 'Accountability', status: 'partial', evidence: 'tested',
+      plain: 'Important administrative actions are written to an audit trail, and every refused request — a wrong password, a page outside a person\'s role, another school\'s record, a message without its key — is recorded as evidence.',
+      tech: 'audit_log for administrative writes; security_events for every 401/403/429 since 24 September 2026 (no passwords, tokens or typed usernames — tested). Gaps: nothing alerts on them yet; neither log is tamper-evident.' },
     { icon: 'ti-radar-2', color: 'var(--red)', title: 'Detection and alerting', status: 'planned', evidence: 'none',
       plain: 'Automatic detection of attacks, alerts to head office, and blocking of hostile addresses.',
       tech: 'Security Center — event log, detection rules, alerts, reviewed IP blocking. Next phase; nothing will block live traffic without your approval.' },
@@ -79,7 +79,7 @@ const SecurityPage = (() => {
     { name: 'NIST CSF 2.0 — Govern', status: 'partial', note: 'Roles and responsibilities defined; security programme started; no written security policy yet.' },
     { name: 'NIST CSF 2.0 — Identify', status: 'partial', note: 'Every endpoint, role and threat is inventoried in the engineering records.' },
     { name: 'NIST CSF 2.0 — Protect', status: 'in', note: 'Access control, encryption, input and output safety, signed integrations.' },
-    { name: 'NIST CSF 2.0 — Detect', status: 'planned', note: 'No automated detection yet. The Security Center is the next phase.' },
+    { name: 'NIST CSF 2.0 — Detect', status: 'partial', note: 'Every refusal is recorded since 24 September 2026. Nothing raises an alert on it yet — detection rules come next.' },
     { name: 'NIST CSF 2.0 — Respond', status: 'planned', note: 'Incident procedure drafted in the engineering records; not yet rehearsed.' },
     { name: 'NIST CSF 2.0 — Recover', status: 'unverified', note: 'Depends on hosting backups; a restore has not been tested.' },
     { name: 'OWASP ASVS 5.0', status: 'partial', note: 'Used as the checklist for this review. Not a certification — no outside party has assessed the system.' },
@@ -359,7 +359,7 @@ const SecurityPage = (() => {
       { route: ['device', 'https', 'gate', 'identity'], stopAt: 'identity', quiet: true, fast: true },
       { route: ['device', 'https', 'gate', 'identity'], stopAt: 'identity', quiet: true, fast: true },
       { route: ['device', 'https', 'gate'], stopAt: 'gate', quiet: true,
-        notes: { gate: 'After 20 wrong tries in 15 minutes the gate refuses this account from this network before any password is checked. Attempts are slowed, not yet recorded (SEC-006).' } }] },
+        notes: { gate: 'After 20 wrong tries in 15 minutes the gate refuses this account from this network before any password is checked. Every try is recorded as evidence.' } }] },
     { id: 'cross', label: 'Opening another school\'s record', icon: 'ti-arrows-exchange', packets: [
       { route: ['device', 'https', 'gate', 'identity', 'role', 'school'], stopAt: 'school',
         notes: { role: 'Teachers may read faults — so the role check passes.',
@@ -606,6 +606,50 @@ const SecurityPage = (() => {
     }, 200);
   });
 
+  // ---- what the system refused (security_events) ---------------------------
+  const SIGNALS = [
+    { type: 'auth.login_failed', label: 'Wrong passwords', icon: 'ti-password', color: 'var(--amber)' },
+    { type: 'auth.login_throttled', label: 'Sign-ins stopped at the front gate', icon: 'ti-hourglass-high', color: 'var(--red)' },
+    { type: 'authz.refused', label: 'Records refused — not theirs', icon: 'ti-building-community', color: 'var(--red)' },
+    { type: 'authz.role_refused', label: 'Pages refused for the role', icon: 'ti-user-shield', color: 'var(--purple)' },
+    { type: 'webhook.rejected', label: 'Outside messages without a valid key', icon: 'ti-plug-x', color: 'var(--teal)' },
+    { type: 'auth.token_rejected', label: 'Expired or invalid sign-in passes', icon: 'ti-key-off', color: 'var(--text3)' },
+    { type: 'api.rate_limited', label: 'Requests slowed for volume', icon: 'ti-gauge', color: 'var(--accent)' },
+    { type: 'auth.login_refused', label: 'Pending or deactivated accounts', icon: 'ti-user-pause', color: 'var(--text3)' },
+    { type: 'events.dropped', label: 'Events dropped under load', icon: 'ti-alert-triangle', color: 'var(--red)' }
+  ];
+
+  function signalsCard() {
+    if (!data || !data.signals) {
+      return `<div class="card"><div class="card-title"><span><i class="ti ti-eye" style="margin-right:6px"></i>What the system refused</span></div>
+        <div class="sec-muted">${esc(loadError || 'Signals unavailable.')}</div></div>`;
+    }
+    const by = {};
+    data.signals.by_type.forEach(r => { by[r.event_type] = r; });
+    const shown = SIGNALS.filter(s => s.type !== 'events.dropped' || by[s.type]);
+    const max = Math.max(1, ...shown.map(s => (by[s.type] || {}).count || 0));
+    const rows = shown.map(s => {
+      const r = by[s.type] || { count: 0, sources: 0 };
+      const pct = r.count ? Math.max(2, Math.round(r.count / max * 100)) : 0;
+      return `<div class="sig-row">
+        <div class="sig-label"><i class="ti ${s.icon}" style="color:${s.color}"></i>${esc(s.label)}</div>
+        <div class="sig-track"><div class="sig-bar" data-w="${pct}" style="background:${s.color}"></div></div>
+        <div class="sig-num">${r.count.toLocaleString()}<span>${r.count ? `from ${r.sources} address${r.sources === 1 ? '' : 'es'}` : ''}</span></div>
+      </div>`;
+    }).join('');
+    const since = data.signals.recording_since;
+    return `<div class="card">
+      <div class="card-title"><span><i class="ti ti-eye" style="margin-right:6px"></i>What the system refused · last ${data.signals.window_days} days</span></div>
+      <div class="sig-rows">${rows}</div>
+      <div class="sec-foot">${since ? 'Recording since ' + esc(fmtDay(String(since).slice(0, 10))) + '. ' : 'Recording has started; nothing refused yet. '}Repeats within a minute count once per row but are all added up here. A school shares one address, so "addresses" counts networks, not people. Nothing here raises an alert yet.</div>
+    </div>`;
+  }
+
+  function growBars() {
+    const bars = document.querySelectorAll('.sig-bar');
+    requestAnimationFrame(() => bars.forEach(b => { b.style.width = b.dataset.w + '%'; }));
+  }
+
   // ---- page ---------------------------------------------------------------
   function render() {
     return `
@@ -626,6 +670,8 @@ const SecurityPage = (() => {
     <div class="stats-grid sec-stats" id="sec-stats">${statCards()}</div>
 
     ${flowCard()}
+
+    ${signalsCard()}
 
     <div class="card sec-briefing-card">
       <div class="card-title">
@@ -674,7 +720,7 @@ const SecurityPage = (() => {
       <div class="card-title"><span><i class="ti ti-alert-octagon" style="margin-right:6px"></i>Honest limits</span></div>
       <ul class="sec-limits">
         <li><strong>No second sign-in factor yet.</strong> A stolen platform admin password is enough to sign in (SEC-007).</li>
-        <li><strong>Attacks are slowed, not yet detected.</strong> Nobody is alerted when someone probes the system (SEC-006).</li>
+        <li><strong>Attacks are recorded, not yet alerted on.</strong> Every refusal is kept as evidence, but nobody is told in the moment until the detection rules ship.</li>
         <li><strong>A device's hardware (MAC) address cannot be seen over the internet.</strong> No website can block a device that way; blocking works on accounts, sessions and network addresses.</li>
         <li><strong>A school shares one internet address.</strong> Blocking an address can lock out a whole staffroom, which is why automatic blocking will stay temporary and reviewed.</li>
         <li><strong>Recovery is unproven until a backup is restored.</strong> That test is on the plan.</li>
@@ -711,6 +757,7 @@ const SecurityPage = (() => {
     const main = document.querySelector('main');
     if (main) main.querySelectorAll('.card, .stat-card, .alert-banner').forEach(c => c.classList.add('reveal', 'visible'));
     mountFlow();
+    growBars();
     if (!reducedMotion()) loadGsap().then(ok => { if (ok) drawRings(); });
   }
 

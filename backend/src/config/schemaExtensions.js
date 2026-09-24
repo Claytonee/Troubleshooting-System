@@ -524,6 +524,32 @@ async function applyExtensions(db) {
     FOREIGN KEY (error_id) REFERENCES errors(id) ON DELETE CASCADE
   )`);
 
+  // --- Security events (SEC-006, DECISIONS.md D2) ---
+  // Evidence of refusals: failed and throttled sign-ins, role and school
+  // refusals, rejected webhooks. Written in batches by services/securityEvents.js;
+  // repeats within 60 s fold into one row via `count`. Never holds a password,
+  // token, header or request body — only a route template, never a raw URL.
+  await q(`CREATE TABLE IF NOT EXISTS security_events (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    occurred_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    event_type VARCHAR(40) NOT NULL,
+    severity VARCHAR(10) NOT NULL DEFAULT 'info',
+    source_ip VARCHAR(45) NULL,
+    user_id INT NULL,
+    role VARCHAR(20) NULL,
+    school_id INT NULL,
+    method VARCHAR(8) NULL,
+    path_template VARCHAR(160) NULL,
+    status SMALLINT NULL,
+    count INT NOT NULL DEFAULT 1,
+    detail TEXT NULL,
+    INDEX idx_sec_time (occurred_at),
+    INDEX idx_sec_type_time (event_type, occurred_at),
+    INDEX idx_sec_ip_time (source_ip, occurred_at),
+    INDEX idx_sec_user_time (user_id, occurred_at)
+  )`);
+
   if (skipped) console.log(`  schemaExtensions: ${skipped} step(s) already applied.`);
   if (failed) console.error(`  schemaExtensions: ${failed} step(s) failed — see errors above.`);
 }

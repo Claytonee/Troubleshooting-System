@@ -73,3 +73,17 @@ seen to stay pending in the embedded browser.
 - Anything on production: no requests were sent to `support.mkatolikikiganjani.com`.
 - Real email/SMS delivery (not configured locally; nothing sends).
 - Proxy IP attribution (THREAT_MODEL T9) — needs the live proxy.
+
+## SEC-006 — security events (later on 2026-09-24)
+
+| Check | Result |
+|---|---|
+| `verify-security-boundaries.js` | **49 / 49**, run twice back to back (the second run inside the first run's 60 s dedup window) |
+| Direct service test: record → flush → delete row → repeat | repeats landed in a new row (count 2), not lost |
+| Burst: 200 concurrent anonymous probes, distinct ids | **1 row, count 200**, 0.84 s for all 200 requests |
+| All other suites after the change | role-matrix 125, teacher-scope 61, school-chain 55, phone-intake 59, whatsapp 38, spares 45, lifecycle 41, visits 37, maintenance 33, knowledge 30, frontend-safety 19, offline-dedup 7 — all passing |
+| Browser: "What the system refused" card | counts and bars match the rows; no overflow at 748 px |
+
+Production check (read-only): after the owner restarted the app, `/api/health` reported build
+`0eb36d5`, and `/api/security/overview` and `/api/errors/1/attachments` answered 401 to an
+anonymous request. That is the new code: the old process answered 200 on the first.

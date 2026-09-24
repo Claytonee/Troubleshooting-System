@@ -4,6 +4,7 @@ const pool = require('../config/database');
 async function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.locals.secDetail = { reason: 'no_token' };
     return res.status(401).json({ error: 'Access denied. No token provided.' });
   }
 
@@ -22,7 +23,13 @@ async function authenticate(req, res, next) {
       [decoded.id]
     );
     if (!rows.length || rows[0].status === 'inactive') {
+      res.locals.secDetail = { reason: rows.length ? 'inactive_account' : 'unknown_account' };
+      res.locals.secUserId = rows.length ? rows[0].id : null;
       return res.status(401).json({ error: 'Invalid or expired token.' });
+    }
+    if (rows[0].approval_status === 'pending' || rows[0].approval_status === 'rejected') {
+      res.locals.secRule = 'account_state';
+      res.locals.secUserId = rows[0].id;
     }
     if (rows[0].approval_status === 'pending') {
       return res.status(403).json({ error: 'Account pending approval.', code: 'PENDING_APPROVAL' });
@@ -33,6 +40,8 @@ async function authenticate(req, res, next) {
     req.user = rows[0];
     next();
   } catch (err) {
+    // Expired and forged tokens both land here; the name says which, the token is never kept.
+    res.locals.secDetail = { reason: err && err.name === 'TokenExpiredError' ? 'expired_token' : 'bad_token' };
     return res.status(401).json({ error: 'Invalid token.' });
   }
 }
@@ -53,6 +62,7 @@ async function authenticate(req, res, next) {
 function authorize(...roles) {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
+      res.locals.secRule = 'role';
       return res.status(403).json({
         error: `Forbidden. This is for ${roles.join(', ')} accounts — yours is ${req.user.role}.`,
         code: 'ROLE_NOT_ALLOWED',

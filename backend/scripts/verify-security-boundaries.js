@@ -83,6 +83,8 @@ async function ensureStaff(role, suffix) {
   const [[other]] = await pool.query('SELECT id FROM schools WHERE id <> ? ORDER BY id LIMIT 1', [own]);
   const [[foreignError]] = await pool.query('SELECT id FROM errors WHERE school_id = ? ORDER BY id LIMIT 1', [other.id]);
   const [[{ maxNotif }]] = await pool.query('SELECT COALESCE(MAX(id), 0) AS maxNotif FROM admin_notifications');
+  // Everything this run causes to be recorded is removed at the end.
+  const [[{ eventsBaseline }]] = await pool.query('SELECT COALESCE(MAX(id), 0) AS eventsBaseline FROM security_events');
 
   await ensureStaff('admin', 'admin');
   const subId = await ensureStaff('subadmin', 'sub');
@@ -187,7 +189,61 @@ async function ensureStaff(role, suffix) {
     const ids = ((ov.body && ov.body.review && ov.body.review.findings) || []).map(f => f.id);
     ok('every finding the page lists is in ISSUE_REGISTER.md', ids.length > 0 && ids.every(id => register.includes(id)),
       ids.filter(id => !register.includes(id)));
+
+    // ---- SEC-006: refusals leave evidence, and only safe evidence ----------
+    console.log('\nSEC-006  refusals are recorded — without passwords, tokens or typed usernames');
+    const since = eventsBaseline;
+    const waitRows = async (sql, params, pred, ms = 8000) => {
+      const end = Date.now() + ms;
+      for (;;) {
+        const [rows] = await pool.query(sql, params);
+        if (pred(rows) || Date.now() > end) return rows;
+        await new Promise(r => setTimeout(r, 400));
+      }
+    };
+    const WRONG = 'zz-Wrong-Pass-' + Date.now();
+    for (let i = 0; i < 3; i++) await api('POST', '/auth/login', { body: { username: fx.teacher.username, password: WRONG } });
+    const failed = await waitRows(
+      "SELECT * FROM security_events WHERE id > ? AND event_type = 'auth.login_failed' AND user_id = ?",
+      [since, fx.teacher.userId], r => r.length && r[0].count >= 3);
+    ok('three wrong passwords on one account are recorded', failed.length >= 1, failed.length);
+    ok('...as one row with count 3, not three rows', failed.length === 1 && failed[0].count === 3, failed.map(r => r.count));
+    ok('...marked wrong_password against the account', failed[0] && /wrong_password/.test(failed[0].detail || ''), failed[0] && failed[0].detail);
+
+    const ghost = 'zzghost' + Date.now();
+    await api('POST', '/auth/login', { body: { username: ghost, password: WRONG } });
+    const unknown = await waitRows(
+      "SELECT * FROM security_events WHERE id > ? AND event_type = 'auth.login_failed' AND user_id IS NULL",
+      [since], r => r.length > 0);
+    ok('a sign-in for an account that does not exist is recorded', unknown.length > 0);
+
+    const badTok = 'eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MX0.zzForgedSignatureValue';
+    await api('GET', '/dashboard', { token: badTok });
+    await api('GET', '/errors/987654');
+    await api('GET', '/schools/' + other.id, { token: teacher });                  // role refusal
+    await api('GET', `/schools/${other.id}/forms`, { token: schoolAdmin });         // record refusal
+    await api('POST', '/heartbeat', { body: { device: 'zz' } });                    // no key
+
+    const all = await waitRows('SELECT * FROM security_events WHERE id > ?', [since],
+      r => ['auth.token_rejected', 'authz.role_refused', 'authz.refused', 'webhook.rejected'].every(t => r.some(x => x.event_type === t)));
+    const has = (type, pred = () => true) => all.some(r => r.event_type === type && pred(r));
+    ok('a forged token is recorded as bad_token', has('auth.token_rejected', r => /bad_token/.test(r.detail || '')));
+    ok('a teacher on a staff-only route is recorded as a role refusal', has('authz.role_refused', r => r.role === 'teacher'));
+    ok('a school admin on another school is recorded as a record refusal, by route template',
+      has('authz.refused', r => r.path_template === '/api/schools/:id/forms' && r.role === 'school'));
+    ok('a heartbeat without its key is recorded as a rejected webhook', has('webhook.rejected'));
+    ok('successful sign-ins are recorded too', has('auth.login_ok', r => r.user_id === fx.teacher.userId));
+
+    const dump = JSON.stringify(all);
+    ok('no password ever reaches the table', !dump.includes(WRONG) && !dump.includes(fixtures.PASSWORD));
+    ok('no token ever reaches the table', !dump.includes(badTok) && !dump.includes('zzForgedSignatureValue') && !dump.includes(teacher.slice(-20)));
+    ok('the typed name of a non-existent account is not kept', !dump.includes(ghost));
+    ok('ids in unmatched URLs are masked', !dump.includes('987654') && has('auth.token_rejected', r => r.path_template === '/api/errors/:id'));
+    ok('events carry the source address', all.every(r => r.event_type === 'events.dropped' || !!r.source_ip));
   } finally {
+    // Longer than one flush interval, so nothing this run caused lands after the delete.
+    await new Promise(r => setTimeout(r, 2600));
+    await pool.query("DELETE FROM security_events WHERE id > ?", [eventsBaseline]);
     await pool.query("DELETE FROM weekly_checkins WHERE term = ?", [TERM]);
     await pool.query("DELETE FROM communications WHERE note = 'zzverify note'");
     await pool.query(

@@ -13,6 +13,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
 const errorHandler = require('./middleware/errorHandler');
+const securityEvents = require('./services/securityEvents');
 
 const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashboard');
@@ -170,6 +171,9 @@ const limiter = rateLimit({
   skip: (req) => req.path === '/health' || req.path === '/api/health',
   message: { error: 'Too many requests, please try again later.' }
 });
+// Records every 401/403/429 on the API (SEC-006). Mounted before the limiter so
+// its refusals are seen; it only listens for 'finish' and never delays a request.
+app.use('/api/', securityEvents.middleware);
 app.use('/api/', limiter);
 
 // Login is the brute-force surface, so it stays tight — but keyed by the

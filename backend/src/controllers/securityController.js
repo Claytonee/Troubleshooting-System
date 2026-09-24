@@ -25,7 +25,7 @@ const REVIEW = {
     { id: 'SEC-003', severity: 'P1', status: 'fixed', title: 'Stored text could run as script in a platform admin\'s browser' },
     { id: 'SEC-004', severity: 'P2', status: 'fixed', title: 'A field engineer could write for schools not assigned to them' },
     { id: 'SEC-005', severity: 'P2', status: 'open', title: 'Sign-in tokens cannot be revoked before they expire (7 days)' },
-    { id: 'SEC-006', severity: 'P2', status: 'open', title: 'Failed sign-ins and refused requests are not recorded' },
+    { id: 'SEC-006', severity: 'P2', status: 'fixed', title: 'Failed sign-ins and refused requests were not recorded' },
     { id: 'SEC-007', severity: 'P2', status: 'open', title: 'No second factor on platform admin sign-in' },
     { id: 'SEC-008', severity: 'P3', status: 'open', title: 'Public appeal and teacher-status endpoints accept guessable input' },
     { id: 'SEC-009', severity: 'P3', status: 'open', title: 'Password throttle is per account per network, not per account' },
@@ -74,6 +74,14 @@ async function overview(req, res, next) {
     const [[pending]] = await pool.query(
       "SELECT COUNT(*) AS n FROM registration_requests WHERE status = 'pending'");
     const defaults = defaultPasswordStatus();
+    // What the system refused in the last 7 days (SEC-006). Sums of `count`,
+    // because repeats within a minute are folded into one row.
+    const [signals] = await pool.query(
+      `SELECT event_type, SUM(count) AS n, COUNT(DISTINCT source_ip) AS sources, MAX(last_at) AS latest
+         FROM security_events
+        WHERE occurred_at >= NOW() - INTERVAL 7 DAY AND event_type <> 'auth.login_ok'
+        GROUP BY event_type`);
+    const [[since]] = await pool.query('SELECT MIN(occurred_at) AS first_at FROM security_events');
 
     const secret = process.env.JWT_SECRET || '';
     res.json({
@@ -89,11 +97,17 @@ async function overview(req, res, next) {
         pending_registrations: Number(pending.n)
       },
       audit: { events_last_30_days: Number(audit.last_30_days), latest_event_at: audit.latest },
-      // Signals the system does not collect yet. Planned in the Security Center
-      // phase (docs/engineering/security-program/SECURITY_DESIGN.md).
+      signals: {
+        window_days: 7,
+        recording_since: since.first_at,
+        by_type: signals.map(r => ({
+          event_type: r.event_type, count: Number(r.n), sources: Number(r.sources), latest_at: r.latest
+        }))
+      },
+      // Recorded, but nothing acts on it yet — detection rules and alerts are
+      // the next phase (DECISIONS.md D5, D6).
       not_collected: [
-        { signal: 'failed_sign_ins', why: 'Failed sign-ins are throttled but not recorded (SEC-006).' },
-        { signal: 'refused_requests', why: 'Requests refused for role or school are answered 403 but not recorded (SEC-006).' }
+        { signal: 'alerts', why: 'Refusals are recorded, but nothing raises an alert on them yet — detection rules come next.' }
       ],
       checks: {
         https_enforced: process.env.NODE_ENV === 'production',

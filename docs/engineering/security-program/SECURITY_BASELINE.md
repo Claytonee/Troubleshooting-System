@@ -23,7 +23,7 @@ Evidence: **T** automated test · **C** code read in this review · **D** hostin
 | V13 Configuration | Secrets in panel env; `/api/health` exposes booleans only; deploy fails closed without a secret | C D | `DATABASE_URL` override hazard (documented); CORS default |
 | V14 Data protection | Role-scoped caches dropped on logout; offline queue records owner | C | No retention policy; student names on devices |
 | V15 Secure coding & architecture | Dependencies pinned by lockfile; no `eval` (CSP + `verify-frontend-safety.js`) | T C | `npm audit` not yet in the routine |
-| V16 Logging & error handling | `audit_log` for admin writes; error handler hides detail in production | C | Refusals and failed logins not logged (SEC-006); log not tamper-evident |
+| V16 Logging & error handling | `audit_log` for admin writes; `security_events` for every 401/403/429 and sign-in (SEC-006, tested); error handler hides detail in production | T C | Not tamper-evident; nothing alerts on events yet |
 | V17 WebRTC | Not used | — | n/a |
 
 ## NIST CSF 2.0 functions
@@ -33,7 +33,7 @@ Evidence: **T** automated test · **C** code read in this review · **D** hostin
 | Govern | Partial | Roles defined; this programme; no written policy |
 | Identify | Partial | API matrix (142 endpoints), threat model, asset list |
 | Protect | In place | V1–V9, V11–V13 above |
-| Detect | Missing | Nothing alerts; throttles act silently |
+| Detect | Partial | Every refusal recorded since 2026-09-24; no detection rules or alerts yet |
 | Respond | Missing | No rehearsed procedure; PDPA breach notification not yet written into one |
 | Recover | Unverified | Host backups expected; no restore test |
 
