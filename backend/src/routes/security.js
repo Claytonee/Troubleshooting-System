@@ -12,7 +12,19 @@ const router = express.Router();
  */
 router.get('/seen-as', (req, res) => {
   res.set('Cache-Control', 'no-store');
-  res.json({ ip: req.ip });
+  // The forwarding headers as they ARRIVE here, after the host's proxy: the only
+  // way to learn, from outside, which of them the proxy writes and which it
+  // passes through from the client. They are the caller's own request, echoed
+  // back to the caller; nothing another person could not already see.
+  const h = (n) => (req.headers[n] === undefined ? null : String(req.headers[n]).slice(0, 200));
+  res.json({
+    ip: req.ip,
+    headers: {
+      'x-forwarded-for': h('x-forwarded-for'), 'x-real-ip': h('x-real-ip'), forwarded: h('forwarded'),
+      'x-client-ip': h('x-client-ip'), 'x-forwarded-proto': h('x-forwarded-proto')
+    },
+    socket_is_loopback: /^(::1|127\.|::ffff:127\.)/.test(req.socket.remoteAddress || '')
+  });
 });
 
 /**
