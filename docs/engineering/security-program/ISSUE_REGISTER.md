@@ -25,6 +25,7 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 | SEC-012 | P1 | **Fixed** 2026-09-24 | Dependencies | 6 known-vulnerable production dependencies (1 high: nodemailer) |
 | INT-001 | P3 | **Fixed** 2026-09-24 | Faults | Fault codes reissued after deletion; a race duplicated them |
 | TEST-001 | P2 | **Fixed** 2026-09-24 | Test harness | `verify-heartbeat.js` swept every real LRS device, and its cleanup deleted rows it did not create |
+| TEST-002 | P3 | **Fixed** 2026-09-24 | Test harness | The pre-push gate tidied test incidents but left their evidence, so detection reopened one a minute later |
 
 ---
 
@@ -247,6 +248,17 @@ updates and notifications), and restores every device exactly. Verified: 21/21, 
 snapshot of devices, faults, updates, audit, history and notifications is byte-identical. The same suite also leaves its
 `auto_recovery` rows in `error_updates` after deleting its test faults: the restore drill found
 seven such orphans from 9–10 September, and they were removed on 2026-09-24.
+
+## TEST-002 — The gate left evidence that reopened an incident · P3 · Fixed
+
+The suites send forged webhooks and wrong passwords from this machine on purpose, and the gate
+removed the incidents they caused about `::1`. It did not remove the **events**. The server's
+detection timer runs every minute: at 12:37:08 on 2026-09-24, one minute after the gate finished,
+it opened R5 (18 rejected webhooks from `::1`) again. It sat on the local Security Overview as an
+open medium incident nobody had caused.
+
+**Fix:** `prepush.js` records the highest event id too, waits out one recorder flush (2 s), then
+removes loopback events above that id before removing incidents. Only ever against a local server.
 
 ## OPS-001 — Deploys did not restart the app · P2 · Fixed, pending proof on the next deploy
 

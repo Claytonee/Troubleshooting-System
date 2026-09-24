@@ -162,3 +162,16 @@ still refused after reactivation, and the suite signs in again.
 | Inline handlers measured | 321 (`on*=` attributes) + 1 inline script block |
 | `verify-csp.js` | **15 / 15** |
 | Chrome, real page | `securitypolicyviolation` fired with `disposition: report`; `POST /api/security/csp-report` → 204; the inline handler still ran |
+
+## D25 — retention (2026-09-24)
+
+| Check | Result |
+|---|---|
+| `verify-retention.js` | **26 / 26**: one row just past and one just inside each period (25/23 months, 13/11, 13/6, 91/30 days) |
+| Report mode | counts exactly the one old row per policy; deletes nothing |
+| Enforce mode | removes only rows past their period, with their appeals and messages; a pending registration 30 months old stays; a conversation started 20 months ago but active 2 months ago stays whole |
+| Accounts | an account deactivated 13 months ago is counted and **not** deleted, even when enforcing |
+| Audit | one `retention.removed` entry per policy; a second run removes and writes nothing |
+| Regression | the overview's count after a row disappears: **failed on the cached first version** (25/26), passes on the fix |
+| Safety | the suite checks that no real row is due before it enforces, and stops if one is |
+| Browser | the Security Overview's live checks show "Data retention (report-only)" with each period |

@@ -151,7 +151,7 @@ factor, D4) and API4 (upload size, D7).
 [DATA_PROTECTION.md](DATA_PROTECTION.md): every personal-data column, who sees it, the processors
 and where they are, and retention periods. **Minimised today:** the AI assistant no longer sends
 the asker's name to AWS in the US. It gets the role only, and a test pins this. Retention periods
-are decided, and only `security_events` is enforced so far. Registration with the PDPC, the ground
+are decided, and the job that applies them is built (D25). Registration with the PDPC, the ground
 for each cross-border transfer, and the privacy notice are organisational steps for head office.
 
 ### D22 — "Honest limits" on the page · Decided: say which kind of limit each one is
@@ -211,6 +211,32 @@ both report formats, refusing oversized bodies; 1,000 reports becoming one row; 
 strings or tokens kept; foreign scripts and eval becoming events while inline handlers don't. In
 Chrome, real reports were sent (`disposition: report`) and the inline handler still ran.
 
+## D25 — Retention: count every day, delete only when the owner switches it on
+
+**Problem:** D21 set retention periods (PDPA s.28), but nothing applied them, so the record said
+"decided, not enforced" and personal data outlived its purpose indefinitely. Deleting is the one
+thing in this programme that cannot be undone, and CLAUDE.md forbids data-losing changes without
+an explicit, backed-up confirmation.
+
+**Decided:** one job, two modes.
+1. **Report** (default): daily, count what each policy would remove. The Security Overview
+   shows it, counted fresh on every view: a cached count showed a deleted row for a day in testing.
+2. **Enforce** (`RETENTION_ENFORCE=1`, set by the owner after confirming a backup): delete in
+   batches of 1,000, children first, one audit entry per policy per run.
+3. **Accounts are never deleted by the job.** Faults, visits and the audit trail refer to people
+   by id; deleting an account breaks those records, and anonymising it is a judgement. The job
+   counts accounts deactivated over a year ago and a person decides.
+4. **Precise edges.** A *pending* registration is kept however old (nobody has decided it yet); a
+   WhatsApp conversation is aged by its **last** message, not its first.
+
+**Rejected:** deleting straight away, because the periods are ours but the backup is not proven
+(RECOVERY.md: first production restore drill outstanding). A `deleted_at` soft delete was
+rejected too: a row that is still stored is not deleted under s.28.
+
+**Verified:** `verify-retention.js` 26/26 on backdated fixtures, including a regression that
+fails on the cached version and a baseline check that stops the suite before enforce mode if any
+real row is due, so the test cannot delete somebody's data.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.
@@ -221,7 +247,7 @@ Chrome, real reports were sent (`disposition: report`) and the inline handler st
 6. D7, D8, D9 small fixes, together with INT-001 and TEST-001.
 7. After 30 days of alert data: review, then D5 (d).
 8. Standards (D13–D22): first tabletop exercise within 30 days; first production restore drill;
-   enforce the decided retention periods; the owner's PDPA steps.
+   then switch retention enforcement on (D25, built); the owner's PDPA steps.
 
 ## Revisit when
 

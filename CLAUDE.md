@@ -28,7 +28,7 @@ All schema changes MUST be **additive and backward-compatible** so a new deploy 
 - **File Storage:** Cloudinary (cloud CDN)
 - **Hosting:** cPanel / DirectAdmin — served at **`support.mkatolikikiganjani.com`**, Node.js app + MySQL on `localhost` in the same account. The document root is still the directory `~/troubleshooting.pathfindereducation.or.tz/`, named after the retired hostname; paths keep that name, URLs do not.
 - **DB access:** `backend/src/config/database.js` is a `mysql2/promise` pool. Schema + seed in `backend/src/config/bootstrap.js`, run automatically on startup. Connection via `DB_*` vars (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME) — **or** `DATABASE_URL`, which takes priority and makes every `DB_*` var be ignored (see Deployments).
-- **Remote:** `origin` = GitHub (`Claytonee/Troubleshooting-System`), `gitlab` = GitLab (`claytonecurth/Troubleshooting-System`). Push both.
+- **Remote:** `origin` = GitHub (`Claytonee/Troubleshooting-System`), `gitlab` = GitLab (`claytonecurth/Troubleshooting-System`). Push `origin` only (see Git Workflow).
 
 ## Deployments (two targets, two remotes)
 - **cPanel — `support.mkatolikikiganjani.com` — the LIVE site (server `213.139.204.238`).** MySQL runs on `localhost` beside the app. Code arrives via the `POST /api/deploy` webhook, which does `git fetch origin` + a fast-forward-only `git reset --hard` + `npm install` in `backend/` + a Passenger restart — so **cPanel tracks the `origin` (GitHub) remote**. The webhook requires `WEBHOOK_SECRET`; with no secret set it refuses to deploy rather than accepting anonymous POSTs.
@@ -547,7 +547,7 @@ the old code. Rules that came out of the 2026-09-24 review:
   earns only a 5-minute ticket when it is on. Never return a stored secret, never accept a ticket
   as a session, and never add a web path that turns it off for an admin: the break-glass is
   `scripts/mfa-reset.js` on the server console.
-- **Detection is alert-only** (`services/detection.js`, D5): seven rules every minute, one incident
+- **Detection is alert-only** (`services/detection.js`, D5): eight rules (R1–R8) every minute, one incident
   per rule, subject and hour, one bell alert per incident. Nothing blocks traffic until 30 days of
   closed incidents (with outcomes) justify it. Decide "new incident" with `INSERT IGNORE`, never
   from `ON DUPLICATE KEY UPDATE`'s affected-rows count.
@@ -562,6 +562,14 @@ the old code. Rules that came out of the 2026-09-24 review:
   loaded only by the page that needs them: `js/vendor/gsap.min.js` is injected by
   `SecurityPage` alone. Motion respects `prefers-reduced-motion`, and every diagram has a text
   equivalent beside it.
+- **Retention reports before it deletes** (`services/retention.js`, D25). Daily, it counts
+  what each policy (DATA_PROTECTION.md) would remove; it deletes only with
+  `RETENTION_ENFORCE=1`, which the owner sets after confirming a backup. Accounts are counted
+  for review and **never** deleted by the job. A new table of personal data gets a policy here,
+  and `verify-retention.js` refuses to enforce if any real row is due.
+- **The gate cleans up after its own attacks.** `prepush.js` removes the loopback events *and*
+  incidents its suites caused (TEST-002): leaving events behind lets the detection timer reopen
+  an incident a minute after the gate finishes.
 
 ### Icons
 - Use ONLY Tabler Icons: `<i class="ti ti-icon-name"></i>`
@@ -671,6 +679,8 @@ MFA_ENCRYPTION_KEY=long_random_string     # RECOMMENDED: encrypts two-step secre
                                           # is derived from JWT_SECRET, so rotating JWT_SECRET after
                                           # an incident would invalidate every enrolment.
 MFA_ENFORCE_ADMIN_AFTER=2026-10-08T00:00:00+03:00   # optional; when platform admins must have two-step
+RETENTION_ENFORCE=1                        # OWNER'S STEP, not set by default: deletes data past its
+                                          # retention period (D25). Only after a backup is confirmed.
 AI_MODEL=us.anthropic.claude-opus-4-6-v1   # optional; this account has no Opus 5 access
 AWS_BEDROCK_HOST=bedrock-runtime.us-east-1.amazonaws.com   # optional
 CLOUDINARY_CLOUD_NAME=your_cloud_name

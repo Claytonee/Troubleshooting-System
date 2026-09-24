@@ -40,14 +40,16 @@ function jsFiles(dir, skip = []) {
 }
 
 (async () => {
-  // Highest incident id before the suites run: an exact cutoff, no clocks involved.
-  let incidentBaseline = null;
+  // Highest incident and event ids before the suites run: exact cutoffs, no clocks involved.
+  let incidentBaseline = null, eventBaseline = null;
   if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(BASE)) {
     try {
       require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
       const pool = require('../src/config/database');
-      const [[r]] = await pool.query('SELECT COALESCE(MAX(id), 0) AS m FROM security_incidents');
+      const [[r]] = await pool.query(`SELECT (SELECT COALESCE(MAX(id), 0) FROM security_incidents) AS m,
+          (SELECT COALESCE(MAX(id), 0) FROM security_events) AS e`);
       incidentBaseline = Number(r.m);
+      eventBaseline = Number(r.e);
     } catch (e) { incidentBaseline = null; }
   }
   console.log('\n1. Syntax');
@@ -108,10 +110,17 @@ function jsFiles(dir, skip = []) {
   // The suites trip the detection rules on purpose (forged webhooks, wrong passwords)
   // from this machine, and the server's own scheduler opens incidents about the
   // loopback address. True detection, but test noise: remove what this run caused.
+  // The EVENTS go too, not only the incidents: the server's detection timer runs
+  // every minute, and evidence left behind reopened an R5 incident a minute after
+  // the gate had tidied (2026-09-24). Wait out one recorder flush (2 s) first.
   // Only ever against a local server — never another database.
   if (incidentBaseline !== null) {
     try {
       const pool = require('../src/config/database');
+      await new Promise(r => setTimeout(r, 3000));
+      const [ev] = await pool.query(
+        "DELETE FROM security_events WHERE source_ip IN ('::1', '127.0.0.1', '::ffff:127.0.0.1') AND id > ?", [eventBaseline]);
+      if (ev.affectedRows) console.log(`  note  removed ${ev.affectedRows} security event(s) the suites caused from this machine`);
       const [inc] = await pool.query(
         "SELECT id FROM security_incidents WHERE subject IN ('::1', '127.0.0.1', '::ffff:127.0.0.1') AND id > ?", [incidentBaseline]);
       if (inc.length) {

@@ -802,8 +802,8 @@ Features: searchable, dark theme consistent, click-outside-close, keyboard acces
 ### Environment Variables
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| DATABASE_URL | Yes | — | PostgreSQL connection string |
-| DB_SSL | No | false | Enable SSL for DB connection |
+| DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME | Yes | — | MySQL/MariaDB connection (cPanel: `localhost`) |
+| DATABASE_URL | **No — never on cPanel** | — | Overrides every `DB_*` variable; caused the 2026-09-07 outage |
 | JWT_SECRET | Yes | — | Token signing key |
 | JWT_EXPIRES_IN | No | 7d | Token lifetime |
 | NODE_ENV | No | development | Environment mode |
@@ -818,13 +818,20 @@ Features: searchable, dark theme consistent, click-outside-close, keyboard acces
 | SMTP_PASS | No | — | Email password |
 | AT_API_KEY | No | — | Africa's Talking API key |
 | AT_USERNAME | No | — | Africa's Talking username |
+| WEBHOOK_SECRET | Yes (prod) | — | Authenticates the deploy webhook and the heartbeat sweep; unset, both refuse |
+| MFA_ENCRYPTION_KEY | Recommended | derived from JWT_SECRET | Encrypts two-step secrets |
+| MFA_ENFORCE_ADMIN_AFTER | No | 2026-10-08 | When platform admins must have two-step sign-in |
+| RETENTION_ENFORCE | No | unset (report only) | `1` deletes data past its retention period — the owner's step, after a backup (D25) |
+| DEPLOY_SELF_RESTART_MS | No | 1500 | Delay before a deploy restarts the app; `0` disables (D23) |
 
 ### Deploy Steps
-1. Push to both remotes: `git push origin main && git push gitlab main`
-2. Render auto-deploys from main branch
-3. On first start, `bootstrap.js` creates all tables + seeds demo data
-4. `schemaExtensions.js` applies additive migrations on every startup
-5. Default login: `admin` / `admin123`
+1. Run the gate: `cd backend && VERIFY_BASE=http://localhost:3210 node scripts/prepush.js` — push only on "clear to push".
+2. Push `origin` (GitHub) only. The GitHub webhook calls `POST /api/deploy` on cPanel.
+3. The webhook fetches, fast-forwards, installs, **preflights** the new code (every file compiles,
+   every `require` resolves), rolls back on failure, and otherwise restarts the app itself (D23).
+4. Confirm: `/api/health` → `build` equals `git rev-parse --short HEAD`.
+5. On every start `bootstrap.js` creates missing tables (seeding only empty ones) and
+   `schemaExtensions.js` applies additive migrations.
 
 ### Database Migrations
 - **Additive only** — never drop/rename columns in-place
@@ -837,24 +844,29 @@ Features: searchable, dark theme consistent, click-outside-close, keyboard acces
 ## 12. Security Measures
 
 Corrected 2026-09-24 against the code; the full record is `docs/engineering/security-program/`
-(threat model, 142-endpoint matrix, issue register, test results). Platform admins see the same
+(threat model, 154-endpoint matrix, decisions D1–D25, issue register, test results). Platform admins see the same
 material in plain language on **Security Overview** (`#security`).
 
 | Measure | Implementation |
 |---------|---------------|
 | Password hashing | bcryptjs, cost 10–12 |
-| Authentication | JWT in the Authorization header, 7-day expiry; account status re-read on every request (suspension is immediate). Not revocable before expiry (SEC-005) |
-| Rate limiting | 900 req / 15 min **per account** (IP when anonymous); login 20 per account+network and 120 per network; registration 5 per IP |
+| Authentication | JWT in the Authorization header, 7-day expiry, carrying the account's `token_version`. Raising it ends every session of that account: password change, admin reset, suspension, "Sign out everywhere" (SEC-005). Account status re-read on every request |
+| Two-step sign-in | TOTP (RFC 6238) for platform admins, required from 2026-10-08; secrets AES-256-GCM encrypted; 10 one-time recovery codes; a password alone earns a 5-minute ticket; break-glass `scripts/mfa-reset.js --yes` on the server console (SEC-007) |
+| Rate limiting | 900 req / 15 min **per account** (IP when anonymous); login 20 per account+network, 120 per network and 60 per account from anywhere; two-step codes 10 per 15 min; registration 5 per IP |
 | CORS | `FRONTEND_URL` in production, else the request origin is reflected (bearer tokens, no cookies) |
-| HTTP headers | helmet: CSP (`default-src 'self'`, no `unsafe-eval`; inline still allowed), HSTS 1 year, referrer policy |
+| HTTP headers | helmet: CSP enforced (`default-src 'self'`, no `unsafe-eval`; inline still allowed) plus a strict policy (`script-src 'self'`) in **report-only** mode whose reports form a bounded migration inventory (D24); HSTS 1 year, referrer policy |
 | Input validation | express-validator on key writes; enum lists on fault and check-in fields |
 | SQL injection | Parameterised queries (mysql2); dynamic SQL limited to fixed column fragments |
 | XSS prevention | `esc()` on every rendered stored field (audited 2026-09-24, SEC-003) |
-| File validation | Extension allow-list + multer fileFilter; stored on Cloudinary |
-| Role enforcement | `authorize()` on every router |
+| File validation | Extension allow-list + multer fileFilter; fault attachments 15 MB per file; stored on Cloudinary |
+| Role enforcement | `authorize()` on every router; the endpoint matrix is checked against the routers before every push |
 | Tenant scoping | Per-record checks; `services/scope.js` → `canActOnSchool()` for single-school reads and writes |
 | Integrations | HMAC (WhatsApp, deploy) and shared keys (heartbeat, USSD/SMS); all fail closed |
-| Audit trail | Administrative writes (accounts, faults, schools). Failed sign-ins and refusals are **not** recorded yet (SEC-006) |
+| Security events | `security_events`: failed and throttled sign-ins, two-step failures, 401/403/429 refusals, rejected webhooks, foreign scripts. Route templates only — never a body, token or password. Kept 90 days (SEC-006) |
+| Detection | Rules R1–R8 every minute → one `security_incidents` row per rule, subject and hour → one bell alert (SMS for high, when configured). **Alert-only**: nothing is blocked (D5) |
+| Audit trail | Administrative writes (accounts, faults, schools), security actions, incident outcomes, retention removals |
+| Retention | Daily job per DATA_PROTECTION.md; reports only until the owner sets `RETENTION_ENFORCE=1` (D25) |
+| Deploys | Pre-push gate (syntax, versions, endpoint matrix, `npm audit`, every suite); deploy preflight with rollback (D23) |
 | Account states | approval_status blocks pending/rejected users at login and on every request |
 
 ---

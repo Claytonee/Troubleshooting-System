@@ -44,15 +44,25 @@ as it can.
 
 | Data | Kept | State |
 |---|---|---|
-| `security_events` | 90 days | **Enforced** by the service |
-| `audit_log` | 2 years | Decided (D21); not yet enforced |
-| Rejected registration requests and appeals | 1 year after the decision | Decided; not yet enforced |
-| WhatsApp / USSD sessions | 1 year | Decided; not yet enforced |
-| Accounts of people who left | Suspended on leaving; deleted after 1 year unless a fault record needs the name | Decided; not yet enforced |
+| `security_events` | 90 days | **Enforced** by the recorder (pruned every 6 hours) |
+| `audit_log` | 2 years | Retention job (D25): **reported daily; deleted once enforced** |
+| Rejected registration requests and their appeals | 1 year after the decision | Retention job (D25). A *pending* request is never removed, however old |
+| WhatsApp conversations and their messages | 1 year since the last message | Retention job (D25). A long conversation still in use stays whole |
+| USSD sessions | 1 year | Retention job (D25) |
+| Browser policy reports (`csp_reports`) | 90 days since last seen | Retention job (D25) |
+| Accounts deactivated over a year ago | Counted daily for a person to review; **never deleted by the job** | Faults, visits and the audit trail name these people: anonymise or keep is a decision, not a timer |
 | Student name on a device | Until the device is reassigned or retired | Current behaviour |
 
-"Decided, not yet enforced" means a scheduled clean-up is to be built. Until then the page and
-this record say so rather than claim it.
+**How the job works** (`backend/src/services/retention.js`, D25). Ten minutes after start and then
+daily it counts, per policy, the rows past their period. With `RETENTION_ENFORCE` unset — the
+default — it **deletes nothing**: the Security Overview shows the counts, freshly taken on every
+view. With `RETENTION_ENFORCE=1` it deletes in batches of 1,000, children first (appeals,
+messages), and writes one audit entry per policy per run saying how many rows went.
+
+**Switching enforcement on is the owner's step**, because deletion cannot be undone: confirm the
+hosting backup exists and a restore has been tried (RECOVERY.md), then set `RETENTION_ENFORCE=1`
+in cPanel → Setup Node.js App → Environment variables and restart. `verify-retention.js` proves
+the job removes only rows past their period (26 assertions).
 
 ## People's rights
 

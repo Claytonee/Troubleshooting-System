@@ -280,7 +280,16 @@ const SecurityPage = (() => {
     // D24: the strict script policy runs report-only; this is how far the migration has to go.
     const cspRow = data.csp ? `<div class="sec-check"><i class="ti ti-code-dots" style="color:${data.csp.inline_sites_30d ? 'var(--amber)' : 'var(--green)'}"></i>
       <span>Strict script policy (report-only): ${data.csp.inline_sites_30d ? `${data.csp.inline_sites_30d} place${data.csp.inline_sites_30d === 1 ? '' : 's'} still use inline script, as reported by browsers in the last 30 days` : 'no inline script reported in 30 days — ready to enforce'}</span></div>` : '';
-    return `${rows}${cspRow}${nc}
+    // D25: retention reports what is past its period; it deletes only once the owner enforces it.
+    const ret = data.retention;
+    const retDue = ret ? ret.policies.reduce((n, p) => n + (p.report_only ? 0 : (p.due || 0)), 0) : 0;
+    // Accounts are counted for a person to review, never removed by the job.
+    const retReview = ret ? ret.policies.reduce((n, p) => n + (p.report_only ? (p.due || 0) : 0), 0) : 0;
+    const retRow = ret ? `<div class="sec-check"><i class="ti ti-calendar-time" style="color:${(ret.enforce || !retDue) && !retReview ? 'var(--green)' : 'var(--amber)'}"></i>
+      <span>Data retention (${ret.enforce ? 'enforced' : 'report-only'}): ${retDue
+        ? `${retDue} record${retDue === 1 ? ' is' : 's are'} past ${retDue === 1 ? 'its' : 'their'} retention period${ret.enforce ? '' : ' and will be removed once enforcement is switched on'}`
+        : 'nothing is past its retention period'}${retReview ? `; ${retReview} deactivated account${retReview === 1 ? '' : 's'} to review` : ''} — ${esc(ret.policies.map(p => `${p.label}: ${p.keep}`).join('; '))}</span></div>` : '';
+    return `${rows}${cspRow}${retRow}${nc}
       <div class="sec-foot">Running build <code>${esc(data.build)}</code> · checked ${esc(relTime(data.generated_at))}</div>`;
   }
 

@@ -117,6 +117,8 @@ async function overview(req, res, next) {
         r.forEach(x => { o[x.severity] = Number(x.n); });
         return o;
       })(),
+      // Retention (D25): what is past its period right now, and the last scheduled run.
+      retention: await require('../services/retention').status().catch(() => null),
       csp: await (async () => {
         try {
           const [[c]] = await pool.query("SELECT COUNT(*) AS sites, COALESCE(SUM(count), 0) AS reports, MAX(last_seen) AS latest FROM csp_reports WHERE blocked = 'inline' AND last_seen >= NOW() - INTERVAL 30 DAY");

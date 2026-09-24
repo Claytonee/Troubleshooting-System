@@ -555,6 +555,8 @@ app.listen(PORT, async () => {
     await autoMigrate();
     // Detection rules over the recorded evidence, every minute (D5 b). Alert-only.
     if (process.env.NODE_ENV !== 'test') require('./services/detection').start();
+    // Retention (PDPA s.28, D25): reports daily; deletes only with RETENTION_ENFORCE=1.
+    if (process.env.NODE_ENV !== 'test') require('./services/retention').start();
   }
   console.log(`  ================================================\n`);
 });

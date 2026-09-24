@@ -1,56 +1,60 @@
 # Session handoff
 
-## 2026-09-24 — phase 1: discovery, containment, Security Overview
+## State at 2026-09-24 (end of day) — READY FOR HUMAN REVIEW
 
-**Phase:** system-wide discovery and threat model done; confirmed P1/P2 access-control and
-XSS findings fixed; the Security Overview page shipped. **READY FOR HUMAN REVIEW** — not
-approved or closed.
+Every finding in ISSUE_REGISTER.md is fixed, each with a regression suite that fails on the old
+code. Every decision the programme needed is recorded in DECISIONS.md (D1–D25) with its reasons.
+Nothing is described as approved, certified or closed beyond what the owner has approved.
 
-### Done
-- Threat model, baseline (ASVS 5.0 / CSF 2.0), 143-endpoint API matrix, research library.
-- SEC-001…004 fixed, each reproduced first (8/27 → 27/27).
-- `services/scope.js` → `canActOnSchool()`: one tenant-scope answer for all roles.
-- `GET /api/security/overview` (admin only) + `#security` page: plain-language layers with
-  "how we know", an animated request-journey diagram (GSAP, loaded on this page only, from our
-  own origin), rings for the layers, live deployment checks, the review table, honest limits.
-- Six suites made to honour `VERIFY_BASE`.
+### Built and verified (local gate: every suite green before each push)
+| Area | What | Decision / issue |
+|---|---|---|
+| Tenant scope | `canActOnSchool()` for every single-record handler | SEC-001/002/004 |
+| Rendering | every stored field escaped; server-side enums | SEC-003 |
+| Sessions | `token_version` in the JWT; password change, reset, suspension and "Sign out everywhere" end sessions | D3, SEC-005/011 |
+| Two-step sign-in | TOTP + recovery codes for platform admins, required from 2026-10-08; console break-glass | D4, SEC-007 |
+| Evidence | `security_events`: every refusal, route templates only, 90 days | D2, SEC-006 |
+| Detection | R1–R8 → incidents → one bell alert each; **alert-only** | D5 b, D6 |
+| Browser policy | strict CSP in report-only mode with a bounded inventory; foreign scripts → R8 | D24 |
+| Retention | daily report per policy; deletes only with `RETENTION_ENFORCE=1`; accounts never auto-deleted | D21, D25 |
+| Guessing | per-account ceiling across networks; public registration needs proof | D8, D9 |
+| Integrity | fault codes from a sequence table | INT-001 |
+| Supply chain | dependencies patched; `npm audit` high/critical fails the gate | SEC-012 |
+| Deploys | preflight, rollback, self-restart; the pre-push gate | D23, OPS-001 |
+| Test harness | suites provision and remove their own data; the gate removes the events and incidents it causes | TEST-001, TEST-002 |
+| Explaining it | Security Overview (`#security`, platform admin only): animated request journey, layers with evidence, live checks, incidents, standards, labelled limits | D10, D22 |
 
-### Also done since (afternoon)
-- SEC-006 recording shipped (`1d90d70`).
-- Standards decided (D13–D22): policy, incident runbook, data-protection record, recovery plan,
-  inventory self-check, restore drill, AI no longer sends names abroad, honest limits labelled.
-- TEST-001 fixed (the heartbeat suite no longer deletes other rows).
-- OPS-001: deploys restart themselves after a preflight, or roll back (D23).
-- `scripts/prepush.js` is the gate to run before every push.
-- SEC-005 session revocation (D3), SEC-011 admin resets, SEC-009 per-account throttle fixed.
-- SEC-008 status tokens, SEC-010 15 MB attachments, INT-001 fault-code sequence fixed.
-- SEC-012 dependencies patched (npm audit 0, now in the gate); secret scan clean.
-- SEC-007 two-step sign-in (D4): enforced for platform admins from 2026-10-08.
-- Detection rules R1–R8 + incidents + bell alerts (D5 b, D6), alert-only.
-- Strict CSP in report-only mode with a bounded migration inventory (D24).
+### Waiting on the owner (the code cannot do these)
+1. **Press Restart once** in cPanel → Setup Node.js App. Production still runs `0eb36d5` (checked
+   2026-09-24 for an hour): the deploys after it pulled files but the old process kept serving.
+   From the next deploy on, the app restarts itself (D23). Then confirm that `/api/health`'s
+   `build` equals `git rev-parse --short HEAD`.
+2. **Set `MFA_ENCRYPTION_KEY`** in the panel before any admin enrols, then have every platform
+   admin enrol before 2026-10-08.
+3. **Confirm the hosting backup and run the first production restore drill** (RECOVERY.md), then
+   set `RETENTION_ENFORCE=1` (D25).
+4. **PDPA steps** (DATA_PROTECTION.md): PDPC registration, the ground for each cross-border
+   transfer, the privacy notice.
+5. **Tabletop exercise** within 30 days (INCIDENT_RESPONSE.md).
 
-### Open — in the order fixed by DECISIONS.md D12
-1. **D2 / SEC-006 security events** — everything in detection depends on it.
-3. Verify proxy IP attribution on production (THREAT_MODEL T9, D5 a) **before** any IP block.
-7. Migrate the 321 inline handlers to delegated `data-action` handlers, module by module; enforce the strict CSP when the report-only inventory stays at zero for 30 days (D24).
+### Next engineering work, in order
+1. After the restart: run the IP-attribution check on production (`GET /api/security/seen-as`
+   with and without a forged `X-Forwarded-For`, THREAT_MODEL T9). No IP block may be built before
+   it passes (D5 a).
+2. After 30 days of incidents with outcomes: review false positives, then decide temporary
+   blocks (D5 d). Until then nothing is blocked.
+3. Migrate the 321 inline handlers to delegated `data-action` handlers, module by module; enforce
+   the strict CSP once the report-only inventory stays at zero for 30 days (D24).
 
-### Decisions
-All the pending decisions were taken on 2026-09-24 under the owner's delegation: see
-[DECISIONS.md](DECISIONS.md). Phase 1 was approved for production and pushed (D1).
+### How to verify anything here
+```bash
+cd backend && VERIFY_BASE=http://localhost:3210 node scripts/prepush.js
+```
+Local MySQL is XAMPP's (`C:\xampp\mysql\bin\mysqld.exe --defaults-file=...\my.ini --standalone`),
+not started automatically. The local server is the `qft-server` entry in `.claude/launch.json`.
 
 ### Git
-Branch `main`. Commits of this session are listed in `git log --since=2026-09-24`.
-Pushed to `origin` only (CLAUDE.md), with the owner's approval (D1). Untracked user files in the repo root (`.pptx`, `.zip`,
-`.xlsx`, `presentation/`, `.codex-diagnostics/`, `AGENTS.md`) and modified `.claude/launch.json`,
-`package.json` were **not touched and not committed**.
-
-### Local environment notes
-- The local MySQL is XAMPP's (`C:\xampp\mysql\bin\mysqld.exe --defaults-file=...\my.ini --standalone`),
-  not the MySQL 8.4 service; it is not started automatically.
-- Suites: `cd backend && VERIFY_BASE=http://localhost:3210 node scripts/verify-<name>.js`.
-
-### Exact next action
-Build `security_events` (additive table in `schemaExtensions.js` + `services/securityEvents.js`
-buffered writer), record `auth.login_failed` / `auth.login_throttled` / `authz.*_refused`, and
-extend `verify-security-boundaries.js` to assert each is recorded and that no password or token
-ever reaches the table.
+Branch `main`, pushed to `origin` only (CLAUDE.md), one commit per piece of work with the
+Co-Authored-By trailer. Untracked user files in the repo root (`.pptx`, `.zip`, `.xlsx`,
+`presentation/`, `.codex-diagnostics/`, `AGENTS.md`, `package-lock.json`) and the modified
+`.claude/launch.json` and root `package.json` are the owner's and were **not committed**.
