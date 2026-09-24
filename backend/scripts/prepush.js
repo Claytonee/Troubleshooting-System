@@ -8,7 +8,8 @@
  * 1. Every backend and frontend .js file parses (node --check).
  * 2. sw.js VERSION equals every ?v= in index.html (a mismatch strands clients on a half-old shell).
  * 3. The endpoint inventory matches the routers (api-matrix --check).
- * 4. The verification suites, one by one, against the server at VERIFY_BASE.
+ * 4. npm audit: no high or critical advisories in production dependencies.
+ * 5. The verification suites, one by one, against the server at VERIFY_BASE.
  *
  * Exit 0 only if everything passed. Suites listed in KNOWN_SKIP are skipped with the
  * reason printed, never silently: each one points at an open issue.
@@ -55,7 +56,26 @@ function jsFiles(dir, skip = []) {
   const m = spawnSync(process.execPath, [path.join(__dirname, 'api-matrix.js'), '--check'], { encoding: 'utf8' });
   step('API_SECURITY_MATRIX.md matches the routers', m.status === 0, (m.stdout || '').trim().split('\n')[0]);
 
-  console.log(`\n4. Suites against ${BASE}`);
+  console.log('\n4. Dependencies');
+  // A newly published advisory must stop the next push, not wait for someone to look.
+  // High and critical fail the gate; moderate and low are reported.
+  // npm's own CLI script run by this node — no shell, so no argument is ever
+  // re-parsed by one (spawning npm.cmd needs shell:true on Windows).
+  const npmCli = path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
+  const auditArgs = ['audit', '--omit=dev', '--json'];
+  const audit = fs.existsSync(npmCli)
+    ? spawnSync(process.execPath, [npmCli, ...auditArgs], { cwd: path.join(__dirname, '..'), encoding: 'utf8', timeout: 120000 })
+    : spawnSync('npm', auditArgs, { cwd: path.join(__dirname, '..'), encoding: 'utf8', timeout: 120000 });
+  try {
+    const v = JSON.parse(audit.stdout || '{}').metadata.vulnerabilities;
+    const serious = (v.high || 0) + (v.critical || 0);
+    step('npm audit: no high or critical advisories', serious === 0,
+      `critical ${v.critical || 0}, high ${v.high || 0}, moderate ${v.moderate || 0}, low ${v.low || 0}`);
+  } catch (e) {
+    step('npm audit: no high or critical advisories', false, 'audit did not run: ' + (audit.stderr || e.message).slice(0, 120));
+  }
+
+  console.log(`\n5. Suites against ${BASE}`);
   try {
     const r = await fetch(BASE + '/api/health');
     step('server is up', r.ok, `build ${(await r.json()).build}`);

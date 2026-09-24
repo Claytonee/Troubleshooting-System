@@ -124,3 +124,13 @@ still refused after reactivation, and the suite signs in again.
 | Old logic, same race | 25 concurrent `MAX()+1` callers → **1** code (QFT-0384). The new sequence → 25 |
 | `verify-security-boundaries.js` | **86 / 86** (+8 SEC-008, +2 SEC-010, +1 seen-as) |
 | `GET /api/security/seen-as` | works locally. Locally a forged `X-Forwarded-For` *does* win, because there is no proxy in front and `trust proxy 1` trusts the last hop. **The real test is on production**, where LiteSpeed is that hop |
+
+## Dependencies and secrets (2026-09-24)
+
+| Check | Result |
+|---|---|
+| `npm audit --omit=dev` before | 6 advisories: 1 high (nodemailer), 5 moderate |
+| after `npm audit fix` + nodemailer 10 | **0** |
+| nodemailer 10 smoke test (`jsonTransport`) | sendMail builds and addresses the message correctly |
+| Secret scan, tracked files + full history | clean (one documentation placeholder) |
+| `.env` ever committed | never; only `.env.example` |

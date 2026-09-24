@@ -22,6 +22,7 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 | SEC-010 | P3 | **Fixed** 2026-09-24 | Faults | Attachments: 5 × 100 MB held in memory, any signed-in user |
 | SEC-011 | P2 | **Fixed** 2026-09-24 | Auth | An admin-set password was permanent, could be 6 characters, and left sessions alive |
 | OPS-001 | P2 | **Fixed** 2026-09-24 (verify on next deploy) | Deploy | A deploy left the old process serving next to new files until a manual restart |
+| SEC-012 | P1 | **Fixed** 2026-09-24 | Dependencies | 6 known-vulnerable production dependencies (1 high: nodemailer) |
 | INT-001 | P3 | **Fixed** 2026-09-24 | Faults | Fault codes reissued after deletion; a race duplicated them |
 | TEST-001 | P2 | **Fixed** 2026-09-24 | Test harness | `verify-heartbeat.js` swept every real LRS device, and its cleanup deleted rows it did not create |
 
@@ -233,3 +234,24 @@ seven such orphans from 9–10 September, and they were removed on 2026-09-24.
 - **Impact:** security fixes pushed are not live; the frontend and backend disagree.
 - **Fix:** DECISIONS.md D23: preflight, roll back on failure, self-restart on success.
 - **Regression:** `verify-deploy-preflight.js` (10 assertions).
+
+## SEC-012 — Known-vulnerable production dependencies · P1 · Fixed
+
+- **Found by:** `npm audit --omit=dev` on 2026-09-24. 1 high, 5 moderate:
+  - **nodemailer** (high): SMTP command injection through `envelope.size` (GHSA-c7w3-x93f-qmm8), and email to an unintended domain (GHSA-mm7p-fcc7-pg87);
+  - **mysql2**: decompression-bomb DoS (GHSA-rgwj-5xj2-c3m3);
+  - **morgan**: log forging (GHSA-jxfw-x594-9x9m);
+  - **body-parser** / **express**: a limit silently disabled (GHSA-v422-hmwv-36x6);
+  - **qs**: array-limit bypass and DoS.
+- **Severity reasoning:** P1 rather than critical because SMTP is not configured on production,
+  so the nodemailer paths are not reachable there today. They would be the day it is.
+- **Fix:** `npm audit fix` for the in-range patches (the lockfile carries them; the ranges in
+  package.json already allowed them), and nodemailer 6 → 10. It is used only through
+  `createTransport` and `sendMail`, which are unchanged; a `jsonTransport` smoke test sends
+  correctly. `npm audit`: **0 vulnerabilities**.
+- **Kept fixed:** `scripts/prepush.js` now runs `npm audit` and **fails on any high or critical
+  advisory**, so a newly published one stops the next push.
+- **Also checked (clean):** a secret scan of every tracked file and all git history (AWS, private
+  keys, Cloudinary/MySQL/Postgres URLs with credentials, Slack, GitHub, Google and API-key
+  patterns). The only hits were the documentation placeholder `mysql://user:pass@host:port/db`.
+  No `.env` file has ever been committed; only `.env.example`.

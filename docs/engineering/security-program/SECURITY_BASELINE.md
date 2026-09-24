@@ -22,7 +22,7 @@ Evidence: **T** automated test · **C** code read in this review · **D** hostin
 | V12 Secure communication | HTTPS redirect in production; HSTS; Let's Encrypt | C D | Cert renewal not monitored |
 | V13 Configuration | Secrets in panel env; `/api/health` exposes booleans only; deploy fails closed without a secret | C D | `DATABASE_URL` override hazard (documented); CORS default |
 | V14 Data protection | Role-scoped caches dropped on logout; offline queue records owner | C | No retention policy; student names on devices |
-| V15 Secure coding & architecture | Dependencies pinned by lockfile; no `eval` (CSP + `verify-frontend-safety.js`) | T C | `npm audit` not yet in the routine |
+| V15 Secure coding & architecture | Dependencies pinned by lockfile; `npm audit` in the pre-push gate (fails on high/critical; 0 today); no `eval` (CSP + `verify-frontend-safety.js`); secret scan of history clean | T C | — |
 | V16 Logging & error handling | `audit_log` for admin writes; `security_events` for every 401/403/429 and sign-in (SEC-006, tested); error handler hides detail in production | T C | Not tamper-evident; nothing alerts on events yet |
 | V17 WebRTC | Not used | — | n/a |
 
