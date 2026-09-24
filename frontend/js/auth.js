@@ -445,6 +445,8 @@ const Auth = (() => {
     // declares ChatPage with const, a script-scope binding rather than a window
     // property, so the reset had never once run.
     if (typeof ChatPage !== 'undefined' && ChatPage.reset) ChatPage.reset();
+    // A tour belongs to the account that started it, not to the shared tablet.
+    if (typeof Tour !== 'undefined') Tour.forget();
     // Cached API responses are role-scoped, so they belong to the account that
     // fetched them, not to the device.
     if (typeof Offline !== 'undefined') Offline.forgetUserData();
@@ -753,5 +755,5 @@ const Auth = (() => {
     PasswordField.enhanceAll($('register-content'));
   }
 
-  return { init, showLogin, showApp, logout, signOutEverywhere, showMfa, startMfaSetup, confirmMfaSetup, submitMfaStep, cancelMfaStep, toggleMfaRecovery, copyRecovery, downloadRecovery, finishMfa, regenerateRecovery, disableMfa, checkSession, toggleProfileMenu, showProfile, showChangePassword, submitPasswordChange, showForcedPasswordChange, submitForcedPasswordChange, goRegister, _switchToEditProfile, _saveProfile, _onAvatarFile };
+  return { init, showLogin, showApp, logout, signOutEverywhere, showMfa, startMfaSetup, confirmMfaSetup, submitMfaStep, cancelMfaStep, toggleMfaRecovery, copyRecovery, downloadRecovery, finishMfa, regenerateRecovery, disableMfa, checkSession, toggleProfileMenu, closeProfileMenu, showProfile, showChangePassword, submitPasswordChange, showForcedPasswordChange, submitForcedPasswordChange, goRegister, _switchToEditProfile, _saveProfile, _onAvatarFile };
 })();

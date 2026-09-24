@@ -600,6 +600,11 @@ async function applyExtensions(db) {
   // `tv` counts as, so adding the column signed nobody out.
   await q(`ALTER TABLE users ADD COLUMN token_version INT NOT NULL DEFAULT 0`);
 
+  // --- Guided tours (DECISIONS.md D27) ---
+  // Per-account progress as a small JSON object, validated by tourController.
+  // Nullable: NULL means the account has never been offered a tour.
+  await q('ALTER TABLE users ADD COLUMN tour_state TEXT NULL');
+
   // --- Security events (SEC-006, DECISIONS.md D2) ---
   // Evidence of refusals: failed and throttled sign-ins, role and school
   // refusals, rejected webhooks. Written in batches by services/securityEvents.js;

@@ -252,6 +252,32 @@ nothing legitimate calls the API from another origin.
 **Revisit when:** a second frontend on another origin appears (name it in `FRONTEND_URL`), or
 tokens move to asymmetric signing (the list changes, the rule does not).
 
+## D27 — Guided tours: offered once, five stops at most, kept on the account
+
+**Problem:** a new account opened onto up to eighteen sidebar items with no explanation.
+The owner asked for the walk-through that large products give a newcomer.
+
+**Decided** (research in docs/features/12-guided-tour.md):
+1. **Offer, never impose.** The first sign-in shows a card with "Show me around" and
+   "Not now". Tours people choose finish about twice as often as pushed ones (67% vs 31%),
+   and NN/g found pushed tutorials are forgotten.
+2. **Five stops at most per tour**, enforced by a test: completion falls to 16% at seven.
+3. **Pull-style help where the work is:** "Show me how" on the report form, started by the
+   person on that page.
+4. **Progress on the account, not the device.** School tablets are shared.
+5. **Build, don't vendor.** Shepherd is AGPL. Driver.js covers only the spotlight; the work
+   here is this app's routing, drawer, roles and server-side progress.
+6. **No new inline handlers** (D24): delegated `data-tour-start`, enforced by a test.
+7. **Every existing account is offered it once**, on their next sign-in. Nobody has had any
+   onboarding so far; one click declines it for good.
+
+**Verified:** `verify-tour.js` 75/75, including headless Chrome at 1440, 920 and 375 px for
+all four roles.
+
+**Revisit when:** someone is seen stuck on a page with no tour (add a page tour; the server
+already accepts `page:tracker`, `inventory`, `visits`, `teachers` and `security`), or the
+sidebar changes (the content test fails if a stop points at a page its role cannot open).
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.

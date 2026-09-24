@@ -4,6 +4,7 @@ const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { authenticate, authorize } = require('../middleware/auth');
 const authController = require('../controllers/authController');
+const tourController = require('../controllers/tourController');
 
 const router = express.Router();
 
@@ -59,6 +60,10 @@ router.post('/mfa/setup', authenticate, mfaController.setup);
 router.post('/mfa/enable', authenticate, mfaController.enable);
 router.post('/mfa/recovery-codes', authenticate, mfaController.regenerateRecovery);
 router.post('/mfa/disable', authenticate, mfaController.disable);
+
+// Guided tours: where this account got to (D27). Own account only — there is no id to pass.
+router.get('/tour', authenticate, tourController.get);
+router.put('/tour/:id', authenticate, tourController.update);
 
 // Sign this account out on every device (SEC-005).
 router.post('/sessions/revoke-all', authenticate, authController.revokeAllSessions);

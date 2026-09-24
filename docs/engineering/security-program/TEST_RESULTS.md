@@ -194,3 +194,11 @@ Found while taking the review screenshots: the page still said "seven rules" aft
 grew to 86, and listed the second factor and upload size as open API risks after both closed.
 All corrected. `verify-detection.js` now fails if any rule count on the page differs from
 `RULES.length` — it failed on the old page (`["seven","seven","seven"]`), 25/25 on the fix.
+
+## D27 — guided tours (2026-09-24)
+
+| Check | Result |
+|---|---|
+| `verify-tour.js` | **75 / 75**: API 15, content 18, headless Chrome 42 |
+| Browser coverage | all four roles at 1440 px and 375 px (plus 920 px); spotlight on target, bubble on screen and clear of the target, focus inside, drawer open for sidebar stops on a phone |
+| Bugs found by the suite before shipping | (1) the offer was spent the moment the card appeared, so a reload lost it for good: now recorded at the first real stop. (2) replaying a finished tour and pressing Esc turned "completed" into "dismissed": statuses are now ranked. (3) the report form's button was empty: a build script had evaluated `${…}` in Node. (4) harness: `load()` returned while the old page still answered "complete"; and a browser that failed to start was reported as a skip, a false green. It now throws. |

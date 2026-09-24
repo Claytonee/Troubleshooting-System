@@ -111,6 +111,9 @@ const API = (() => {
     },
     changePassword: (data) => request('PUT', '/auth/change-password', data),
     revokeAllSessions: () => request('POST', '/auth/sessions/revoke-all'),
+    // Guided tours (D27): progress is per account, not per device.
+    getTours: () => request('GET', '/auth/tour'),
+    saveTour: (id, body) => request('PUT', '/auth/tour/' + encodeURIComponent(id), body),
     // Two-step sign-in (SEC-007)
     mfaVerify: (ticket, code) => request('POST', '/auth/mfa/verify', { ticket, code }),
     mfaStatus: () => request('GET', '/auth/mfa'),

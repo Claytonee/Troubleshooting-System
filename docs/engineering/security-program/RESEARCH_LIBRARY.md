@@ -7,6 +7,11 @@ docs) refused the connection during the session and are marked as such.
 
 | Source | How read | Control / idea taken | Applies here because |
 |---|---|---|---|
+| [NN/g — Onboarding Tutorials vs. Contextual Help](https://www.nngroup.com/articles/onboarding-tutorials/) | Fetched (2026-09-24) | Pushed tutorials interrupt and are forgotten; contextual, dismissible, retrievable help works | D27: the tour is offered, never forced; page tours start where the work is |
+| [Chameleon — product tour benchmarks](https://www.chameleon.io/blog/mastering-product-tours) | Fetched (2026-09-24) | 3–4 steps 72–74% completion, 7+ 16%; self-started 67% vs delayed 31% | D27: five stops at most, enforced by a test |
+| [Shepherd.js](https://www.shepherdjs.dev/) | Fetched (2026-09-24) | Keyboard navigation, focus trapping and ARIA as the baseline; AGPL-3.0 | D27: same baseline, library not used (licence) |
+| [Driver.js](https://github.com/kamranahmedse/driver.js) | Fetched (2026-09-24) | MIT, ~5 kB; spotlight and popover, no multi-page support | D27: the spotlight technique, not the library |
+| Adobe Spectrum — Coach mark | Fetch returned no content | — | Not relied on |
 | [RFC 6238 — TOTP](https://www.rfc-editor.org/rfc/rfc6238) | Fetched (2026-09-24) | 30-second step from the Unix epoch; Appendix B test vectors (e.g. time 59 → 94287082, SHA-1, 8 digits) | `verify-mfa.js` checks our implementation against those vectors, not against itself |
 | [NIST SP 800-63B](https://pages.nist.gov/800-63-4/sp800-63b.html) | **Fetch refused** (both the -3 and -4 editions, 2026-09-24) | SMS codes as a restricted authenticator; one-time codes are not phishing-resistant | Cited from prior knowledge in D4; **confirm before quoting it to a stakeholder** |
 | [OWASP ASVS 5.0 — chapter list (GitHub)](https://github.com/OWASP/ASVS/tree/master/5.0/en) | Fetched | The 17 chapters used as the baseline checklist | Standard vocabulary for "which control, how verified" |

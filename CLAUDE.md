@@ -575,6 +575,25 @@ the old code. Rules that came out of the 2026-09-24 review:
   incidents its suites caused (TEST-002): leaving events behind lets the detection timer reopen
   an incident a minute after the gate finishes.
 
+### Guided tours — offered once, five stops, kept on the account (D27)
+`frontend/js/components/tour.js`, `docs/features/12-guided-tour.md`. The first sign-in
+**offers** a role tour ("Show me around" / "Not now") and never starts one unasked.
+"Product tour" in the profile menu replays it; "Show me how" on the report form runs a
+page tour. Progress lives in `users.tour_state` (`GET`/`PUT /api/auth/tour`), never in
+browser storage: tablets are shared.
+
+- **At most five stops per tour.** `verify-tour.js` fails at six; completion falls to 16% at seven.
+- **A stop may only point at a page its role can open.** The suite reads the sidebar's
+  `data-role` markers. Renaming or re-gating a nav item means checking `ROLE_TOURS`.
+- **Check every claim a stop makes against the code.** Teachers have no bell stop because
+  nothing is sent to a teacher's bell.
+- **No inline handlers:** start a tour with `data-tour-start="role"` or `"page:<name>"`.
+- **Record "started" only at the first real stop**: an unanswered welcome card that a reload
+  closes must not use up the offer.
+- A new page tour needs its id added to `TOUR_ID` in `tourController.js`, or the server refuses it.
+- Browser suites use `scripts/lib/browser.js` (headless Chrome/Edge over CDP). It **throws**
+  when a browser is installed but will not start, so a suite can never pass by skipping.
+
 ### Icons
 - Use ONLY Tabler Icons: `<i class="ti ti-icon-name"></i>`
 - Do NOT use Unicons, Font Awesome, or any other icon library

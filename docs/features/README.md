@@ -51,6 +51,7 @@ the incident opens itself, the on-call engineer is paged
 | 9 | Spares & first-time fix | the trip ends with a child able to work | M | [09](09-spares-and-first-time-fix.md) |
 | 10 | Guide-first reporting | the fault that never needed an engineer | S | [10](10-guide-first-reporting.md) |
 | 11 | Preventive maintenance | stop waiting for things to break | M | [11](11-preventive-maintenance.md) |
+| 12 | Guided tours | a newcomer is shown where things are, once, if they want it | M | [12](12-guided-tour.md) |
 
 7 came from the field, not the roadmap: six things a teacher's account did
 wrong, reported after the first six shipped.

@@ -35,6 +35,8 @@ const App = (() => {
     await loadAndRender();
     updateBadges();
     setInterval(updateBadges, 30000);
+    // Offers the role tour once per account, after the first page is on screen (D27).
+    if (typeof Tour !== 'undefined') Tour.boot();
   }
 
   /** Brand click — back to the dashboard. */

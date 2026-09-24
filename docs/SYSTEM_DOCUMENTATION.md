@@ -844,7 +844,7 @@ Features: searchable, dark theme consistent, click-outside-close, keyboard acces
 ## 12. Security Measures
 
 Corrected 2026-09-24 against the code; the full record is `docs/engineering/security-program/`
-(threat model, 154-endpoint matrix, decisions D1–D25, issue register, test results). Platform admins see the same
+(threat model, endpoint matrix, decisions D1–D27, issue register, test results). Platform admins see the same
 material in plain language on **Security Overview** (`#security`).
 
 | Measure | Implementation |
@@ -1017,3 +1017,22 @@ frontend/
 ### User Guide — In-Place Navigation
 - Sidebar sections swap content without full page re-render
 - Cards use afterRender() pattern to force scroll-reveal visibility
+
+
+---
+
+## 17. Guided Tours (September 2026)
+
+A newcomer is shown where things are, once, if they want it. Full design and research:
+`docs/features/12-guided-tour.md`; decision D27.
+
+| Part | Behaviour |
+|---|---|
+| First sign-in | A welcome card **offers** a five-stop tour of the role's main places: "Show me around" or "Not now". Never over an open modal or a forced password change. |
+| Role tours | Teacher: Report, Troubleshooting, Error Tracker, AI Assistant, profile menu. School admin: Error Tracker, Teachers, Inventory, bell, profile menu. Field engineer: Follow-Up, Visit Planner, School Profiles, bell, profile menu. Platform admin: Approvals, Analytics, Sub-Admins, Security Overview, account menu. |
+| Page tour | **Show me how** on the report form: category, title and suggested guides, photos, offline submit. |
+| Replay | Profile menu → **Product tour**. |
+| Controls | Next / Back / Skip; Esc skips; → and ← step; Tab stays in the bubble; a stray tap on the page does not end it. |
+| Phones | Sidebar stops open the drawer; the bubble docks to the half of the screen away from its target. |
+| Progress | Per account: `users.tour_state`, `GET`/`PUT /api/auth/tour`. Statuses never go backwards (completed > dismissed > started). |
+| Tests | `backend/scripts/verify-tour.js`: 75 assertions, headless Chrome at 1440, 920 and 375 px for all four roles. |

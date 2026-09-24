@@ -1,7 +1,7 @@
 # API security matrix
 
 Generated from the router source on 2026-09-24 (`routes/*.js` + `server.js`), then annotated by hand.
-**154 endpoints.** "Role gate" is what the router enforces; per-record school scoping lives in the
+**156 endpoints.** "Role gate" is what the router enforces; per-record school scoping lives in the
 controllers and is listed in *Notes* where it was audited or changed. Regenerate the first four columns
 rather than editing them.
 
@@ -29,6 +29,8 @@ Auth: `JWT` = `authenticate()` (signature + account status re-read per request).
 | POST | `/api/auth/profile/avatar` | JWT | any signed-in |  |
 | POST | `/api/auth/register` | JWT | admin |  |
 | POST | `/api/auth/sessions/revoke-all` | JWT | any signed-in | New (SEC-005): bumps the caller's own token_version only — no id in the request, so it cannot touch another account. |
+| GET | `/api/auth/tour` | JWT | any signed-in | Own account's tour progress (D27). No id parameter. |
+| PUT | `/api/auth/tour/:id` | JWT | any signed-in | Own account only; `:id` allow-listed, status and step validated, statuses never go backwards (D27). |
 | GET | `/api/checkins` | JWT | admin,subadmin,school |  |
 | POST | `/api/checkins` | JWT | admin,subadmin,school | SEC-003/004 fixed: enum fields validated; subadmin scoped. |
 | GET | `/api/checkins/school/:schoolId` | JWT | admin,subadmin,school |  |

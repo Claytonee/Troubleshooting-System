@@ -48,7 +48,8 @@ const ReportPage = (() => {
     <div class="section-header"><div>
       <div class="section-title">Report a Technical Error</div>
       <div class="section-sub">Submit a new issue for tracking and resolution</div>
-    </div></div>
+    </div>
+    <div style="display:flex;gap:10px">${typeof Tour !== 'undefined' ? Tour.pageButton('report') : ''}</div></div>
     <div class="report-layout">
       <div class="card" style="position:relative;overflow:hidden">
         <div class="form-grid">
