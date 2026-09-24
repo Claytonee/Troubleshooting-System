@@ -96,7 +96,7 @@ const TrackerPage = (() => {
       return `<tr style="cursor:pointer" onclick="ErrorDetailModal.open(${e.id})">
         <td><span class="error-id">${e.error_code}</span></td>
         <td><span style="font-weight:500;font-size:13px">${esc(e.title)}</span><br><span style="font-size:11px;color:var(--text3)">${esc(e.school_name)}</span></td>
-        <td class="hide-mobile"><span style="font-size:12px;color:var(--text2)"><i class="ti ${(CAT_META[e.category] || CAT_META.Other).ic}" style="color:${(CAT_META[e.category] || CAT_META.Other).color};font-size:13px;vertical-align:-2px;margin-right:4px"></i>${e.category}</span></td>
+        <td class="hide-mobile"><span style="font-size:12px;color:var(--text2)"><i class="ti ${(CAT_META[e.category] || CAT_META.Other).ic}" style="color:${(CAT_META[e.category] || CAT_META.Other).color};font-size:13px;vertical-align:-2px;margin-right:4px"></i>${esc(e.category)}</span></td>
         <td><span class="badge ${pri.badge}">${pri.label}</span></td>
         <td><span class="badge ${stat.badge}">${stat.label}</span></td>
         <td class="hide-mobile" style="font-size:12px;color:var(--text2)">${e.assigned_name ? esc(e.assigned_name) : '<span style="color:var(--text3)">Unassigned</span>'}</td>

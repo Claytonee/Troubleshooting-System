@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { canActOnSchool } = require('../services/scope');
 
 async function getAll(req, res, next) {
   try {
@@ -44,7 +45,7 @@ async function create(req, res, next) {
       return res.status(400).json({ error: 'school_id and note are required.' });
     }
 
-    if (req.user.role === 'school' && parseInt(school_id) !== req.user.school_id) {
+    if (!(await canActOnSchool(req.user, school_id))) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
@@ -59,6 +60,13 @@ async function create(req, res, next) {
 
 async function remove(req, res, next) {
   try {
+    // The route admits admin and subadmin; a field engineer deletes only the
+    // notes of schools assigned to them (SEC-004).
+    const [rows] = await pool.query('SELECT school_id FROM communications WHERE id = ?', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Communication not found.' });
+    if (!(await canActOnSchool(req.user, rows[0].school_id))) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
     await pool.query('DELETE FROM communications WHERE id = ?', [req.params.id]);
     res.json({ message: 'Communication deleted.' });
   } catch (err) { next(err); }

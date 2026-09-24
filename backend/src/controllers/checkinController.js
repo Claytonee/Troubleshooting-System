@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { canActOnSchool } = require('../services/scope');
 
 async function getAll(req, res, next) {
   try {
@@ -65,8 +66,9 @@ async function createOrUpdate(req, res, next) {
 
     if (!school_id || !week_number) return res.status(400).json({ error: 'school_id and week_number are required.' });
 
-    if (req.user.role === 'school' && parseInt(school_id) !== req.user.school_id) {
-      return res.status(403).json({ error: 'You can only submit check-ins for your own school.' });
+    // A field engineer files for the schools assigned to them, not any id (SEC-004).
+    if (!(await canActOnSchool(req.user, school_id))) {
+      return res.status(403).json({ error: 'You can only submit check-ins for your own schools.' });
     }
 
     // Validate checkin_date (YYYY-MM-DD); fall back to today when absent/invalid.

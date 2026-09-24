@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const { logAudit } = require('../services/audit');
+const { canActOnSchool } = require('../services/scope');
 
 // Build a URL-safe unique code from a school name.
 async function uniqueCode(name) {
@@ -39,7 +40,9 @@ async function getAll(req, res, next) {
 
 async function getById(req, res, next) {
   try {
-    if (req.user.role === 'school' && parseInt(req.params.id) !== req.user.school_id) {
+    // getAll() scopes a field engineer to their assigned schools; the detail
+    // view, which carries every fault of the school, has to agree (SEC-002).
+    if (!(await canActOnSchool(req.user, req.params.id))) {
       return res.status(403).json({ error: 'Access denied.' });
     }
 
@@ -194,6 +197,9 @@ async function reassignAdmin(req, res, next) {
 // --- Form-level breakdown ---
 async function getForms(req, res, next) {
   try {
+    if (!(await canActOnSchool(req.user, req.params.id))) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
     const [rows] = await pool.query(
       'SELECT * FROM school_forms WHERE school_id = ? ORDER BY form_name',
       [req.params.id]

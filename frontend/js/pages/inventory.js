@@ -491,7 +491,7 @@ const InventoryPage = (() => {
   function openAdd() {
     if (!guardWrite()) return;
     const schoolSelect = isAdmin() ? `<div class="form-group"><label>School</label><select id="dev-school" required>
-      <option value="">Select school</option>${schools.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}</select></div>` : '';
+      <option value="">Select school</option>${schools.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select></div>` : '';
     Modal.open('Add Device', `
       <form id="add-device-form" onsubmit="InventoryPage.submitAdd(event)">
         ${schoolSelect}
@@ -550,7 +550,7 @@ const InventoryPage = (() => {
     const d = devices.find(x => x.id === id);
     if (!d) return;
     const schoolSelect = isAdmin() ? `<div class="form-group"><label>School</label><select id="dev-school">
-      ${schools.map(s => `<option value="${s.id}" ${s.id===d.school_id?'selected':''}>${s.name}</option>`).join('')}</select></div>` : '';
+      ${schools.map(s => `<option value="${s.id}" ${s.id===d.school_id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>` : '';
     Modal.open('Edit Device', `
       <form id="edit-device-form" onsubmit="InventoryPage.submitEdit(event, ${id})">
         ${schoolSelect}

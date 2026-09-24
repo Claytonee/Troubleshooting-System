@@ -6,7 +6,7 @@
  * ?v=NN asset URLs, so bumping that one number also retires every cache and a
  * deploy can never leave a client running a half-old shell.
  */
-const VERSION = 'v51';
+const VERSION = 'v52';
 const SHELL_CACHE = `oe-shell-${VERSION}`;
 const DATA_CACHE = `oe-data-${VERSION}`;
 

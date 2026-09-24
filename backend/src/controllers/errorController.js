@@ -651,12 +651,18 @@ async function assignError(req, res, next) {
 
 async function addAttachments(req, res, next) {
   try {
+    // Access first, files second. This was the one fault write with no access
+    // check at all: any signed-in account could attach files to any school's
+    // fault by id (SEC-001), and the files-first order hid it behind a 400.
+    const [error] = await pool.query('SELECT id, school_id, reported_by_user_id FROM errors WHERE id = ?', [req.params.id]);
+    if (!error.length) return res.status(404).json({ error: 'Error not found.' });
+    if (!(await userCanAccessError(req.user, error[0]))) {
+      return res.status(403).json({ error: 'Access denied.' });
+    }
+
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No files uploaded.' });
     }
-
-    const [error] = await pool.query('SELECT id FROM errors WHERE id = ?', [req.params.id]);
-    if (!error.length) return res.status(404).json({ error: 'Error not found.' });
 
     const attachments = await uploadAttachments(req.files, req.params.id, req.user.full_name);
     res.status(201).json({ attachments, message: 'Attachments uploaded.' });

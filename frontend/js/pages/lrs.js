@@ -91,7 +91,7 @@ const LRSPage = (() => {
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:8px;min-width:0">
           <i class="ti ti-server" style="font-size:16px;color:${borderColor};flex-shrink:0"></i>
-          <div style="font-weight:600;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.school_name}</div>
+          <div style="font-weight:600;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(d.school_name)}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           <span style="font-size:10px;padding:2px 7px;border-radius:4px;background:rgba(${statusColors[d.status] === 'green' ? '45,217,138' : statusColors[d.status] === 'red' ? '255,82,99' : statusColors[d.status] === 'amber' ? '245,166,35' : '155,125,255'},.12);color:var(--${statusColors[d.status] || 'accent'});font-weight:600">${d.status}</span>
@@ -99,12 +99,12 @@ const LRSPage = (() => {
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:11px;color:var(--text3);margin-bottom:6px">
         <div><i class="ti ti-network" style="font-size:11px;margin-right:3px;color:var(--accent)"></i>${d.ip_address}${d.port && d.port !== 3000 ? ':' + d.port : ''}</div>
-        <div><i class="ti ti-tag" style="font-size:11px;margin-right:3px;color:var(--amber)"></i>${d.asset_tag || '—'}</div>
+        <div><i class="ti ti-tag" style="font-size:11px;margin-right:3px;color:var(--amber)"></i>${esc(d.asset_tag || '—')}</div>
         <div><i class="ti ti-refresh" style="font-size:11px;margin-right:3px;color:var(--${syncColors[d.sync_status] || 'text3'})"></i>${d.sync_status || 'Unknown'}${d.records_pending > 0 ? ` (${d.records_pending} pending)` : ''}</div>
         <div><i class="ti ti-clock" style="font-size:11px;margin-right:3px;color:var(--teal)"></i>${d.last_sync ? timeAgo(d.last_sync) : 'Never synced'}</div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between">
-        <div style="font-size:10px;color:var(--text3)">${d.hostname || ''} ${d.lrs_version ? '· v' + d.lrs_version : ''}</div>
+        <div style="font-size:10px;color:var(--text3)">${esc(d.hostname || '')} ${d.lrs_version ? '· v' + d.lrs_version : ''}</div>
         <button class="btn-icon" onclick="event.stopPropagation();LRSPage.openEdit(${d.id})" title="Edit" style="width:26px;height:26px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px"></i></button>
       </div>
     </div>`;
@@ -147,7 +147,7 @@ const LRSPage = (() => {
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
           <div style="width:36px;height:36px;border-radius:8px;background:rgba(54,217,204,.12);display:flex;align-items:center;justify-content:center"><i class="ti ti-server" style="font-size:18px;color:var(--teal)"></i></div>
           <div>
-            <div style="font-size:15px;font-weight:600;color:var(--text)">${d.school_name}</div>
+            <div style="font-size:15px;font-weight:600;color:var(--text)">${esc(d.school_name)}</div>
             <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(var(--${sc}-rgb,0),.12);color:var(--${sc});font-weight:600">${d.status}</span>
           </div>
         </div>
@@ -157,19 +157,19 @@ const LRSPage = (() => {
             <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-network" style="font-size:13px;color:var(--accent)"></i>IP Address</span></td>
             <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text);font-family:var(--font-mono)">${d.ip_address}:${d.port || 3000}</td>
             <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-tag" style="font-size:13px;color:var(--amber)"></i>Asset Tag</span></td>
-            <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${d.asset_tag || '—'}</td>
+            <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${esc(d.asset_tag || '—')}</td>
           </tr>
           <tr><td colspan="4" style="padding:0;height:1px;background:var(--border)"></td></tr>
           <tr>
             <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-cpu" style="font-size:13px;color:var(--purple)"></i>Hostname</span></td>
-            <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text);font-family:var(--font-mono)">${d.hostname || '—'}</td>
+            <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text);font-family:var(--font-mono)">${esc(d.hostname || '—')}</td>
             <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-barcode" style="font-size:13px;color:var(--teal)"></i>Serial</span></td>
-            <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text);font-family:var(--font-mono)">${d.serial_number || '—'}</td>
+            <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text);font-family:var(--font-mono)">${esc(d.serial_number || '—')}</td>
           </tr>
           <tr><td colspan="4" style="padding:0;height:1px;background:var(--border)"></td></tr>
           <tr>
             <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-device-desktop" style="font-size:13px;color:var(--green)"></i>Model</span></td>
-            <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${d.device_model || '—'}</td>
+            <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${esc(d.device_model || '—')}</td>
             <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-wifi" style="font-size:13px;color:var(--accent)"></i>Connection</span></td>
             <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${d.connection_type || 'ethernet'}</td>
           </tr>
@@ -208,7 +208,7 @@ const LRSPage = (() => {
             <td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-clock-hour-4" style="font-size:13px;color:var(--purple)"></i>Uptime</span></td>
             <td style="padding:9px 12px;font-weight:500;font-size:13px;color:var(--text)">${d.uptime_hours ? d.uptime_hours + 'h' : '—'}</td>
           </tr>
-          ${d.notes ? `<tr><td colspan="4" style="padding:0;height:1px;background:var(--border)"></td></tr><tr><td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-notes" style="font-size:13px;color:var(--text3)"></i>Notes</span></td><td colspan="3" style="padding:9px 12px;font-size:13px;color:var(--text2)">${d.notes}</td></tr>` : ''}
+          ${d.notes ? `<tr><td colspan="4" style="padding:0;height:1px;background:var(--border)"></td></tr><tr><td style="padding:9px 12px"><span style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--text3)"><i class="ti ti-notes" style="font-size:13px;color:var(--text3)"></i>Notes</span></td><td colspan="3" style="padding:9px 12px;font-size:13px;color:var(--text2)">${esc(d.notes)}</td></tr>` : ''}
         </table>
 
         ${d.history && d.history.length ? `
@@ -218,8 +218,8 @@ const LRSPage = (() => {
             ${d.history.map(h => `<div style="font-size:11px;padding:6px 10px;background:var(--bg2);border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;gap:8px">
               <span style="color:var(--text3)">${new Date(h.created_at).toLocaleDateString()}</span>
               <span style="color:var(--text)">${h.action.replace('_', ' ')}</span>
-              ${h.old_value && h.new_value ? `<span style="color:var(--red)">${h.old_value}</span><i class="ti ti-arrow-right" style="font-size:10px;color:var(--text3)"></i><span style="color:var(--green)">${h.new_value}</span>` : ''}
-              ${h.actor_name ? `<span style="margin-left:auto;color:var(--text3)">${h.actor_name}</span>` : ''}
+              ${h.old_value && h.new_value ? `<span style="color:var(--red)">${esc(h.old_value)}</span><i class="ti ti-arrow-right" style="font-size:10px;color:var(--text3)"></i><span style="color:var(--green)">${esc(h.new_value)}</span>` : ''}
+              ${h.actor_name ? `<span style="margin-left:auto;color:var(--text3)">${esc(h.actor_name)}</span>` : ''}
             </div>`).join('')}
           </div>
         </div>` : ''}
@@ -228,7 +228,7 @@ const LRSPage = (() => {
           <button onclick="LRSPage.openEdit(${d.id})" style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer">Edit</button>
           <div style="display:flex;gap:8px">
             <button onclick="LRSPage.openStatusChange(${d.id},'${d.status}')" style="padding:8px 16px;font-size:12px;background:rgba(54,217,204,.12);color:var(--teal);border:1px solid rgba(54,217,204,.25);border-radius:8px;cursor:pointer">Change Status</button>
-            <button onclick="LRSPage.confirmDelete(${d.id},'${d.school_name}')" style="padding:8px 16px;font-size:12px;background:rgba(255,82,99,.08);color:var(--red);border:1px solid rgba(255,82,99,.2);border-radius:8px;cursor:pointer">Remove</button>
+            <button onclick="LRSPage.confirmDelete(${d.id})" style="padding:8px 16px;font-size:12px;background:rgba(255,82,99,.08);color:var(--red);border:1px solid rgba(255,82,99,.2);border-radius:8px;cursor:pointer">Remove</button>
           </div>
         </div>`;
 
@@ -269,10 +269,10 @@ const LRSPage = (() => {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div class="form-group"><label>IP Address *</label><input name="ip_address" required value="${d.ip_address || ''}" placeholder="192.168.1.100"></div>
           <div class="form-group"><label>Port</label><input name="port" type="number" value="${d.port || 3000}"></div>
-          <div class="form-group"><label>Asset Tag</label><input name="asset_tag" value="${d.asset_tag || ''}" placeholder="LRS-001"></div>
-          <div class="form-group"><label>Hostname</label><input name="hostname" value="${d.hostname || ''}" placeholder="lrs-schoolname"></div>
-          <div class="form-group"><label>Serial Number</label><input name="serial_number" value="${d.serial_number || ''}"></div>
-          <div class="form-group"><label>Device Model</label><input name="device_model" value="${d.device_model || ''}" placeholder="Raspberry Pi 4B"></div>
+          <div class="form-group"><label>Asset Tag</label><input name="asset_tag" value="${esc(d.asset_tag || '')}" placeholder="LRS-001"></div>
+          <div class="form-group"><label>Hostname</label><input name="hostname" value="${esc(d.hostname || '')}" placeholder="lrs-schoolname"></div>
+          <div class="form-group"><label>Serial Number</label><input name="serial_number" value="${esc(d.serial_number || '')}"></div>
+          <div class="form-group"><label>Device Model</label><input name="device_model" value="${esc(d.device_model || '')}" placeholder="Raspberry Pi 4B"></div>
           <div class="form-group"><label>MAC Address</label><input name="mac_address" value="${d.mac_address || ''}" placeholder="00:11:22:33:44:55"></div>
           <div class="form-group"><label>Connection</label><select name="connection_type">
             <option value="ethernet" ${d.connection_type === 'ethernet' ? 'selected' : ''}>Ethernet</option>
@@ -289,7 +289,7 @@ const LRSPage = (() => {
           <div class="form-group"><label>OS Version</label><input name="os_version" value="${d.os_version || ''}" placeholder="Raspbian 11"></div>
           <div class="form-group"><label>LRS Version</label><input name="lrs_version" value="${d.lrs_version || ''}" placeholder="2.1.0"></div>
         </div>
-        <div class="form-group"><label>Notes</label><textarea name="notes" rows="2">${d.notes || ''}</textarea></div>
+        <div class="form-group"><label>Notes</label><textarea name="notes" rows="2">${esc(d.notes || '')}</textarea></div>
         <div style="text-align:center;margin-top:14px"><button type="submit" style="padding:11px 28px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;border-radius:10px;border:1.5px solid rgba(79,124,255,.4);background:rgba(79,124,255,.08);color:var(--accent);cursor:pointer;transition:all .15s;font-family:var(--font)" onmouseenter="this.style.background='rgba(79,124,255,.15)'" onmouseleave="this.style.background='rgba(79,124,255,.08)'"><i class="ti ti-device-floppy"></i> Save Changes</button></div>
       </form>`, '', true);
   }
@@ -350,7 +350,11 @@ const LRSPage = (() => {
   }
 
   // --- Delete ---
-  function confirmDelete(id, name) {
+  function confirmDelete(id) {
+    // The name is looked up, never passed through an onclick string: a school
+    // called "St. Mary's" broke the button, and a crafted one escaped it.
+    const d = devices.find(x => x.id === id);
+    const name = esc(d ? d.school_name : 'this school');
     Modal.open('Remove LRS Device', `<p style="font-size:13px;color:var(--text2)">Are you sure you want to remove the LRS device at <strong>${name}</strong>? This action cannot be undone.</p>`, `<button class="btn btn-ghost" onclick="Modal.close()">Cancel</button><button class="btn" style="background:var(--red);color:#fff" onclick="LRSPage.doDelete(${id})">Remove</button>`, false);
   }
 

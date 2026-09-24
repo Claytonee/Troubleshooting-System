@@ -197,10 +197,10 @@ const WeeklyPage = (() => {
         <div><strong>Date:</strong> ${fmtDay(c.checkin_date || c.created_at)}</div>
         <div><strong>Status:</strong> <span class="badge badge-${c.status}">${c.status}</span></div>
         <div><strong>Checked by:</strong> ${esc(c.checked_by || '—')}</div>
-        <div><strong>Connectivity:</strong> ${c.connectivity}</div>
-        <div><strong>Tablets:</strong> ${c.tablets}</div>
-        <div><strong>Platform:</strong> ${c.platform}</div>
-        <div><strong>Power:</strong> ${c.power}</div>
+        <div><strong>Connectivity:</strong> ${esc(c.connectivity)}</div>
+        <div><strong>Tablets:</strong> ${esc(c.tablets)}</div>
+        <div><strong>Platform:</strong> ${esc(c.platform)}</div>
+        <div><strong>Power:</strong> ${esc(c.power)}</div>
       </div>
       ${c.note ? `<div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:8px;font-size:12px">${esc(c.note)}</div>` : ''}`;
     Modal.open('Check-In Details', body, '<button class="btn btn-secondary" onclick="Modal.close()">Close</button>');

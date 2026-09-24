@@ -49,6 +49,11 @@ router.post('/:id/attachments', upload.array('attachments', 5), errorController.
 router.put('/:id', [
   authorize('admin', 'subadmin'),
   body('title').notEmpty().withMessage('Error title is required'),
+  // The same lists create() enforces. Unchecked here, `category` was a free-text
+  // field that the tracker and the fault modal render (SEC-003).
+  body('category').optional({ values: 'falsy' }).isIn(['Connectivity', 'Hardware', 'Platform', 'Power', 'Accounts', 'Other']).withMessage('Valid category is required'),
+  body('priority').optional({ values: 'falsy' }).isIn(['critical', 'high', 'medium', 'low']).withMessage('Valid priority is required'),
+  body('status').optional({ values: 'falsy' }).isIn(['open', 'progress', 'escalated', 'resolved']).withMessage('Valid status is required'),
   validate
 ], errorController.update);
 

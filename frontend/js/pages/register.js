@@ -67,7 +67,7 @@ const RegisterPage = (() => {
                   <input type="text" id="reg-school-search" placeholder="Search schools..." oninput="RegisterPage.filterSchools(this.value)">
                 </div>
                 <div class="reg-dropdown-list" id="reg-dropdown-list">
-                  ${schools.map(s => `<div class="reg-dropdown-item" data-id="${s.id}" onclick="RegisterPage.selectSchool(${s.id}, '${s.name.replace(/'/g, "\\'")}', '${(s.zone || '').replace(/'/g, "\\'")}')"><span class="reg-dropdown-name">${s.name}</span><span class="reg-dropdown-zone">${s.zone || 'N/A'}</span></div>`).join('')}
+                  ${schools.map(s => `<div class="reg-dropdown-item" data-id="${s.id}" onclick="RegisterPage.selectSchool(${s.id})"><span class="reg-dropdown-name">${esc(s.name)}</span><span class="reg-dropdown-zone">${esc(s.zone || 'N/A')}</span></div>`).join('')}
                 </div>
               </div>
             </div>
@@ -363,10 +363,13 @@ const RegisterPage = (() => {
     });
   }
 
-  function selectSchool(id, name, zone) {
+  function selectSchool(id) {
+    // Looked up by id rather than passed through an onclick string, where a quote
+    // in a school's name broke out of the attribute on a public page.
+    const school = schools.find(x => x.id === id) || {};
     document.getElementById('reg-school').value = id;
     const text = document.getElementById('reg-select-text');
-    text.innerHTML = `<span style="color:var(--text)">${name}</span><span class="reg-dropdown-zone" style="margin-left:8px">${zone || 'N/A'}</span>`;
+    text.innerHTML = `<span style="color:var(--text)">${esc(school.name)}</span><span class="reg-dropdown-zone" style="margin-left:8px">${esc(school.zone || 'N/A')}</span>`;
     text.classList.add('selected');
     document.getElementById('reg-dropdown').style.display = 'none';
   }
