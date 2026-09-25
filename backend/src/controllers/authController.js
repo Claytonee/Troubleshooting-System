@@ -9,6 +9,7 @@ const accountRecovery = require('../services/accountRecovery');
 const notify = require('../services/notify');
 const securityEvents = require('../services/securityEvents');
 const { logAudit } = require('../services/audit');
+const trustedDevices = require('../services/trustedDevices');
 
 function uploadToCloudinary(buffer, options) {
   return new Promise((resolve, reject) => {
@@ -149,6 +150,14 @@ async function login(req, res, next) {
     // five-minute ticket that can do one thing — be exchanged, with a code, at
     // POST /api/auth/mfa/verify. It is not a session and authenticate() refuses it.
     if (user.mfa_enabled) {
+      // D33: a browser this account trusted after a full two-step sign-in needs the
+      // password only — until it expires or anything ends every session. Recorded as
+      // a sign-in like any other (R3 still sees it), with how the second step was met.
+      if (await trustedDevices.check(req, user)) {
+        res.locals.secEvent = res.locals.secEvent || 'auth.login_ok';
+        res.locals.secDetail = res.locals.secDetail || { second_factor: 'trusted_browser' };
+        return res.json(await sessionPayload(user));
+      }
       res.locals.secEvent = res.locals.secEvent || 'auth.mfa_required';   // keep auth.published_password (R9)
       return res.json({ mfa_required: true, mfa_ticket: mfaTicket(user) });
     }

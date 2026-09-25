@@ -504,6 +504,46 @@ routing rule in `errorController.create()`.
 exist (feature 4) but are unpopulated, and a procurement figure computed from empty columns is worse
 than none. Revisit when purchase data is entered.
 
+## D33 — Ask for the authenticator on a new browser, not at every sign-in
+
+**Problem (reported by the owner, 2026-09-26):** every time a session ended, signing in asked for the
+authenticator code as well as the password. The app signs people out after 15 idle minutes, so that
+was a code every idle quarter-hour. That kind of friction makes people resent the second step
+instead of valuing it.
+
+**Research:** Microsoft Entra's *remember multifactor authentication* sets a persistent browser
+cookie after a successful MFA sign-in ("Don't ask again for X days", 90 days or less recommended),
+and revoking the user's sessions revokes it. Google offers "Don't ask again on this computer". NIST
+SP 800-63B-4 lets an AAL2 subscriber reauthenticate "using only a successful password … in
+conjunction with the session secret", and sets AAL2 inactivity at no more than one hour.
+
+**Decided:**
+1. **"Trust this browser"** is a tick box on the code step, **off by default** because school tablets are
+   shared. The box says so in plain words. When ticked, later sign-ins on that browser need only the
+   password. A new browser, a new computer, a cleared cookie or another account on the same tablet is
+   asked for the code as before.
+2. **Only after a code from the app.** A sign-in with a recovery code is never remembered: it usually
+   means the phone is gone, and a stolen recovery code must not plant a 30-day trust.
+3. **30 days, 14 for a platform admin**, because the account with the most reach gets asked most often.
+4. **The secret:** 256 random bits in an **HttpOnly, SameSite=Strict** cookie scoped to `/api/auth`, `Secure`
+   in production. Script on the page cannot read it, and it travels only to sign-in. Only its SHA-256 is
+   stored (`trusted_devices`), bound to one account (`oe_td_<id>`), at most ten per account.
+5. **It ends with the sessions:** each trust carries the session version it was made under, so a password
+   change or reset, "Sign out everywhere", a suspension or a supervisor's two-step reset ends every trusted
+   browser at once. A new authenticator ends trusts made with the old one.
+6. **Visible and revocable:** the Two-Step window lists each trusted browser ("Chrome on Windows",
+   last used, until) with **Forget** and **Forget all**. Trusting and forgetting are audited, and a
+   password-only sign-in is recorded as `auth.login_ok` with `second_factor: trusted_browser`, so
+   R3 still sees it.
+7. **The idle sign-out is 30 minutes**, up from 15. NIST allows up to 60 at AAL2; 30 keeps some margin
+   for shared tablets.
+
+**Not done:** trusting by network or IP address (SEC-015: this host lets the visitor choose the address).
+
+**Revisit when:** passkeys become practical on the schools' devices (a passkey *is* the second factor, so
+nothing needs remembering), or when expired `trusted_devices` rows need a retention policy. Today they go
+at the account's next trust, and with the account.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.

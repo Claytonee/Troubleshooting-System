@@ -4,7 +4,9 @@
  */
 const API = (() => {
   const BASE = '/api';
-  const SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes inactivity
+  // 30 minutes idle (D33): NIST SP 800-63B-4 allows up to an hour at AAL2. It was 15,
+  // and with the authenticator asked at every sign-in that meant a code every idle quarter-hour.
+  const SESSION_TIMEOUT = 30 * 60 * 1000;
   let _inactivityTimer = null;
 
   function getToken() { return localStorage.getItem('qft_token'); }
@@ -118,7 +120,10 @@ const API = (() => {
     getTours: () => request('GET', '/auth/tour'),
     saveTour: (id, body) => request('PUT', '/auth/tour/' + encodeURIComponent(id), body),
     // Two-step sign-in (SEC-007)
-    mfaVerify: (ticket, code) => request('POST', '/auth/mfa/verify', { ticket, code }),
+    mfaVerify: (ticket, code, rememberDevice) => request('POST', '/auth/mfa/verify', { ticket, code, remember_device: !!rememberDevice }),
+    // Trusted browsers (D33): the ones that skip the authenticator code at sign-in.
+    mfaTrusted: () => request('GET', '/auth/mfa/trusted'),
+    mfaForgetTrusted: (id) => request('DELETE', '/auth/mfa/trusted' + (id == null ? '' : '/' + encodeURIComponent(id))),
     mfaStatus: () => request('GET', '/auth/mfa'),
     mfaSetup: () => request('POST', '/auth/mfa/setup'),
     mfaEnable: (code) => request('POST', '/auth/mfa/enable', { code }),

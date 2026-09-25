@@ -251,3 +251,10 @@ code, three made-up addresses became three evidence rows and rotating addresses 
 | Administrator UI | Browser prompt and visible text field replaced by labelled password + confirmation fields with reveal controls, mismatch recovery, session-revocation warning, and secure-generation fallback |
 | Responsive browser verification | 520×800, 768×900, 920×900, 1280×900: dialog fully inside viewport, no page/modal horizontal overflow, both inputs remained `type=password`; mobile field width 479 px, larger widths 439 px |
 | Interaction verification | Initial focus lands on the first field; reveal changes only that field to text and the accessible label to “Hide password”; mismatched entries leave the dialog open, keep the action enabled and show “The passwords do not match” without calling the API |
+
+## D33 — trusted browsers (2026-09-26)
+
+| Check | Result |
+|---|---|
+| `verify-trusted-devices.js` | **35 / 35**: opt-in only; app code only (never a recovery code); cookie HttpOnly, SameSite=Strict, `/api/auth`, 30 days / 14 for admins; SHA-256 at rest; password still required; bound to its account; tampered, expired, forgotten, "sign out everywhere" and re-enrolment all ask for the code again; ten per account; audited; no secret in any evidence |
+| Browser (headless Chrome, 1440 and 390 px) | box unticked by default; tick, code, sign out, sign in: **no code asked**; the Two-Step window lists "this browser"; Forget empties it |

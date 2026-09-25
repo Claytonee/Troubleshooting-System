@@ -596,6 +596,10 @@ the old code. Rules that came out of the 2026-09-24 review:
   `config/httpPolicy.js` (HS256 only, SEC-013); a source check in `verify-token-policy.js`
   fails on one that does not. Cross-origin answers in production go only to `FRONTEND_URL`
   (none when unset, SEC-014) — the SPA is same-origin, the integrations server-to-server.
+- **The authenticator is asked on a new browser, not at every sign-in** (D33, `services/trustedDevices.js`).
+  "Trust this browser" (off by default: shared tablets) sets an HttpOnly, SameSite=Strict cookie `oe_td_<id>`
+  on `/api/auth`; only its SHA-256 is stored, bound to the session version, so `revokeSessions()` ends every
+  trust too. Never after a recovery code. 30 days, 14 for a platform admin. Idle sign-out is 30 minutes.
 - **No printed password works** (SEC-016, D29, `services/passwords.js`). Every place that sets a
   password calls `passwords.problem()` (8+ characters, not printed, not the old `Teacher@NNNN`) and a
   blank field gets `passwords.temporary()`, returned once and shown with `TempPassword.show()`, with

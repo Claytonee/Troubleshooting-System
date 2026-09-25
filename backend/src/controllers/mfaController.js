@@ -8,6 +8,7 @@ const { revokeSessions } = require('../services/sessions');
 const { logAudit } = require('../services/audit');
 const passwords = require('../services/passwords');
 const notify = require('../services/notify');
+const trustedDevices = require('../services/trustedDevices');
 
 /**
  * Two-step sign-in (SEC-007, DECISIONS.md D4).
@@ -139,6 +140,16 @@ async function verify(req, res, next) {
     const { sessionPayload } = require('./authController');
     const payload = await sessionPayload(u);
     if (how === 'recovery') payload.recovery_codes_left = recoveryList(await loadUser(u.id)).length;
+    // D33 "Trust this browser": only when asked, and only after a code from the app.
+    // A recovery code means the phone is gone — and a stolen one must not plant a
+    // 30-day trust — so that sign-in is never remembered.
+    if (req.body.remember_device === true && how === 'totp') {
+      const t = await trustedDevices.trust(req, res, u);
+      payload.trusted_days = t.days;
+      res.locals.secDetail = { trusted_browser: true, days: t.days };
+      await logAudit({ actor: { id: u.id, full_name: u.full_name, role: u.role }, ip: req.ip, action: 'auth.browser_trusted',
+        entityType: 'user', entityId: u.id, summary: `Trusted a browser for ${t.days} days (${trustedDevices.label(req.headers['user-agent'])})` });
+    }
     res.json(payload);
   } catch (err) { next(err); }
 }
@@ -259,4 +270,23 @@ async function assistReset(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { status, setup, enable, verify, regenerateRecovery, disable, assistReset, canAssist };
+/** GET /api/auth/mfa/trusted — this account's trusted browsers (D33); `current` is the one asking. */
+async function trustedList(req, res, next) {
+  try { res.json({ browsers: await trustedDevices.list(req, req.user.id), days: trustedDevices.daysFor(req.user.role) }); }
+  catch (err) { next(err); }
+}
+
+/** DELETE /api/auth/mfa/trusted[/:id] — forget one trusted browser, or all of them. Own account only. */
+async function trustedForget(req, res, next) {
+  try {
+    const id = req.params.id !== undefined ? Number(req.params.id) : null;
+    if (id !== null && !Number.isInteger(id)) return res.status(400).json({ error: 'Unknown browser.' });
+    const n = await trustedDevices.forget(req, res, req.user.id, id);
+    if (id !== null && !n) return res.status(404).json({ error: 'That browser is not trusted.' });
+    await logAudit({ actor: req.user, ip: req.ip, action: 'auth.browser_forgotten', entityType: 'user', entityId: req.user.id,
+      summary: id === null ? 'Forgot every trusted browser' : 'Forgot a trusted browser', meta: { count: n } });
+    res.json({ forgotten: n });
+  } catch (err) { next(err); }
+}
+
+module.exports = { status, setup, enable, verify, regenerateRecovery, disable, assistReset, canAssist, trustedList, trustedForget };

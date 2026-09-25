@@ -630,6 +630,26 @@ async function applyExtensions(db) {
   // production. It is simply no longer created; a local leftover is left alone —
   // CLAUDE.md forbids a DROP without a separate step the owner has confirmed.
 
+  // --- Trusted browsers (DECISIONS.md D33) ---
+  // "Trust this browser": after a full two-step sign-in, a random secret in an
+  // HttpOnly cookie lets later sign-ins on that browser skip the authenticator
+  // code. Only its SHA-256 is kept, with the session version it was made under,
+  // so anything that ends every session also ends every trust.
+  await q(`CREATE TABLE IF NOT EXISTS trusted_devices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    token_version INT NOT NULL DEFAULT 0,
+    label VARCHAR(60) NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME NULL,
+    expires_at DATETIME NOT NULL,
+    revoked_at DATETIME NULL,
+    UNIQUE KEY uq_trusted_device_token (token_hash),
+    INDEX idx_trusted_device_user (user_id, expires_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`);
+
   // --- Guided tours (DECISIONS.md D27) ---
   // Per-account progress as a small JSON object, validated by tourController.
   // Nullable: NULL means the account has never been offered a tour.

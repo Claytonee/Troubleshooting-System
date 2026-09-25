@@ -852,6 +852,7 @@ material in plain language on **Security Overview** (`#security`).
 | Measure | Implementation |
 |---------|---------------|
 | Password hashing | bcryptjs, cost 10–12 |
+| Trusted browsers | After two-step sign-in, "Trust this browser" (off by default) lets that browser sign in with the password alone for 30 days (14 for platform admins); ending sessions ends the trust; listed and forgettable in the Two-Step window (D33) |
 | Printed passwords | The repository is public; the passwords it once printed are refused on the seeded usernames and force a change on any other; none can be set again; blank fields generate a one-time temporary password (SEC-016) |
 | Authentication | JWT in the Authorization header, 7-day expiry, carrying the account's `token_version`. Raising it ends every session of that account: password change, admin reset, suspension, "Sign out everywhere" (SEC-005). Account status re-read on every request |
 | Two-step sign-in | TOTP (RFC 6238) for platform admins, required from 2026-10-08; secrets AES-256-GCM encrypted; 10 one-time recovery codes; a password alone earns a 5-minute ticket; break-glass `scripts/mfa-reset.js --yes` on the server console (SEC-007) |

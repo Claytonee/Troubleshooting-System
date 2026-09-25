@@ -740,11 +740,11 @@ const Auth = (() => {
   const MFA_ROLES = ['admin', 'subadmin', 'school', 'teacher'];
 
   // ---- Two-step sign-in (SEC-007, DECISIONS.md D4) ---------------------------
-  let mfaTicket = null, mfaPassword = null, mfaUseRecovery = false;
+  let mfaTicket = null, mfaPassword = null, mfaUseRecovery = false, mfaRemember = false;
 
   /** The second step of signing in: a 6-digit code, or a recovery code. */
   function showMfaStep(ticket, password) {
-    mfaTicket = ticket; mfaPassword = password; mfaUseRecovery = false;
+    mfaTicket = ticket; mfaPassword = password; mfaUseRecovery = false; mfaRemember = false;
     Modal.open('Two-Step Sign-In', mfaStepBody(), `
       <button class="btn btn-secondary" onclick="Auth.cancelMfaStep()">Cancel</button>
       <button class="btn btn-primary" id="mfa-verify-btn" onclick="Auth.submitMfaStep()"><i class="ti ti-shield-check"></i> Verify</button>`);
@@ -765,9 +765,21 @@ const Auth = (() => {
           style="font-family:var(--font-mono);font-size:18px;letter-spacing:${mfaUseRecovery ? '1px' : '6px'};text-align:center"
           onkeydown="if(event.key==='Enter'){event.preventDefault();Auth.submitMfaStep()}">
       </div>
+      ${mfaUseRecovery ? '' : `
+      <label class="mfa-trust">
+        <input type="checkbox" id="mfa-remember" data-mfa-remember ${mfaRemember ? 'checked' : ''}>
+        <span><strong>Trust this browser</strong> — next time, your password is enough here.
+          <em>Only on your own computer or phone, never on a shared school tablet.</em></span>
+      </label>`}
       <button type="button" class="mfa-link" onclick="Auth.toggleMfaRecovery()">${mfaUseRecovery ? 'Use a code from my app instead' : 'Lost your phone? Use a recovery code'}</button>
     </div>`;
   }
+
+  // D33: the tick box keeps its state when the step re-renders (recovery-code toggle).
+  // Delegated, not inline, per D24.
+  document.addEventListener('change', (e) => {
+    if (e.target && e.target.matches && e.target.matches('[data-mfa-remember]')) mfaRemember = e.target.checked;
+  });
 
   function focusMfaInput() { setTimeout(() => { const i = document.getElementById('mfa-code'); if (i) i.focus(); }, 60); }
 
@@ -784,11 +796,13 @@ const Auth = (() => {
     const btn = document.getElementById('mfa-verify-btn');
     if (btn) btn.disabled = true;
     try {
-      const data = await API.mfaVerify(mfaTicket, code);
+      const remember = !mfaUseRecovery && !!(document.getElementById('mfa-remember') || {}).checked;
+      const data = await API.mfaVerify(mfaTicket, code, remember);
       Modal.unlock(); Modal.close();
       const pw = mfaPassword;
       mfaTicket = null; mfaPassword = null;
       completeSignIn(data, pw);
+      if (data.trusted_days) setTimeout(() => showToast(`This browser is trusted for ${data.trusted_days} days — your password is enough here until then.`, 6000), 400);
     } catch (e) {
       if (e.code === 'MFA_TICKET_INVALID') {
         cancelMfaStep();
@@ -850,13 +864,49 @@ const Auth = (() => {
         <div class="form-group"><label>Current code from your app</label>
           <input id="mfa-manage-code" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code" style="font-family:var(--font-mono);letter-spacing:4px"></div>
         ${st.required_for_role ? '' : `<div class="form-group"><label>Password (only to turn it off)</label><input type="password" id="mfa-manage-pw" autocomplete="current-password"></div>`}
+        <div class="mfa-trusted" id="mfa-trusted"><div class="mfa-trusted-head">Trusted browsers</div>
+          <div class="mfa-trusted-empty">Loading…</div></div>
       </div>`;
       footer = `${st.required_for_role ? '' : '<button class="btn btn-secondary" onclick="Auth.disableMfa()" style="color:var(--red)">Turn off</button>'}
         <button class="btn btn-primary" onclick="Auth.regenerateRecovery()"><i class="ti ti-refresh"></i> New recovery codes</button>`;
     }
     Modal.open('Two-Step Sign-In', body, footer);
     if (forced) Modal.lock();
+    if (st.enabled) renderTrusted();
   }
+
+  // ---- Trusted browsers (D33) ------------------------------------------------
+  const fmtDay = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Dar_es_Salaam' }) : '—';
+
+  async function renderTrusted() {
+    const box = document.getElementById('mfa-trusted');
+    if (!box) return;
+    let r;
+    try { r = await API.mfaTrusted(); } catch (e) { box.querySelector('.mfa-trusted-empty').textContent = e.error || 'Could not load the list.'; return; }
+    const rows = (r.browsers || []).map(b => `
+      <div class="mfa-trusted-row">
+        <i class="ti ${/Android|iOS/.test(b.label) ? 'ti-device-mobile' : 'ti-device-desktop'}"></i>
+        <div class="mfa-trusted-info"><div>${esc(b.label || 'A browser')}${b.current ? ' <span class="mfa-trusted-this">this browser</span>' : ''}</div>
+          <small>Last used ${esc(fmtDay(b.last_used_at || b.created_at))} · until ${esc(fmtDay(b.expires_at))}</small></div>
+        <button type="button" class="mfa-trusted-forget" data-forget-browser="${Number(b.id)}">Forget</button>
+      </div>`).join('');
+    box.innerHTML = `<div class="mfa-trusted-head">Trusted browsers
+        ${rows ? '<button type="button" class="mfa-trusted-forget" data-forget-browser="all">Forget all</button>' : ''}</div>
+      ${rows || `<div class="mfa-trusted-empty">None. Tick "Trust this browser" at sign-in on your own device, and your password will be enough there for ${Number(r.days) || 30} days.</div>`}`;
+  }
+
+  // Delegated (D24): no inline handlers for these buttons.
+  document.addEventListener('click', async (e) => {
+    const btn = e.target && e.target.closest && e.target.closest('[data-forget-browser]');
+    if (!btn) return;
+    const which = btn.getAttribute('data-forget-browser');
+    btn.disabled = true;
+    try {
+      await API.mfaForgetTrusted(which === 'all' ? null : which);
+      showToast(which === 'all' ? 'Every trusted browser forgotten — each will ask for the code again' : 'Browser forgotten — it will ask for the code again');
+      renderTrusted();
+    } catch (err) { showToast(err.error || 'Could not forget it'); btn.disabled = false; }
+  });
 
   async function startMfaSetup(forced) {
     let s;
