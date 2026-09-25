@@ -4,6 +4,8 @@
  * `db` is the shared pool from config/database.js (mysql2/promise).
  */
 
+const { EXPLAINER_SEED } = require('./explainerSeed');
+
 const SLA_TARGET_HOURS = { critical: 4, high: 24, medium: 72, low: 168 };
 
 // Errors that mean "this step has already been applied". These migrations run
@@ -632,6 +634,47 @@ async function applyExtensions(db) {
   // Per-account progress as a small JSON object, validated by tourController.
   // Nullable: NULL means the account has never been offered a tour.
   await q('ALTER TABLE users ADD COLUMN tour_state TEXT NULL');
+
+  // --- Animated explainers (feature 15) ---
+  //
+  // PowerCert-style animation, but drawn by the app rather than delivered as a
+  // video file. A 90-second 720p MP4 is ~8 MB; the same explanation as an SVG
+  // scene list is ~45 KB — 180× smaller. That ratio is not a storage saving, it
+  // is the difference between playing and not playing on a 2 GB-RAM tablet over
+  // a rural uplink, and it is small enough to sit in the offline shell cache,
+  // so it works with the router dead — which is exactly when a teacher needs the
+  // explainer about the dead router.
+  //
+  // The ART is SVG markup in the frontend (a drawing, versioned in git). Only
+  // the SCRIPT lives here — captions in both languages, which part to highlight,
+  // how long to hold. So an explainer can be re-worded, re-timed and translated
+  // without a deploy, and the drawing cannot drift out of the repository.
+  await q(`CREATE TABLE IF NOT EXISTS explainers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    explainer_key VARCHAR(60) NOT NULL,
+    art VARCHAR(40) NOT NULL,
+    category VARCHAR(20) NOT NULL,
+    equipment VARCHAR(30),
+    title_sw VARCHAR(200) NOT NULL,
+    title_en VARCHAR(200) NOT NULL,
+    scenes JSON NOT NULL,
+    is_active TINYINT(1) DEFAULT 1,
+    sort_order INT DEFAULT 100,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_explainer (explainer_key)
+  )`);
+  await q('CREATE INDEX idx_explainer_cat ON explainers (category, is_active)');
+
+  // Seeded once. UNIQUE(explainer_key) means a boot never duplicates or
+  // overwrites what somebody has since edited.
+  for (const x of EXPLAINER_SEED) {
+    await q(
+      `INSERT INTO explainers (explainer_key, art, category, equipment, title_sw, title_en, scenes, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [x.key, x.art, x.category, x.equipment, x.title_sw, x.title_en, JSON.stringify(x.scenes), x.sort_order]
+    );
+  }
 
   // --- Reading language (feature 14) ---
   // On the ACCOUNT, not in browser storage, for the same reason tour_state is:

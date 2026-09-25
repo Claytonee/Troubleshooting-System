@@ -271,17 +271,20 @@ async function run() {
     text: `${MARK} charging hub will not power on, all 12 tablets on hub 2 are dead and the light is off`
   });
   ok('a real description gets a structured answer either way', realAsk.status === 200, realAsk.status);
-  if (realAsk.body && realAsk.body.ok) {
-    ok('...with both languages, because a second translation call is how they drift',
-      !!(realAsk.body.assessment && realAsk.body.assessment.sw && realAsk.body.assessment.en), realAsk.body.assessment);
-    ok('...and every "why" is keyed by a ref that was actually retrieved',
-      Object.keys(realAsk.body.why || {}).every(k => /^(guide|resource|photo|fix):\d+$/.test(k)),
-      Object.keys(realAsk.body.why || {}));
-    ok('...with nothing invented', realAsk.body.invented_refs === 0, realAsk.body.invented_refs);
-  } else {
-    ok('...or a named reason the page can fall back on',
-      typeof realAsk.body.reason === 'string' && realAsk.body.reason.length > 0, realAsk.body);
-  }
+  // One assertion whichever way it goes, so the suite's total does not move with
+  // the weather. An optional dependency must not make the gate flaky: a model
+  // that answered and a model that timed out are both valid outcomes, and the
+  // contract is that each is well-formed.
+  const b = realAsk.body || {};
+  const groundedOk = b.ok
+    ? !!(b.assessment && b.assessment.sw && b.assessment.en)
+      && Object.keys(b.why || {}).every(k => /^(guide|resource|photo|fix|explainer):\d+$/.test(k))
+      && b.invented_refs === 0
+    : typeof b.reason === 'string' && b.reason.length > 0;
+  ok(b.ok
+    ? '...both languages, every "why" keyed by a retrieved ref, nothing invented'
+    : '...or a named reason the page can fall back on (the model did not answer)',
+    groundedOk, b.ok ? { why: Object.keys(b.why || {}), invented: b.invented_refs } : b);
 
   // The resources must be unaffected by whatever the model did.
   const stillThere = await ask(token, { category: 'Hardware', text: `${MARK} charging hub will not power on` });
@@ -307,6 +310,64 @@ async function run() {
 
   const anonLang = await api('GET', '/auth/language');
   ok('and no session, no preference', anonLang.status === 401, anonLang.status);
+
+  /* -- feature 15: animated explainers ----------------------------------- */
+
+  section('An explainer is animation, not a video file');
+
+  const [[anExplainer]] = await pool.query(
+    "SELECT id, explainer_key FROM explainers WHERE explainer_key = 'lrs-or-internet'");
+  ok('the shipped explainers seeded', !!anExplainer, anExplainer);
+
+  if (anExplainer) {
+    const ex = await api('GET', `/assist/explainers/${anExplainer.id}`, { token });
+    ok('its script is served to any signed-in role', ex.status === 200, ex.status);
+    ok('...in both languages, every scene',
+      (ex.body.scenes || []).length > 0 && ex.body.scenes.every(s => s.sw && s.en),
+      (ex.body.scenes || []).map(s => ({ sw: !!s.sw, en: !!s.en })));
+    ok('...with a title in both', !!(ex.body.title && ex.body.title.sw && ex.body.title.en), ex.body.title);
+    ok('...and every scene points at a part of the drawing',
+      ex.body.scenes.every(s => Array.isArray(s.focus)), ex.body.scenes.map(s => s.focus));
+
+    // The whole reason this is animation rather than video. A 90-second 720p
+    // clip is ~8 MB; if a script ever grows past a few kilobytes, it has stopped
+    // being the thing that plays on a 2 GB tablet with the uplink dead.
+    const bytes = Buffer.byteLength(JSON.stringify(ex.body), 'utf8');
+    ok(`...and the whole script is ${(bytes / 1024).toFixed(1)} KB, not megabytes`,
+      bytes < 16 * 1024, bytes);
+
+    ok('the drawing is NOT sent over the wire — it ships with the app',
+      !JSON.stringify(ex.body).includes('<svg'), 'svg found in payload');
+
+    const missing = await api('GET', '/assist/explainers/99999', { token });
+    ok('an explainer that does not exist is a 404, not an empty player', missing.status === 404, missing.status);
+    const bad = await api('GET', '/assist/explainers/abc', { token });
+    ok('a non-numeric id is refused', bad.status === 400, bad.status);
+    const anonEx = await api('GET', `/assist/explainers/${anExplainer.id}`);
+    ok('and no session, no script', anonEx.status === 401, anonEx.status);
+  }
+
+  section('Explainers are offered where a video would be, and ranked above one');
+
+  const conn = await ask(token, { category: 'Connectivity', text: 'intaneti haipo, router taa ya internet nyekundu' });
+  const inWatch = (conn.body.watch || []);
+  ok('an explainer appears in the watch band',
+    inWatch.some(w => w.type === 'explainer'), inWatch.map(w => w.type));
+  ok('...above heavier media, because it is the one that plays on a bad link',
+    inWatch.length === 0 || inWatch[0].type === 'explainer', inWatch.map(w => w.type + ':' + w.kind));
+  const exCard = inWatch.find(w => w.type === 'explainer');
+  if (exCard) {
+    ok('...carrying how long it runs and how many steps, so a teacher can judge before the bell',
+      typeof exCard.duration_s === 'number' && exCard.duration_s > 0 && exCard.steps_count > 0, exCard);
+    ok('...and its title in both languages', !!(exCard.title && exCard.title.sw && exCard.title.en), exCard.title);
+  }
+
+  // A teacher types in Kiswahili as readily as in English; the same explainer
+  // has to be findable either way or half the school never sees it.
+  const inSwahili = await ask(token, { category: 'Hardware', text: 'hub ya kuchaji haiwaki tablet hazichaji' });
+  ok('a Kiswahili description finds the explainer too',
+    (inSwahili.body.watch || []).some(w => w.type === 'explainer'),
+    (inSwahili.body.watch || []).map(w => w.type));
 
   section('Its own mount, so no /:id can swallow it');
 

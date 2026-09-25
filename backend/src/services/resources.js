@@ -119,7 +119,7 @@ function kindOf(fileType, filename) {
  * we can hand them, so it ranks last — it is still offered, under "read more",
  * because sometimes it is the only place the answer exists.
  */
-const KIND_WEIGHT = { video: 5, image: 4, audio: 2, pdf: 1, document: 1 };
+const KIND_WEIGHT = { animation: 6, video: 5, image: 4, audio: 2, pdf: 1, document: 1 };
 
 /* ------------------------------------------------------------------ *
  * The four sources
@@ -153,6 +153,42 @@ async function guideCandidates(words, category) {
     };
   });
 }
+
+/**
+ * Animated explainers (feature 15). Ranked above video on purpose: they are the
+ * same explanation at ~1/180th of the bytes, they step at the reader's pace
+ * while their hands are on the equipment, and they are the only kind of media
+ * small enough to already be on the device when the uplink is dead — which is
+ * exactly when the explainer about the dead uplink is needed.
+ */
+async function explainerCandidates(words, category) {
+  const [rows] = await pool.query(
+    `SELECT id, explainer_key, art, category, equipment, title_sw, title_en, scenes
+       FROM explainers WHERE is_active = 1 ORDER BY sort_order, id`
+  );
+  return rows.map(x => {
+    const scenes = typeof x.scenes === 'string' ? safeJson(x.scenes) : (x.scenes || []);
+    // Both languages are searched: a teacher types "haichaji" as readily as
+    // "not charging", and the panel must find the same explainer either way.
+    const hay = [x.title_sw, x.title_en, x.category, x.equipment,
+      ...scenes.map(s => `${s.sw || ''} ${s.en || ''}`)].join(' ');
+    const { body, head } = overlap(words, hay, `${x.title_sw} ${x.title_en}`);
+    if (!body && !head && !(category && x.category === category)) return null;
+    return {
+      type: 'explainer', id: x.id,
+      score: (category && x.category === category ? 9 : 0) + body * 2 + head * 3 + KIND_WEIGHT.animation,
+      kind: 'animation',
+      key: x.explainer_key, art: x.art,
+      category: x.category, equipment: x.equipment,
+      title: { sw: x.title_sw, en: x.title_en },
+      steps_count: scenes.length,
+      // Roughly how long it runs, so the card can say so before anybody commits.
+      duration_s: Math.round(scenes.reduce((t, s) => t + (Number(s.ms) || 7000), 0) / 1000)
+    };
+  }).filter(Boolean);
+}
+
+const safeJson = (raw) => { try { const v = JSON.parse(raw); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
 
 async function resourceCandidates(words, category) {
   const [rows] = await pool.query(
@@ -271,14 +307,15 @@ async function find({ category, text, viewerSchoolId, limit = 6 }) {
   const words = keywords(text);
   if (!words.length && !category) return empty();
 
-  const [guides, resources, fixes, photos] = await Promise.all([
+  const [guides, explainers, resources, fixes, photos] = await Promise.all([
     guideCandidates(words, category),
+    explainerCandidates(words, category),
     resourceCandidates(words, category),
     fixCandidates(words, category, viewerSchoolId),
     photoCandidates(words, category, viewerSchoolId)
   ]);
 
-  const all = [...guides, ...resources, ...fixes, ...photos]
+  const all = [...guides, ...explainers, ...resources, ...fixes, ...photos]
     .filter(c => c.score >= FLOOR)
     // Ties broken deterministically. Without this the same query can render a
     // different order twice — MySQL is free to return unordered rows however it
@@ -289,8 +326,10 @@ async function find({ category, text, viewerSchoolId, limit = 6 }) {
   if (!all.length) return empty();
 
   const take = (type, n) => all.filter(c => c.type === type).slice(0, n).map(strip);
-  const watch = [...all.filter(c => (c.type === 'resource' || c.type === 'photo') && (c.kind === 'video' || c.kind === 'image'))]
-    .slice(0, 3).map(strip);
+  // An explainer first, then the heavy media. Same band, cheapest thing on top.
+  const watch = [...all.filter(c => c.type === 'explainer'),
+    ...all.filter(c => (c.type === 'resource' || c.type === 'photo') && (c.kind === 'video' || c.kind === 'image'))]
+    .slice(0, 4).map(strip);
   const read = all.filter(c => c.type === 'resource' && c.kind !== 'video' && c.kind !== 'image')
     .slice(0, 3).map(strip);
 

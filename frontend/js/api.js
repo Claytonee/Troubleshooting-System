@@ -170,6 +170,7 @@ const API = (() => {
     // POST, not GET: a fault description is the body of a report, and a URL is
     // logged, cached and shared.
     assistAssess: (data) => request('POST', '/assist/assess', data || {}),
+    getExplainer: (id) => request('GET', '/assist/explainers/' + id),
     getLanguage: () => request('GET', '/auth/language'),
     setLanguage: (language) => request('PUT', '/auth/language', { language }),
     guideHelped: (id, data) => request('POST', `/guides/${id}/helped`, data || {}),

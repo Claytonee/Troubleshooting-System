@@ -252,6 +252,39 @@ const ReportPage = (() => {
    * the refs are validated on the server, so nothing here can point at a
    * resource that does not exist.
    */
+  /**
+   * An explainer card. It says how long it runs and how many steps, because the
+   * decision a teacher makes here is whether they have time before the bell.
+   */
+  function explainerCard(x) {
+    const t = (x.title && (x.title[lang] || x.title.sw || x.title.en)) || '';
+    const meta = lang === 'sw'
+      ? `${x.steps_count} hatua · sekunde ${x.duration_s}`
+      : `${x.steps_count} steps · ${x.duration_s}s`;
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;cursor:pointer" onclick="ReportPage.openExplainer(${x.id})">
+        <div style="width:34px;height:34px;border-radius:8px;background:rgba(79,124,255,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="ti ti-player-play-filled" style="font-size:15px;color:var(--accent)"></i>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;color:var(--text);font-weight:500">${esc(t)}</div>
+          <div style="font-size:10px;color:var(--text3)">${esc(meta)}</div>
+          ${whyFor('explainer', x.id)}
+        </div>
+        <i class="ti ti-chevron-right" style="font-size:14px;color:var(--text3);flex-shrink:0"></i>
+      </div>`;
+  }
+
+  /** Fetches the script and hands it to the player. */
+  async function openExplainer(id) {
+    try {
+      const rec = await API.getExplainer(id);
+      Explainer.open(rec, lang);
+    } catch (e) {
+      showToast(lang === 'sw' ? 'Imeshindikana kufungua' : 'Could not open that');
+    }
+  }
+
   function whyFor(type, id) {
     const w = assessment && assessment.why && assessment.why[`${type}:${id}`];
     if (!w) return '';
@@ -311,7 +344,7 @@ const ReportPage = (() => {
         <span style="font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--text3)">${label}</span>
       </div>`;
 
-    const mediaCards = watch.map(m => `
+    const mediaCards = watch.map(m => m.type === 'explainer' ? explainerCard(m) : `
       <div style="display:flex;align-items:center;gap:10px;padding:7px 0;cursor:pointer" onclick="ReportPage.openResource('${esc(m.url)}')">
         <div style="width:34px;height:34px;border-radius:8px;background:rgba(155,125,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
           <i class="ti ${KIND_ICON[m.kind] || 'ti-file'}" style="font-size:16px;color:var(--purple)"></i>
@@ -572,5 +605,5 @@ const ReportPage = (() => {
   }
 
   return { load, render, onCategoryChange, submit, handleFiles, handleDrop, removeFile,
-    toggleGuide, guideFixedIt, stillBroken, refreshSuggestions, openResource, toggleLanguage };
+    toggleGuide, guideFixedIt, stillBroken, refreshSuggestions, openResource, toggleLanguage, openExplainer };
 })();

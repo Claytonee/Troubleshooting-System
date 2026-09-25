@@ -2,6 +2,7 @@
  * Guided resolution (feature 14, phase 1).
  * docs/features/14-guided-resolution.md
  */
+const pool = require('../config/database');
 const resources = require('../services/resources');
 const assessment = require('../services/assessment');
 
@@ -78,4 +79,42 @@ async function assessFor(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { resources: resourcesFor, assess: assessFor };
+/**
+ * GET /api/assist/explainers/:id — one explainer's script.
+ *
+ * Only the script: the captions in both languages, which part of the drawing to
+ * light up, and how long to hold. The drawing itself ships with the app, so the
+ * bytes over the wire are a few kilobytes and the whole thing is cacheable
+ * offline — which is the point, since the explainer about a dead router is
+ * needed precisely when the router is dead.
+ */
+async function explainerFor(req, res, next) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) return res.status(400).json({ error: 'Bad explainer id.' });
+
+    const [[row]] = await pool.query(
+      `SELECT id, explainer_key, art, category, equipment, title_sw, title_en, scenes
+         FROM explainers WHERE id = ? AND is_active = 1`, [id]
+    );
+    if (!row) return res.status(404).json({ error: 'Not found.' });
+
+    const scenes = typeof row.scenes === 'string' ? JSON.parse(row.scenes) : (row.scenes || []);
+    res.json({
+      id: row.id,
+      key: row.explainer_key,
+      art: row.art,
+      category: row.category,
+      equipment: row.equipment,
+      title: { sw: row.title_sw, en: row.title_en },
+      scenes: (Array.isArray(scenes) ? scenes : []).map(s => ({
+        focus: Array.isArray(s.focus) ? s.focus : [],
+        ms: Number(s.ms) || 7000,
+        sw: String(s.sw || ''),
+        en: String(s.en || '')
+      }))
+    });
+  } catch (err) { next(err); }
+}
+
+module.exports = { resources: resourcesFor, assess: assessFor, explainer: explainerFor };

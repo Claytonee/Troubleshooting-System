@@ -110,6 +110,28 @@ function code(src) {
   ok('the popup panel is fixed, so nothing can clip it',
     /\.dp-panel \{ position: fixed/.test(fs.readFileSync(path.join(FRONTEND, 'css', 'components.css'), 'utf8')));
 
+  console.log('\nAnimation is an enhancement, never a requirement (feature 15)');
+  const ex = fs.readFileSync(path.join(FRONTEND, 'js', 'components', 'explainer.js'), 'utf8');
+  // GSAP is vendored, never fetched from a CDN: script-src is 'self' only, so a
+  // CDN tag is a feature that silently does nothing in production.
+  ok('GSAP is loaded from our own vendor directory, never a CDN',
+    /js\/vendor\/gsap\.min\.js/.test(ex) && !/https?:\/\/[^'"]*gsap/.test(ex));
+  ok('...lazily, by this component alone, so nobody pays 71 KB for a feature they never open',
+    /document\.createElement\('script'\)/.test(ex) && /onerror/.test(ex));
+  // The floor has to hold on its own. A teacher opening an explainer offline for
+  // the first time gets no GSAP, and must still get the whole explanation.
+  ok('...and every motion path is guarded, so a missing GSAP costs the flow and not the meaning',
+    /if \(!window\.gsap/.test(ex));
+  ok('reduced motion keeps the end state rather than the journey',
+    /reducedMotion\(\)/.test(ex) && /prefers-reduced-motion/.test(ex));
+  // SMIL is deprecated and the Web Animations API is patchy on the browsers these
+  // schools actually hold (Amazon Fire's Silk, Huawei's).
+  ok('no SMIL and no Web Animations API — these run on Silk and low-cost Android',
+    !/<animate|animateTransform|\.animate\(/.test(ex));
+  const exCss = fs.readFileSync(path.join(FRONTEND, 'css', 'components.css'), 'utf8');
+  ok('the CSS floor exists independently of any library',
+    /\.ex-part\.off \{ opacity/.test(exCss) && /@media \(prefers-reduced-motion: reduce\) \{\s*\.ex-part/.test(exCss));
+
   console.log('\nThe shell version is coherent');
   // Bumping sw.js's VERSION without the ?v= query (or the reverse) leaves clients
   // on half an old shell — the exact failure CLAUDE.md warns about, unenforced until now.

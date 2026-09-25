@@ -6,7 +6,7 @@
  * ?v=NN asset URLs, so bumping that one number also retires every cache and a
  * deploy can never leave a client running a half-old shell.
  */
-const VERSION = 'v71';
+const VERSION = 'v73';
 const SHELL_CACHE = `oe-shell-${VERSION}`;
 const DATA_CACHE = `oe-data-${VERSION}`;
 
@@ -33,6 +33,12 @@ const CACHEABLE_API = [
   /^\/api\/guides/,
   /^\/api\/manuals/,
   /^\/api\/settings/,
+  // Animated explainers (feature 15). A few kilobytes each, because the drawing
+  // ships in the app and only the script comes over the wire — so the whole
+  // library fits here. This is the entire point of building them as animation
+  // rather than as video: the explainer about a dead router has to play when
+  // the router is dead, and an 8 MB MP4 never could.
+  /^\/api\/assist\/explainers\//,
   // The school list is reference data the report form cannot be filled without.
   // Testing offline with only a network-first copy left the dropdown empty and
   // the form unsubmittable — the exact case this feature exists for.
