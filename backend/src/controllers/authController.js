@@ -5,6 +5,10 @@ const streamifier = require('streamifier');
 const pool = require('../config/database');
 const cloudinary = require('../config/cloudinary');
 const { revokeSessions } = require('../services/sessions');
+const passwordRecovery = require('../services/passwordRecovery');
+const notify = require('../services/notify');
+const securityEvents = require('../services/securityEvents');
+const { logAudit } = require('../services/audit');
 
 function uploadToCloudinary(buffer, options) {
   return new Promise((resolve, reject) => {
@@ -316,4 +320,79 @@ async function revokeAllSessions(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { login, register, getProfile, updateProfile, uploadAvatar, changePassword, revokeAllSessions, sessionPayload, generateToken };
+/** POST /api/auth/password-recovery/request — deliberately non-enumerating. */
+async function requestPasswordRecovery(req, res, next) {
+  const started = Date.now();
+  try {
+    const result = await passwordRecovery.issue(req.body.identifier, { background: true });
+    res.locals.secEvent = 'auth.password_recovery_requested';
+    res.locals.secUserId = result.userId || null;
+    // Internal evidence may say whether a link was queued, but never stores the
+    // identifier or reset token and the public answer never changes.
+    res.locals.secDetail = { delivery: result.queued ? 'queued' : 'not_sent' };
+    const wait = Math.max(0, 400 - (Date.now() - started));
+    if (wait) await new Promise(resolve => setTimeout(resolve, wait));
+    res.status(202).json({ message: passwordRecovery.GENERIC_MESSAGE });
+
+    // SMTP finishes after the response so its latency cannot reveal an account.
+    if (result.delivery) {
+      result.delivery.then(outcome => {
+        if (outcome.sent) return;
+        securityEvents.record({
+          event_type: 'auth.password_recovery_failed', source_ip: req.ip, user_id: outcome.userId,
+          role: 'admin', method: req.method, path_template: '/api/auth/password-recovery/request',
+          status: 202, detail: { reason: 'delivery_failed' }
+        });
+      });
+    }
+  } catch (err) {
+    res.locals.secEvent = 'auth.password_recovery_failed';
+    res.locals.secDetail = { reason: 'service_unavailable' };
+    next(err);
+  }
+}
+
+/** POST /api/auth/password-recovery/reset — spends a one-time email link. */
+async function resetPasswordRecovery(req, res, next) {
+  try {
+    const user = await passwordRecovery.consume(req.body.token, req.body.new_password);
+    res.locals.secEvent = 'auth.password_recovery_completed';
+    res.locals.secUserId = user.id;
+    res.locals.secDetail = { sessions_revoked: true, mfa_preserved: true };
+
+    securityEvents.record({
+      event_type: 'auth.sessions_revoked', source_ip: req.ip, user_id: user.id,
+      role: 'admin', method: req.method, path_template: '/api/auth/password-recovery/reset',
+      status: 200, detail: { reason: 'password_recovery' }
+    });
+    await logAudit({
+      action: 'auth.password_recovery_completed', entityType: 'user', entityId: user.id,
+      summary: 'Platform Admin completed one-time email password recovery; all sessions revoked',
+      meta: { method: 'one_time_email_link', mfa_preserved: true }, ip: req.ip
+    });
+
+    // NIST SP 800-63B calls for an independent account-recovery notification.
+    // This second message contains no link or secret and cannot undo the reset.
+    await notify.sendMail({
+      to: user.email,
+      subject: 'Your Platform Admin password was changed',
+      text: [
+        `Hello ${user.full_name || 'Platform Administrator'},`, '',
+        'Your Platform Admin password was changed through account recovery.',
+        'Every previous session has been signed out. Two-step sign-in remains enabled.',
+        'If you did not do this, contact the system owner immediately and use the hosting recovery procedure.'
+      ].join('\n')
+    });
+    res.json({ message: 'Password updated. Every previous session has been signed out. Sign in with your new password; two-step sign-in still applies.' });
+  } catch (err) {
+    if (err instanceof passwordRecovery.RecoveryError) {
+      res.locals.secEvent = 'auth.password_recovery_failed';
+      res.locals.secDetail = { reason: err.code === 'PASSWORD_POLICY' ? 'password_policy' : 'invalid_or_expired' };
+      return res.status(400).json({ error: err.message, code: err.code });
+    }
+    next(err);
+  }
+}
+
+module.exports = { login, register, getProfile, updateProfile, uploadAvatar, changePassword, revokeAllSessions,
+  requestPasswordRecovery, resetPasswordRecovery, sessionPayload, generateToken };

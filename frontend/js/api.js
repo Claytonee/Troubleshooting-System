@@ -92,6 +92,8 @@ const API = (() => {
   return {
     getToken, setToken, clearToken, getUser, setUser, clearUser, isLoggedIn, lastCachedAt,
     login: (username, password) => request('POST', '/auth/login', { username, password }),
+    requestPasswordRecovery: (identifier) => request('POST', '/auth/password-recovery/request', { identifier }),
+    resetPasswordWithToken: (token, newPassword) => request('POST', '/auth/password-recovery/reset', { token, new_password: newPassword }),
     getProfile: () => request('GET', '/auth/profile'),
     updateProfile: (data) => request('PUT', '/auth/profile', data),
     uploadAvatar: (formData) => {

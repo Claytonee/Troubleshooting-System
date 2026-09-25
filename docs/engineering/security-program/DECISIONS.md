@@ -344,6 +344,43 @@ keep working if it goes private, within the free private-repository minutes.
 **Revisit when:** a staging site exists (deploy there first, then promote), or the watch's
 30-minute interval proves too slow for the schools' needs.
 
+## D31 — A locked-out Platform Admin recovers by email link, never by username alone
+
+**Problem:** D29's server-console reset needs cPanel access. The request was a public "admin
+portal" that resets the Platform Admin password. If knowing the username were enough, that page
+would be the easiest way to take over the most powerful account.
+
+**Options:** (1) a public reset form keyed on the username: an account-takeover path, refused.
+(2) cPanel only: safe, but slow for an admin who still has their email. (3) **A one-time link sent
+to the address already on the account, with cPanel kept as the fallback**: chosen (OWASP Forgot
+Password Cheat Sheet, NIST SP 800-63B §6.1.2.3).
+
+**Decided:**
+1. **"Forgot password?" on the sign-in page** asks for a username or email and always answers the
+   same 202 with the same text, whether the account exists, is a teacher, is inactive or has no
+   email. The answer is padded to 400 ms and the email is sent *after* it, so SMTP latency cannot
+   reveal an account either. Only active `admin` accounts get a link.
+2. **The link** carries 256 random bits in the URL fragment (never sent to the server in logs or
+   the Referer header). Only its SHA-256 is stored, in `password_recovery_tokens`. It expires in 15
+   minutes, works once, and a new link or a completed reset spends every other. A link whose email
+   failed is spent at once. It is built from `APP_URL` (else the first `FRONTEND_URL`), never from
+   the request's Host header. The page removes it from the address bar as soon as it is read.
+3. **Completing it** sets the password (policy checked, entered twice), bumps `token_version` so
+   every session ends, and writes an audit row and security events with no token or password in
+   them. A second email says the password was changed. **Two-step sign-in is untouched:** the link
+   proves the email, not the authenticator, so the next sign-in still asks for a code.
+4. **Throttles:** 20 requests per network and 5 per identifier per 15 minutes; one link per account
+   every 2 minutes and 3 per hour; 10 reset attempts per network per 15 minutes.
+5. **Retention:** spent or expired links are deleted 30 days later (D25).
+6. **When email is not an option** (SMTP unset or the mailbox lost), D29's
+   `node scripts/password-reset.js admin --prompt --yes` on the server remains the path; a lost
+   authenticator is D4's `node scripts/mfa-reset.js <username> --yes`. Both need the hosting
+   terminal. The page points there and offers nothing else.
+
+**Revisit when:** SMTP is configured on production (until then every request ends at
+`delivery_unavailable` and the console path is the only one), or a second person becomes a
+Platform Admin, who could then reset another's password from inside the app.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.

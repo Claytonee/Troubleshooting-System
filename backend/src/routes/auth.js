@@ -7,6 +7,32 @@ const authController = require('../controllers/authController');
 const tourController = require('../controllers/tourController');
 
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
+
+const recoveryIpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 20 : 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many recovery requests. Wait fifteen minutes and try again.' }
+});
+const recoveryAccountLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 5 : 100,
+  // A digest avoids retaining an email address or username inside the limiter.
+  keyGenerator: (req) => require('crypto').createHash('sha256')
+    .update(String(req.body.identifier || '').trim().toLowerCase()).digest('hex'),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many recovery requests. Wait fifteen minutes and try again.' }
+});
+const recoveryResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 10 : 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many reset attempts. Wait fifteen minutes and request a new link.' }
+});
 
 const avatarUpload = multer({
   storage: multer.memoryStorage(),
@@ -23,6 +49,17 @@ router.post('/login', [
   validate
 ], authController.login);
 
+router.post('/password-recovery/request', recoveryIpLimiter, recoveryAccountLimiter, [
+  body('identifier').isString().trim().isLength({ min: 3, max: 255 }).withMessage('Enter your Platform Admin username or email.'),
+  validate
+], authController.requestPasswordRecovery);
+
+router.post('/password-recovery/reset', recoveryResetLimiter, [
+  body('token').isString().notEmpty().withMessage('The password reset link is missing.'),
+  body('new_password').isString().isLength({ min: 8, max: 1024 }).withMessage('Password must be at least 8 characters.'),
+  validate
+], authController.resetPasswordRecovery);
+
 router.post('/register', [
   authenticate,
   authorize('admin'),
@@ -38,7 +75,6 @@ router.get('/profile', authenticate, authController.getProfile);
 // Two-step sign-in (SEC-007, D4). /verify is public — it is the second step of
 // signing in — and carries its own throttle: 10 attempts per account per 15
 // minutes in production against a million possible codes.
-const rateLimit = require('express-rate-limit');
 const mfaController = require('../controllers/mfaController');
 const mfaVerifyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

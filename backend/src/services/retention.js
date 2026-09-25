@@ -44,6 +44,12 @@ const POLICIES = [
     where: 'last_seen < NOW() - INTERVAL 90 DAY', table: 'csp_reports'
   },
   {
+    id: 'password_recovery_tokens', label: 'Expired or used password-recovery links', keep: '30 days after expiry or use',
+    where: `(expires_at < NOW() - INTERVAL 30 DAY)
+      OR (used_at IS NOT NULL AND used_at < NOW() - INTERVAL 30 DAY)`,
+    table: 'password_recovery_tokens'
+  },
+  {
     // Reported, never deleted by the job. Faults, visits and the audit trail name
     // these people; removing an account is a person's decision (anonymise or keep),
     // made from this count — not something a timer should do.

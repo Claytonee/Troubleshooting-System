@@ -507,6 +507,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  if (Auth.routeRecovery()) return;
+
   if (Auth.checkSession()) {
     App.init();
   }

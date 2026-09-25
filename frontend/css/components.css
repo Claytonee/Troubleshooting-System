@@ -1073,6 +1073,34 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .mfa-codes { grid-template-columns: 1fr; }
 }
 
+/* Platform Admin password recovery (D31) */
+.auth-label-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.auth-text-btn { appearance: none; border: 0; background: transparent; color: var(--accent); padding: 0; font: inherit; font-size: 11.5px; cursor: pointer; }
+.auth-text-btn:hover { text-decoration: underline; }
+.auth-text-btn:focus-visible, .recovery-back:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.recovery-shell { width: 100%; display: flex; justify-content: center; padding: 20px; }
+.recovery-box { width: min(440px, 100%); }
+.recovery-mark, .recovery-status { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 18px; background: rgba(79,124,255,.12); color: var(--accent); font-size: 24px; }
+.recovery-status.success { background: rgba(45,217,138,.12); color: var(--green); }
+.recovery-kicker { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; margin-bottom: 7px; }
+.recovery-title { color: var(--text); font-size: 22px; line-height: 1.25; font-weight: 600; margin: 0 0 9px; }
+.recovery-copy { color: var(--text2); font-size: 13px; line-height: 1.6; margin: 0 0 20px; }
+.recovery-field { margin-bottom: 15px; }
+.recovery-primary { width: 100%; justify-content: center; min-height: 44px; }
+.recovery-back { display: inline-flex; align-items: center; gap: 6px; margin-top: 17px; padding: 2px 0; border: 0; background: transparent; color: var(--text2); font-family: var(--font); font-size: 12.5px; cursor: pointer; }
+.recovery-back:hover { color: var(--text); }
+.recovery-fallback, .recovery-trust { display: flex; align-items: flex-start; gap: 9px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg3); color: var(--text2); font-size: 12px; line-height: 1.5; padding: 11px 12px; margin-top: 18px; }
+.recovery-fallback i, .recovery-trust i { color: var(--amber); font-size: 16px; flex: 0 0 auto; margin-top: 1px; }
+.recovery-fallback div { display: flex; flex-direction: column; gap: 2px; }
+.recovery-fallback strong { color: var(--text); font-weight: 600; }
+.recovery-trust { margin-top: 20px; color: var(--text3); }
+.recovery-trust i { color: var(--green); }
+@media (max-width: 520px) {
+  .recovery-shell { padding: 12px; }
+  .recovery-box { padding: 20px 18px; }
+  .recovery-title { font-size: 20px; }
+}
+
 /* Security Overview — incidents (D5 b, D6) */
 .inc-list { display: flex; flex-direction: column; }
 .inc-row { padding: 12px 0; border-top: 1px solid var(--border); }

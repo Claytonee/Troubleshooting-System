@@ -49,6 +49,10 @@ npm start
 
 **First sign-in:** no password is published (SEC-016). Set `ADMIN_PASSWORD` before the first start, or use the one-time password the first start prints to the server log; see `backend/src/docs/SETUP.md`.
 
+**Forgot password (platform admin):** "Forgot password?" on the sign-in page emails a one-time link,
+valid for 15 minutes, to the address on the account. It needs SMTP and `APP_URL` configured, ends every
+session, and keeps two-step sign-in on (DECISIONS.md D31). Without email, use the terminal below.
+
 **Locked-out platform admin:** from the hosting panel terminal, run
 `cd backend && node scripts/password-reset.js admin --prompt --yes`. The prompt hides the password,
 asks for confirmation, revokes every existing session, records the recovery in the audit trail, and

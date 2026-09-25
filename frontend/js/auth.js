@@ -7,6 +7,8 @@ const Auth = (() => {
     $('app-container').style.display = 'none';
     const regPage = document.getElementById('register-page');
     if (regPage) regPage.style.display = 'none';
+    const recoveryPage = document.getElementById('recovery-page');
+    if (recoveryPage) recoveryPage.style.display = 'none';
     $('login-page').style.display = 'flex';
     $('login-error').classList.remove('show');
     closeProfileMenu();
@@ -14,6 +16,8 @@ const Auth = (() => {
 
   function showApp() {
     $('login-page').style.display = 'none';
+    const recoveryPage = document.getElementById('recovery-page');
+    if (recoveryPage) recoveryPage.style.display = 'none';
     $('app-container').style.display = 'grid';
     updateUserDisplay();
   }
@@ -435,6 +439,161 @@ const Auth = (() => {
     }
   }
 
+  function recoveryFrame(content) {
+    return `<div class="login-box recovery-box">
+      <div class="recovery-mark" aria-hidden="true"><i class="ti ti-shield-lock"></i></div>
+      ${content}
+      <div class="recovery-trust"><i class="ti ti-lock-check"></i><span>The reset link works once, expires after 15 minutes, and never disables two-step sign-in.</span></div>
+    </div>`;
+  }
+
+  function openRecoveryPage(html) {
+    $('login-page').style.display = 'none';
+    $('app-container').style.display = 'none';
+    const regPage = document.getElementById('register-page');
+    if (regPage) regPage.style.display = 'none';
+    const page = $('recovery-page');
+    page.style.display = 'flex';
+    $('recovery-content').innerHTML = recoveryFrame(html);
+    PasswordField.enhanceAll($('recovery-content'));
+  }
+
+  function bindRecoveryBack() {
+    const back = $('recovery-back');
+    if (back) back.addEventListener('click', backToLogin);
+  }
+
+  function showRecoveryRequest(updateHash = true) {
+    if (updateHash && window.location.hash !== '#forgot-password') window.location.hash = 'forgot-password';
+    openRecoveryPage(`
+      <div class="recovery-kicker">Platform Admin recovery</div>
+      <h1 class="recovery-title">Reset your password safely</h1>
+      <p class="recovery-copy">Enter the username or email already registered to your Platform Admin account. We will send a private reset link if the account is eligible.</p>
+      <div class="login-error" id="recovery-error" role="alert"></div>
+      <form id="recovery-request-form">
+        <div class="form-group recovery-field"><label for="recovery-identifier">Username or email</label>
+          <input id="recovery-identifier" type="text" autocomplete="username" maxlength="255" required placeholder="Platform Admin username or email">
+        </div>
+        <button class="btn btn-primary recovery-primary" type="submit" id="recovery-request-btn"><i class="ti ti-mail-forward"></i> Send recovery link</button>
+      </form>
+      <button type="button" class="recovery-back" id="recovery-back"><i class="ti ti-arrow-left"></i> Back to sign in</button>
+      <div class="recovery-fallback"><i class="ti ti-server-cog"></i><div><strong>No recovery email?</strong><span>Use the protected hosting-terminal recovery procedure. A public page can never reset an administrator without proof of ownership.</span></div></div>`);
+    $('recovery-request-form').addEventListener('submit', submitRecoveryRequest);
+    bindRecoveryBack();
+    $('recovery-identifier').focus();
+  }
+
+  async function submitRecoveryRequest(e) {
+    e.preventDefault();
+    const identifier = $('recovery-identifier').value.trim();
+    const error = $('recovery-error');
+    const button = $('recovery-request-btn');
+    error.classList.remove('show');
+    if (identifier.length < 3) {
+      error.textContent = 'Enter your Platform Admin username or email.';
+      error.classList.add('show');
+      return;
+    }
+    button.disabled = true;
+    button.innerHTML = '<i class="ti ti-loader-2 spin"></i> Sending…';
+    try {
+      await API.requestPasswordRecovery(identifier);
+      openRecoveryPage(`
+        <div class="recovery-status success"><i class="ti ti-mail-check"></i></div>
+        <div class="recovery-kicker">Request received</div>
+        <h1 class="recovery-title">Check your administrator email</h1>
+        <p class="recovery-copy">If this is an active Platform Admin account and email recovery is available, a link has been sent. It expires in 15 minutes.</p>
+        <div class="recovery-fallback"><i class="ti ti-info-circle"></i><div><strong>Nothing after five minutes?</strong><span>Check spam, then use the protected hosting-terminal recovery procedure. For privacy, this page never confirms whether an account exists.</span></div></div>
+        <button type="button" class="recovery-back" id="recovery-back"><i class="ti ti-arrow-left"></i> Back to sign in</button>`);
+      bindRecoveryBack();
+    } catch (err) {
+      error.textContent = err.error || 'Recovery is temporarily unavailable. Use the protected hosting recovery procedure.';
+      error.classList.add('show');
+      button.disabled = false;
+      button.innerHTML = '<i class="ti ti-mail-forward"></i> Send recovery link';
+    }
+  }
+
+  function showRecoveryReset(token) {
+    openRecoveryPage(`
+      <div class="recovery-kicker">Verified recovery link</div>
+      <h1 class="recovery-title">Choose a new password</h1>
+      <p class="recovery-copy">This changes only your password. Your authenticator and recovery codes remain active.</p>
+      <div class="login-error" id="recovery-error" role="alert"></div>
+      <form id="recovery-reset-form">
+        <div class="form-group recovery-field"><label for="recovery-password">New password</label>
+          <input id="recovery-password" type="password" autocomplete="new-password" minlength="8" maxlength="1024" required placeholder="At least 8 characters">
+        </div>
+        <div class="form-group recovery-field"><label for="recovery-confirm">Confirm new password</label>
+          <input id="recovery-confirm" type="password" autocomplete="new-password" minlength="8" maxlength="1024" required placeholder="Type it again">
+        </div>
+        <button class="btn btn-primary recovery-primary" type="submit" id="recovery-reset-btn"><i class="ti ti-key"></i> Set new password</button>
+      </form>
+      <button type="button" class="recovery-back" id="recovery-back"><i class="ti ti-arrow-left"></i> Cancel and return to sign in</button>`);
+    $('recovery-reset-form').addEventListener('submit', e => submitRecoveryReset(e, token));
+    bindRecoveryBack();
+    $('recovery-password').focus();
+  }
+
+  async function submitRecoveryReset(e, token) {
+    e.preventDefault();
+    const password = $('recovery-password').value;
+    const confirmation = $('recovery-confirm').value;
+    const error = $('recovery-error');
+    const button = $('recovery-reset-btn');
+    error.classList.remove('show');
+    if (password !== confirmation) {
+      error.textContent = 'The passwords do not match.';
+      error.classList.add('show');
+      $('recovery-confirm').focus();
+      return;
+    }
+    if (password.length < 8) {
+      error.textContent = 'Password must be at least 8 characters.';
+      error.classList.add('show');
+      return;
+    }
+    button.disabled = true;
+    button.innerHTML = '<i class="ti ti-loader-2 spin"></i> Securing account…';
+    try {
+      await API.resetPasswordWithToken(token, password);
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      openRecoveryPage(`
+        <div class="recovery-status success"><i class="ti ti-shield-check"></i></div>
+        <div class="recovery-kicker">Account secured</div>
+        <h1 class="recovery-title">Your password is updated</h1>
+        <p class="recovery-copy">Every previous session has been signed out. Sign in with the new password and complete two-step sign-in as usual.</p>
+        <button type="button" class="btn btn-primary recovery-primary" id="recovery-back"><i class="ti ti-login"></i> Continue to sign in</button>`);
+      bindRecoveryBack();
+    } catch (err) {
+      error.textContent = err.error || 'This reset link is invalid or has expired. Request a new one.';
+      error.classList.add('show');
+      button.disabled = false;
+      button.innerHTML = '<i class="ti ti-key"></i> Set new password';
+    }
+  }
+
+  function backToLogin() {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    showLogin();
+    $('login-username').focus();
+  }
+
+  function routeRecovery() {
+    const hash = window.location.hash.slice(1);
+    if (hash === 'forgot-password') { showRecoveryRequest(false); return true; }
+    if (hash.startsWith('reset-password?')) {
+      const token = new URLSearchParams(hash.slice(hash.indexOf('?') + 1)).get('token');
+      // Take the one-time token out of the address bar and history at once, so
+      // it is not left on screen, in a shared tab, or behind the Back button.
+      history.replaceState(null, '', window.location.pathname + window.location.search + '#forgot-password');
+      if (token) showRecoveryReset(token);
+      else showRecoveryRequest(false);
+      return true;
+    }
+    return false;
+  }
+
   function logout() {
     closeProfileMenu();
     API.clearToken();
@@ -729,6 +888,12 @@ const Auth = (() => {
 
   function init() {
     $('login-form').addEventListener('submit', handleLogin);
+    $('forgot-password-link').addEventListener('click', () => showRecoveryRequest());
+    window.addEventListener('hashchange', () => {
+      if (routeRecovery()) return;
+      const page = document.getElementById('recovery-page');
+      if (page && page.style.display !== 'none' && !API.isLoggedIn()) showLogin();
+    });
     // The server refused a request because this platform admin must enrol first (D4).
     window.addEventListener('mfa:required', () => {
       if (document.querySelector('.mfa-setup') || document.querySelector('.mfa-codes')) return;
@@ -755,5 +920,5 @@ const Auth = (() => {
     PasswordField.enhanceAll($('register-content'));
   }
 
-  return { init, showLogin, showApp, logout, signOutEverywhere, showMfa, startMfaSetup, confirmMfaSetup, submitMfaStep, cancelMfaStep, toggleMfaRecovery, copyRecovery, downloadRecovery, finishMfa, regenerateRecovery, disableMfa, checkSession, toggleProfileMenu, closeProfileMenu, showProfile, showChangePassword, submitPasswordChange, showForcedPasswordChange, submitForcedPasswordChange, goRegister, _switchToEditProfile, _saveProfile, _onAvatarFile };
+  return { init, showLogin, showApp, logout, signOutEverywhere, showMfa, startMfaSetup, confirmMfaSetup, submitMfaStep, cancelMfaStep, toggleMfaRecovery, copyRecovery, downloadRecovery, finishMfa, regenerateRecovery, disableMfa, checkSession, toggleProfileMenu, closeProfileMenu, showProfile, showChangePassword, submitPasswordChange, showForcedPasswordChange, submitForcedPasswordChange, goRegister, showRecoveryRequest, routeRecovery, _switchToEditProfile, _saveProfile, _onAvatarFile };
 })();

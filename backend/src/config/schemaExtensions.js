@@ -600,6 +600,22 @@ async function applyExtensions(db) {
   // `tv` counts as, so adding the column signed nobody out.
   await q(`ALTER TABLE users ADD COLUMN token_version INT NOT NULL DEFAULT 0`);
 
+  // --- Platform Admin password recovery (DECISIONS.md D31) ---
+  // Only a SHA-256 digest is stored. A stolen database cannot turn this table
+  // into live reset links; links expire in 15 minutes and are spent once.
+  await q(`CREATE TABLE IF NOT EXISTS password_recovery_tokens (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_password_recovery_hash (token_hash),
+    INDEX idx_password_recovery_user_created (user_id, created_at),
+    INDEX idx_password_recovery_expiry (expires_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`);
+
   // --- Guided tours (DECISIONS.md D27) ---
   // Per-account progress as a small JSON object, validated by tourController.
   // Nullable: NULL means the account has never been offered a tour.
