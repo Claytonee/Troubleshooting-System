@@ -239,3 +239,15 @@ code, three made-up addresses became three evidence rows and rotating addresses 
 | An unreachable host | fails on the first check and stops (no minutes of repeated timeouts) |
 | `verify.yml` | runs on the push that adds it; its result is on the Actions tab |
 | First runs on GitHub (`2882ff7`) | **not started**: "account is locked due to a billing issue". Workflow correct as far as GitHub read it; the jobs never ran. Scheduled watch paused (`disabled_manually`) until billing is fixed |
+
+## Administrator password recovery (2026-09-25)
+
+| Check | Result |
+|---|---|
+| `verify-passwords.js` | **39 / 39**: both administrator reset APIs accept a valid typed password, never echo it, revoke the prior session, set `must_change_password`, and accept the replacement at sign-in; generated-password behavior remains covered |
+| Complete pre-push gate | **29 / 29 checks passed** after the local MariaDB service was restored; 914 assertions across all executed suites, 159 JavaScript files parsed, endpoint matrix current at 156, and no high/critical dependency advisories |
+| cPanel terminal, synthetic platform admin | `node scripts/password-reset.js zzverify_breakglass --prompt --yes` accepted two hidden entries; bcrypt comparison true; `must_change_password=1`; `token_version` 7 → 8; audit action `auth.password_reset_break_glass`, method `masked_prompt`; fixture and audit row removed |
+| Command-line exposure | No option accepts a password as an argument. `--prompt` uses terminal raw mode; default mode still generates and prints a one-time temporary password |
+| Administrator UI | Browser prompt and visible text field replaced by labelled password + confirmation fields with reveal controls, mismatch recovery, session-revocation warning, and secure-generation fallback |
+| Responsive browser verification | 520×800, 768×900, 920×900, 1280×900: dialog fully inside viewport, no page/modal horizontal overflow, both inputs remained `type=password`; mobile field width 479 px, larger widths 439 px |
+| Interaction verification | Initial focus lands on the first field; reveal changes only that field to text and the accessible label to “Hide password”; mismatched entries leave the dialog open, keep the action enabled and show “The passwords do not match” without calling the API |

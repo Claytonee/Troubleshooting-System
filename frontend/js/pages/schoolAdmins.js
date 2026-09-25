@@ -117,7 +117,7 @@ const SchoolAdminsPage = (() => {
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0">
           <button class="btn btn-secondary btn-sm" data-tip="${TIP.EDIT}" onclick="SchoolAdminsPage.openEdit(${a.id})"><i class="ti ti-edit"></i> Edit</button>
-          <button class="btn btn-secondary btn-sm" data-tip="${TIP.custom('Reset Password','Generate a new password for this admin')}" onclick="SchoolAdminsPage.resetPassword(${a.id})"><i class="ti ti-key"></i></button>
+          <button class="btn btn-secondary btn-sm" data-tip="${TIP.custom('Reset Password','Set or securely generate a temporary password')}" onclick="SchoolAdminsPage.resetPassword(${a.id})"><i class="ti ti-key"></i></button>
           <button class="btn btn-secondary btn-sm" data-tip="${TIP.DELETE}" data-tip-color="red" style="color:var(--red);border-color:rgba(255,82,99,0.3)" onclick="SchoolAdminsPage.remove(${a.id})"><i class="ti ti-trash"></i></button>
         </div>
       </div>`;
@@ -289,7 +289,7 @@ const SchoolAdminsPage = (() => {
         ${a.id ? '' : `
         <div class="form-group">
           <label>Initial Password</label>
-          <input type="text" id="sa-password" placeholder="Leave blank to generate a temporary password">
+          <input type="password" id="sa-password" autocomplete="new-password" placeholder="Leave blank to generate a temporary password">
           <div style="font-size:11px;color:var(--text3);margin-top:4px">Temporary either way — they choose their own at first sign-in.</div>
         </div>`}
       </div>`;
@@ -371,17 +371,54 @@ const SchoolAdminsPage = (() => {
     }
   }
 
-  async function resetPassword(id) {
+  function resetPassword(id) {
     const a = admins.find(x => x.id === id);
     if (!a) return;
-    const pw = prompt(`New temporary password for ${a.full_name} — or leave it blank and one will be generated. They choose their own at next sign-in, and are signed out everywhere now:`);
-    if (pw === null) return;
-    if (pw.trim() && pw.trim().length < 8) { showToast('Password must be at least 8 characters'); return; }
+    const body = `<div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:13px;color:var(--text2);line-height:1.55">
+        Set a temporary password for <strong style="color:var(--text)">${esc(a.full_name)}</strong>, or leave both fields blank to generate one securely.
+      </div>
+      <div class="form-group">
+        <label for="sa-reset-pw">New temporary password</label>
+        <input type="password" id="sa-reset-pw" autocomplete="new-password" minlength="8" placeholder="At least 8 characters">
+      </div>
+      <div class="form-group">
+        <label for="sa-reset-confirm">Confirm temporary password</label>
+        <input type="password" id="sa-reset-confirm" autocomplete="new-password" minlength="8" placeholder="Enter the same password again">
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid rgba(245,166,35,.22);background:rgba(245,166,35,.06);border-radius:8px;font-size:11px;line-height:1.5;color:var(--text2)">
+        <i class="ti ti-shield-lock" style="color:var(--amber);font-size:15px;margin-top:1px"></i>
+        <span>Every existing session ends immediately. The administrator must choose their own password at the next sign-in.</span>
+      </div>
+    </div>`;
+    const footer = `
+      <button type="button" class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
+      <button type="button" class="btn btn-primary" id="sa-reset-btn" onclick="SchoolAdminsPage.doResetPassword(${id})"><i class="ti ti-key"></i> Reset Password</button>`;
+    Modal.open('Reset School Admin Password', body, footer);
+    PasswordField.enhanceAll();
+    setTimeout(() => document.getElementById('sa-reset-pw')?.focus(), 0);
+  }
+
+  async function doResetPassword(id) {
+    const a = admins.find(x => x.id === id);
+    if (!a) return;
+    const password = document.getElementById('sa-reset-pw').value;
+    const confirmation = document.getElementById('sa-reset-confirm').value;
+    if (password !== confirmation) { showToast('The passwords do not match'); return; }
+    if (password && password.length < 8) { showToast('Password must be at least 8 characters'); return; }
+    const btn = document.getElementById('sa-reset-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader"></i> Resetting...';
     try {
-      const res = await API.resetSchoolAdminPassword(id, pw.trim() || undefined);
+      const res = await API.resetSchoolAdminPassword(id, password || undefined);
+      Modal.close();
       if (res && res.password) TempPassword.show(a.full_name, res.password);
-      else showToast('Password reset');
-    } catch (e) { showToast(e.error || 'Could not reset password'); }
+      else showToast('Password reset — all earlier sessions have ended');
+    } catch (e) {
+      showToast(e.error || 'Could not reset password');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-key"></i> Reset Password';
+    }
   }
 
   async function remove(id) {
@@ -395,5 +432,5 @@ const SchoolAdminsPage = (() => {
     } catch (e) { showToast(e.error || 'Could not delete school admin'); }
   }
 
-  return { load, render, setFilter, setSearch, openCreate, openEdit, submitCreate, submitEdit, resetPassword, remove, approveReg, rejectReg };
+  return { load, render, setFilter, setSearch, openCreate, openEdit, submitCreate, submitEdit, resetPassword, doResetPassword, remove, approveReg, rejectReg };
 })();

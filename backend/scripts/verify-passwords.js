@@ -121,11 +121,24 @@ async function account(suffix, password, role = 'subadmin') {
     ok('...it signs in, and must be changed first', feLogin.status === 200 && feLogin.body.user.must_change_password === true, feLogin.status);
     const reset = await api('PATCH', `/team/${fe.body.id}/reset-password`, { token: admin, body: {} });
     ok('field engineer reset, blank: a new temporary password', reset.status === 200 && TEMP.test(reset.body.password || '') && reset.body.password !== fe.body.temporary_password, reset.body);
+    const beforeTypedReset = await login(fixtures.PREFIX + 'fe3', reset.body.password);
+    const chosen = 'Verify-reset#4826';
+    const typedReset = await api('PATCH', `/team/${fe.body.id}/reset-password`, { token: admin, body: { password: chosen } });
+    ok('field engineer reset, typed: succeeds without echoing the password', typedReset.status === 200 && !typedReset.body.password && !JSON.stringify(typedReset.body).includes(chosen), typedReset.body);
+    const ended = await api('GET', '/auth/profile', { token: beforeTypedReset.body.token });
+    ok('...the session that existed before the typed reset is revoked', ended.status === 401 && ended.body.code === 'SESSION_REVOKED', ended);
+    const chosenLogin = await login(fixtures.PREFIX + 'fe3', chosen);
+    ok('...the typed password works and must be replaced at next sign-in', chosenLogin.status === 200 && chosenLogin.body.user.must_change_password === true, chosenLogin.status);
     const sa = await api('POST', '/school-admins', { token: admin, body: { username: fixtures.PREFIX + 'sa2', email: fixtures.PREFIX + 'sa2@verify.local', full_name: 'Verify SA2', school_id: fx.school.id } });
     ok('new school admin: a temporary password, must change', sa.status === 201 || sa.status === 200 ? TEMP.test(sa.body.temporary_password || '') && await mustChange(fixtures.PREFIX + 'sa2') === 1 : false, sa);
     const [[saRow]] = await pool.query('SELECT id FROM users WHERE username = ?', [fixtures.PREFIX + 'sa2']);
     const saReset = saRow ? await api('PATCH', `/school-admins/${saRow.id}/password`, { token: admin, body: {} }) : { status: 0, body: {} };
     ok('school admin reset, blank: a temporary password', saReset.status === 200 && TEMP.test(saReset.body.password || ''), saReset.body);
+    const schoolChosen = 'Verify-school#7264';
+    const saTyped = saRow ? await api('PATCH', `/school-admins/${saRow.id}/password`, { token: admin, body: { new_password: schoolChosen } }) : { status: 0, body: {} };
+    ok('school admin reset, typed: succeeds without echoing the password', saTyped.status === 200 && !saTyped.body.password && !JSON.stringify(saTyped.body).includes(schoolChosen), saTyped.body);
+    const schoolChosenLogin = await login(fixtures.PREFIX + 'sa2', schoolChosen);
+    ok('...the typed school-admin password works and must be replaced at next sign-in', schoolChosenLogin.status === 200 && schoolChosenLogin.body.user.must_change_password === true, schoolChosenLogin.status);
     const t = await api('POST', '/register/teachers', { token: schoolAdmin, body: { full_name: 'Verify T2', email: fixtures.PREFIX + 't2@verify.local' } });
     ok('teacher added by hand: no more "Teacher@1234" — a real temporary password', t.status === 201 && TEMP.test(t.body.temporary_password || ''), t.body);
     const [[tRow]] = await pool.query('SELECT must_change_password m FROM users WHERE email = ?', [fixtures.PREFIX + 't2@verify.local']);
@@ -152,6 +165,17 @@ async function account(suffix, password, role = 'subadmin') {
     ok('no published password appears in server code outside the policy', !leaks.length, leaks);
     const seed = fs.readFileSync(path.join(srcDir, 'config', 'bootstrap.js'), 'utf8');
     ok('a fresh install seeds a one-time admin password and unusable demo passwords', /passwords'\)\.temporary\(\)/.test(seed) && /randomBytes\(32\)/.test(seed));
+    const schoolAdminPage = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'js', 'pages', 'schoolAdmins.js'), 'utf8');
+    const teamPage = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'js', 'pages', 'team.js'), 'utf8');
+    ok('administrator reset forms use hidden password and confirmation inputs, not prompt()',
+      /id="sa-reset-pw"[^>]*type="password"|type="password"[^>]*id="sa-reset-pw"/.test(schoolAdminPage)
+      && /id="sa-reset-confirm"/.test(schoolAdminPage) && !/const pw = prompt\(`New temporary password/.test(schoolAdminPage)
+      && /id="tm-reset-pw"[^>]*type="password"|type="password"[^>]*id="tm-reset-pw"/.test(teamPage)
+      && /id="tm-reset-confirm"/.test(teamPage));
+    const recovery = fs.readFileSync(path.join(__dirname, 'password-reset.js'), 'utf8');
+    ok('cPanel recovery accepts an operator password only through a masked prompt',
+      /--prompt/.test(recovery) && /setRawMode\(true\)/.test(recovery) && /promptedPassword\(\)/.test(recovery)
+      && !/args\.includes\(['"]--password['"]\)/.test(recovery));
   } finally {
     await fixtures.cleanup();
     // The evidence this run caused — including the refused sign-in against a real seeded

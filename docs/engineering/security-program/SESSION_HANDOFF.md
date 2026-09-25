@@ -37,8 +37,9 @@ watch is paused so it does not email a failure every 30 minutes; after the fix, 
 
 0. **Open the Security Overview on production and reset every account it lists under "Published
    passwords"** (SEC-016). Field engineers: Sub-Admins → Reset Pass; school admins: School Admins →
-   reset; if `admin` itself is listed and refused: `cd backend && node scripts/password-reset.js admin --yes`
-   in the cPanel terminal. Teachers on a printed password are made to change it at their next sign-in.
+   reset; if `admin` itself is listed and refused: `cd backend && node scripts/password-reset.js admin --prompt --yes`
+   in the cPanel terminal, then enter and confirm the new password at the hidden prompts. Do not put the
+   password in the command. Teachers on a printed password are made to change it at their next sign-in.
 1. **Ask the host to stop trusting a visitor-supplied `X-Forwarded-For`** (LiteSpeed's *Use Client
    IP in Header* setting). This is SEC-015: until it changes, a visitor can choose the address the
    system sees, which the app now records as unknown. Then re-run the check in TEST_RESULTS.md (D5 a).

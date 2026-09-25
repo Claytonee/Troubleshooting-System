@@ -49,6 +49,12 @@ npm start
 
 **First sign-in:** no password is published (SEC-016). Set `ADMIN_PASSWORD` before the first start, or use the one-time password the first start prints to the server log; see `backend/src/docs/SETUP.md`.
 
+**Locked-out platform admin:** from the hosting panel terminal, run
+`cd backend && node scripts/password-reset.js admin --prompt --yes`. The prompt hides the password,
+asks for confirmation, revokes every existing session, records the recovery in the audit trail, and
+requires the administrator to choose their own password at the next sign-in. Omitting `--prompt`
+generates and displays a secure temporary password once. Never put a password directly in the command.
+
 ## Deploy to Render (Production)
 
 ### Step 1: Create PostgreSQL Database

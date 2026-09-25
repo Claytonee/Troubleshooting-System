@@ -137,7 +137,10 @@ async function resetPassword(req, res, next) {
       summary: `Reset password for sub-admin #${req.params.id}`
     });
 
-    res.json({ message: 'Password reset successfully.', password: newPass });
+    // A password supplied by the operator is already known to them; never echo it
+    // back into response logs, browser tooling, or an intermediary. Only a server-
+    // generated one must be returned, exactly once, so it can be handed over.
+    res.json({ message: 'Password reset successfully.', password: password ? undefined : newPass });
   } catch (err) { next(err); }
 }
 

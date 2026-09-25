@@ -310,7 +310,11 @@ public). Any other account on a printed password signs in but must choose a new 
 attacker would need to guess the username and beat the real person to it, and R9 tells the
 platform admin about every such sign-in. Nothing can set a printed or guessable password again.
 Blank means a random temporary password, shown once. A locked-out platform admin uses
-`scripts/password-reset.js` on the server, which a stranger cannot reach.
+`node scripts/password-reset.js admin --prompt --yes` on the server. The password is entered twice
+through a masked terminal prompt—never a command-line argument—so it is not left in shell history or
+process listings. Omitting `--prompt` retains the secure generated-password recovery path. Both paths
+end every session, force a change at the next sign-in, and write an audit row. A stranger cannot reach
+this server-console recovery path.
 
 **Revisit when:** the Security Overview's list is empty on production. Then refusing every printed
 password costs nobody anything, and the forced-change path can go.

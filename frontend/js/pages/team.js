@@ -138,7 +138,7 @@ const TeamPage = (() => {
       </div>
       ${!isEdit ? `<div class="form-group" style="grid-column:1/-1">
         <label>Password</label>
-        <input type="text" id="tm-password" placeholder="Leave blank to generate a temporary password">
+        <input type="password" id="tm-password" autocomplete="new-password" placeholder="Leave blank to generate a temporary password">
         <div style="font-size:10px;color:var(--text3);margin-top:4px">Temporary either way — they choose their own at first sign-in</div>
       </div>` : ''}
     </div>`;
@@ -202,19 +202,31 @@ const TeamPage = (() => {
     const body = `<div style="display:flex;flex-direction:column;gap:14px">
       <div style="font-size:13px;color:var(--text2)">Reset password for <strong>${esc(t.full_name)}</strong></div>
       <div class="form-group">
-        <label>New Password</label>
-        <input type="text" id="tm-reset-pw" placeholder="Leave blank to generate a temporary password">
-        <div style="font-size:10px;color:var(--text3);margin-top:4px">The sub-admin should change this on next login</div>
+        <label for="tm-reset-pw">New temporary password</label>
+        <input type="password" id="tm-reset-pw" autocomplete="new-password" minlength="8" placeholder="Leave blank to generate one securely">
+      </div>
+      <div class="form-group">
+        <label for="tm-reset-confirm">Confirm temporary password</label>
+        <input type="password" id="tm-reset-confirm" autocomplete="new-password" minlength="8" placeholder="Leave blank when generating securely">
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid rgba(245,166,35,.22);background:rgba(245,166,35,.06);border-radius:8px;font-size:11px;line-height:1.5;color:var(--text2)">
+        <i class="ti ti-shield-lock" style="color:var(--amber);font-size:15px;margin-top:1px"></i>
+        <span>Every existing session ends immediately. The sub-admin must choose their own password at the next sign-in.</span>
       </div>
     </div>`;
     const footer = `
       <button onclick="Modal.close()" style="padding:8px 16px;font-size:12px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:8px;cursor:pointer">Cancel</button>
       <button id="tm-reset-btn" onclick="TeamPage.doResetPassword(${id})" style="padding:8px 16px;font-size:12px;background:rgba(245,166,35,.1);color:var(--amber);border:1px solid rgba(245,166,35,.25);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px"><i class="ti ti-key" style="font-size:12px"></i> Reset Password</button>`;
     Modal.open('Reset Password', body, footer);
+    PasswordField.enhanceAll();
+    setTimeout(() => document.getElementById('tm-reset-pw')?.focus(), 0);
   }
 
   async function doResetPassword(id) {
-    const password = document.getElementById('tm-reset-pw').value.trim();
+    const password = document.getElementById('tm-reset-pw').value;
+    const confirmation = document.getElementById('tm-reset-confirm').value;
+    if (password !== confirmation) { showToast('The passwords do not match'); return; }
+    if (password && password.length < 8) { showToast('Password must be at least 8 characters'); return; }
     const btn = document.getElementById('tm-reset-btn');
     btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Resetting...';
     try {
