@@ -201,13 +201,35 @@ on `#analytics`. Retention policy on day one.
   contact details or photographs of their rooms unless the resource was uploaded
   as a shared one.
 
-## Open questions for the owner
+## Decided by the owner, 2026-09-25
 
-1. **Past resolutions across schools** — may a teacher at school A see that a
-   fault was fixed at school B, and the engineer's note? It is the single
-   strongest resource we hold. My recommendation: yes, but stripped to *category,
-   what was done, how long ago* — no school name, no reporter, no attachments.
-2. **Who may answer a gap request** — platform admin only, or field engineers too?
-   They are the people who actually know the fix.
-3. **Language** — the questions in Swahili, English, or following the user's
-   choice? The USSD menu is already Swahili.
+**1. Past resolutions cross school, stripped.** (Delegated — "fanya world class
+decision".) A teacher sees *what was done* and *how long ago*; they never see the
+school, the reporter, the contact details, or another school's photographs. The
+fix is the knowledge; the school is somebody else's business. This keeps the
+security programme's rule intact — a school id is a key, not a permission — while
+releasing the one resource that accumulates by itself and costs nobody any
+authoring time. A resolution is only eligible when it is resolved, has a note
+saying what was done, and is not the reader's own school's private detail.
+
+**2. Only the platform admin fills a gap.** Resource upload stays exactly where
+it is today (`manualController`, admin-only). Field engineers and school admins
+raise demand; one person curates what gets published. No permission change.
+
+**3. Swahili by default, one tap to English.** Every question is stored and shown
+in **both** languages, Kiswahili first, with a clear translate control beside it;
+tapping it swaps that panel to English (and back). The choice is remembered **on
+the account**, not in browser storage — school tablets are shared, the same reason
+`users.tour_state` lives there (D27). Default stays Kiswahili until the reader
+touches the control, so nobody has to find a setting to be understood.
+
+Consequences for the build:
+
+- Questions come from a **bilingual bank** wherever one fits, so the wording is
+  authored and reviewable rather than generated afresh each time. Where the model
+  must compose a question, it returns **both languages in one call** — never a
+  second translation round-trip, which would let the two drift.
+- A question missing one language is not shown. Half-translated is worse than
+  one language done properly.
+- `users.language` (nullable, defaults to Swahili when unset) is additive, per
+  the expand-and-contract rule.

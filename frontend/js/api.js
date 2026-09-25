@@ -164,6 +164,9 @@ const API = (() => {
     deleteGuide: (id) => request('DELETE', `/guides/${id}`),
     escalateGuide: (id) => request('POST', `/guides/${id}/escalate`),
     suggestGuides: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/guides/suggest' + (qs ? '?' + qs : '')); },
+    // Feature 14: everything internal that might fix this — steps, media, what
+    // worked here before, what to read. Not just guides.
+    assistResources: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/assist/resources' + (qs ? '?' + qs : '')); },
     guideHelped: (id, data) => request('POST', `/guides/${id}/helped`, data || {}),
     getGuidePerformance: () => request('GET', '/guides/performance'),
     getManuals: () => request('GET', '/manuals'),

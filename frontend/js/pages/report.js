@@ -167,23 +167,116 @@ const ReportPage = (() => {
    * with an explicit way past them. Deflection must never mean "harder to reach
    * a human" — the Report button stays exactly where it was.
    */
-  let suggested = [], triedGuideId = null, openGuide = null;
+  let found = null, triedGuideId = null, openGuide = null;
 
   async function refreshSuggestions() {
     const category = Dropdown.getValue('f-category');
     const text = ($('f-title')?.value || '') + ' ' + ($('f-desc')?.value || '');
-    if (!category && text.trim().length < 6) { suggested = []; return renderSuggestions(); }
+    if (!category && text.trim().length < 6) { found = null; return renderSuggestions(); }
     try {
-      const r = await API.suggestGuides({ category: category || '', text: text.trim().slice(0, 200) });
-      suggested = r.guides || [];
-    } catch (e) { suggested = []; }
+      found = await API.assistResources({ category: category || '', text: text.trim().slice(0, 300) });
+    } catch (e) { found = null; }
     renderSuggestions();
   }
 
+  /** Bytes as something readable beside a file someone is deciding whether to open. */
+  function sizeStr(bytes) {
+    const b = Number(bytes) || 0;
+    if (!b) return '';
+    if (b < 1024 * 1024) return Math.round(b / 1024) + ' KB';
+    return (b / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  /** "3 days ago" / "2 months ago" — a fix from last week carries more than one from last year. */
+  function agoStr(days) {
+    const d = Number(days) || 0;
+    if (d <= 1) return 'yesterday';
+    if (d < 14) return d + ' days ago';
+    if (d < 60) return Math.round(d / 7) + ' weeks ago';
+    return Math.round(d / 30) + ' months ago';
+  }
+
+  const KIND_ICON = { video: 'ti-player-play', image: 'ti-photo', audio: 'ti-volume', pdf: 'ti-file-type-pdf', document: 'ti-file-text' };
+
+  /**
+   * The panel, in the order search engines settled on for "how do I fix X":
+   * steps to follow, then the media that shows those steps, then what was done
+   * here before, then what to read.
+   *
+   * Never media first. A video costs bandwidth, sound and minutes — the most
+   * expensive thing to ask of somebody standing in a classroom mid-lesson — so
+   * it goes beside the steps it illustrates, not above them.
+   *
+   * Nothing matched renders nothing at all. Suggesting the least-bad resource
+   * every time is how people learn to ignore the panel.
+   */
   function renderSuggestions() {
     const slot = document.getElementById('report-guides');
     if (!slot) return;
-    if (!suggested.length) { slot.innerHTML = ''; return; }
+    if (!found || !found.matched) { slot.innerHTML = ''; return; }
+
+    const steps = found.steps || [], watch = found.watch || [], fixes = found.fixes || [], read = found.read || [];
+    if (!steps.length && !watch.length && !fixes.length && !read.length) { slot.innerHTML = ''; return; }
+
+    const stepCards = steps.map(g => `
+      <div style="border-top:1px solid var(--border);padding:9px 0 0;margin-top:9px">
+        <div style="display:flex;align-items:flex-start;gap:9px;cursor:pointer" onclick="ReportPage.toggleGuide(${g.id})">
+          <i class="ti ${esc(g.icon || 'ti-tools')}" style="font-size:15px;color:var(--teal);margin-top:2px;flex-shrink:0"></i>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:var(--text);font-weight:500">${esc(g.title)}</div>
+            <div style="font-size:11px;color:var(--text3)">${esc(g.category)} · ${g.steps.length} step${g.steps.length === 1 ? '' : 's'}${
+              // null, never 0% — a guide nobody has met is not a guide that fails.
+              g.success_rate != null ? ` · <span style="color:var(--green)">fixed it for ${g.success_rate}% of ${g.times_met}</span>` : ''}</div>
+          </div>
+          <i class="ti ti-chevron-${openGuide === g.id ? 'up' : 'down'}" style="font-size:14px;color:var(--text3);flex-shrink:0"></i>
+        </div>
+        ${openGuide === g.id ? `
+          <ol style="margin:9px 0 0 26px;padding:0;font-size:12px;color:var(--text2);line-height:1.75">
+            ${g.steps.map(s => `<li style="margin-bottom:3px">${esc(s)}</li>`).join('')}
+          </ol>
+          <div style="display:flex;gap:8px;margin:11px 0 4px 26px;flex-wrap:wrap">
+            <button type="button" class="btn btn-sm" style="background:var(--green);color:#fff"
+                    onclick="ReportPage.guideFixedIt(${g.id})"><i class="ti ti-check"></i> This fixed it</button>
+            <button type="button" class="btn btn-secondary btn-sm"
+                    onclick="ReportPage.stillBroken(${g.id})">Still not fixed</button>
+          </div>` : ''}
+      </div>`).join('');
+
+    const band = (icon, color, label) => `
+      <div style="display:flex;align-items:center;gap:7px;margin:13px 0 7px;padding-top:11px;border-top:1px solid var(--border)">
+        <i class="ti ${icon}" style="font-size:14px;color:${color}"></i>
+        <span style="font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--text3)">${label}</span>
+      </div>`;
+
+    const mediaCards = watch.map(m => `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;cursor:pointer" onclick="ReportPage.openResource('${esc(m.url)}')">
+        <div style="width:34px;height:34px;border-radius:8px;background:rgba(155,125,255,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="ti ${KIND_ICON[m.kind] || 'ti-file'}" style="font-size:16px;color:var(--purple)"></i>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.title)}</div>
+          <div style="font-size:10px;color:var(--text3)">${esc(m.kind)}${m.file_size ? ' · ' + sizeStr(m.file_size) : ''}</div>
+        </div>
+        <i class="ti ti-external-link" style="font-size:13px;color:var(--text3);flex-shrink:0"></i>
+      </div>`).join('');
+
+    // Cross-school and stripped, by the owner's decision: the fix is the
+    // knowledge, the school is somebody else's business.
+    const fixCards = fixes.map(f => `
+      <div style="padding:8px 0">
+        <div style="font-size:12px;color:var(--text2);line-height:1.6">${esc(f.what_was_done)}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">
+          <i class="ti ti-circle-check" style="font-size:11px;color:var(--green);vertical-align:-1px"></i>
+          ${f.same_school ? 'fixed here' : 'fixed at another school'} · ${agoStr(f.days_ago)}
+        </div>
+      </div>`).join('');
+
+    const readCards = read.map(m => `
+      <div style="display:flex;align-items:center;gap:10px;padding:6px 0;cursor:pointer" onclick="ReportPage.openResource('${esc(m.url)}')">
+        <i class="ti ${KIND_ICON[m.kind] || 'ti-file'}" style="font-size:15px;color:var(--text3);flex-shrink:0"></i>
+        <div style="flex:1;min-width:0;font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.title)}</div>
+        <span style="font-size:10px;color:var(--text3);flex-shrink:0">${sizeStr(m.file_size)}</span>
+      </div>`).join('');
 
     slot.innerHTML = `
       <div style="background:rgba(54,217,204,.06);border:1px solid rgba(54,217,204,.22);border-radius:12px;padding:13px 15px;margin-bottom:16px">
@@ -192,28 +285,23 @@ const ReportPage = (() => {
           <strong style="font-size:13px;color:var(--text)">Try this first</strong>
           <span style="font-size:11px;color:var(--text3)">— most of these are fixed in a few minutes</span>
         </div>
-        ${suggested.map(g => `
-          <div style="border-top:1px solid var(--border);padding:9px 0 0;margin-top:9px">
-            <div style="display:flex;align-items:flex-start;gap:9px;cursor:pointer" onclick="ReportPage.toggleGuide(${g.id})">
-              <i class="ti ${esc(g.icon || 'ti-tools')}" style="font-size:15px;color:var(--teal);margin-top:2px;flex-shrink:0"></i>
-              <div style="flex:1;min-width:0">
-                <div style="font-size:13px;color:var(--text);font-weight:500">${esc(g.title)}</div>
-                <div style="font-size:11px;color:var(--text3)">${esc(g.category)} · ${g.steps.length} step${g.steps.length === 1 ? '' : 's'}</div>
-              </div>
-              <i class="ti ti-chevron-${openGuide === g.id ? 'up' : 'down'}" style="font-size:14px;color:var(--text3);flex-shrink:0"></i>
-            </div>
-            ${openGuide === g.id ? `
-              <ol style="margin:9px 0 0 26px;padding:0;font-size:12px;color:var(--text2);line-height:1.75">
-                ${g.steps.map(s => `<li style="margin-bottom:3px">${esc(s)}</li>`).join('')}
-              </ol>
-              <div style="display:flex;gap:8px;margin:11px 0 4px 26px;flex-wrap:wrap">
-                <button type="button" class="btn btn-sm" style="background:var(--green);color:#fff"
-                        onclick="ReportPage.guideFixedIt(${g.id})"><i class="ti ti-check"></i> This fixed it</button>
-                <button type="button" class="btn btn-secondary btn-sm"
-                        onclick="ReportPage.stillBroken(${g.id})">Still not fixed</button>
-              </div>` : ''}
-          </div>`).join('')}
+        ${stepCards}
+        ${watch.length ? band('ti-player-play', 'var(--purple)', 'Watch') + mediaCards : ''}
+        ${fixes.length ? band('ti-history', 'var(--green)', 'Fixed before') + fixCards : ''}
+        ${read.length ? band('ti-book', 'var(--text3)', 'Read more') + readCards : ''}
       </div>`;
+  }
+
+  /**
+   * Opens a resource in its own tab.
+   *
+   * `noopener` deliberately: these are Cloudinary URLs, and a page opened
+   * without it keeps a handle on this one through window.opener — with a
+   * half-filled fault report on it.
+   */
+  function openResource(url) {
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   function toggleGuide(id) {
@@ -239,7 +327,7 @@ const ReportPage = (() => {
   function stillBroken(id) {
     triedGuideId = id;
     openGuide = null;
-    suggested = [];
+    found = null;
     renderSuggestions();
     const note = document.getElementById('report-tried-note');
     if (note) note.style.display = '';
@@ -394,5 +482,5 @@ const ReportPage = (() => {
   }
 
   return { load, render, onCategoryChange, submit, handleFiles, handleDrop, removeFile,
-    toggleGuide, guideFixedIt, stillBroken, refreshSuggestions };
+    toggleGuide, guideFixedIt, stillBroken, refreshSuggestions, openResource };
 })();
