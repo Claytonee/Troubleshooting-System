@@ -775,7 +775,7 @@ const Auth = (() => {
     </div>`;
   }
 
-  // D33: the tick box keeps its state when the step re-renders (recovery-code toggle).
+  // D34: the tick box keeps its state when the step re-renders (recovery-code toggle).
   // Delegated, not inline, per D24.
   document.addEventListener('change', (e) => {
     if (e.target && e.target.matches && e.target.matches('[data-mfa-remember]')) mfaRemember = e.target.checked;
@@ -875,7 +875,7 @@ const Auth = (() => {
     if (st.enabled) renderTrusted();
   }
 
-  // ---- Trusted browsers (D33) ------------------------------------------------
+  // ---- Trusted browsers (D34) ------------------------------------------------
   const fmtDay = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Dar_es_Salaam' }) : '—';
 
   async function renderTrusted() {

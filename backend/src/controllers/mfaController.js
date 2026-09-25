@@ -140,7 +140,7 @@ async function verify(req, res, next) {
     const { sessionPayload } = require('./authController');
     const payload = await sessionPayload(u);
     if (how === 'recovery') payload.recovery_codes_left = recoveryList(await loadUser(u.id)).length;
-    // D33 "Trust this browser": only when asked, and only after a code from the app.
+    // D34 "Trust this browser": only when asked, and only after a code from the app.
     // A recovery code means the phone is gone — and a stolen one must not plant a
     // 30-day trust — so that sign-in is never remembered.
     if (req.body.remember_device === true && how === 'totp') {
@@ -270,7 +270,7 @@ async function assistReset(req, res, next) {
   } catch (err) { next(err); }
 }
 
-/** GET /api/auth/mfa/trusted — this account's trusted browsers (D33); `current` is the one asking. */
+/** GET /api/auth/mfa/trusted — this account's trusted browsers (D34); `current` is the one asking. */
 async function trustedList(req, res, next) {
   try { res.json({ browsers: await trustedDevices.list(req, req.user.id), days: trustedDevices.daysFor(req.user.role) }); }
   catch (err) { next(err); }

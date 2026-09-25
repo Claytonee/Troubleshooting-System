@@ -252,7 +252,7 @@ code, three made-up addresses became three evidence rows and rotating addresses 
 | Responsive browser verification | 520×800, 768×900, 920×900, 1280×900: dialog fully inside viewport, no page/modal horizontal overflow, both inputs remained `type=password`; mobile field width 479 px, larger widths 439 px |
 | Interaction verification | Initial focus lands on the first field; reveal changes only that field to text and the accessible label to “Hide password”; mismatched entries leave the dialog open, keep the action enabled and show “The passwords do not match” without calling the API |
 
-## D33 — trusted browsers (2026-09-26)
+## D34 — trusted browsers (2026-09-26)
 
 | Check | Result |
 |---|---|
@@ -265,3 +265,10 @@ code, three made-up addresses became three evidence rows and rotating addresses 
 |---|---|
 | `verify-escalation-notices.js` | **37 / 37**: a teacher's fault is on the school admin's bell and nobody else's; "Escalate to OE" puts it on head office's bell (with the reason) and on the field engineer's; a second escalation is refused and writes no second notice; critical and school-admin reports reach the engineer at once; a school with no engineer is flagged to head office as unassigned; Assign reaches the engineer, only head office may Assign, Open becomes In Progress and Escalated stays Escalated; WhatsApp and USSD/SMS call the same helper |
 | Browser (headless Chrome, 1440 and 390 px) | the school admin's bell lists the teacher's fault; clicking it opens that fault with **Escalate to OE** |
+
+## D35 — How It Works (2026-09-26)
+
+| Check | Result |
+|---|---|
+| `verify-workflows.js` | **144 / 144**: every stated number equals the code's constant; every "who may" claim matches a route guard or UI condition; all buttons the guide names exist in the frontend; every diagram hop is an edge, no nodes overlap, every node is placed inside the drawing; staff-only nav and hash guard |
+| Browser (headless Chrome) | platform admin at 1440 / 920 / 768 / 520 px, school admin and field engineer at 1440: diagram drawn, "the school escalates" plays to the end, no horizontal overflow, wide drawing above 800 px and narrow below, every label inside its box, tabs swap in place, "the link says no" ends in a refusal. A teacher is sent away from `#workflows` and has no nav item |

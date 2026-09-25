@@ -344,7 +344,7 @@ seven such orphans from 9–10 September, and they were removed on 2026-09-24.
 
 ## FLOW-001 — A routed fault reached the queue, not the person · P2 · Fixed
 
-Found on 2026-09-26 while writing the escalation guide (D34), by checking each step the guide was about
+Found on 2026-09-26 while writing the escalation guide (D35), by checking each step the guide was about
 to promise against the code. Not a security finding. It is here because the chain it breaks,
 teacher → school admin → head office → field engineer, is the system's main purpose.
 

@@ -504,7 +504,10 @@ routing rule in `errorController.create()`.
 exist (feature 4) but are unpopulated, and a procurement figure computed from empty columns is worse
 than none. Revisit when purchase data is entered.
 
-## D33 — Ask for the authenticator on a new browser, not at every sign-in
+## D34 — Ask for the authenticator on a new browser, not at every sign-in
+
+*Written as D33 on 2026-09-26 and renumbered the same day, because D33 was already the dashboard
+decision (a4d3a4e). Commit 7f11e17 calls it D33.*
 
 **Problem (reported by the owner, 2026-09-26):** every time a session ended, signing in asked for the
 authenticator code as well as the password. The app signs people out after 15 idle minutes, so that
@@ -543,6 +546,37 @@ conjunction with the session secret", and sets AAL2 inactivity at no more than o
 **Revisit when:** passkeys become practical on the schools' devices (a passkey *is* the second factor, so
 nothing needs remembering), or when expired `trusted_devices` rows need a retention policy. Today they go
 at the account's next trust, and with the account.
+
+## D35 — Explain the two processes people ask about, and check the explanation against the code
+
+**Asked by the owner (2026-09-26):** a guide showing how a school admin registers and is approved,
+how they create the link their teachers register with (and its limit), and how a teacher is approved.
+Then a second guide for the whole fault chain, from the teacher to the school admin, to head office, to
+the field engineer, including how head office assigns one.
+
+**Decided:**
+1. **One page, "How It Works" (`#workflows`), for staff: platform admin, field engineer and school
+   admin.** Every one of them takes part in both processes. Teachers are left out because the page
+   describes other people's screens. Their own steps are already on the report form and in their tour.
+2. **Drawn, then written.** Each guide opens with the animated path (the Security Overview's flow
+   drawing, reused) and scenario chips: a school admin joins, rejected then an appeal, teachers join
+   through a link, the link says no; and for faults: fixed at the school, the school escalates, a critical
+   fault, the school admin reports, head office assigns. Under it: numbered steps naming the exact buttons,
+   and a short "Worth knowing" table. The numbered list is the text equivalent of the drawing.
+3. **The guide is tested like code** (`verify-workflows.js`). Every number (7-day link, 1–500 cap,
+   suggestion = on file + 5, 8-character password, 5 photos, 1–5 rating, response targets, the categories
+   and the six escalation reasons) is compared with the constant it describes. Every button the guide
+   names must exist in the frontend. Every hop in a diagram must be a drawn edge. Every label must fit
+   its box, measured in a browser at 1440, 920, 768 and 520 px.
+4. **Write only what is true, and fix what is not.** Checking each step before writing it found
+   FLOW-001: escalation told nobody, routing to an engineer did not reach the engineer's bell, and the
+   school admin's bell never drew a teacher's fault. It was fixed first (3bc1f5b), and the guide
+   describes the fixed behaviour.
+
+**Not done:** a separate copy inside the school admin's User Guide (`#help`). One page for every
+role cannot drift from itself; two copies would.
+
+**Revisit when:** registration, escalation or assignment changes. The suite fails first, which is the point.
 
 ## D12 — Order of work (phase 2)
 

@@ -188,9 +188,9 @@ token or is deliberately public (login, registration, branding, health). All are
 | POST | `/api/auth/mfa/enable` | JWT | any signed-in | Needs a code; ends other sessions; returns recovery codes once. |
 | POST | `/api/auth/mfa/recovery-codes` | JWT | any signed-in | Needs a current code. |
 | POST | `/api/auth/mfa/setup` | JWT | any signed-in | New secret, stored encrypted as pending; the only time a secret leaves the server. |
-| DELETE | `/api/auth/mfa/trusted` | JWT | any signed-in | Forget every trusted browser of this account (D33); audited. |
-| GET | `/api/auth/mfa/trusted` | JWT | any signed-in | This account's trusted browsers (D33): label and dates, never the secret or its hash. |
-| DELETE | `/api/auth/mfa/trusted/:id` | JWT | any signed-in | Forget one; only this account's rows (404 for another account's id) (D33). |
+| DELETE | `/api/auth/mfa/trusted` | JWT | any signed-in | Forget every trusted browser of this account (D34); audited. |
+| GET | `/api/auth/mfa/trusted` | JWT | any signed-in | This account's trusted browsers (D34): label and dates, never the secret or its hash. |
+| DELETE | `/api/auth/mfa/trusted/:id` | JWT | any signed-in | Forget one; only this account's rows (404 for another account's id) (D34). |
 | POST | `/api/auth/mfa/verify` | — | public | Second step of sign-in: needs the 5-minute ticket from a correct password AND a code. 10 tries per account per 15 min. |
 | GET | `/api/auth/profile` | JWT | any signed-in |  |
 | PUT | `/api/auth/profile` | JWT | any signed-in |  |

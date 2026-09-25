@@ -150,7 +150,7 @@ async function login(req, res, next) {
     // five-minute ticket that can do one thing — be exchanged, with a code, at
     // POST /api/auth/mfa/verify. It is not a session and authenticate() refuses it.
     if (user.mfa_enabled) {
-      // D33: a browser this account trusted after a full two-step sign-in needs the
+      // D34: a browser this account trusted after a full two-step sign-in needs the
       // password only — until it expires or anything ends every session. Recorded as
       // a sign-in like any other (R3 still sees it), with how the second step was met.
       if (await trustedDevices.check(req, user)) {

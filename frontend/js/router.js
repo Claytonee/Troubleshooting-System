@@ -3,7 +3,7 @@
  * Handles page navigation with hash-based routing for persistence
  */
 const Router = (() => {
-  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'manuals', 'analytics', 'team', 'schooladmins', 'branding', 'audit', 'search', 'chat', 'help', 'fieldguide', 'approvals', 'teachers', 'inventory', 'lrs', 'visits', 'security'];
+  const validPages = ['dashboard', 'report', 'tracker', 'followup', 'weekly', 'schools', 'troubleshoot', 'manuals', 'analytics', 'team', 'schooladmins', 'branding', 'audit', 'search', 'chat', 'help', 'fieldguide', 'approvals', 'teachers', 'inventory', 'lrs', 'visits', 'security', 'workflows'];
 
   function getPageFromHash() {
     const hash = window.location.hash.replace('#', '');
@@ -83,7 +83,7 @@ const Router = (() => {
     const noAdminPages = ['chat'];
     const schoolPages = ['help', 'teachers'];
     const subadminPages = ['fieldguide'];
-    const staffPages = ['followup', 'weekly', 'schools'];
+    const staffPages = ['followup', 'weekly', 'schools', 'workflows'];
     const staffTeacherPages = ['tracker'];
     const fieldPages = ['visits'];
 

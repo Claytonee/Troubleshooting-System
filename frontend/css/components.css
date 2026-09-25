@@ -1136,7 +1136,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 /* Two-step sign-in (SEC-007) */
 .mfa-link { background: none; border: 0; padding: 0; color: var(--accent); font-size: 12px; cursor: pointer; text-align: left; }
 .mfa-link:hover { text-decoration: underline; }
-/* Trusted browsers (D33) */
+/* Trusted browsers (D34) */
 .mfa-trust { display: flex; align-items: flex-start; gap: 9px; font-size: 12.5px; line-height: 1.5; color: var(--text2); background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
 .mfa-trust input { margin-top: 2px; accent-color: var(--accent); width: 15px; height: 15px; flex-shrink: 0; }
 .mfa-trust strong { color: var(--text); font-weight: 600; }
@@ -1294,4 +1294,45 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .tour-title { font-size: 14px; }
   .tour-body { font-size: 12.5px; }
   .tour-btn { padding: 8px 12px; }
+}
+
+/* How It Works — joining and the fault chain, drawn and written (D35).
+   Reuses the Security Overview's .flow-* diagram and .sec-guide-item <details>. */
+.wf-tabs { margin: 0 0 16px; flex-wrap: wrap; }
+.wf-tabs .tab-btn { display: inline-flex; align-items: center; font-size: 13px; padding: 9px 16px; }
+.wf-card { margin-bottom: 16px; }
+.wf-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; align-items: start; }
+.wf-howto-list { display: flex; flex-direction: column; gap: 8px; }
+.wf-howto summary { flex-wrap: wrap; }
+.wf-num { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: var(--bg4, var(--bg2)); border: 1px solid var(--border); font-size: 11px; font-weight: 600; color: var(--text2); margin-right: 8px; vertical-align: 1px; }
+.wf-howto summary .wf-who { flex: 0 0 auto; }
+.wf-who { font-size: 10.5px; font-weight: 600; padding: 3px 8px; border-radius: 20px; white-space: nowrap; letter-spacing: .2px; }
+.wf-howto-body { padding: 0 14px 12px 41px; font-size: 13px; line-height: 1.65; color: var(--text2); }
+.wf-howto-body ol { margin: 0 0 8px; padding-left: 18px; }
+.wf-howto-body li { margin-bottom: 4px; }
+.wf-howto-body p { margin: 0 0 6px; }
+.wf-howto-body code { font-family: var(--font-mono); font-size: 11.5px; color: var(--text3); }
+.wf-ui { color: var(--text); font-weight: 600; background: rgba(79,124,255,.10); border: 1px solid rgba(79,124,255,.2); border-radius: 5px; padding: 0 5px; white-space: nowrap; }
+.flow-step .wf-ui { font-weight: 600; }
+.wf-facts { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.wf-fact-l { padding: 10px 12px; vertical-align: top; width: 42%; }
+.wf-fact-l span { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text3); }
+.wf-fact-l .ti { font-size: 13px; }
+.wf-fact-v { padding: 10px 12px; font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.5; }
+.wf-fact-sep { padding: 0; height: 1px; background: var(--border); }
+
+@media (max-width: 1200px) {
+  .wf-grid { grid-template-columns: minmax(0, 1fr) 300px; }
+}
+@media (max-width: 920px) {
+  .wf-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .wf-tabs .tab-btn { flex: 1 1 auto; justify-content: center; }
+}
+@media (max-width: 520px) {
+  .wf-tabs .tab-btn { font-size: 12px; padding: 8px 10px; }
+  .wf-howto-body { padding: 0 12px 12px 14px; }
+  .wf-ui { white-space: normal; }
+  .wf-fact-l { width: 40%; }
 }

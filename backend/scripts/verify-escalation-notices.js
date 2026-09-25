@@ -2,7 +2,7 @@
  * Verification — a fault reaches the PERSON it is routed to, not only their queue.
  * 2026-09-26.
  *
- * Found while writing the escalation guide (D34):
+ * Found while writing the escalation guide (D35):
  *   - "Escalate to OE" changed the row and told nobody: no bell for head office,
  *     no bell for the field engineer it was handed to, no email, no SMS.
  *   - A critical report and a school admin's own report were assigned to the

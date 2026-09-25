@@ -237,7 +237,7 @@ const SecurityPage = (() => {
     ].filter(Boolean);
   }
 
-  // The platform admin's practical guide to sign-in and accounts (D32, D33). Every
+  // The platform admin's practical guide to sign-in and accounts (D32, D34). Every
   // number here is checked against services/trustedDevices.js by verify-trusted-devices.js.
   const GUIDE = [
     { icon: 'ti-login-2', color: 'var(--accent)', title: 'How signing in works now', open: true, body: `

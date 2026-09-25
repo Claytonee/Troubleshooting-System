@@ -27,6 +27,10 @@ Nothing is described as approved, certified or closed beyond what the owner has 
 | Checks on every push | `.github/workflows/verify.yml`: the whole gate on a clean machine (MariaDB, headless Chrome) | D30 |
 | Production watch | `.github/workflows/watch.yml` every 30 min: up, database, latest commit, certificate, headers, 401s, SEC-015; GitHub emails the owner on failure | D30 |
 | Explaining it | Security Overview (`#security`, platform admin only): animated request journey, layers with evidence, live checks, incidents, standards, labelled limits | D10, D22 |
+| Account recovery | every staff role on the authenticator; a locked-out person recovers with two of three proofs | D31, D32 |
+| Trusted browsers | the authenticator is asked on a new browser, not at every sign-in; revocable, ends with the sessions | D34 (written as D33; renumbered, see DECISIONS) |
+| Fault routing | every route rings the bell of the person it reaches: escalation, critical, school-admin and phone reports | FLOW-001 |
+| Explaining processes | How It Works (`#workflows`, staff): joining and the fault chain, drawn and written, every number and button checked against the code | D35 |
 
 ### Waiting on the owner (the code cannot do these)
 **First: GitHub has locked Actions on the account for a billing issue** (every run on 2026-09-25 ended

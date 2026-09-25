@@ -630,7 +630,7 @@ async function applyExtensions(db) {
   // production. It is simply no longer created; a local leftover is left alone —
   // CLAUDE.md forbids a DROP without a separate step the owner has confirmed.
 
-  // --- Trusted browsers (DECISIONS.md D33) ---
+  // --- Trusted browsers (DECISIONS.md D34) ---
   // "Trust this browser": after a full two-step sign-in, a random secret in an
   // HttpOnly cookie lets later sign-ins on that browser skip the authenticator
   // code. Only its SHA-256 is kept, with the session version it was made under,

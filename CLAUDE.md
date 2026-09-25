@@ -311,6 +311,10 @@ can walk to the room (reported 2026-09-09). **`POST /errors/:id/escalate` is wha
 fault to the engineer** — it fills `assigned_to` with `schools.assigned_admin_id` when the
 row is still unassigned, or an escalation would raise the level and leave nobody holding it.
 
+**"How It Works" (`#workflows`, D35) is tested like code.** `verify-workflows.js` compares every number in
+`FACTS` with its constant and requires every `ui('…')` button to exist in the frontend. Change registration,
+escalation or assignment and that suite fails until the guide says the same thing.
+
 **Every route ends on a bell** (FLOW-001). `intake.notifyEngineer()` / `notifyHeadOffice()` are called
 wherever a fault is routed to someone: the web form, WhatsApp, USSD/SMS and the escalate handler. Filling
 `assigned_to` is not telling anybody. A new bell `type` needs a branch in `components/notifications.js`,
@@ -473,7 +477,7 @@ update. Half of it happening leaves a student assigned to two devices or none.
 | Dashboard, Errors, Guides, Resources, Inventory, Search, Settings | ✔ | ✔ | ✔ | ✔ |
 | **AI Assistant** | — | ✔ | ✔ | ✔ |
 | Error Tracker | ✔ | ✔ | ✔ | ✔ (own reports) |
-| Analytics, School Profiles, Check-Ins, Communications, notifications | ✔ | ✔ | ✔ | — |
+| Analytics, School Profiles, Check-Ins, Communications, notifications, **How It Works** | ✔ | ✔ | ✔ | — |
 | Visit Planner | ✔ | ✔ | — | — |
 | Sub-Admins, School Admins, Audit, LRS, Approvals, Branding, **Security Overview** | ✔ | — | — | — |
 | Teachers, registration links | — | — | ✔ | — |
@@ -601,7 +605,7 @@ the old code. Rules that came out of the 2026-09-24 review:
   `config/httpPolicy.js` (HS256 only, SEC-013); a source check in `verify-token-policy.js`
   fails on one that does not. Cross-origin answers in production go only to `FRONTEND_URL`
   (none when unset, SEC-014) — the SPA is same-origin, the integrations server-to-server.
-- **The authenticator is asked on a new browser, not at every sign-in** (D33, `services/trustedDevices.js`).
+- **The authenticator is asked on a new browser, not at every sign-in** (D34, `services/trustedDevices.js`).
   "Trust this browser" (off by default: shared tablets) sets an HttpOnly, SameSite=Strict cookie `oe_td_<id>`
   on `/api/auth`; only its SHA-256 is stored, bound to the session version, so `revokeSessions()` ends every
   trust too. Never after a recovery code. 30 days, 14 for a platform admin. Idle sign-out is 30 minutes.
@@ -786,6 +790,7 @@ and took both deployments down on 2026-09-07.
 | 15 | Help / User Guide | #help | School | Support documentation with sidebar nav |
 | 16 | Visit Planner | #visits | Admin, Sub-admin | Queue grouped by school, on-site checklist, visit record |
 | 17 | Security Overview | #security | Admin | How security works, for briefing stakeholders; live checks from `GET /api/security/overview` |
+| 18 | How It Works | #workflows | Admin, Sub-admin, School | Joining (school admin → approval → teacher link and cap → teacher approval) and the fault chain (teacher → school admin → head office → field engineer), drawn and written; D35 |
 
 **Non-page intake channels** (no UI of their own; both stamp `errors.intake_channel`
 and are labelled in the error detail modal by `intakeLabel()`):

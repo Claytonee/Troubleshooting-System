@@ -1,5 +1,5 @@
 /**
- * Verification — "Trust this browser" (DECISIONS.md D33).
+ * Verification — "Trust this browser" (DECISIONS.md D34).
  *
  *  Trust     only when asked, only after a code from the authenticator app (never a
  *            recovery code); an HttpOnly, SameSite=Strict cookie scoped to /api/auth;

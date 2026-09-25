@@ -27,6 +27,7 @@ const App = (() => {
     lrs: LRSPage,
     visits: VisitsPage,
     security: SecurityPage,
+    workflows: WorkflowsPage,
   };
 
   async function init() {

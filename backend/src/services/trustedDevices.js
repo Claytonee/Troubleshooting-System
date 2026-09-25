@@ -3,7 +3,7 @@ const pool = require('../config/database');
 
 /**
  * "Trust this browser" — ask for the authenticator code on a new browser, not on
- * every sign-in (DECISIONS.md D33).
+ * every sign-in (DECISIONS.md D34).
  *
  * The problem: the app signs people out after inactivity, and every sign-in then
  * asked for the authenticator code — a phone in hand several times a day, which

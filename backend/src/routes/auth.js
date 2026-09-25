@@ -81,7 +81,7 @@ const mfaVerifyLimiter = rateLimit({
 });
 router.post('/mfa/verify', mfaVerifyLimiter, mfaController.verify);
 router.get('/mfa', authenticate, mfaController.status);
-// Trusted browsers (D33): list and forget, own account only — no id of another account can be named.
+// Trusted browsers (D34): list and forget, own account only — no id of another account can be named.
 router.get('/mfa/trusted', authenticate, mfaController.trustedList);
 router.delete('/mfa/trusted', authenticate, mfaController.trustedForget);
 router.delete('/mfa/trusted/:id', authenticate, mfaController.trustedForget);
