@@ -29,6 +29,7 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 | SEC-015 | P2 | **Mitigated** 2026-09-24 (cause is a host setting) | HTTP, all | The host's proxy let a visitor choose the address the system records |
 | INT-001 | P3 | **Fixed** 2026-09-24 | Faults | Fault codes reissued after deletion; a race duplicated them |
 | TEST-001 | P2 | **Fixed** 2026-09-24 | Test harness | `verify-heartbeat.js` swept every real LRS device, and its cleanup deleted rows it did not create |
+| SEC-017 | P3 | **Fixed** 2026-09-26 | Registration | Teacher registration had no throttle: its limiter was mounted on a path no route has |
 | FLOW-001 | P2 | **Fixed** 2026-09-26 | Faults, notifications | A routed fault reached the queue but not the person: escalations and teachers' reports never rang a bell |
 | TEST-002 | P3 | **Fixed** 2026-09-24 | Test harness | The pre-push gate tidied test incidents but left their evidence, so detection reopened one a minute later |
 
@@ -341,6 +342,26 @@ seven such orphans from 9–10 September, and they were removed on 2026-09-24.
   IP in Header* setting so that a visitor-supplied header is not trusted. Then re-run the check
   in TEST_RESULTS.md. Until it passes, no block by address may be built (D5, D28).
 - **Regression:** `verify-client-ip.js` (9): 1 passed / 8 failed on the old code, 9/9 on the fix.
+
+## SEC-017 — Teacher registration was never throttled · P3 · Fixed
+
+Found on 2026-09-26 while writing the joining guide (D35). `server.js` mounted the registration limiter on
+`/api/register/teacher/register`. No route has that path: teachers register at `POST /api/register/teacher/:token`.
+The line looked like protection and did nothing, so the endpoint had no throttle at all.
+
+**Why P3:** a link token is 256 random bits, so it cannot be guessed. An unknown token costs one indexed
+lookup, and the link's own cap (`max_uses`, at most 500) bounds how many accounts a leaked link can make.
+Each of those still waits for the school admin's approval. What was missing is a brake on hammering one
+link, where every accepted form costs a bcrypt hash.
+
+**Fix:** a limiter of its own on the real route, 30 attempts per 15 minutes **per link and address**. The
+school admin's limit (5 per address) would have locked out a staffroom registering together on one
+network, and a per-address key would let one school's burst spend another school's budget.
+
+**Evidence:** `verify-registration-limits.js`: every registration throttle in `server.js` must name a path
+that `routes/registration.js` actually has, so this kind of dead mount fails the gate. It also checks that
+30 attempts are answered, the 31st gets 429, a second link from the same network is unaffected, and no
+place on the link is used up.
 
 ## FLOW-001 — A routed fault reached the queue, not the person · P2 · Fixed
 

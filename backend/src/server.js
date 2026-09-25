@@ -237,7 +237,21 @@ const registrationLimiter = rateLimit({
   message: { error: 'Too many registration attempts, please try again later.' }
 });
 app.use('/api/register/school-admin', registrationLimiter);
-app.use('/api/register/teacher/register', registrationLimiter);
+// SEC-017: this used to be mounted on '/api/register/teacher/register', a path
+// no route has — teachers register at POST /api/register/teacher/:token — so
+// teacher registration was never throttled at all. Its own limiter, because
+// the school admin's 5 per address would lock out a staffroom registering
+// together on one network. Keyed per link AND address: one leaked link cannot
+// be sprayed, and one school's burst does not spend another school's budget.
+// The link's own cap (max_uses) still bounds how many accounts it can make.
+const TEACHER_REGISTRATION_LIMIT = 30;
+const teacherRegistrationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: TEACHER_REGISTRATION_LIMIT,
+  keyGenerator: (req) => 'treg|' + String((req.params && req.params.token) || '').slice(0, 80) + '|' + (req.ip || 'unknown'),
+  message: { error: 'Too many registration attempts on this link, please try again later.' }
+});
+app.post('/api/register/teacher/:token', teacherRegistrationLimiter);
 
 // Body parsing
 // Keep the exact bytes for routes that authenticate the body itself. Meta signs

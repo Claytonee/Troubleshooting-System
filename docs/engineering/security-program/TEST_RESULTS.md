@@ -272,3 +272,9 @@ code, three made-up addresses became three evidence rows and rotating addresses 
 |---|---|
 | `verify-workflows.js` | **144 / 144**: every stated number equals the code's constant; every "who may" claim matches a route guard or UI condition; all buttons the guide names exist in the frontend; every diagram hop is an edge, no nodes overlap, every node is placed inside the drawing; staff-only nav and hash guard |
 | Browser (headless Chrome) | platform admin at 1440 / 920 / 768 / 520 px, school admin and field engineer at 1440: diagram drawn, "the school escalates" plays to the end, no horizontal overflow, wide drawing above 800 px and narrow below, every label inside its box, tabs swap in place, "the link says no" ends in a refusal. A teacher is sent away from `#workflows` and has no nav item |
+
+## SEC-017 — teacher registration throttle (2026-09-26)
+
+| Check | Result |
+|---|---|
+| `verify-registration-limits.js` | every registration throttle names a real route; the dead `/teacher/register` mount is gone; 30 attempts on one link answered, the 31st **429**; a second link from the same network unaffected; verifying the link not throttled; no place on the link used |
