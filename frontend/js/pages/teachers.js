@@ -80,6 +80,7 @@ const TeachersPage = (() => {
             ${t.status === 'active' ? `<button class="btn-icon" data-tip="${t.can_manage_inventory ? 'Take back inventory edit access' : 'Let this teacher manage the tablet inventory'}" data-tip-color="${t.can_manage_inventory ? 'red' : 'teal'}" onclick="TeachersPage.setInventoryAccess(${t.id}, ${t.can_manage_inventory ? 'false' : 'true'})"><i class="ti ti-device-tablet${t.can_manage_inventory ? '-off' : ''}" style="color:${t.can_manage_inventory ? 'var(--teal)' : 'inherit'}"></i></button>` : ''}
             ${t.status === 'active' ? `<button class="btn-icon" data-tip="${TIP.SUSPEND}" onclick="TeachersPage.updateStatus(${t.id},'suspended')"><i class="ti ti-ban"></i></button>` : ''}
             ${t.status === 'suspended' ? `<button class="btn-icon" data-tip="${TIP.REACTIVATE}" onclick="TeachersPage.updateStatus(${t.id},'active')"><i class="ti ti-check"></i></button>` : ''}
+            <button class="btn-icon" data-tip="Reset two-step sign-in · for a teacher who lost their phone and recovery codes" data-tip-color="amber" onclick="Auth.showAssistReset(${t.user_id}, ${esc(JSON.stringify(t.full_name || ''))})"><i class="ti ti-shield-x"></i></button>
             <button class="btn-icon" data-tip="${TIP.DELETE}" data-tip-color="red" onclick="TeachersPage.deleteTeacher(${t.id})"><i class="ti ti-trash"></i></button>
           </td>
         </tr>`).join('')}

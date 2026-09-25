@@ -29,10 +29,7 @@ const check = (name, ok, detail) => {
 
   // A platform admin of the suite's own, not the seeded one with its published password (SEC-016).
   const pa = await fixtures.ensurePlatformAdmin();
-  const login = await fetch(BASE + '/api/auth/login', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: pa.username, password: pa.password })
-  }).then(r => r.json());
+  const login = (await fixtures.signIn(pa.username, pa.password, BASE)).body || {};
   if (!login.token) { console.error('  login failed:', JSON.stringify(login)); process.exit(1); }
   const H = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + login.token };
 

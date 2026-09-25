@@ -1,13 +1,4 @@
-# API security matrix
-
-Generated from the router source on 2026-09-24 (`routes/*.js` + `server.js`), then annotated by hand.
-**158 endpoints.** "Role gate" is what the router enforces; per-record school scoping lives in the
-controllers and is listed in *Notes* where it was audited or changed. Regenerate the first four columns
-rather than editing them.
-
-Auth: `JWT` = `authenticate()` (signature + account status re-read per request). `key:` = shared secret header.
-
-| Method | Route | Auth | Role gate | Notes |
+Needs the reset token. Password policy; ends every session; two-step sign-in unchanged; returns a new session. 10/network per 15 min. |||||| Method | Route | Auth | Role gate | Notes |
 |---|---|---|---|---|
 | POST | `/api/ai/chat` | JWT | subadmin,school,teacher |  |
 | GET | `/api/ai/chats` | JWT | subadmin,school,teacher |  |
@@ -19,16 +10,18 @@ Auth: `JWT` = `authenticate()` (signature + account status re-read per request).
 | PUT | `/api/auth/change-password` | JWT | any signed-in | Ends every other session; returns a fresh token for this device (SEC-005). |
 | POST | `/api/auth/login` | — | public | Throttled: 20/account+network, 120/network per 15 min. Failures not recorded (SEC-006). |
 | GET | `/api/auth/mfa` | JWT | any signed-in | Own two-step status only. Reachable by an admin who must enrol. |
+| POST | `/api/auth/mfa/assist-reset` | JWT | admin,subadmin,school |  |
 | POST | `/api/auth/mfa/disable` | JWT | any signed-in | Refused for roles that require it (admin); others need password AND code. |
 | POST | `/api/auth/mfa/enable` | JWT | any signed-in | Needs a code; ends other sessions; returns recovery codes once. |
 | POST | `/api/auth/mfa/recovery-codes` | JWT | any signed-in | Needs a current code. |
 | POST | `/api/auth/mfa/setup` | JWT | any signed-in | New secret, stored encrypted as pending; the only time a secret leaves the server. |
 | POST | `/api/auth/mfa/verify` | — | public | Second step of sign-in: needs the 5-minute ticket from a correct password AND a code. 10 tries per account per 15 min. |
-| POST | `/api/auth/password-recovery/request` | — | public | Platform Admin only (D31). Same 202 whether or not the account exists; padded to 400 ms and mail sent after the answer. 20/network, 5/identifier per 15 min; 1 link per 2 min and 3 per hour per account. |
-| POST | `/api/auth/password-recovery/reset` | — | public | Needs a one-time 256-bit link (SHA-256 at rest, 15 min, spent once). Ends every session; two-step sign-in unchanged. 10 tries/network per 15 min. |
 | GET | `/api/auth/profile` | JWT | any signed-in |  |
 | PUT | `/api/auth/profile` | JWT | any signed-in |  |
 | POST | `/api/auth/profile/avatar` | JWT | any signed-in |  |
+| POST | `/api/auth/recovery/complete` | — | public |  |
+| POST | `/api/auth/recovery/start` | — | public |  |
+| POST | `/api/auth/recovery/verify` | — | public |  |
 | POST | `/api/auth/register` | JWT | admin |  |
 | POST | `/api/auth/sessions/revoke-all` | JWT | any signed-in | New (SEC-005): bumps the caller's own token_version only — no id in the request, so it cannot touch another account. |
 | GET | `/api/auth/tour` | JWT | any signed-in | Own account's tour progress (D27). No id parameter. |

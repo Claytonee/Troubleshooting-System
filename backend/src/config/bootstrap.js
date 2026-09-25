@@ -18,16 +18,23 @@ async function bootstrap() {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )`);
 
-  await pool.query(`CREATE TABLE IF NOT EXISTS password_recovery_tokens (
+  await pool.query(`CREATE TABLE IF NOT EXISTS account_recovery_flows (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    token_hash CHAR(64) NOT NULL,
+    flow_hash CHAR(64) NOT NULL,
+    user_id INT NULL,
+    email_code_hash CHAR(64) NULL,
+    email_code_expires DATETIME NULL,
+    attempts TINYINT NOT NULL DEFAULT 0,
+    factors VARCHAR(60) NULL,
+    reset_hash CHAR(64) NULL,
+    reset_expires DATETIME NULL,
+    completed_at DATETIME NULL,
     expires_at DATETIME NOT NULL,
-    used_at DATETIME NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_password_recovery_hash (token_hash),
-    INDEX idx_password_recovery_user_created (user_id, created_at),
-    INDEX idx_password_recovery_expiry (expires_at),
+    UNIQUE KEY uq_account_recovery_flow (flow_hash),
+    UNIQUE KEY uq_account_recovery_reset (reset_hash),
+    INDEX idx_account_recovery_user_created (user_id, created_at),
+    INDEX idx_account_recovery_expires (expires_at),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   )`);
 

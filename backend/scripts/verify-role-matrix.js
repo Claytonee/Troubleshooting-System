@@ -16,7 +16,6 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const fs = require('fs');
 const path = require('path');
-const bcrypt = require('bcryptjs');
 const pool = require('../src/config/database');
 const fixtures = require('./lib/fixtures');
 
@@ -38,12 +37,9 @@ async function api(method, p, token) {
 }
 
 async function login(username, password) {
-  const res = await fetch(BASE + '/api/auth/login', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
-  });
-  if (res.status !== 200) throw new Error(`login ${username} -> ${res.status}`);
-  return (await res.json()).token;
+  const r = await fixtures.signIn(username, password, BASE);
+  if (!r.token) throw new Error(`login ${username} -> ${r.status}`);
+  return r.token;
 }
 
 /**
@@ -97,16 +93,13 @@ const ROLES = ['admin', 'subadmin', 'school', 'teacher'];
   const fx = await fixtures.ensure();
   const tokens = {};
 
-  // Head office + an engineer: reset a password, use it, put the old hash back.
-  const restore = [];
-  for (const role of ['admin', 'subadmin']) {
-    const [rows] = await pool.query('SELECT id, username, password_hash FROM users WHERE role = ? LIMIT 1', [role]);
-    if (!rows.length) { console.log(`  (no ${role} account in this database — its column is skipped)`); continue; }
-    const hash = await bcrypt.hash(fixtures.PASSWORD, 10);
-    restore.push({ id: rows[0].id, hash: rows[0].password_hash });
-    await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [hash, rows[0].id]);
-    tokens[role] = await login(rows[0].username, fixtures.PASSWORD);
-  }
+  // Head office + an engineer of the suite's own. It used to borrow the first real
+  // admin and field engineer and swap their passwords for the run — which also
+  // cannot work once their two-step sign-in is required (D32).
+  const pa = await fixtures.ensurePlatformAdmin();
+  const fe = await fixtures.ensureFieldEngineer();
+  tokens.admin = await login(pa.username, pa.password);
+  tokens.subadmin = await login(fe.username, fe.password);
   tokens.school = await login(fx.schoolAdmin.username, fixtures.PASSWORD);
   tokens.teacher = await login(fx.teacher.username, fixtures.PASSWORD);
 
@@ -167,11 +160,10 @@ const ROLES = ['admin', 'subadmin', 'school', 'teacher'];
     const aiRoute = fs.readFileSync(path.join(__dirname, '..', 'src', 'routes', 'aiChat.js'), 'utf8');
     ok('the route no longer authorizes admin', !/authorize\([^)]*'admin'/.test(aiRoute), aiRoute.match(/authorize\([^)]*\)/)[0]);
   } finally {
-    for (const r of restore) await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [r.hash, r.id]);
     await fixtures.cleanup();
     console.log('\n' + '='.repeat(56));
     console.log(`  ${passed} passed, ${failed} failed`);
-    console.log('  passwords restored, fixtures removed');
+    console.log('  fixtures removed');
     await pool.end();
     process.exit(failed ? 1 : 0);
   }

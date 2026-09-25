@@ -57,10 +57,7 @@ async function cleanup() {
 
   // A platform admin of the suite's own, not the seeded one with its published password (SEC-016).
   const pa = await fixtures.ensurePlatformAdmin();
-  const login = await fetch(BASE + '/api/auth/login', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: pa.username, password: pa.password })
-  }).then(r => r.json());
+  const login = (await fixtures.signIn(pa.username, pa.password, BASE)).body || {};
   if (!login.token) { console.error('  login failed'); process.exit(1); }
   H = { Authorization: 'Bearer ' + login.token };
 
@@ -216,10 +213,7 @@ async function cleanup() {
   const fe = await fixtures.ensureFieldEngineer();
   const subs = [{ id: fe.id, username: fe.username }];
   {
-    const subLogin = await fetch(BASE + '/api/auth/login', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: fe.username, password: fe.password })
-    }).then(r => r.json());
+    const subLogin = (await fixtures.signIn(fe.username, fe.password, BASE)).body || {};
     check('scope: the fixture field engineer can sign in', !!subLogin.token);
     if (subLogin.token) {
       const subH = { Authorization: 'Bearer ' + subLogin.token };
@@ -246,10 +240,10 @@ async function cleanup() {
      VALUES (?, ?, ?, ?, 'school', ?, 'active', 'approved')`,
     [MARK + '-user', MARK + '@example.invalid', await bcrypt.hash(tempPw, 10), MARK + ' School Admin', A.id]
   );
-  const sl = await fetch(BASE + '/api/auth/login', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: MARK + '-user', password: tempPw })
-  }).then(r => r.json());
+  // Enrolled like any school admin, so the 403s below are the planner's role
+  // check and not the two-step enrolment gate (D32).
+  await fixtures.enrol(tmp.insertId);
+  const sl = (await fixtures.signIn(MARK + '-user', tempPw, BASE)).body || {};
   if (sl.token) {
     const sh = { Authorization: 'Bearer ' + sl.token };
     const r1 = await fetch(BASE + '/api/visits/queue', { headers: sh });

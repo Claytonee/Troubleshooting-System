@@ -43,9 +43,9 @@ async function api(method, path, { token, body } = {}) {
 }
 
 async function login(creds) {
-  const r = await api('POST', '/auth/login', { body: creds });
-  if (r.status !== 200) throw new Error(`login ${creds.username} -> ${r.status} ${JSON.stringify(r.body)}`);
-  return r.body.token;
+  const r = await fixtures.signIn(creds.username, creds.password, BASE);
+  if (!r.token) throw new Error(`login ${creds.username} -> ${r.status} ${JSON.stringify(r.body)}`);
+  return r.token;
 }
 
 (async () => {

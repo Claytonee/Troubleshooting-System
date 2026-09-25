@@ -92,8 +92,9 @@ const API = (() => {
   return {
     getToken, setToken, clearToken, getUser, setUser, clearUser, isLoggedIn, lastCachedAt,
     login: (username, password) => request('POST', '/auth/login', { username, password }),
-    requestPasswordRecovery: (identifier) => request('POST', '/auth/password-recovery/request', { identifier }),
-    resetPasswordWithToken: (token, newPassword) => request('POST', '/auth/password-recovery/reset', { token, new_password: newPassword }),
+    recoveryStart: (identifier) => request('POST', '/auth/recovery/start', { identifier }),
+    recoveryVerify: (flow, codes) => request('POST', '/auth/recovery/verify', { flow, ...codes }),
+    recoveryComplete: (flow, resetToken, newPassword) => request('POST', '/auth/recovery/complete', { flow, reset_token: resetToken, new_password: newPassword }),
     getProfile: () => request('GET', '/auth/profile'),
     updateProfile: (data) => request('PUT', '/auth/profile', data),
     uploadAvatar: (formData) => {
@@ -123,6 +124,7 @@ const API = (() => {
     mfaEnable: (code) => request('POST', '/auth/mfa/enable', { code }),
     mfaRecoveryCodes: (code) => request('POST', '/auth/mfa/recovery-codes', { code }),
     mfaDisable: (password, code) => request('POST', '/auth/mfa/disable', { password, code }),
+    mfaAssistReset: (userId, code, resetPassword) => request('POST', '/auth/mfa/assist-reset', { user_id: userId, code, reset_password: !!resetPassword }),
     getDashboard: () => request('GET', '/dashboard'),
     getSchools: () => request('GET', '/schools'),
     getSchool: (id) => request('GET', `/schools/${id}`),

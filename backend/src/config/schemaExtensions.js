@@ -600,21 +600,33 @@ async function applyExtensions(db) {
   // `tv` counts as, so adding the column signed nobody out.
   await q(`ALTER TABLE users ADD COLUMN token_version INT NOT NULL DEFAULT 0`);
 
-  // --- Platform Admin password recovery (DECISIONS.md D31) ---
-  // Only a SHA-256 digest is stored. A stolen database cannot turn this table
-  // into live reset links; links expire in 15 minutes and are spent once.
-  await q(`CREATE TABLE IF NOT EXISTS password_recovery_tokens (
+  // --- Forgotten-password recovery for every role (DECISIONS.md D32) ---
+  // Flow ids and reset tokens are stored as SHA-256, email codes as an HMAC keyed
+  // by the server secret. A stolen database holds nothing that recovers an account.
+  // user_id is NULL for an identifier that matched nobody: those get a row too,
+  // so every answer looks the same. Replaces D31's link table, which never shipped.
+  await q(`CREATE TABLE IF NOT EXISTS account_recovery_flows (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    token_hash CHAR(64) NOT NULL,
+    flow_hash CHAR(64) NOT NULL,
+    user_id INT NULL,
+    email_code_hash CHAR(64) NULL,
+    email_code_expires DATETIME NULL,
+    attempts TINYINT NOT NULL DEFAULT 0,
+    factors VARCHAR(60) NULL,
+    reset_hash CHAR(64) NULL,
+    reset_expires DATETIME NULL,
+    completed_at DATETIME NULL,
     expires_at DATETIME NOT NULL,
-    used_at DATETIME NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_password_recovery_hash (token_hash),
-    INDEX idx_password_recovery_user_created (user_id, created_at),
-    INDEX idx_password_recovery_expiry (expires_at),
+    UNIQUE KEY uq_account_recovery_flow (flow_hash),
+    UNIQUE KEY uq_account_recovery_reset (reset_hash),
+    INDEX idx_account_recovery_user_created (user_id, created_at),
+    INDEX idx_account_recovery_expires (expires_at),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   )`);
+  // D31's password_recovery_tokens only ever existed in an unpushed commit, never on
+  // production. It is simply no longer created; a local leftover is left alone —
+  // CLAUDE.md forbids a DROP without a separate step the owner has confirmed.
 
   // --- Guided tours (DECISIONS.md D27) ---
   // Per-account progress as a small JSON object, validated by tourController.

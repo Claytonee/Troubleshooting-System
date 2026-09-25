@@ -118,6 +118,7 @@ const SchoolAdminsPage = (() => {
         <div style="display:flex;gap:6px;flex-shrink:0">
           <button class="btn btn-secondary btn-sm" data-tip="${TIP.EDIT}" onclick="SchoolAdminsPage.openEdit(${a.id})"><i class="ti ti-edit"></i> Edit</button>
           <button class="btn btn-secondary btn-sm" data-tip="${TIP.custom('Reset Password','Set or securely generate a temporary password')}" onclick="SchoolAdminsPage.resetPassword(${a.id})"><i class="ti ti-key"></i></button>
+          <button class="btn btn-secondary btn-sm" data-tip="${TIP.custom('Reset two-step sign-in','For a school admin who lost their phone and recovery codes')}" onclick="Auth.showAssistReset(${a.id}, ${esc(JSON.stringify(a.full_name || ''))})"><i class="ti ti-shield-x"></i></button>
           <button class="btn btn-secondary btn-sm" data-tip="${TIP.DELETE}" data-tip-color="red" style="color:var(--red);border-color:rgba(255,82,99,0.3)" onclick="SchoolAdminsPage.remove(${a.id})"><i class="ti ti-trash"></i></button>
         </div>
       </div>`;

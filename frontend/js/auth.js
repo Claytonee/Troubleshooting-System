@@ -432,6 +432,7 @@ const Auth = (() => {
       } else {
         errorEl.textContent = err.error || 'Login failed. Check your credentials.';
         errorEl.classList.add('show');
+        if (err.error === 'Invalid username or password.') noteFailedLogin(username);
       }
     } finally {
       btn.disabled = false;
@@ -439,15 +440,21 @@ const Auth = (() => {
     }
   }
 
+  // ---- Forgotten password (DECISIONS.md D32) ---------------------------------
+  // 1. who are you  ->  2. two of: email code, authenticator code, recovery code
+  // ->  3. new password, entered twice  ->  signed in, every other device out.
+  let recovery = { identifier: '', flow: null, resetToken: null, useSaved: false };
+
   function recoveryFrame(content) {
     return `<div class="login-box recovery-box">
       <div class="recovery-mark" aria-hidden="true"><i class="ti ti-shield-lock"></i></div>
       ${content}
-      <div class="recovery-trust"><i class="ti ti-lock-check"></i><span>The reset link works once, expires after 15 minutes, and never disables two-step sign-in.</span></div>
+      <div class="recovery-trust"><i class="ti ti-lock-check"></i><span>Your authenticator app stays on. Nobody from OE will ever ask you for these codes.</span></div>
     </div>`;
   }
 
   function openRecoveryPage(html) {
+    Modal.unlock(); Modal.close();
     $('login-page').style.display = 'none';
     $('app-container').style.display = 'none';
     const regPage = document.getElementById('register-page');
@@ -463,21 +470,36 @@ const Auth = (() => {
     if (back) back.addEventListener('click', backToLogin);
   }
 
-  function showRecoveryRequest(updateHash = true) {
+  function recoveryError(message) {
+    const error = $('recovery-error');
+    error.textContent = message;
+    error.classList.add('show');
+  }
+
+  function busy(button, busyHtml) {
+    const idle = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = busyHtml;
+    return () => { button.disabled = false; button.innerHTML = idle; };
+  }
+
+  const supportFallback = `<div class="recovery-fallback"><i class="ti ti-lifebuoy"></i><div><strong>Lost your phone and your recovery codes?</strong><span>Ask the person who supports you — your school admin, your field engineer, or the platform administrator. They confirm it is you, then reset your two-step sign-in.</span></div></div>`;
+
+  function showRecoveryRequest(updateHash = true, identifier = '') {
     if (updateHash && window.location.hash !== '#forgot-password') window.location.hash = 'forgot-password';
+    recovery = { identifier, flow: null, resetToken: null, useSaved: false };
     openRecoveryPage(`
-      <div class="recovery-kicker">Platform Admin recovery</div>
-      <h1 class="recovery-title">Reset your password safely</h1>
-      <p class="recovery-copy">Enter the username or email already registered to your Platform Admin account. We will send a private reset link if the account is eligible.</p>
+      <div class="recovery-kicker">Account recovery · step 1 of 3</div>
+      <h1 class="recovery-title">Forgot your password?</h1>
+      <p class="recovery-copy">Enter your username or email. We will email you a 6-digit code. You then confirm it is you with <strong>two</strong> of: that code, your authenticator app, or a saved recovery code.</p>
       <div class="login-error" id="recovery-error" role="alert"></div>
-      <form id="recovery-request-form">
+      <form id="recovery-request-form" novalidate>
         <div class="form-group recovery-field"><label for="recovery-identifier">Username or email</label>
-          <input id="recovery-identifier" type="text" autocomplete="username" maxlength="255" required placeholder="Platform Admin username or email">
+          <input id="recovery-identifier" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="255" required value="${esc(identifier)}">
         </div>
-        <button class="btn btn-primary recovery-primary" type="submit" id="recovery-request-btn"><i class="ti ti-mail-forward"></i> Send recovery link</button>
+        <button class="btn btn-primary recovery-primary" type="submit" id="recovery-request-btn"><i class="ti ti-mail-forward"></i> Send code</button>
       </form>
-      <button type="button" class="recovery-back" id="recovery-back"><i class="ti ti-arrow-left"></i> Back to sign in</button>
-      <div class="recovery-fallback"><i class="ti ti-server-cog"></i><div><strong>No recovery email?</strong><span>Use the protected hosting-terminal recovery procedure. A public page can never reset an administrator without proof of ownership.</span></div></div>`);
+      <button type="button" class="recovery-back" id="recovery-back"><i class="ti ti-arrow-left"></i> Back to sign in</button>`);
     $('recovery-request-form').addEventListener('submit', submitRecoveryRequest);
     bindRecoveryBack();
     $('recovery-identifier').focus();
@@ -486,94 +508,129 @@ const Auth = (() => {
   async function submitRecoveryRequest(e) {
     e.preventDefault();
     const identifier = $('recovery-identifier').value.trim();
-    const error = $('recovery-error');
-    const button = $('recovery-request-btn');
-    error.classList.remove('show');
-    if (identifier.length < 3) {
-      error.textContent = 'Enter your Platform Admin username or email.';
-      error.classList.add('show');
-      return;
-    }
-    button.disabled = true;
-    button.innerHTML = '<i class="ti ti-loader-2 spin"></i> Sending…';
+    $('recovery-error').classList.remove('show');
+    if (identifier.length < 3) { recoveryError('Enter your username or email.'); return; }
+    const done = busy($('recovery-request-btn'), '<i class="ti ti-loader-2 spin"></i> Sending…');
     try {
-      await API.requestPasswordRecovery(identifier);
-      openRecoveryPage(`
-        <div class="recovery-status success"><i class="ti ti-mail-check"></i></div>
-        <div class="recovery-kicker">Request received</div>
-        <h1 class="recovery-title">Check your administrator email</h1>
-        <p class="recovery-copy">If this is an active Platform Admin account and email recovery is available, a link has been sent. It expires in 15 minutes.</p>
-        <div class="recovery-fallback"><i class="ti ti-info-circle"></i><div><strong>Nothing after five minutes?</strong><span>Check spam, then use the protected hosting-terminal recovery procedure. For privacy, this page never confirms whether an account exists.</span></div></div>
-        <button type="button" class="recovery-back" id="recovery-back"><i class="ti ti-arrow-left"></i> Back to sign in</button>`);
-      bindRecoveryBack();
+      const r = await API.recoveryStart(identifier);
+      recovery = { identifier, flow: r.flow, resetToken: null, useSaved: false };
+      showRecoveryVerify();
     } catch (err) {
-      error.textContent = err.error || 'Recovery is temporarily unavailable. Use the protected hosting recovery procedure.';
-      error.classList.add('show');
-      button.disabled = false;
-      button.innerHTML = '<i class="ti ti-mail-forward"></i> Send recovery link';
+      recoveryError(err.error || 'Recovery is not available right now. Try again in a few minutes.');
+      done();
     }
   }
 
-  function showRecoveryReset(token) {
+  function codeInput(id, label, hint, attrs) {
+    return `<div class="form-group recovery-field"><label for="${id}">${label}</label>
+      <input id="${id}" ${attrs} class="recovery-code-input">
+      ${hint ? `<div class="recovery-hint">${hint}</div>` : ''}</div>`;
+  }
+
+  function showRecoveryVerify() {
+    const digits = 'inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" autocomplete="one-time-code"';
     openRecoveryPage(`
-      <div class="recovery-kicker">Verified recovery link</div>
-      <h1 class="recovery-title">Choose a new password</h1>
-      <p class="recovery-copy">This changes only your password. Your authenticator and recovery codes remain active.</p>
+      <div class="recovery-kicker">Account recovery · step 2 of 3</div>
+      <h1 class="recovery-title">Confirm it is you</h1>
+      <p class="recovery-copy">If the account can be recovered, a code was sent to its email. Enter <strong>any two</strong> of the codes below. If you never set up the authenticator app, the email code alone is enough.</p>
       <div class="login-error" id="recovery-error" role="alert"></div>
-      <form id="recovery-reset-form">
+      <form id="recovery-verify-form" novalidate>
+        ${codeInput('recovery-email-code', '1 · Code from your email', '<button type="button" class="auth-text-btn" id="recovery-resend">Send a new code</button> · check spam too', digits)}
+        ${codeInput('recovery-app-code', '2 · Code from your authenticator app', 'Google Authenticator, Microsoft Authenticator or Authy — the code for <strong>OE Technical Support</strong>', digits)}
+        <div id="recovery-saved-wrap" ${recovery.useSaved ? '' : 'hidden'}>
+          ${codeInput('recovery-saved-code', '3 · A saved recovery code', 'One of the ten codes you saved when you set up the app. Each works once.', 'placeholder="xxxx-xxxx-xxxx" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40"')}
+        </div>
+        ${recovery.useSaved ? '' : '<button type="button" class="auth-text-btn recovery-toggle" id="recovery-use-saved"><i class="ti ti-key"></i> Lost your phone? Use a saved recovery code</button>'}
+        <button class="btn btn-primary recovery-primary" type="submit" id="recovery-verify-btn"><i class="ti ti-shield-check"></i> Verify</button>
+      </form>
+      <button type="button" class="recovery-back" id="recovery-back"><i class="ti ti-arrow-left"></i> Cancel and return to sign in</button>
+      ${supportFallback}`);
+    $('recovery-verify-form').addEventListener('submit', submitRecoveryVerify);
+    $('recovery-resend').addEventListener('click', resendRecoveryCode);
+    const toggle = document.getElementById('recovery-use-saved');
+    if (toggle) toggle.addEventListener('click', () => {
+      recovery.useSaved = true;
+      $('recovery-saved-wrap').hidden = false;
+      toggle.remove();
+      $('recovery-saved-code').focus();
+    });
+    bindRecoveryBack();
+    $('recovery-email-code').focus();
+  }
+
+  async function resendRecoveryCode() {
+    try {
+      const r = await API.recoveryStart(recovery.identifier);
+      recovery.flow = r.flow;
+      showToast('If the account can be recovered, a new code is on its way. Only the newest code works.', 5000);
+    } catch (err) { recoveryError(err.error || 'Could not send a new code. Wait a minute and try again.'); }
+  }
+
+  async function submitRecoveryVerify(e) {
+    e.preventDefault();
+    const val = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+    const codes = { email_code: val('recovery-email-code'), totp_code: val('recovery-app-code'), recovery_code: recovery.useSaved ? val('recovery-saved-code') : '' };
+    $('recovery-error').classList.remove('show');
+    if (!codes.email_code && !codes.totp_code && !codes.recovery_code) { recoveryError('Enter the codes you have — two of them if you use the authenticator app.'); return; }
+    const done = busy($('recovery-verify-btn'), '<i class="ti ti-loader-2 spin"></i> Checking…');
+    try {
+      const r = await API.recoveryVerify(recovery.flow, codes);
+      recovery.resetToken = r.reset_token;
+      showRecoveryPassword();
+    } catch (err) {
+      done();
+      if (err.code === 'RECOVERY_EXPIRED') { showRecoveryRequest(false, recovery.identifier); recoveryError(err.error); return; }
+      recoveryError((err.error || 'Those codes did not verify.')
+        + (typeof err.attempts_left === 'number' ? ` ${err.attempts_left} ${err.attempts_left === 1 ? 'try' : 'tries'} left.` : ''));
+      ['recovery-app-code', 'recovery-saved-code'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    }
+  }
+
+  function showRecoveryPassword() {
+    openRecoveryPage(`
+      <div class="recovery-kicker">Account recovery · step 3 of 3</div>
+      <h1 class="recovery-title">Choose a new password</h1>
+      <p class="recovery-copy">You have 10 minutes. After this, every other device is signed out and you are signed in here.</p>
+      <div class="login-error" id="recovery-error" role="alert"></div>
+      <form id="recovery-reset-form" novalidate>
         <div class="form-group recovery-field"><label for="recovery-password">New password</label>
           <input id="recovery-password" type="password" autocomplete="new-password" minlength="8" maxlength="1024" required placeholder="At least 8 characters">
         </div>
         <div class="form-group recovery-field"><label for="recovery-confirm">Confirm new password</label>
           <input id="recovery-confirm" type="password" autocomplete="new-password" minlength="8" maxlength="1024" required placeholder="Type it again">
         </div>
-        <button class="btn btn-primary recovery-primary" type="submit" id="recovery-reset-btn"><i class="ti ti-key"></i> Set new password</button>
+        <button class="btn btn-primary recovery-primary" type="submit" id="recovery-reset-btn"><i class="ti ti-key"></i> Set password and sign in</button>
       </form>
       <button type="button" class="recovery-back" id="recovery-back"><i class="ti ti-arrow-left"></i> Cancel and return to sign in</button>`);
-    $('recovery-reset-form').addEventListener('submit', e => submitRecoveryReset(e, token));
+    $('recovery-reset-form').addEventListener('submit', submitRecoveryReset);
     bindRecoveryBack();
     $('recovery-password').focus();
   }
 
-  async function submitRecoveryReset(e, token) {
+  async function submitRecoveryReset(e) {
     e.preventDefault();
     const password = $('recovery-password').value;
     const confirmation = $('recovery-confirm').value;
-    const error = $('recovery-error');
-    const button = $('recovery-reset-btn');
-    error.classList.remove('show');
-    if (password !== confirmation) {
-      error.textContent = 'The passwords do not match.';
-      error.classList.add('show');
-      $('recovery-confirm').focus();
-      return;
-    }
-    if (password.length < 8) {
-      error.textContent = 'Password must be at least 8 characters.';
-      error.classList.add('show');
-      return;
-    }
-    button.disabled = true;
-    button.innerHTML = '<i class="ti ti-loader-2 spin"></i> Securing account…';
+    $('recovery-error').classList.remove('show');
+    if (password.length < 8) { recoveryError('Password must be at least 8 characters.'); $('recovery-password').focus(); return; }
+    if (password !== confirmation) { recoveryError('The passwords do not match.'); $('recovery-confirm').focus(); return; }
+    const done = busy($('recovery-reset-btn'), '<i class="ti ti-loader-2 spin"></i> Saving…');
     try {
-      await API.resetPasswordWithToken(token, password);
+      const data = await API.recoveryComplete(recovery.flow, recovery.resetToken, password);
+      recovery = { identifier: '', flow: null, resetToken: null, useSaved: false };
       history.replaceState(null, '', window.location.pathname + window.location.search);
-      openRecoveryPage(`
-        <div class="recovery-status success"><i class="ti ti-shield-check"></i></div>
-        <div class="recovery-kicker">Account secured</div>
-        <h1 class="recovery-title">Your password is updated</h1>
-        <p class="recovery-copy">Every previous session has been signed out. Sign in with the new password and complete two-step sign-in as usual.</p>
-        <button type="button" class="btn btn-primary recovery-primary" id="recovery-back"><i class="ti ti-login"></i> Continue to sign in</button>`);
-      bindRecoveryBack();
+      failedLogins = { name: '', count: 0 };
+      completeSignIn(data, password);
+      showToast(data.message || 'Password changed. Every other device has been signed out.', 5000);
     } catch (err) {
-      error.textContent = err.error || 'This reset link is invalid or has expired. Request a new one.';
-      error.classList.add('show');
-      button.disabled = false;
-      button.innerHTML = '<i class="ti ti-key"></i> Set new password';
+      done();
+      if (err.code === 'RECOVERY_EXPIRED') { showRecoveryRequest(false, recovery.identifier); recoveryError(err.error); return; }
+      recoveryError(err.error || 'Could not save the password. Try again.');
     }
   }
 
   function backToLogin() {
+    recovery = { identifier: '', flow: null, resetToken: null, useSaved: false };
     history.replaceState(null, '', window.location.pathname + window.location.search);
     showLogin();
     $('login-username').focus();
@@ -581,17 +638,33 @@ const Auth = (() => {
 
   function routeRecovery() {
     const hash = window.location.hash.slice(1);
-    if (hash === 'forgot-password') { showRecoveryRequest(false); return true; }
-    if (hash.startsWith('reset-password?')) {
-      const token = new URLSearchParams(hash.slice(hash.indexOf('?') + 1)).get('token');
-      // Take the one-time token out of the address bar and history at once, so
-      // it is not left on screen, in a shared tab, or behind the Back button.
-      history.replaceState(null, '', window.location.pathname + window.location.search + '#forgot-password');
-      if (token) showRecoveryReset(token);
-      else showRecoveryRequest(false);
+    if (hash === 'forgot-password') {
+      // Already showing (we set the hash ourselves): leave it. A refresh mid-way
+      // starts again, because the codes are not kept anywhere.
+      const page = document.getElementById('recovery-page');
+      if (!page || page.style.display === 'none') showRecoveryRequest(false);
       return true;
     }
     return false;
+  }
+
+  // Two wrong passwords in a row for the same name: offer recovery. Shown for
+  // names that do not exist too, so it says nothing about which accounts are real.
+  let failedLogins = { name: '', count: 0 };
+
+  function noteFailedLogin(username) {
+    const name = username.toLowerCase();
+    failedLogins = failedLogins.name === name ? { name, count: failedLogins.count + 1 } : { name, count: 1 };
+    if (failedLogins.count < 2) return;
+    Modal.open('Forgot your password?', `<div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:14px;color:var(--text);line-height:1.6">That password did not work twice. If you have forgotten it, you can set a new one now — it takes about a minute.</div>
+      <div class="mfa-note"><i class="ti ti-info-circle"></i>You will need two of: a code we email you, your authenticator app, or a saved recovery code.</div>
+    </div>`, `
+      <button class="btn btn-secondary" id="forgot-no">No, try again</button>
+      <button class="btn btn-primary" id="forgot-yes"><i class="ti ti-key"></i> Yes, reset it</button>`);
+    $('forgot-no').addEventListener('click', () => { Modal.close(); $('login-password').value = ''; $('login-password').focus(); });
+    $('forgot-yes').addEventListener('click', () => { failedLogins = { name: '', count: 0 }; showRecoveryRequest(true, username); });
+    setTimeout(() => { const b = document.getElementById('forgot-yes'); if (b) b.focus(); }, 60);
   }
 
   function logout() {
@@ -654,11 +727,17 @@ const Auth = (() => {
     if (typeof Offline !== 'undefined') Offline.warm();
     if (typeof data.recovery_codes_left === 'number') {
       showToast(`Signed in with a recovery code — ${data.recovery_codes_left} left. Make new ones under Two-Step Sign-In.`, 7000);
-    } else if (data.user.role === 'admin' && !data.user.mfa_enabled) {
-      // D4: the reminder before it becomes mandatory.
-      setTimeout(() => showToast('Two-step sign-in becomes required for platform admins on 8 October — set it up from your profile menu.', 7000), 1200);
+    } else if (!data.user.mfa_enabled && MFA_ROLES.includes(data.user.role)) {
+      // D32: asked at every sign-in until it is on; from the role's date it is
+      // required and the server's MFA_ENROLLMENT_REQUIRED opens the forced screen.
+      setTimeout(() => {
+        if (!API.isLoggedIn() || $('modal').classList.contains('open')) return;
+        showMfa();
+      }, 900);
     }
   }
+
+  const MFA_ROLES = ['admin', 'subadmin', 'school', 'teacher'];
 
   // ---- Two-step sign-in (SEC-007, DECISIONS.md D4) ---------------------------
   let mfaTicket = null, mfaPassword = null, mfaUseRecovery = false;
@@ -753,10 +832,11 @@ const Auth = (() => {
     let body, footer;
     if (!st.enabled) {
       body = `<div style="display:flex;flex-direction:column;gap:14px">
-        ${forced ? `<div class="mfa-note amber"><i class="ti ti-shield-lock"></i>Two-step sign-in is required for platform admins${when ? ' since ' + esc(when) : ''}. Set it up to continue.</div>` : ''}
+        ${forced ? `<div class="mfa-note amber"><i class="ti ti-shield-lock"></i>Two-step sign-in is required for your account${when ? ' since ' + esc(when) : ''}. Set it up to continue.</div>` : ''}
         <div style="font-size:13px;color:var(--text2);line-height:1.65">After your password, you will also enter a 6-digit code from an
           authenticator app on your phone (Google Authenticator, Microsoft Authenticator, Authy…). A stolen password on its own is then
-          not enough to get in.${st.required_for_role && !forced && when ? ` <strong>Required for platform admins from ${esc(when)}.</strong>` : ''}</div>
+          not enough to get in — and if you forget your password, the app lets you reset it yourself.${st.required_for_role && !forced && when ? ` <strong>Required for your account from ${esc(when)}.</strong>` : ''}</div>
+        <div class="mfa-note amber"><i class="ti ti-device-mobile"></i>Use your own phone, not a shared school tablet: whoever holds the device holds your second step.</div>
         <div class="mfa-note"><i class="ti ti-info-circle"></i>No SMS codes: a stolen or swapped SIM card would defeat them.</div>
       </div>`;
       footer = `${forced ? '' : '<button class="btn btn-secondary" onclick="Modal.close()">Not now</button>'}
@@ -827,12 +907,14 @@ const Auth = (() => {
     Modal.open('Save Your Recovery Codes', `<div style="display:flex;flex-direction:column;gap:12px">
       <div class="mfa-note amber"><i class="ti ti-alert-triangle"></i>Each code gets you in once if you lose your phone. They will not be shown again — save them somewhere safe, away from the phone.</div>
       <div class="mfa-codes">${shownCodes.map(c => `<code>${esc(c)}</code>`).join('')}</div>
-      <div style="font-size:12px;color:var(--text3)">Other devices were signed out when two-step sign-in was turned on.</div>
+      <div style="font-size:12px;color:var(--text3)">They are also how you reset a forgotten password if your phone is lost. Other devices were signed out when two-step sign-in was turned on.</div>
+      <label class="mfa-confirm"><input type="checkbox" id="mfa-codes-saved"> I have saved these codes somewhere other than my phone (downloaded, printed or written down).</label>
     </div>`, `
       <button class="btn btn-secondary" onclick="Auth.copyRecovery()"><i class="ti ti-copy"></i> Copy</button>
       <button class="btn btn-secondary" onclick="Auth.downloadRecovery()"><i class="ti ti-download"></i> Download</button>
-      <button class="btn btn-primary" onclick="Auth.finishMfa(${!!forced})"><i class="ti ti-check"></i> I saved them</button>`);
+      <button class="btn btn-primary" id="mfa-codes-done" disabled onclick="Auth.finishMfa(${!!forced})"><i class="ti ti-check"></i> I saved them</button>`);
     Modal.lock();
+    $('mfa-codes-saved').addEventListener('change', (e) => { $('mfa-codes-done').disabled = !e.target.checked; });
   }
 
   function recoveryText() {
@@ -886,9 +968,45 @@ const Auth = (() => {
     } catch (e) { showToast(e.error || 'Could not turn it off'); }
   }
 
+  /**
+   * A supervisor helps someone who lost their phone and their recovery codes
+   * (D32): confirm who they are first, then clear their two-step sign-in with a
+   * code from your own app. Optionally a temporary password, shown once.
+   */
+  function showAssistReset(userId, name) {
+    Modal.open('Reset two-step sign-in', `<div style="display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:14px;color:var(--text);line-height:1.6">For <strong>${esc(name || 'this person')}</strong>, who has lost their phone <em>and</em> their saved recovery codes.</div>
+      <div class="mfa-note amber"><i class="ti ti-phone-call"></i>Confirm it is really them first — call them on the number you already have for them. Never act on a message alone.</div>
+      <label class="mfa-confirm"><input type="checkbox" id="assist-password"> They also forgot their password — give them a temporary one (shown once, they change it at sign-in).</label>
+      <div class="form-group"><label for="assist-code">Code from <strong>your</strong> authenticator app</label>
+        <input id="assist-code" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" autocomplete="one-time-code"
+          style="font-family:var(--font-mono);font-size:18px;letter-spacing:6px;text-align:center"></div>
+      <div style="font-size:12px;color:var(--text3)">They are signed out everywhere, emailed, and scan a new QR code at their next sign-in. This is recorded in the audit log.</div>
+    </div>`, `
+      <button class="btn btn-secondary" onclick="Modal.close()">Cancel</button>
+      <button class="btn btn-primary" id="assist-go"><i class="ti ti-shield-x"></i> Reset</button>`);
+    $('assist-go').addEventListener('click', () => submitAssistReset(userId, name));
+    setTimeout(() => { const i = document.getElementById('assist-code'); if (i) i.focus(); }, 60);
+  }
+
+  async function submitAssistReset(userId, name) {
+    const code = ($('assist-code').value || '').trim();
+    if (!/^\d{6}$/.test(code)) { showToast('Enter the 6-digit code from your own app'); return; }
+    const btn = $('assist-go'); btn.disabled = true;
+    try {
+      const r = await API.mfaAssistReset(userId, code, $('assist-password').checked);
+      if (!r.password) { Modal.close(); showToast(r.message, 6000); return; }
+      Modal.open('Temporary password', `<div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-size:14px;color:var(--text)">Give this to <strong>${esc(name || 'them')}</strong> by phone or in person. It is shown only once.</div>
+        <div class="mfa-codes"><code style="grid-column:1/-1;font-size:18px;text-align:center">${esc(r.password)}</code></div>
+        <div style="font-size:12px;color:var(--text3)">They choose their own password and set up the authenticator again when they sign in.</div>
+      </div>`, `<button class="btn btn-primary" onclick="Modal.close()"><i class="ti ti-check"></i> Done</button>`);
+    } catch (e) { btn.disabled = false; showToast(e.error || 'Could not reset two-step sign-in'); }
+  }
+
   function init() {
     $('login-form').addEventListener('submit', handleLogin);
-    $('forgot-password-link').addEventListener('click', () => showRecoveryRequest());
+    $('forgot-password-link').addEventListener('click', () => showRecoveryRequest(true, $('login-username').value.trim()));
     window.addEventListener('hashchange', () => {
       if (routeRecovery()) return;
       const page = document.getElementById('recovery-page');
@@ -920,5 +1038,5 @@ const Auth = (() => {
     PasswordField.enhanceAll($('register-content'));
   }
 
-  return { init, showLogin, showApp, logout, signOutEverywhere, showMfa, startMfaSetup, confirmMfaSetup, submitMfaStep, cancelMfaStep, toggleMfaRecovery, copyRecovery, downloadRecovery, finishMfa, regenerateRecovery, disableMfa, checkSession, toggleProfileMenu, closeProfileMenu, showProfile, showChangePassword, submitPasswordChange, showForcedPasswordChange, submitForcedPasswordChange, goRegister, showRecoveryRequest, routeRecovery, _switchToEditProfile, _saveProfile, _onAvatarFile };
+  return { init, showLogin, showApp, logout, signOutEverywhere, showMfa, startMfaSetup, confirmMfaSetup, submitMfaStep, cancelMfaStep, toggleMfaRecovery, copyRecovery, downloadRecovery, finishMfa, regenerateRecovery, disableMfa, checkSession, toggleProfileMenu, closeProfileMenu, showProfile, showChangePassword, submitPasswordChange, showForcedPasswordChange, submitForcedPasswordChange, goRegister, showRecoveryRequest, routeRecovery, showAssistReset, _switchToEditProfile, _saveProfile, _onAvatarFile };
 })();

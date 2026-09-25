@@ -73,7 +73,7 @@ const RULES = [
   },
   {
     id: 'R6', name: 'Two-step sign-in removed', severity: 'high', window: 60,
-    why: 'Two-step sign-in was turned off, or reset from the server console. Legitimate after a lost phone; worth confirming every time.',
+    why: 'Two-step sign-in was turned off, reset by a supervisor in the app (D32), or reset from the server console. Legitimate after a lost phone; worth confirming every time.',
     sql: [`SELECT CAST(user_id AS CHAR) AS subject, 'account' AS subject_type, SUM(count) AS n,
                  MIN(occurred_at) AS first_at, MAX(last_at) AS last_at
             FROM security_events
@@ -85,7 +85,7 @@ const RULES = [
          `SELECT entity_id AS subject, 'account' AS subject_type, COUNT(*) AS n,
                  MIN(created_at) AS first_at, MAX(created_at) AS last_at
             FROM audit_log
-           WHERE action = 'auth.mfa_reset_break_glass' AND created_at >= NOW() - INTERVAL 60 MINUTE
+           WHERE action IN ('auth.mfa_reset_break_glass', 'auth.mfa_reset_assisted') AND created_at >= NOW() - INTERVAL 60 MINUTE
            GROUP BY entity_id`]
   },
   {

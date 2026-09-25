@@ -34,9 +34,9 @@ async function api(method, path, { token, body } = {}) {
   return { status: res.status, body: json };
 }
 async function login(u, p) {
-  const r = await api('POST', '/auth/login', { body: { username: u, password: p } });
-  if (r.status !== 200) throw new Error(`login ${u} -> ${r.status}`);
-  return r.body.token;
+  const r = await fixtures.signIn(u, p, BASE);
+  if (!r.token) throw new Error(`login ${u} -> ${r.status}`);
+  return r.token;
 }
 const daysAgo = (n) => {
   const d = new Date(Date.now() - n * 86400000);
@@ -116,35 +116,29 @@ const daysAgo = (n) => {
       "INSERT INTO visits (school_id, engineer_id, planned_for, status) VALUES (?, ?, CURDATE(), 'planned')",
       [school.id, fx.schoolAdmin.id]
     );
-    // The visit planner is admin/subadmin only, so read it as head office.
-    const bcrypt = require('bcryptjs');
-    const [adminRow] = await pool.query("SELECT id, username, password_hash FROM users WHERE role = 'admin' LIMIT 1");
-    let platformToken = null;
-    if (adminRow.length) {
-      await pool.query('UPDATE users SET password_hash = ? WHERE id = ?',
-        [await bcrypt.hash(fixtures.PASSWORD, 10), adminRow[0].id]);
-      platformToken = await login(adminRow[0].username, fixtures.PASSWORD);
+    // The visit planner is admin/subadmin only, so read it as head office — the
+    // suite's own platform admin. This used to overwrite the REAL admin's password.
+    const pa = await fixtures.ensurePlatformAdmin();
+    const platformToken = await login(pa.username, pa.password);
 
-      const sheet = await api('GET', `/visits/${v.insertId}`, { token: platformToken });
-      eq('the checklist loads', sheet.status, 200);
-      ok('carrying the due checks', Array.isArray(sheet.body.checks) && sheet.body.checks.length > 0, sheet.body.checks);
-      ok('only the ones that are due', sheet.body.checks.every(c => c.due), sheet.body.checks.filter(c => !c.due));
-      ok('and the whole schedule too, for context', sheet.body.checks_all.length >= sheet.body.checks.length,
-        { due: sheet.body.checks.length, all: sheet.body.checks_all.length });
+    const sheet = await api('GET', `/visits/${v.insertId}`, { token: platformToken });
+    eq('the checklist loads', sheet.status, 200);
+    ok('carrying the due checks', Array.isArray(sheet.body.checks) && sheet.body.checks.length > 0, sheet.body.checks);
+    ok('only the ones that are due', sheet.body.checks.every(c => c.due), sheet.body.checks.filter(c => !c.due));
+    ok('and the whole schedule too, for context', sheet.body.checks_all.length >= sheet.body.checks.length,
+      { due: sheet.body.checks.length, all: sheet.body.checks_all.length });
 
-      const onVisit = await api('POST', `/maintenance/${list.body.tasks[1].id}/done`, {
-        token: platformToken, body: { school_id: school.id, visit_id: v.insertId }
-      });
-      eq('a check can be signed off against the visit', onVisit.status, 200);
-      const [logged] = await pool.query('SELECT visit_id FROM maintenance_log WHERE task_id = ? AND school_id = ?',
-        [list.body.tasks[1].id, school.id]);
-      eq('and the visit is recorded on it', logged[0].visit_id, v.insertId);
+    const onVisit = await api('POST', `/maintenance/${list.body.tasks[1].id}/done`, {
+      token: platformToken, body: { school_id: school.id, visit_id: v.insertId }
+    });
+    eq('a check can be signed off against the visit', onVisit.status, 200);
+    const [logged] = await pool.query('SELECT visit_id FROM maintenance_log WHERE task_id = ? AND school_id = ?',
+      [list.body.tasks[1].id, school.id]);
+    eq('and the visit is recorded on it', logged[0].visit_id, v.insertId);
 
-      const after = await api('GET', `/visits/${v.insertId}`, { token: platformToken });
-      eq('the list shrinks as the work is done', after.body.checks.length, sheet.body.checks.length - 1);
+    const after = await api('GET', `/visits/${v.insertId}`, { token: platformToken });
+    eq('the list shrinks as the work is done', after.body.checks.length, sheet.body.checks.length - 1);
 
-      await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [adminRow[0].password_hash, adminRow[0].id]);
-    }
 
     // ---- 6. scope ---------------------------------------------------------
     console.log('\n6. Nobody signs off a school that is not theirs');

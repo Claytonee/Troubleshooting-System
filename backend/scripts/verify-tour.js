@@ -38,15 +38,17 @@ async function api(method, p, { token, body } = {}) {
     body: body ? JSON.stringify(body) : undefined });
   return { status: r.status, body: await r.json().catch(() => null) };
 }
-const login = async (u) => (await api('POST', '/auth/login', { body: { username: u, password: fixtures.PASSWORD } })).body;
+const login = async (u) => (await fixtures.signIn(u, fixtures.PASSWORD, BASE)).body;
 
 async function staff(role, suffix, name) {
   const u = fixtures.PREFIX + suffix;
   const hash = await bcrypt.hash(fixtures.PASSWORD, 10);
   const [ex] = await pool.query('SELECT id FROM users WHERE username = ?', [u]);
-  if (ex.length) await pool.query("UPDATE users SET password_hash=?, role=?, full_name=?, status='active', approval_status='approved', must_change_password=0 WHERE id=?", [hash, role, name, ex[0].id]);
-  else await pool.query(`INSERT INTO users (username, email, password_hash, full_name, role, status, approval_status, must_change_password)
-    VALUES (?, ?, ?, ?, ?, 'active', 'approved', 0)`, [u, u + '@verify.local', hash, name, role]);
+  let id = ex.length && ex[0].id;
+  if (id) await pool.query("UPDATE users SET password_hash=?, role=?, full_name=?, status='active', approval_status='approved', must_change_password=0 WHERE id=?", [hash, role, name, id]);
+  else id = (await pool.query(`INSERT INTO users (username, email, password_hash, full_name, role, status, approval_status, must_change_password)
+    VALUES (?, ?, ?, ?, ?, 'active', 'approved', 0)`, [u, u + '@verify.local', hash, name, role]))[0].insertId;
+  await fixtures.enrol(id);
   return u;
 }
 const resetTours = () => pool.query("UPDATE users SET tour_state = NULL WHERE username LIKE 'zzverify%'");

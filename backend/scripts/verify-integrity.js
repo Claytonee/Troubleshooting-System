@@ -11,7 +11,6 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const fs = require('fs');
 const path = require('path');
-const bcrypt = require('bcryptjs');
 const pool = require('../src/config/database');
 const fixtures = require('./lib/fixtures');
 
@@ -29,19 +28,14 @@ async function api(method, p, { token, body } = {}) {
   let json = null; try { json = await res.json(); } catch (e) {}
   return { status: res.status, body: json };
 }
-const login = async (u, p) => (await api('POST', '/auth/login', { body: { username: u, password: p } })).body.token;
+const login = async (u, p) => (await fixtures.signIn(u, p, BASE)).token;
 
 (async () => {
   const fx = await fixtures.ensure();
   const [[{ maxNotif }]] = await pool.query('SELECT COALESCE(MAX(id), 0) AS maxNotif FROM admin_notifications');
-  const hash = await bcrypt.hash(fixtures.PASSWORD, 10);
-  await pool.query(
-    `INSERT INTO users (username, email, password_hash, full_name, role, status, approval_status, must_change_password)
-     VALUES (?, ?, ?, 'Verify admin', 'admin', 'active', 'approved', 0)
-     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), token_version = 0`,
-    [fixtures.PREFIX + 'admin', fixtures.PREFIX + 'admin@verify.local', hash]);
+  const pa = await fixtures.ensurePlatformAdmin();
   const teacher = await login(fx.teacher.username, fx.password);
-  const admin = await login(fixtures.PREFIX + 'admin', fixtures.PASSWORD);
+  const admin = await login(pa.username, pa.password);
 
   try {
     console.log('\nINT-001  fault codes are unique and never reissued');

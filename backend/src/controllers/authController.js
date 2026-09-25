@@ -5,7 +5,7 @@ const streamifier = require('streamifier');
 const pool = require('../config/database');
 const cloudinary = require('../config/cloudinary');
 const { revokeSessions } = require('../services/sessions');
-const passwordRecovery = require('../services/passwordRecovery');
+const accountRecovery = require('../services/accountRecovery');
 const notify = require('../services/notify');
 const securityEvents = require('../services/securityEvents');
 const { logAudit } = require('../services/audit');
@@ -320,79 +320,99 @@ async function revokeAllSessions(req, res, next) {
   } catch (err) { next(err); }
 }
 
-/** POST /api/auth/password-recovery/request — deliberately non-enumerating. */
-async function requestPasswordRecovery(req, res, next) {
+const RECOVERY_PADDING_MS = 400;
+
+function recoveryRefused(res, err) {
+  res.locals.secEvent = 'auth.recovery_failed';
+  res.locals.secDetail = { reason: err.code === 'PASSWORD_POLICY' ? 'password_policy'
+    : err.code === 'RECOVERY_CODES_WRONG' ? 'codes_wrong' : 'expired_or_used' };
+  const body = { error: err.message, code: err.code };
+  if (typeof err.attemptsLeft === 'number') body.attempts_left = err.attemptsLeft;
+  return res.status(400).json(body);
+}
+
+/**
+ * POST /api/auth/recovery/start — the same answer for every identifier (D32).
+ * Padded to a fixed time; the email goes out after the response, so neither the
+ * database work nor SMTP latency can tell a real account from an unknown one.
+ */
+async function startRecovery(req, res, next) {
   const started = Date.now();
   try {
-    const result = await passwordRecovery.issue(req.body.identifier, { background: true });
-    res.locals.secEvent = 'auth.password_recovery_requested';
-    res.locals.secUserId = result.userId || null;
-    // Internal evidence may say whether a link was queued, but never stores the
-    // identifier or reset token and the public answer never changes.
-    res.locals.secDetail = { delivery: result.queued ? 'queued' : 'not_sent' };
-    const wait = Math.max(0, 400 - (Date.now() - started));
+    const result = await accountRecovery.start(req.body.identifier, { ip: req.ip });
+    res.locals.secEvent = 'auth.recovery_started';
+    res.locals.secUserId = result.userId;
+    // Internal evidence only: the identifier and the code are never recorded.
+    res.locals.secDetail = { email: result.emailQueued ? 'queued' : (result.reason || 'not_sent') };
+    const wait = Math.max(0, RECOVERY_PADDING_MS - (Date.now() - started));
     if (wait) await new Promise(resolve => setTimeout(resolve, wait));
-    res.status(202).json({ message: passwordRecovery.GENERIC_MESSAGE });
-
-    // SMTP finishes after the response so its latency cannot reveal an account.
+    res.status(202).json({
+      flow: result.flowId,
+      message: accountRecovery.START_MESSAGE,
+      expires_in: accountRecovery.FLOW_MINUTES * 60
+    });
     if (result.delivery) {
       result.delivery.then(outcome => {
         if (outcome.sent) return;
         securityEvents.record({
-          event_type: 'auth.password_recovery_failed', source_ip: req.ip, user_id: outcome.userId,
-          role: 'admin', method: req.method, path_template: '/api/auth/password-recovery/request',
-          status: 202, detail: { reason: 'delivery_failed' }
+          event_type: 'auth.recovery_failed', source_ip: req.ip, user_id: outcome.userId,
+          method: req.method, path_template: '/api/auth/recovery/start', status: 202,
+          detail: { reason: 'email_delivery_failed' }
         });
       });
     }
+  } catch (err) { next(err); }
+}
+
+/** POST /api/auth/recovery/verify — two of: email code, authenticator code, recovery code. */
+async function verifyRecovery(req, res, next) {
+  try {
+    const result = await accountRecovery.verify(req.body.flow, {
+      email_code: req.body.email_code, totp_code: req.body.totp_code, recovery_code: req.body.recovery_code
+    });
+    res.locals.secEvent = 'auth.recovery_verified';
+    res.locals.secUserId = result.userId;
+    res.locals.secDetail = { factors: result.factors.join('+') };
+    res.json({ reset_token: result.resetToken, expires_in: accountRecovery.RESET_MINUTES * 60 });
   } catch (err) {
-    res.locals.secEvent = 'auth.password_recovery_failed';
-    res.locals.secDetail = { reason: 'service_unavailable' };
+    if (err instanceof accountRecovery.RecoveryError) return recoveryRefused(res, err);
     next(err);
   }
 }
 
-/** POST /api/auth/password-recovery/reset — spends a one-time email link. */
-async function resetPasswordRecovery(req, res, next) {
+/** POST /api/auth/recovery/complete — set the password; every other session ends. */
+async function completeRecovery(req, res, next) {
   try {
-    const user = await passwordRecovery.consume(req.body.token, req.body.new_password);
-    res.locals.secEvent = 'auth.password_recovery_completed';
+    const done = await accountRecovery.complete(req.body.flow, req.body.reset_token, req.body.new_password);
+    const [[user]] = await pool.query(
+      'SELECT id, username, email, full_name, role, phone, zone, color, title, status, school_id, approval_status, avatar_url, bio, must_change_password, token_version, mfa_enabled FROM users WHERE id = ?',
+      [done.userId]);
+    res.locals.secEvent = 'auth.recovery_completed';
     res.locals.secUserId = user.id;
-    res.locals.secDetail = { sessions_revoked: true, mfa_preserved: true };
-
+    res.locals.secRole = user.role;
+    res.locals.secDetail = { factors: done.factors.join('+'), sessions_revoked: true };
     securityEvents.record({
-      event_type: 'auth.sessions_revoked', source_ip: req.ip, user_id: user.id,
-      role: 'admin', method: req.method, path_template: '/api/auth/password-recovery/reset',
-      status: 200, detail: { reason: 'password_recovery' }
+      event_type: 'auth.sessions_revoked', source_ip: req.ip, user_id: user.id, role: user.role,
+      method: req.method, path_template: '/api/auth/recovery/complete', status: 200,
+      detail: { reason: 'password_recovery' }
     });
     await logAudit({
-      action: 'auth.password_recovery_completed', entityType: 'user', entityId: user.id,
-      summary: 'Platform Admin completed one-time email password recovery; all sessions revoked',
-      meta: { method: 'one_time_email_link', mfa_preserved: true }, ip: req.ip
+      action: 'auth.password_recovered', entityType: 'user', entityId: user.id, ip: req.ip,
+      actor: { id: user.id, username: user.username, full_name: user.full_name, role: user.role },
+      summary: 'Recovered a forgotten password; every other session ended',
+      meta: { factors: done.factors, mfa_unchanged: true }
     });
-
-    // NIST SP 800-63B calls for an independent account-recovery notification.
-    // This second message contains no link or secret and cannot undo the reset.
-    await notify.sendMail({
-      to: user.email,
-      subject: 'Your Platform Admin password was changed',
-      text: [
-        `Hello ${user.full_name || 'Platform Administrator'},`, '',
-        'Your Platform Admin password was changed through account recovery.',
-        'Every previous session has been signed out. Two-step sign-in remains enabled.',
-        'If you did not do this, contact the system owner immediately and use the hosting recovery procedure.'
-      ].join('\n')
-    });
-    res.json({ message: 'Password updated. Every previous session has been signed out. Sign in with your new password; two-step sign-in still applies.' });
+    // NIST SP 800-63B-4: tell the person through a channel the recovery did not
+    // depend on. No link, no code — it cannot undo anything.
+    notify.sendMail({ to: user.email, ...accountRecovery.changedEmail(user, done.factors) }).catch(() => {});
+    const payload = await sessionPayload(user);
+    payload.message = 'Password changed. Every other device has been signed out.';
+    res.json(payload);
   } catch (err) {
-    if (err instanceof passwordRecovery.RecoveryError) {
-      res.locals.secEvent = 'auth.password_recovery_failed';
-      res.locals.secDetail = { reason: err.code === 'PASSWORD_POLICY' ? 'password_policy' : 'invalid_or_expired' };
-      return res.status(400).json({ error: err.message, code: err.code });
-    }
+    if (err instanceof accountRecovery.RecoveryError) return recoveryRefused(res, err);
     next(err);
   }
 }
 
 module.exports = { login, register, getProfile, updateProfile, uploadAvatar, changePassword, revokeAllSessions,
-  requestPasswordRecovery, resetPasswordRecovery, sessionPayload, generateToken };
+  startRecovery, verifyRecovery, completeRecovery, sessionPayload, generateToken };

@@ -55,9 +55,9 @@ async function api(method, p, { token, body } = {}) {
 }
 
 async function login(username, password) {
-  const r = await api('POST', '/auth/login', { body: { username, password } });
-  if (r.status !== 200) throw new Error(`login ${username} -> ${r.status} ${JSON.stringify(r.body)}`);
-  return r.body.token;
+  const r = await fixtures.signIn(username, password, BASE);
+  if (!r.token) throw new Error(`login ${username} -> ${r.status} ${JSON.stringify(r.body)}`);
+  return r.token;
 }
 
 /** A platform admin and an unassigned field engineer, under the fixture prefix so cleanup() takes them. */
@@ -68,12 +68,14 @@ async function ensureStaff(role, suffix) {
   if (existing.length) {
     await pool.query("UPDATE users SET password_hash = ?, role = ?, status = 'active', approval_status = 'approved', must_change_password = 0 WHERE id = ?",
       [hash, role, existing[0].id]);
+    await fixtures.enrol(existing[0].id);
     return existing[0].id;
   }
   const [r] = await pool.query(
     `INSERT INTO users (username, email, password_hash, full_name, role, status, approval_status, must_change_password)
      VALUES (?, ?, ?, ?, ?, 'active', 'approved', 0)`,
     [username, username + '@verify.local', hash, 'Verify ' + role, role]);
+  await fixtures.enrol(r.insertId);
   return r.insertId;
 }
 
@@ -263,7 +265,8 @@ async function ensureStaff(role, suffix) {
     ok('a school admin on another school is recorded as a record refusal, by route template',
       has('authz.refused', r => r.path_template === '/api/schools/:id/forms' && r.role === 'school'));
     ok('a heartbeat without its key is recorded as a rejected webhook', has('webhook.rejected'));
-    ok('successful sign-ins are recorded too', has('auth.login_ok', r => r.user_id === fx.teacher.userId));
+    // The fixture teacher has two-step sign-in, so its success is the second step's.
+    ok('successful sign-ins are recorded too', has('auth.mfa_ok', r => r.user_id === fx.teacher.userId));
 
     const dump = JSON.stringify(all);
     ok('no password ever reaches the table', !dump.includes(WRONG) && !dump.includes(fixtures.PASSWORD));
@@ -305,7 +308,7 @@ async function ensureStaff(role, suffix) {
     const reset = await api('PATCH', `/school-admins/${fx.schoolAdmin.id}/password`, { token: admin, body: { new_password: TEMP } });
     ok('platform admin resets a school admin\'s password', reset.status === 200, reset);
     ok('...the school admin\'s existing session has ended', (await api('GET', '/dashboard', { token: sBefore })).status === 401);
-    const relog = await api('POST', '/auth/login', { body: { username: fx.schoolAdmin.username, password: TEMP } });
+    const relog = await fixtures.signIn(fx.schoolAdmin.username, TEMP, BASE);
     ok('...they sign in with the temporary password and are told to change it',
       relog.status === 200 && relog.body.user.must_change_password === true, relog.body && relog.body.user);
     const sNew = relog.body && relog.body.token;
@@ -318,7 +321,7 @@ async function ensureStaff(role, suffix) {
     const react = await api('PATCH', `/register/teachers/${fx.teacher.teacherId}/status`, { token: sNew, body: { status: 'active' } });
     ok('school admin reactivates the teacher', react.status === 200, react);
     ok('...the token from before the suspension is STILL refused', (await api('GET', '/dashboard', { token: tStolen })).status === 401);
-    ok('...a fresh sign-in works', (await api('POST', '/auth/login', { body: { username: fx.teacher.username, password: NEWPW } })).status === 200);
+    ok('...a fresh sign-in works', !!(await fixtures.signIn(fx.teacher.username, NEWPW, BASE)).token);
 
     console.log('\nSEC-008  the public registration endpoints give nothing away');
     const byEmail = await api('POST', '/register/teacher-status', { body: { email: fx.teacher.username + '@verify.local' } });

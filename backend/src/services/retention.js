@@ -44,10 +44,9 @@ const POLICIES = [
     where: 'last_seen < NOW() - INTERVAL 90 DAY', table: 'csp_reports'
   },
   {
-    id: 'password_recovery_tokens', label: 'Expired or used password-recovery links', keep: '30 days after expiry or use',
-    where: `(expires_at < NOW() - INTERVAL 30 DAY)
-      OR (used_at IS NOT NULL AND used_at < NOW() - INTERVAL 30 DAY)`,
-    table: 'password_recovery_tokens'
+    id: 'account_recovery_flows', label: 'Finished or expired password recoveries', keep: '30 days after expiry',
+    where: 'expires_at < NOW() - INTERVAL 30 DAY',
+    table: 'account_recovery_flows'
   },
   {
     // Reported, never deleted by the job. Faults, visits and the audit trail name

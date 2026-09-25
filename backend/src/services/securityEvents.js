@@ -38,9 +38,11 @@ const SEVERITY = {
   'auth.login_refused': 'low',        // pending, rejected or deactivated account
   'auth.published_password': 'high',  // right password, but one printed in the public repo (SEC-016)
   'auth.login_ok': 'info',
-  'auth.password_recovery_requested': 'info',
-  'auth.password_recovery_failed': 'medium',
-  'auth.password_recovery_completed': 'medium',
+  'auth.recovery_started': 'info',      // forgotten password: same answer for every identifier (D32)
+  'auth.recovery_failed': 'medium',     // wrong or expired codes, or the email did not go out
+  'auth.recovery_verified': 'info',     // two proofs accepted; the password is not changed yet
+  'auth.recovery_completed': 'medium',  // password changed through recovery
+  'auth.mfa_reset_assisted': 'high',    // a supervisor cleared someone's two-step sign-in
   'auth.sessions_revoked': 'info',    // password change/reset, suspension, sign out everywhere
   'auth.mfa_required': 'info',        // password right; second step asked for
   'auth.mfa_ok': 'info',

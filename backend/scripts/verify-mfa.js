@@ -12,7 +12,6 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const fs = require('fs');
 const path = require('path');
-const bcrypt = require('bcryptjs');
 const pool = require('../src/config/database');
 const fixtures = require('./lib/fixtures');
 const totp = require('../src/services/totp');
@@ -49,7 +48,11 @@ const codeAt = (secret, offset = 0) => totp.hotp(totp.base32Decode(secret), totp
   ok('an admin without two-step, after the date, must enrol', policy.mustEnrolNow({ role: 'admin', mfa_enabled: 0 }, new Date('2026-10-09'), after));
   ok('...but not before the date', !policy.mustEnrolNow({ role: 'admin', mfa_enabled: 0 }, new Date('2026-10-01'), after));
   ok('an enrolled admin is never stopped', !policy.mustEnrolNow({ role: 'admin', mfa_enabled: 1 }, new Date('2027-01-01'), after));
-  ok('school admins and teachers are never forced', ['school', 'teacher', 'subadmin'].every(r => !policy.mustEnrolNow({ role: r, mfa_enabled: 0 }, new Date('2027-01-01'), after)));
+  // D32: every staff role is required now, from its own date.
+  ok('field engineers, school admins and teachers must enrol after the staff date',
+    ['school', 'teacher', 'subadmin'].every(r => policy.mustEnrolNow({ role: r, mfa_enabled: 0 }, new Date('2027-01-01'))));
+  ok('...but only asked before it', ['school', 'teacher', 'subadmin'].every(r => !policy.mustEnrolNow({ role: r, mfa_enabled: 0 }, new Date('2026-10-01'))));
+  ok('a role outside the staff list is never forced', !policy.mustEnrolNow({ role: 'guest', mfa_enabled: 0 }, new Date('2027-01-01'), after));
   ok('an admin who must enrol can reach only the enrolment endpoints',
     policy.isEnrolmentPath('/api/auth/mfa') && policy.isEnrolmentPath('/api/auth/mfa/setup') && policy.isEnrolmentPath('/api/auth/mfa/enable')
     && !policy.isEnrolmentPath('/api/schools') && !policy.isEnrolmentPath('/api/auth/mfa/disable') && !policy.isEnrolmentPath('/api/team/1/reset-password'));
@@ -57,14 +60,12 @@ const codeAt = (secret, offset = 0) => totp.hotp(totp.base32Decode(secret), totp
   ok('authenticate() applies that rule on every request', /mustEnrolNow\(rows\[0\]\) && !mfaPolicy\.isEnrolmentPath\(req\.originalUrl\)/.test(authSrc));
 
   const fx = await fixtures.ensure();
-  const hash = await bcrypt.hash(fixtures.PASSWORD, 10);
-  await pool.query(
-    `INSERT INTO users (username, email, password_hash, full_name, role, status, approval_status, must_change_password)
-     VALUES (?, ?, ?, 'Verify admin', 'admin', 'active', 'approved', 0)
-     ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), token_version = 0, mfa_enabled = 0,
-       mfa_secret_enc = NULL, mfa_pending_enc = NULL, mfa_last_step = NULL, mfa_recovery = NULL`,
-    [fixtures.PREFIX + 'admin', fixtures.PREFIX + 'admin@verify.local', hash]);
-  const ADMIN = fixtures.PREFIX + 'admin';
+  // This suite is about enrolling, so its admin and teacher start WITHOUT two-step
+  // sign-in — explicitly. Every other suite gets fixture accounts already enrolled.
+  const pa = await fixtures.ensurePlatformAdmin();
+  await fixtures.unenrol(pa.id);
+  await fixtures.unenrol(fx.teacher.userId);
+  const ADMIN = pa.username;
   const [[{ eventsBaseline }]] = await pool.query('SELECT COALESCE(MAX(id), 0) AS eventsBaseline FROM security_events');
 
   try {
@@ -118,21 +119,19 @@ const codeAt = (secret, offset = 0) => totp.hotp(totp.base32Decode(secret), totp
     const off = await api('POST', '/auth/mfa/disable', { token: good.body.token, body: { password: fixtures.PASSWORD, code: codeAt(secret, 1) } });
     ok('the platform admin cannot turn it off — the role requires it', off.status === 403 && off.body.code === 'MFA_REQUIRED_FOR_ROLE', off.body);
 
-    console.log('\nOpt-in   other roles may turn it on and off');
+    console.log('\nStaff    teachers enrol the same way, and cannot turn it off (D32)');
     const tt = await api('POST', '/auth/login', { body: { username: fx.teacher.username, password: fx.password } });
     const ts = await api('POST', '/auth/mfa/setup', { token: tt.body.token });
     const te = await api('POST', '/auth/mfa/enable', { token: tt.body.token, body: { code: codeAt(ts.body.secret) } });
-    ok('a teacher can switch it on', te.status === 200, te.status);
-    const tOffWrong = await api('POST', '/auth/mfa/disable', { token: te.body.token, body: { password: 'wrong-password', code: codeAt(ts.body.secret, 1) } });
-    ok('turning it off needs the password as well as a code', tOffWrong.status === 400, tOffWrong.status);
+    ok('a teacher can switch it on', te.status === 200 && Array.isArray(te.body.recovery_codes) && te.body.recovery_codes.length === 10, te.status);
     const tOff = await api('POST', '/auth/mfa/disable', { token: te.body.token, body: { password: fx.password, code: codeAt(ts.body.secret, 1) } });
-    ok('...and with both, it turns off', tOff.status === 200 && tOff.body.enabled === false, tOff.body);
+    ok('...but not off: the role requires it, even with password and code', tOff.status === 403 && tOff.body.code === 'MFA_REQUIRED_FOR_ROLE', tOff.body);
 
     await new Promise(r => setTimeout(r, 2600));
     const [ev] = await pool.query('SELECT event_type FROM security_events WHERE id > ?', [eventsBaseline]);
     const types = new Set(ev.map(e => e.event_type));
     ok('the evidence records the two-step events',
-      ['auth.mfa_required', 'auth.mfa_ok', 'auth.mfa_failed', 'auth.mfa_recovery_used', 'auth.mfa_enabled', 'auth.mfa_disabled'].every(t => types.has(t)), [...types]);
+      ['auth.mfa_required', 'auth.mfa_ok', 'auth.mfa_failed', 'auth.mfa_recovery_used', 'auth.mfa_enabled'].every(t => types.has(t)), [...types]);
   } finally {
     await new Promise(r => setTimeout(r, 2600));
     await pool.query('DELETE FROM security_events WHERE id > ?', [eventsBaseline]);

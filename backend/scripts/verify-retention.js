@@ -18,7 +18,6 @@
  * Backdated fixture rows; everything it creates it removes. Run from backend/.
  */
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
-const bcrypt = require('bcryptjs');
 const pool = require('../src/config/database');
 const retention = require('../src/services/retention');
 const fixtures = require('./lib/fixtures');
@@ -38,7 +37,7 @@ const exists = async (table, id) => (await pool.query(`SELECT 1 FROM ${table} WH
   const [[school]] = await pool.query('SELECT id FROM schools ORDER BY id DESC LIMIT 1');
   const [[auditBase]] = await pool.query('SELECT COALESCE(MAX(id), 0) AS m FROM audit_log');
   const made = { audit_log: [], registration_requests: [], registration_appeals: [], whatsapp_conversations: [],
-    whatsapp_messages: [], ussd_sessions: [], csp_reports: [], password_recovery_tokens: [], users: [] };
+    whatsapp_messages: [], ussd_sessions: [], csp_reports: [], account_recovery_flows: [], users: [] };
   const ins = async (table, sql, params) => { const [r] = await pool.query(sql, params); made[table].push(r.insertId); return r.insertId; };
 
   try {
@@ -84,17 +83,17 @@ const exists = async (table, id) => (await pool.query(`SELECT 1 FROM ${table} WH
     const oldInactive = await acct('inactive', 13);
     const newInactive = await acct('inactive', 6);
     const oldActive = await acct('active', 30);
-    const recoveryToken = (age) => ins('password_recovery_tokens',
-      `INSERT INTO password_recovery_tokens (user_id, token_hash, expires_at, used_at, created_at)
+    const recoveryToken = (age) => ins('account_recovery_flows',
+      `INSERT INTO account_recovery_flows (flow_hash, user_id, expires_at, completed_at, created_at)
        VALUES (?, ?, NOW() - INTERVAL ${age} DAY, NOW() - INTERVAL ${age} DAY, NOW() - INTERVAL ${age} DAY)`,
-      [oldActive, String(age).padStart(64, '0')]);
+      [String(age).padStart(64, '0'), oldActive]);
     const oldRecovery = await recoveryToken(31);
     const newRecovery = await recoveryToken(10);
 
     console.log('\nReport   counts what is due, deletes nothing');
     const rep = await retention.run({ enforce: false });
     ok('the run is marked as report-only', rep.enforce === false);
-    for (const id of ['audit_log', 'rejected_registrations', 'whatsapp_conversations', 'ussd_sessions', 'csp_reports', 'password_recovery_tokens'])
+    for (const id of ['audit_log', 'rejected_registrations', 'whatsapp_conversations', 'ussd_sessions', 'csp_reports', 'account_recovery_flows'])
       ok(`${id}: exactly the one old row is due`, due(rep, id) === 1, due(rep, id));
     ok('accounts: the one deactivated 13 months ago is counted — not the recent one, not an old active one',
       due(rep, 'inactive_accounts') === before.policies.find(p => p.id === 'inactive_accounts').due + 1);
@@ -116,8 +115,8 @@ const exists = async (table, id) => (await pool.query(`SELECT 1 FROM ${table} WH
       await exists('whatsapp_conversations', newConv) && await exists('whatsapp_messages', newMsg));
     ok('USSD: 13 months goes, 6 months stays', !(await exists('ussd_sessions', oldUssd)) && await exists('ussd_sessions', newUssd));
     ok('CSP inventory: unseen for 91 days goes, seen 30 days ago stays', !(await exists('csp_reports', oldCsp)) && await exists('csp_reports', newCsp));
-    ok('recovery links: a 31-day-old spent link goes, a 10-day-old link stays',
-      !(await exists('password_recovery_tokens', oldRecovery)) && await exists('password_recovery_tokens', newRecovery));
+    ok('password recoveries: one expired 31 days ago goes, one from 10 days ago stays',
+      !(await exists('account_recovery_flows', oldRecovery)) && await exists('account_recovery_flows', newRecovery));
     ok('the run reports one removal per deleting policy', run1.policies.every(p => p.removed === (p.report_only ? 0 : 1)), run1.policies.map(p => [p.id, p.removed]));
     ok('accounts are never deleted by the job, even when enforcing — a person decides',
       await exists('users', oldInactive) && await exists('users', newInactive) && await exists('users', oldActive));
@@ -130,15 +129,8 @@ const exists = async (table, id) => (await pool.query(`SELECT 1 FROM ${table} WH
     ok('a second run removes nothing and writes nothing', run2.policies.every(p => p.removed === 0 && (p.report_only || p.due === 0)) && trail2.length === 6);
 
     console.log('\nOverview the platform admin sees the report');
-    const username = fixtures.PREFIX + 'admin';
-    const hash = await bcrypt.hash(fixtures.PASSWORD, 10);
-    const [ex] = await pool.query('SELECT id FROM users WHERE username = ?', [username]);
-    if (ex.length) await pool.query("UPDATE users SET password_hash = ?, role = 'admin', status = 'active', approval_status = 'approved', must_change_password = 0 WHERE id = ?", [hash, ex[0].id]);
-    else await pool.query(`INSERT INTO users (username, email, password_hash, full_name, role, status, approval_status, must_change_password)
-      VALUES (?, ?, ?, 'Verify admin', 'admin', 'active', 'approved', 0)`, [username, username + '@verify.local', hash]);
-    const lr = await fetch(BASE + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password: fixtures.PASSWORD }) });
-    const token = (await lr.json()).token;
+    const pa = await fixtures.ensurePlatformAdmin();
+    const { token } = await fixtures.signIn(pa.username, pa.password, BASE);
     const ov = await (await fetch(BASE + '/api/security/overview', { headers: { Authorization: 'Bearer ' + token } })).json();
     ok('overview.retention lists the seven policies with their periods',
       ov.retention && ov.retention.policies.length === 7 && ov.retention.policies.every(p => p.keep && typeof p.due === 'number'), ov.retention);
@@ -152,7 +144,7 @@ const exists = async (table, id) => (await pool.query(`SELECT 1 FROM ${table} WH
   } finally {
     // Children first; the audit entries written by the enforce runs go too.
     const del = (t) => made[t].length && pool.query(`DELETE FROM ${t} WHERE id IN (?)`, [made[t]]);
-    for (const t of ['whatsapp_messages', 'whatsapp_conversations', 'registration_appeals', 'registration_requests', 'ussd_sessions', 'csp_reports', 'password_recovery_tokens', 'audit_log', 'users']) await del(t);
+    for (const t of ['whatsapp_messages', 'whatsapp_conversations', 'registration_appeals', 'registration_requests', 'ussd_sessions', 'csp_reports', 'account_recovery_flows', 'audit_log', 'users']) await del(t);
     await pool.query("DELETE FROM audit_log WHERE id > ? AND (action IN ('retention.removed', ?) )", [auditBase.m, TAG]);
     await fixtures.cleanup();
     console.log(`\n${'='.repeat(52)}\n  ${passed} passed, ${failed} failed\n  database restored to the state it was found in`);

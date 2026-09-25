@@ -66,10 +66,7 @@ async function cleanup() {
 (async () => {
   // A platform admin of the suite's own, not the seeded one with its published password (SEC-016).
   const pa = await fixtures.ensurePlatformAdmin();
-  const login = await fetch(BASE + '/api/auth/login', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username: pa.username, password: pa.password })
-  }).then(r => r.json());
+  const login = (await fixtures.signIn(pa.username, pa.password, BASE)).body || {};
   if (!login.token) { console.error('  login failed'); process.exit(1); }
   H = { Authorization: 'Bearer ' + login.token };
   const adminId = login.user.id;
@@ -245,10 +242,7 @@ async function cleanup() {
   // This used to borrow a seeded engineer's published password and skip when refused.
   {
     const fe = await fixtures.ensureFieldEngineer();
-    const sl = await fetch(BASE + '/api/auth/login', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: fe.username, password: fe.password })
-    }).then(r => r.json());
+    const sl = (await fixtures.signIn(fe.username, fe.password, BASE)).body || {};
     check('scope: the fixture field engineer can sign in', !!sl.token);
     if (sl.token) {
       const [[owned]] = await pool.query('SELECT COUNT(*) n FROM schools WHERE assigned_admin_id = ?', [fe.id]);

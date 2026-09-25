@@ -6,6 +6,8 @@ const totp = require('../services/totp');
 const policy = require('../services/mfaPolicy');
 const { revokeSessions } = require('../services/sessions');
 const { logAudit } = require('../services/audit');
+const passwords = require('../services/passwords');
+const notify = require('../services/notify');
 
 /**
  * Two-step sign-in (SEC-007, DECISIONS.md D4).
@@ -16,6 +18,8 @@ const { logAudit } = require('../services/audit');
  *   POST /api/auth/mfa/verify {ticket, code}   public: the second step of sign-in
  *   POST /api/auth/mfa/recovery-codes {code}   replace the recovery codes
  *   POST /api/auth/mfa/disable {password, code}  not allowed for a role that requires it
+ *   POST /api/auth/mfa/assist-reset {user_id, code, reset_password}
+ *        a supervisor clears someone's lost authenticator (D32)
  *
  * Nothing here ever returns a stored secret: the secret leaves the server once,
  * at setup, so it can be put into the authenticator.
@@ -68,7 +72,7 @@ async function status(req, res, next) {
       enrolled_at: u.mfa_enrolled_at,
       recovery_codes_left: u.mfa_enabled ? recoveryList(u).length : 0,
       required_for_role: policy.isRequiredFor(u.role),
-      required_from: policy.isRequiredFor(u.role) ? policy.enforceAfter().toISOString() : null,
+      required_from: policy.isRequiredFor(u.role) ? policy.enforceAfter(u.role).toISOString() : null,
       must_enrol_now: policy.mustEnrolNow(u)
     });
   } catch (err) { next(err); }
@@ -179,4 +183,80 @@ async function disable(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { status, setup, enable, verify, regenerateRecovery, disable };
+/**
+ * Who may clear whose two-step sign-in: the person's own line of support, never
+ * sideways and never oneself (D32).
+ *   platform admin  -> anyone else, including another platform admin
+ *   field engineer  -> school admins and teachers of the schools assigned to them
+ *   school admin    -> teachers of their own school
+ */
+async function canAssist(actor, target) {
+  if (!actor || !target || actor.id === target.id) return false;
+  if (actor.role === 'admin') return true;
+  if (actor.role === 'school') return target.role === 'teacher' && !!actor.school_id && target.school_id === actor.school_id;
+  if (actor.role === 'subadmin' && ['school', 'teacher'].includes(target.role) && target.school_id) {
+    const [[s]] = await pool.query('SELECT id FROM schools WHERE id = ? AND assigned_admin_id = ?', [target.school_id, actor.id]);
+    return !!s;
+  }
+  return false;
+}
+
+/**
+ * The last resort, for someone who lost their phone AND their recovery codes:
+ * their supervisor confirms who they are (a call to the registered number), then
+ * clears the authenticator with a current code from their own. The person signs in
+ * with their password and must scan a new QR code at once. Optionally a temporary
+ * password too, for someone who also forgot it. Everything is audited, the person
+ * is emailed, and every session of theirs ends.
+ */
+async function assistReset(req, res, next) {
+  try {
+    const actor = await loadUser(req.user.id);
+    const targetId = Number(req.body.user_id);
+    const target = Number.isInteger(targetId) ? await loadUser(targetId) : null;
+    if (!await canAssist(actor, target)) {
+      res.locals.secRule = 'mfa_assist_scope';
+      return res.status(403).json({ error: 'You can only help people you support: your own teachers or schools.', code: 'MFA_ASSIST_FORBIDDEN' });
+    }
+    if (!actor.mfa_enabled) {
+      return res.status(403).json({ error: 'Turn on your own two-step sign-in first.', code: 'MFA_ASSIST_NEEDS_MFA' });
+    }
+    if (await checkSecondFactor(actor, req.body.code) !== 'totp') {
+      res.locals.secEvent = 'auth.mfa_failed';
+      res.locals.secDetail = { stage: 'assist_reset' };
+      return res.status(400).json({ error: 'Enter a current 6-digit code from your own authenticator app.' });
+    }
+
+    const temporary = req.body.reset_password ? passwords.temporary() : null;
+    await pool.query(
+      `UPDATE users SET mfa_enabled = 0, mfa_secret_enc = NULL, mfa_pending_enc = NULL, mfa_last_step = NULL,
+              mfa_recovery = NULL, mfa_enrolled_at = NULL${temporary ? ', password_hash = ?, must_change_password = 1' : ''}
+        WHERE id = ?`,
+      temporary ? [await bcrypt.hash(temporary, 12), target.id] : [target.id]);
+    await revokeSessions(target.id, 'mfa_reset_assisted', req);
+
+    res.locals.secEvent = 'auth.mfa_reset_assisted';
+    res.locals.secDetail = { target_user_id: target.id, target_role: target.role, password_reset: !!temporary };
+    await logAudit({
+      actor: req.user, ip: req.ip, action: 'auth.mfa_reset_assisted', entityType: 'user', entityId: target.id,
+      summary: `Cleared two-step sign-in for ${target.full_name || target.username}${temporary ? ' and set a temporary password' : ''}`,
+      meta: { target_role: target.role, password_reset: !!temporary }
+    });
+    notify.sendMail({
+      to: target.email,
+      subject: 'Your two-step sign-in was reset',
+      text: [
+        `Hello${target.full_name ? ' ' + target.full_name : ''},`, '',
+        `${actor.full_name || 'Your supervisor'} reset your two-step sign-in${temporary ? ' and your password' : ''} for OE Technical Support.`,
+        'Every device you were signed in on has been signed out. At your next sign-in you will scan a new QR code with your authenticator app.',
+        'If you did not ask for this, tell the platform administrator immediately.'
+      ].join('\n')
+    }).catch(() => {});
+    res.json({
+      message: `Two-step sign-in cleared for ${target.full_name || target.username}. They set it up again at their next sign-in.`,
+      ...(temporary ? { password: temporary } : {})
+    });
+  } catch (err) { next(err); }
+}
+
+module.exports = { status, setup, enable, verify, regenerateRecovery, disable, assistReset, canAssist };

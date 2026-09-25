@@ -31,7 +31,7 @@ async function api(method, p, { token, body, headers } = {}) {
   let json = null; try { json = await res.json(); } catch (e) {}
   return { status: res.status, body: json };
 }
-const login = async (u, p) => (await api('POST', '/auth/login', { body: { username: u, password: p } })).body.token;
+const login = async (u, p) => (await fixtures.signIn(u, p, BASE)).token;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function upsert(username, role, schoolId) {
@@ -47,14 +47,18 @@ async function upsert(username, role, schoolId) {
 
 (async () => {
   const fx = await fixtures.ensure();
+  // R6 needs the teacher to turn two-step sign-in on and then lose it, so this
+  // teacher starts without it — on purpose, and only this one.
+  await fixtures.unenrol(fx.teacher.userId);
   const [[other]] = await pool.query('SELECT id FROM schools WHERE id <> ? ORDER BY id LIMIT 1', [fx.school.id]);
-  const adminId = await upsert(fixtures.PREFIX + 'admin', 'admin');
+  const pa = await fixtures.ensurePlatformAdmin();
+  const adminId = pa.id;
   const extraId = await upsert(fixtures.PREFIX + 'spray', 'teacher', fx.school.id);
   const [[base]] = await pool.query(`SELECT NOW() AS t0,
       (SELECT COALESCE(MAX(id), 0) FROM security_incidents) AS inc,
       (SELECT COALESCE(MAX(id), 0) FROM admin_notifications) AS notif,
       (SELECT COALESCE(MAX(id), 0) FROM security_events) AS ev`);
-  const admin = await login(fixtures.PREFIX + 'admin', fixtures.PASSWORD);
+  const admin = await login(pa.username, pa.password);
   const schoolAdmin = await login(fx.schoolAdmin.username, fx.password);
 
   try {
@@ -69,7 +73,11 @@ async function upsert(username, role, schoolId) {
     const ts = await api('POST', '/auth/mfa/setup', { token: tok });                                                                // R6
     const code = (off) => totp.hotp(totp.base32Decode(ts.body.secret), totp.stepAt() + off);
     const te = await api('POST', '/auth/mfa/enable', { token: tok, body: { code: code(0) } });
-    await api('POST', '/auth/mfa/disable', { token: te.body.token, body: { password: fx.password, code: code(1) } });
+    // D32: staff cannot turn it off, so the removal R6 watches for is a supervisor's reset.
+    ok('the teacher turns two-step sign-in on', te.status === 200, te.status);
+    const assisted = await api('POST', '/auth/mfa/assist-reset',
+      { token: schoolAdmin, body: { user_id: fx.teacher.userId, code: await fixtures.nextCode(fx.schoolAdmin.username) } });
+    ok('their school admin resets it for them', assisted.status === 200, assisted.body);
     await pool.query("INSERT INTO security_events (event_type, severity, count, detail) VALUES ('events.dropped', 'high', 42, ?)",  // R7
       [JSON.stringify({ reason: 'verify-detection fixture' })]);
     await sleep(2600);   // one flush of the event recorder
@@ -135,7 +143,7 @@ async function upsert(username, role, schoolId) {
     ok('both are in the audit trail', Number(aud.n) === 2, aud.n);
 
     console.log('\nD5       alert-only: nothing was blocked');
-    ok('the guessed account can still sign in with its real password', (await api('POST', '/auth/login', { body: { username: fx.teacher.username, password: fx.password } })).status === 200);
+    ok('the guessed account can still sign in with its real password', !!await login(fx.teacher.username, fx.password));
     ok('the "spraying" address can still reach the API', (await api('GET', '/settings')).status === 200);
 
     console.log('\nPage     what the Security Overview says matches the code');

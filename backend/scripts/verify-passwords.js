@@ -36,15 +36,19 @@ async function api(method, p, { token, body } = {}) {
     body: body ? JSON.stringify(body) : undefined });
   return { status: r.status, body: await r.json().catch(() => null) };
 }
+// The password step alone: for sign-ins that must be refused before any second step.
 const login = (username, password) => api('POST', '/auth/login', { body: { username, password } });
+// A whole sign-in, second step included, for accounts with two-step sign-in.
+const signIn = (username, password) => fixtures.signIn(username, password, BASE);
 const TEMP = /^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/;
 const mustChange = async (username) => Number((await pool.query('SELECT must_change_password m FROM users WHERE username = ?', [username]))[0][0]?.m);
 
 async function account(suffix, password, role = 'subadmin') {
   const username = fixtures.PREFIX + suffix;
   await pool.query('DELETE FROM users WHERE username = ?', [username]);
-  await pool.query(`INSERT INTO users (username, email, password_hash, full_name, role, status, approval_status, must_change_password)
+  const [r] = await pool.query(`INSERT INTO users (username, email, password_hash, full_name, role, status, approval_status, must_change_password)
     VALUES (?, ?, ?, ?, ?, 'active', 'approved', 0)`, [username, username + '@verify.local', await bcrypt.hash(password, 10), 'Verify ' + suffix, role]);
+  await fixtures.enrol(r.insertId);
   return username;
 }
 
@@ -54,8 +58,8 @@ async function account(suffix, password, role = 'subadmin') {
   try {
     const fx = await fixtures.ensure();
     const pa = await fixtures.ensurePlatformAdmin();
-    const admin = (await login(pa.username, pa.password)).body.token;
-    const schoolAdmin = (await login(fx.schoolAdmin.username, fx.password)).body.token;
+    const admin = (await signIn(pa.username, pa.password)).token;
+    const schoolAdmin = (await signIn(fx.schoolAdmin.username, fx.password)).token;
 
     console.log('\nSign-in  published username AND password: refused before anything is issued');
     // The real risk case: a seeded account (username printed) that STILL has a printed
@@ -78,7 +82,7 @@ async function account(suffix, password, role = 'subadmin') {
     console.log('\nSign-in  published password, private username: in, but a new password first');
     for (const pw of ['admin123', 'changeme123']) {
       const u = await account('pub' + pw.slice(0, 4), pw, 'teacher');
-      const r = await login(u, pw);
+      const r = await signIn(u, pw);
       ok(`"${pw}": signs in (a real teacher is not locked out)…`, r.status === 200 && !!r.body.token, r.status);
       ok(`"${pw}": …but must choose a new password first`, r.body.user && r.body.user.must_change_password === true && await mustChange(u) === 1);
     }
@@ -86,7 +90,7 @@ async function account(suffix, password, role = 'subadmin') {
     ok('a wrong password still answers 401, as before', wrong.status === 401);
 
     const guess = await account('guess', 'Teacher@4821', 'teacher');
-    const g = await login(guess, 'Teacher@4821');
+    const g = await signIn(guess, 'Teacher@4821');
     ok('"Teacher@4821" (the old generated pattern) signs in…', g.status === 200 && !!g.body.token, g.status);
     ok('…but must be changed first', g.body.user && g.body.user.must_change_password === true && await mustChange(guess) === 1);
 

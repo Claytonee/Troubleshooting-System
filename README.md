@@ -49,9 +49,13 @@ npm start
 
 **First sign-in:** no password is published (SEC-016). Set `ADMIN_PASSWORD` before the first start, or use the one-time password the first start prints to the server log; see `backend/src/docs/SETUP.md`.
 
-**Forgot password (platform admin):** "Forgot password?" on the sign-in page emails a one-time link,
-valid for 15 minutes, to the address on the account. It needs SMTP and `APP_URL` configured, ends every
-session, and keeps two-step sign-in on (DECISIONS.md D31). Without email, use the terminal below.
+**Two-step sign-in and forgotten passwords (every role):** every staff account sets up an authenticator
+app and saves ten recovery codes (required from 8 October for the platform admin, 9 October for everyone
+else; `MFA_ENFORCE_ADMIN_AFTER` / `MFA_ENFORCE_STAFF_AFTER`). "Forgot password?" — also offered after two
+wrong passwords — asks for any two of: a 6-digit code emailed to the account (needs SMTP), a code from
+the authenticator app, or a saved recovery code. Someone who lost their phone and their codes is reset
+from inside the app by their school admin, field engineer or platform admin (DECISIONS.md D32). The
+terminal commands below are only for a sole platform admin who has lost everything.
 
 **Locked-out platform admin:** from the hosting panel terminal, run
 `cd backend && node scripts/password-reset.js admin --prompt --yes`. The prompt hides the password,

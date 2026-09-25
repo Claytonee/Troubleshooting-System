@@ -346,6 +346,10 @@ keep working if it goes private, within the free private-repository minutes.
 
 ## D31 — A locked-out Platform Admin recovers by email link, never by username alone
 
+> **Superseded by D32** before it shipped. The link flow was replaced by one recovery for every
+> role; its principles (same answer for every identifier, email sent after the answer, secrets
+> hashed, sessions ended, two-step untouched) carry over.
+
 **Problem:** D29's server-console reset needs cPanel access. The request was a public "admin
 portal" that resets the Platform Admin password. If knowing the username were enough, that page
 would be the easiest way to take over the most powerful account.
@@ -380,6 +384,76 @@ Password Cheat Sheet, NIST SP 800-63B §6.1.2.3).
 **Revisit when:** SMTP is configured on production (until then every request ends at
 `delivery_unavailable` and the console path is the only one), or a second person becomes a
 Platform Admin, who could then reset another's password from inside the app.
+
+## D32 — Every staff account uses the authenticator, and recovers with two of three proofs
+
+**Problem:** the owner asked that school admins and teachers, like the platform admin, be able to
+reset a forgotten password themselves — by the authenticator app or by an emailed code — with the
+authenticator made mandatory at first sign-in, a prompt after two wrong passwords, and no terminal
+for the platform admin either. Taken literally, either factor alone would reset the password: a
+borrowed phone, or an email inbox, would be the whole account.
+
+**Research (September 2026):** GitHub asks for the email link *and* a 2FA code or recovery code
+when a 2FA account resets its password. Microsoft Entra forces a "two-gate" policy (two methods)
+on every administrator and recommends two for everyone. Google uses the authenticator and ten
+single-use backup codes. NIST SP 800-63B-4 §4.2: recovering an AAL2 account needs a recovery code
+plus a bound authenticator, or two recovery codes obtained by different methods; email is not an
+acceptable out-of-band authenticator. OWASP: recovery must be no weaker than sign-in, answer the
+same for real and unknown accounts, and never lock accounts.
+
+**Decided:**
+1. **Required for every staff role** (`mfaPolicy.REQUIRED_ROLES`: admin, subadmin, school,
+   teacher). The app asks at every sign-in; from `MFA_ENFORCE_STAFF_AFTER` (default 9 October
+   2026, two weeks out; the admin keeps D4's 8 October) nothing works until it is set up. The
+   setup screen says to use one's **own phone, not a shared school tablet** — D4's reason for not
+   forcing teachers. The ten recovery codes cannot be dismissed without ticking "I have saved
+   these somewhere other than my phone". Nobody on a staff role can turn it off.
+2. **Recovery = two of three**, the same flow for every role: a 6-digit code emailed to the
+   address on the account (10 minutes), a code from the authenticator app, or one saved recovery
+   code. Any two work, so a lost phone (email + recovery code) and a dead mailbox (authenticator +
+   recovery code) are both covered. An account that has not enrolled yet uses the email code alone
+   — exactly what it needs to sign in anyway. Afterwards the person is signed in on that device,
+   every other session ends, a notice is emailed, and two-step sign-in stays on.
+3. **Two wrong passwords in a row** open "Forgot your password?" on the sign-in page. It is shown
+   for names that do not exist too, and nothing is ever locked.
+4. **Nothing reveals an account:** `/recovery/start` returns the same 202 and fields for any
+   identifier (unknown ones get a real flow row, so later answers match too), padded to 400 ms,
+   with the email sent after the answer.
+5. **Nothing secret at rest:** flow ids and reset tokens as SHA-256; email codes as an HMAC keyed by
+   the server secret and bound to their flow; recovery codes as SHA-256 (D4). Codes are checked
+   before any is spent, so a wrong second code does not burn a good first one. Five tries per flow;
+   throttles per network and per identifier; one email per account per minute, five per hour.
+6. **Lost phone *and* recovery codes:** the person's own line of support clears their two-step
+   sign-in from inside the app, after confirming who they are by phone, with a current code from
+   their own authenticator (`POST /api/auth/mfa/assist-reset`): a school admin for their teachers,
+   a field engineer for their schools' people, a platform admin for anyone else. Optionally a
+   temporary password, shown once. Audited, emailed, sessions ended. The terminal scripts (D29, D4)
+   remain only for a sole platform admin who has lost everything — add a second platform admin to
+   remove that case too.
+7. D31's link table (`password_recovery_tokens`) only ever existed in an unpushed commit, so it is
+   simply no longer created — there is nothing on production to contract, and CLAUDE.md forbids a
+   `DROP` without a separate step the owner confirmed. `account_recovery_flows` is kept 30 days
+   past expiry (D25).
+8. **The owner's audit trail** gets `auth.recovery_requested` only after SMTP confirms that a code
+   was actually sent to a real, eligible account: the account id and `{ email: "sent" }`, never the
+   name typed, the code or the flow. Unknown, ineligible and failed-delivery starts stay in
+   `security_events` only, so an anonymous caller cannot flood `audit_log`.
+9. **Both emails have an HTML version** as well as the text, branded "OE Technical Support", with no
+   link at all — a recovery email that never asks you to click is easier to tell apart from
+   phishing. The code email keeps "Nobody from OE will ever ask you for this code."
+
+**Not done:** SMS codes (D4), security questions (OWASP, NIST), or any recovery by one proof.
+
+**SMTP is configured on production:** `/api/health` answered `"email": true` (build `8642907`) at
+2026-09-25 17:29 UTC, so emailed codes work there.
+
+**Before 9 October 2026:** schools must be told that **each teacher needs their own phone** for the
+authenticator — from `MFA_ENFORCE_STAFF_AFTER` the app is unusable without it. The date is an
+environment variable the owner can move without a deploy, and the supervisor reset (point 6) covers
+lost phones.
+
+**Revisit when:** the teachers' `@school.oetz.org` addresses are confirmed to be real mailboxes, or
+passkeys become practical on the schools' phones.
 
 ## D12 — Order of work (phase 2)
 

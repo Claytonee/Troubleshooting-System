@@ -9,30 +9,10 @@ const tourController = require('../controllers/tourController');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
 
-const recoveryIpLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 20 : 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many recovery requests. Wait fifteen minutes and try again.' }
-});
-const recoveryAccountLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 5 : 100,
-  // A digest avoids retaining an email address or username inside the limiter.
-  keyGenerator: (req) => require('crypto').createHash('sha256')
-    .update(String(req.body.identifier || '').trim().toLowerCase()).digest('hex'),
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many recovery requests. Wait fifteen minutes and try again.' }
-});
-const recoveryResetLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 10 : 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many reset attempts. Wait fifteen minutes and request a new link.' }
-});
+// Forgotten-password recovery (D32): per-network throttles on every step, plus a
+// per-identifier one on start. Built by a factory so the suite can prove the 429
+// with the same limiter at a small limit (middleware/recoveryLimits.js).
+const recoveryLimits = require('../middleware/recoveryLimits').create();
 
 const avatarUpload = multer({
   storage: multer.memoryStorage(),
@@ -49,16 +29,25 @@ router.post('/login', [
   validate
 ], authController.login);
 
-router.post('/password-recovery/request', recoveryIpLimiter, recoveryAccountLimiter, [
-  body('identifier').isString().trim().isLength({ min: 3, max: 255 }).withMessage('Enter your Platform Admin username or email.'),
+router.post('/recovery/start', recoveryLimits.startIp, recoveryLimits.startAccount, [
+  body('identifier').isString().trim().isLength({ min: 3, max: 255 }).withMessage('Enter your username or email.'),
   validate
-], authController.requestPasswordRecovery);
+], authController.startRecovery);
 
-router.post('/password-recovery/reset', recoveryResetLimiter, [
-  body('token').isString().notEmpty().withMessage('The password reset link is missing.'),
+router.post('/recovery/verify', recoveryLimits.verifyIp, [
+  body('flow').isString().isLength({ min: 43, max: 43 }).withMessage('This recovery has expired. Start again.'),
+  body('email_code').optional({ values: 'falsy' }).isString().isLength({ max: 20 }),
+  body('totp_code').optional({ values: 'falsy' }).isString().isLength({ max: 20 }),
+  body('recovery_code').optional({ values: 'falsy' }).isString().isLength({ max: 40 }),
+  validate
+], authController.verifyRecovery);
+
+router.post('/recovery/complete', recoveryLimits.completeIp, [
+  body('flow').isString().isLength({ min: 43, max: 43 }).withMessage('This recovery has expired. Start again.'),
+  body('reset_token').isString().isLength({ min: 43, max: 43 }).withMessage('This recovery has expired. Start again.'),
   body('new_password').isString().isLength({ min: 8, max: 1024 }).withMessage('Password must be at least 8 characters.'),
   validate
-], authController.resetPasswordRecovery);
+], authController.completeRecovery);
 
 router.post('/register', [
   authenticate,
@@ -96,6 +85,12 @@ router.post('/mfa/setup', authenticate, mfaController.setup);
 router.post('/mfa/enable', authenticate, mfaController.enable);
 router.post('/mfa/recovery-codes', authenticate, mfaController.regenerateRecovery);
 router.post('/mfa/disable', authenticate, mfaController.disable);
+router.post('/mfa/assist-reset', authenticate, authorize('admin', 'subadmin', 'school'), [
+  body('user_id').isInt({ min: 1 }).withMessage('Choose the person to help.'),
+  body('code').isString().notEmpty().withMessage('Enter a current code from your authenticator app.'),
+  body('reset_password').optional().isBoolean(),
+  validate
+], mfaController.assistReset);
 
 // Guided tours: where this account got to (D27). Own account only — there is no id to pass.
 router.get('/tour', authenticate, tourController.get);
