@@ -179,6 +179,15 @@ const cookiePair = (setCookie, name) => { const c = setCookie.find(x => x.starts
     ok('...and warns against shared school tablets', /never on a shared school tablet/.test(auth));
     ok('the forget buttons use delegation, not inline handlers (D24)', /data-forget-browser=/.test(auth) && !/onclick="[^"]*[Ff]orget/.test(auth));
     ok('the idle sign-out is 30 minutes (NIST AAL2 allows up to 60)', /const SESSION_TIMEOUT = 30 \* 60 \* 1000;/.test(api));
+    // The platform admin's guide on the Security Overview is read aloud to schools:
+    // every number in it must be the code's number.
+    const sec = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'js', 'pages', 'security.js'), 'utf8');
+    const policy = require('../src/services/mfaPolicy');
+    const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Dar_es_Salaam' });
+    ok('the Security Overview guide states the trust periods the code uses',
+      sec.includes(`<strong>${trusted.DAYS.default} days</strong>`) && sec.includes(`<strong>${trusted.DAYS.admin} days</strong>`) && /30 idle minutes/.test(sec));
+    ok('...and the two-step dates the policy uses', sec.includes(day(policy.DEFAULT_ENFORCE_AFTER)) && sec.includes(day(policy.DEFAULT_STAFF_ENFORCE_AFTER).replace(/ 2026$/, '')),
+      [day(policy.DEFAULT_ENFORCE_AFTER), day(policy.DEFAULT_STAFF_ENFORCE_AFTER)]);
   } finally {
     await pool.query('DELETE FROM trusted_devices WHERE user_id IN (?, ?, ?)', [teacherId, fx.schoolAdmin.id, admin.id]);
     await pool.query("DELETE FROM audit_log WHERE action IN ('auth.browser_trusted', 'auth.browser_forgotten') AND entity_id IN (?, ?, ?)",

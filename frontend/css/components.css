@@ -944,6 +944,29 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .sec-briefing p { font-size: 14px; line-height: 1.7; color: var(--text); margin: 0 0 10px; max-width: 78ch; }
 .sec-briefing p:last-child { margin-bottom: 0; color: var(--text2); }
 .sec-layer-intro { font-size: 13px; color: var(--text2); margin: -6px 0 14px; line-height: 1.6; max-width: 78ch; }
+/* Platform admin guide (sign-in and accounts): native <details>, no script */
+.sec-guide { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+.sec-guide-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; }
+.sec-guide-item[open] { border-color: var(--border2); }
+.sec-guide-item summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--text); border-radius: 10px; }
+.sec-guide-item summary::-webkit-details-marker { display: none; }
+.sec-guide-item summary > i:first-child { font-size: 17px; flex-shrink: 0; }
+.sec-guide-item summary span { flex: 1; min-width: 0; }
+.sec-guide-item summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sec-guide-chev { font-size: 15px; color: var(--text3); transition: transform .15s; }
+.sec-guide-item[open] .sec-guide-chev { transform: rotate(180deg); }
+.sec-guide-body { padding: 0 14px 13px 41px; font-size: 13px; line-height: 1.65; color: var(--text2); }
+.sec-guide-body p { margin: 0 0 8px; }
+.sec-guide-body p:last-child { margin-bottom: 0; }
+.sec-guide-body ol, .sec-guide-body ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 5px; }
+.sec-guide-body strong { color: var(--text); font-weight: 600; }
+.sec-guide-body code { font-family: var(--font-mono); font-size: 11.5px; background: var(--bg2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; word-break: break-all; }
+@media (max-width: 920px) {
+  .sec-guide { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .sec-guide-body { padding-left: 14px; }
+}
 .sec-layers { display: flex; flex-direction: column; }
 .sec-layer { display: grid; grid-template-columns: 22px 38px 1fr; gap: 12px; padding: 14px 0; border-top: 1px solid var(--border); align-items: start; }
 .sec-layer:first-child { border-top: 0; padding-top: 4px; }

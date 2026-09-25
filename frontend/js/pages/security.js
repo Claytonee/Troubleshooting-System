@@ -230,9 +230,67 @@ const SecurityPage = (() => {
       'Every connection between a phone or laptop and the system is encrypted, so nobody can read the information on the way.',
       'Every person signs in with their own account, and the server — not the screen — decides what each person may see: a teacher sees their own reports, a school administrator sees only their own school, and only head office sees every school.',
       'Passwords are stored scrambled so that nobody, including us, can read them, and repeated password guessing is slowed down automatically.',
+      'Staff also confirm who they are with a code from an authenticator app on their own phone. It is asked on every new browser or device; a browser someone chooses to trust asks again after 30 days, or at once if they sign out everywhere or change their password.',
       'Messages from WhatsApp, SMS and the school servers must carry a secret key or signature before they are accepted, and important administrative changes are written to an audit trail.',
-      rc.total ? `We review the system against international standards (OWASP ASVS 5.0, NIST CSF 2.0) and Tanzania's Personal Data Protection Act, 2022. The latest review (${date}) found ${rc.total} issues: ${rc.fixed} are fixed and ${rc.total - rc.fixed} are being worked on, including automatic attack detection and alerting.` : ''
+      rc.total ? `We review the system against international standards (OWASP ASVS 5.0, NIST CSF 2.0) and Tanzania's Personal Data Protection Act, 2022. The latest review (${date}) found ${rc.total} issues: ${rc.fixed} ${rc.fixed === 1 ? 'is' : 'are'} fixed${rc.total - rc.fixed
+        ? ` and ${rc.total - rc.fixed} ${rc.total - rc.fixed === 1 ? 'is' : 'are'} being worked on` : ''}.` : ''
     ].filter(Boolean);
+  }
+
+  // The platform admin's practical guide to sign-in and accounts (D32, D33). Every
+  // number here is checked against services/trustedDevices.js by verify-trusted-devices.js.
+  const GUIDE = [
+    { icon: 'ti-login-2', color: 'var(--accent)', title: 'How signing in works now', open: true, body: `
+      <p>Everyone on staff signs in with their password <strong>and</strong> a 6-digit code from an authenticator app on their own phone
+        (Google Authenticator, Microsoft Authenticator, Authy). It is required for platform admins from 8 October 2026 and for everyone else from 9 October.</p>
+      <p>The code is asked on a <strong>new browser or device</strong>. At the code step, <strong>Trust this browser</strong> (unticked by default)
+        lets that browser sign in with the password alone — for <strong>30 days</strong>, or <strong>14 days</strong> for a platform admin.
+        The app signs out after 30 idle minutes; on a trusted browser, signing back in needs only the password.</p>` },
+    { icon: 'ti-device-laptop', color: 'var(--green)', title: 'When should staff tick "Trust this browser"?', body: `
+      <p><strong>Yes:</strong> their own laptop or their own phone.</p>
+      <p><strong>Never:</strong> a shared school tablet, a computer-lab machine, or any device someone else also uses. Whoever uses that browser
+        next would need only the password.</p>
+      <p>It is never offered after signing in with a recovery code — that usually means the phone is lost.</p>` },
+    { icon: 'ti-clock-off', color: 'var(--amber)', title: 'How a trusted browser stops being trusted', body: `
+      <p><strong>Automatically:</strong> after 30 days (14 for a platform admin), and at once when the person changes or resets their password,
+        uses <strong>Sign Out Everywhere</strong>, is suspended, has their two-step sign-in reset, or sets up a new authenticator.</p>
+      <p><strong>By hand:</strong> profile menu → <strong>Two-Step Sign-In</strong> → <em>Trusted browsers</em> → <strong>Forget</strong> or <strong>Forget all</strong>.</p>` },
+    { icon: 'ti-device-mobile-off', color: 'var(--red)', title: 'A laptop or phone is lost or stolen', body: `
+      <ol><li>On another device, open the profile menu → <strong>Sign Out Everywhere</strong>. Every session and every trusted browser ends at once.</li>
+        <li>Change the password (profile menu → <strong>Change Password</strong>).</li>
+        <li>If the lost phone held the authenticator, the person's supervisor resets their two-step sign-in (below), and they set it up on the new phone at the next sign-in.</li></ol>` },
+    { icon: 'ti-key', color: 'var(--purple)', title: 'Someone forgot their password', body: `
+      <p>They use <strong>Forgot password?</strong> on the sign-in page (it is also offered after two wrong passwords). They need any
+        <strong>two</strong> of: a 6-digit code emailed to them, a code from their authenticator app, or one saved recovery code.
+        Someone who has not set up the app yet needs only the emailed code.</p>
+      <p>The page answers the same whether or not an account exists, so it cannot be used to find out who has one.</p>` },
+    { icon: 'ti-shield-x', color: 'var(--amber)', title: 'Someone lost their phone and their recovery codes', body: `
+      <p>Confirm who they are by phone first. Then use the shield button <strong>Reset two-step sign-in</strong>: school admins do it for their
+        teachers on the <strong>Teachers</strong> page; you do it on <strong>School Admins</strong> and <strong>Sub-Admins</strong>. You enter a current
+        code from <em>your</em> authenticator, and can also give them a temporary password (shown once, changed at sign-in).</p>
+      <p>Their sessions and trusted browsers end, and they set up the authenticator again at the next sign-in.</p>` },
+    { icon: 'ti-speakerphone', color: 'var(--teal)', title: 'What to tell schools before 9 October', body: `
+      <ul><li>Each teacher needs <strong>their own phone</strong> with an authenticator app — not a shared tablet.</li>
+        <li>Save the ten recovery codes somewhere other than the phone (on paper, at home).</li>
+        <li>Tick <strong>Trust this browser</strong> only on a device that is theirs alone.</li></ul>` },
+    { icon: 'ti-lifebuoy', color: 'var(--text3)', title: 'If you, the platform admin, are locked out', body: `
+      <p>Sign in with one of your recovery codes, or ask another platform admin to reset your two-step sign-in. As a last resort, the server
+        console has <code>node scripts/mfa-reset.js &lt;username&gt; --yes</code> and <code>node scripts/password-reset.js &lt;username&gt; --prompt --yes</code>.
+        Keep a second platform admin so this is never the only way back in.</p>
+      <p>Trusting and forgetting browsers, two-step resets and password recoveries are all in the <strong>Audit Log</strong>.</p>` }
+  ];
+
+  function guideCard() {
+    return `<div class="card sec-guide-card">
+      <div class="card-title"><span><i class="ti ti-book-2" style="margin-right:6px"></i>Platform admin guide · sign-in and accounts</span></div>
+      <div class="sec-layer-intro">What to do, and what to tell people, when it comes to signing in. Open any question.</div>
+      <div class="sec-guide">${GUIDE.map(g => `
+        <details class="sec-guide-item"${g.open ? ' open' : ''}>
+          <summary><i class="ti ${g.icon}" style="color:${g.color}"></i><span>${esc(g.title)}</span><i class="ti ti-chevron-down sec-guide-chev"></i></summary>
+          <div class="sec-guide-body">${g.body}</div>
+        </details>`).join('')}
+      </div>
+    </div>`;
   }
 
   function briefing() {
@@ -802,6 +860,8 @@ const SecurityPage = (() => {
       </div>
       <div class="sec-briefing" id="sec-briefing">${briefing()}</div>
     </div>
+
+    ${guideCard()}
 
     <div class="card">
       <div class="card-title"><span><i class="ti ti-stack-2" style="margin-right:6px"></i>Layers of protection</span></div>
