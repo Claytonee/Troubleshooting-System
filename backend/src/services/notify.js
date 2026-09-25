@@ -39,7 +39,7 @@ function getTransporter() {
 /**
  * Low-level send. Returns { sent: boolean, skipped?: string, error?: string }.
  */
-async function sendMail({ to, subject, text, html }) {
+async function sendMail({ to, subject, text, html, attachments }) {
   if (!to) return { sent: false, skipped: 'no recipient' };
   const t = getTransporter();
   if (!t) {
@@ -51,7 +51,8 @@ async function sendMail({ to, subject, text, html }) {
   try {
     await t.sendMail({
       from: process.env.MAIL_FROM || process.env.SMTP_USER,
-      to, subject, text, html: html || undefined
+      to, subject, text, html: html || undefined,
+      attachments: attachments && attachments.length ? attachments : undefined
     });
     return { sent: true };
   } catch (e) {

@@ -120,15 +120,57 @@ async function flowFor(identifier, userId) {
     const noLink = (s) => !/<a\b|href\s*=|https?:\/\/|www\./i.test(s || '');
     ok('the code email has an HTML version as well as the text, both carrying the code',
       !!m.html && m.html.includes(stored.code) && (m.text || '').includes(stored.code));
-    ok('...branded "OE Technical Support" in the subject and the HTML', /OE Technical Support/.test(m.subject || '') && /OE Technical Support/.test(m.html || ''));
+    // The header is the sign-in page: the gold mark, the name in Axiforma, the
+    // official horizontal logo closing the email. All three are inline
+    // attachments, never remote images — a recovery email must not phone home.
+    const BRAND_CIDS = ['oe-mark@oe-support', 'oe-wordmark-tz@oe-support', 'oe-logo@oe-support'];
+    ok('...carries the mark, the Axiforma wordmark and the official logo as inline attachments',
+      Array.isArray(m.attachments) && m.attachments.length === BRAND_CIDS.length
+      && BRAND_CIDS.every(cid => m.attachments.some(a => a.cid === cid))
+      && m.attachments.every(a => a.contentDisposition === 'inline' && fs.existsSync(a.path)),
+      (m.attachments || []).map(a => a.cid));
+    ok('...and shows every one of them', BRAND_CIDS.every(cid => (m.html || '').includes('cid:' + cid)));
+    ok('...loads no remote image: an email that fetches is an email that reports who opened it',
+      !/<img[^>]+src="(?!cid:)/i.test(m.html || ''));
+    // The name reaches the reader as pixels, because Gmail and Outlook strip
+    // @font-face — Axiforma as live text would silently render as Arial. The
+    // alt attribute is what a client with images turned off shows instead, so
+    // the organisation's name must live there, not only in the picture.
+    ok('...sets the organisation name in Axiforma as an image, since email clients strip web fonts',
+      /src="cid:oe-wordmark-tz@oe-support"[^>]*alt="Opportunity Education Tanzania"/.test(m.html || '')
+      || /alt="Opportunity Education Tanzania"[^>]*src="cid:oe-wordmark-tz@oe-support"/.test(m.html || ''));
+    ok('...and does not rely on a web font that will not load',
+      !/font-family:\s*Axiforma/i.test(m.html || ''));
+    // The owner's brand rule (2026-09-25): heading and code in OE navy, the
+    // "nobody will ask you" warning in OE crimson. Colours are inlined because
+    // email has no CSS variables, so only a test keeps them from drifting.
+    const NAVY = '#073763', CRIMSON = '#c02b0a';
+    ok('...sets the heading and the code itself in OE navy',
+      new RegExp(`font-size:17px;font-weight:bold;color:${NAVY}`).test(m.html || '')
+      && new RegExp(`letter-spacing:6px[^"]*color:${NAVY}`).test(m.html || ''));
+    ok('...and the "nobody will ever ask you for this code" warning in OE crimson',
+      new RegExp(`color:${CRIMSON}[^"]*">Nobody from OE will ever ask you for this code`).test(m.html || ''));
+    // The body carries no "Opportunity Education Tanzania · OE Technical Support"
+    // strapline any more (the owner removed it, 2026-09-25): the header artwork
+    // already says who this is. So the subject carries the brand, and the HTML
+    // identifies the sender the way a reader sees it — the name in the wordmark's
+    // alt text, "Technical Support" beneath it.
+    ok('...branded "OE Technical Support" in the subject', /OE Technical Support/.test(m.subject || ''));
+    ok('...and identifies the sender in the header, readable with images off',
+      /alt="Opportunity Education Tanzania"/.test(m.html || '') && />Technical Support</i.test(m.html || ''));
     ok('...with no link anywhere', noLink(m.html) && noLink(m.text));
     ok('...and "Nobody from OE will ever ask you for this code." in both versions',
       [m.text, m.html].every(s => (s || '').includes('Nobody from OE will ever ask you for this code.')));
     const notice = recovery.changedEmail({ full_name: '<img src=x onerror=alert(1)>' }, ['email', 'recovery_code']);
     ok('the "password was changed" notice has HTML too, says how, and escapes the name',
       !!notice.html && /email \+ recovery code/.test(notice.html) && /email \+ recovery code/.test(notice.text)
-      && !/<img/.test(notice.html) && /&lt;img/.test(notice.html), notice.subject);
-    ok('...branded, and with no link', /OE Technical Support/.test(notice.subject) && noLink(notice.html) && noLink(notice.text));
+      && !/<img src=x/.test(notice.html) && /&lt;img/.test(notice.html), notice.subject);
+    ok('...has the same header, the same inline artwork, and no link',
+      /OE Technical Support/.test(notice.subject)
+      && BRAND_CIDS.every(cid => notice.html.includes('cid:' + cid))
+      && Array.isArray(notice.attachments)
+      && notice.attachments.map(a => a.path).join('|') === m.attachments.map(a => a.path).join('|')
+      && noLink(notice.html) && noLink(notice.text));
 
     console.log('\nCooldown and audit  one email a minute; the trail only after confirmed delivery');
     let before = await auditRequests(teacherId);

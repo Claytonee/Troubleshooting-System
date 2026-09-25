@@ -440,7 +440,20 @@ same for real and unknown accounts, and never lock accounts.
    `security_events` only, so an anonymous caller cannot flood `audit_log`.
 9. **Both emails have an HTML version** as well as the text, branded "OE Technical Support", with no
    link at all — a recovery email that never asks you to click is easier to tell apart from
-   phishing. The code email keeps "Nobody from OE will ever ask you for this code."
+   phishing. **The header is the sign-in page**: the gold Opportunity Education mark, the words
+   “Opportunity Education Tanzania” set in Axiforma, then “Technical Support”; the official
+   horizontal logo (the unmodified light-background asset published at `opportunityeducation.org`)
+   closes the email where `.oe-footer-logo` puts it on that page. All three are **inline CID
+   attachments, never remote images** — an email that fetches is an email that reports who opened
+   it — and each carries alt text for a client with images turned off.
+
+   They are images because email is not the web: Gmail and Outlook strip `@font-face`, so Axiforma
+   as live text silently renders as Arial, and they drop inline SVG entirely. `scripts/build-email-wordmark.js`
+   renders the wordmark and the mark from the very `.woff2` and `.svg` the browser loads, through
+   headless Chrome, so the email and the sign-in page cannot drift apart; the PNGs are committed, so
+   no deploy needs a browser. The heading and the code itself are OE navy (`#073763`) and
+   “Nobody from OE will ever ask you for this code.” is OE crimson (`#c02b0a`), inlined because
+   email has no CSS variables — `verify-account-recovery.js` holds all of it in place.
 
 **Not done:** SMS codes (D4), security questions (OWASP, NIST), or any recovery by one proof.
 

@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const path = require('path');
 const bcrypt = require('bcryptjs');
 const pool = require('../config/database');
 const notify = require('./notify');
@@ -63,15 +64,64 @@ const recoveryList = (u) => { try { return JSON.parse(u.mfa_recovery || '[]'); }
 // looks like, and one that never does is easier to tell apart from it.
 const escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const BRAND = 'OE Technical Support';
+const ORG = 'Opportunity Education Tanzania';
+const ICONS = path.join(__dirname, '..', '..', '..', 'frontend', 'icons');
+
+/**
+ * Brand colours, named once so changing one is one line.
+ *
+ * NAVY is the `--navy` token in frontend/css/variables.css. CRIMSON is the
+ * accent red Opportunity Education paints on opportunityeducation.org (#c02b0a,
+ * read off the rendered site alongside the gold #ffae00 and the logo's #263746).
+ * Email has no CSS variables, so these are inlined at every use.
+ */
+const NAVY = '#073763';
+const CRIMSON = '#c02b0a';
+
+/**
+ * The header is the sign-in page: the gold mark, the organisation's name set in
+ * Axiforma, then "Technical Support". The official horizontal Opportunity
+ * Education logo closes the email, exactly where `.oe-footer-logo` puts it on
+ * that page.
+ *
+ * All three are images because email is not the web: Gmail and Outlook strip
+ * `@font-face`, so Axiforma as live text silently becomes Arial, and they drop
+ * inline SVG entirely. Each carries `alt` text, so a client with images turned
+ * off still reads the organisation's name rather than an empty box. The two
+ * rendered files come from `scripts/build-email-wordmark.js`, which draws them
+ * from the very font and SVG the browser loads, so the email and the sign-in
+ * page cannot drift apart.
+ */
+const BRAND_ASSETS = [
+  { key: 'mark', file: 'oe-mark.png', cid: 'oe-mark@oe-support' },
+  { key: 'wordmark', file: 'oe-wordmark-tz.png', cid: 'oe-wordmark-tz@oe-support' },
+  { key: 'logo', file: 'oe-logo-official.png', cid: 'oe-logo@oe-support' }
+];
+const CID = Object.fromEntries(BRAND_ASSETS.map(a => [a.key, a.cid]));
+
+function brandAttachments() {
+  return BRAND_ASSETS.map(a => ({
+    filename: a.file,
+    path: path.join(ICONS, a.file),
+    cid: a.cid,
+    contentDisposition: 'inline'
+  }));
+}
 
 function htmlShell(title, bodyHtml) {
   return `<!doctype html><html><body style="margin:0;padding:0;background:#f4f5f7">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:24px 0"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:10px;border:1px solid #e3e5ea;font-family:Arial,Helvetica,sans-serif;color:#1d2130">
-<tr><td style="padding:18px 24px;border-bottom:3px solid #FFAE00;font-size:15px;font-weight:bold;color:#1d2130">${BRAND}</td></tr>
-<tr><td style="padding:22px 24px 8px;font-size:17px;font-weight:bold">${escHtml(title)}</td></tr>
+<tr><td align="center" style="padding:26px 24px 20px;border-bottom:3px solid #FFAE00">
+  <img src="cid:${CID.mark}" width="34" height="34" alt="" style="display:block;margin:0 auto 14px;border:0;outline:none">
+  <img src="cid:${CID.wordmark}" width="300" alt="${ORG}" style="display:block;margin:0 auto;width:100%;max-width:300px;height:auto;border:0;outline:none">
+  <div style="margin-top:6px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.3;font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;color:#6b7185">Technical Support</div>
+</td></tr>
+<tr><td style="padding:22px 24px 8px;font-size:17px;font-weight:bold;color:${NAVY}">${escHtml(title)}</td></tr>
 <tr><td style="padding:0 24px 22px;font-size:14px;line-height:1.6;color:#3a4050">${bodyHtml}</td></tr>
-<tr><td style="padding:14px 24px;border-top:1px solid #e3e5ea;font-size:12px;color:#6b7185">Opportunity Education Tanzania · ${BRAND}</td></tr>
+<tr><td align="center" style="padding:18px 24px;border-top:1px solid #e3e5ea">
+  <img src="cid:${CID.logo}" width="160" alt="Opportunity Education" style="display:block;margin:0 auto;width:100%;max-width:160px;height:auto;border:0;outline:none;opacity:0.7">
+</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
@@ -90,11 +140,11 @@ function codeEmail(user, code) {
   const html = htmlShell('Your password recovery code', `
     <p style="margin:0 0 14px">${escHtml(hello)}</p>
     <p style="margin:0 0 8px">Your password recovery code is:</p>
-    <p style="margin:0 0 16px;font-size:28px;font-weight:bold;letter-spacing:6px;font-family:'Courier New',monospace;color:#1d2130">${escHtml(code)}</p>
+    <p style="margin:0 0 16px;font-size:28px;font-weight:bold;letter-spacing:6px;font-family:'Courier New',monospace;color:${NAVY}">${escHtml(code)}</p>
     <p style="margin:0 0 14px">It expires in ${EMAIL_CODE_MINUTES} minutes. Enter it together with a code from your authenticator app, or one of your saved recovery codes.</p>
     <p style="margin:0 0 6px">If you did not ask for this, ignore this email: your password has not changed.</p>
-    <p style="margin:0;font-weight:bold">Nobody from OE will ever ask you for this code.</p>`);
-  return { subject: `${code} is your ${BRAND} recovery code`, text, html };
+    <p style="margin:0;font-weight:bold;color:${CRIMSON}">Nobody from OE will ever ask you for this code.</p>`);
+  return { subject: `${code} is your ${BRAND} recovery code`, text, html, attachments: brandAttachments() };
 }
 
 /** The "your password was changed" notice (NIST SP 800-63B-4). It cannot undo anything, so it carries no link or code. */
@@ -112,7 +162,7 @@ function changedEmail(user, factors) {
     <p style="margin:0 0 14px">Your password was just changed using account recovery (${escHtml(how)}).</p>
     <p style="margin:0 0 14px">Every other device has been signed out. Your authenticator app still works as before.</p>
     <p style="margin:0;font-weight:bold">If this was not you, tell your school admin or the platform administrator immediately.</p>`);
-  return { subject: `Your ${BRAND} password was changed`, text, html };
+  return { subject: `Your ${BRAND} password was changed`, text, html, attachments: brandAttachments() };
 }
 
 /** Who may recover by themselves: active, approved staff. */
