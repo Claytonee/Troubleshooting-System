@@ -416,3 +416,48 @@ async function completeRecovery(req, res, next) {
 
 module.exports = { login, register, getProfile, updateProfile, uploadAvatar, changePassword, revokeAllSessions,
   startRecovery, verifyRecovery, completeRecovery, sessionPayload, generateToken };
+
+/* ------------------------------------------------------------------ *
+ * Reading language (feature 14)
+ * ------------------------------------------------------------------ */
+
+/**
+ * Kept on the ACCOUNT, not in browser storage — school tablets are shared, so a
+ * per-device preference follows the tablet rather than the person, exactly the
+ * problem tour_state exists to avoid (D27).
+ *
+ * Unset means Kiswahili: the owner's default, and the language of the USSD menu.
+ * Nobody has to find a setting to be understood.
+ */
+const LANGUAGES = ['sw', 'en'];
+const DEFAULT_LANGUAGE = 'sw';
+
+async function getLanguage(req, res, next) {
+  try {
+    const [[row]] = await pool.query('SELECT language FROM users WHERE id = ?', [req.user.id]);
+    const stored = row && row.language;
+    res.json({
+      language: LANGUAGES.includes(stored) ? stored : DEFAULT_LANGUAGE,
+      chosen: LANGUAGES.includes(stored),
+      available: LANGUAGES
+    });
+  } catch (err) { next(err); }
+}
+
+/** PUT /api/auth/language  { language } — own account only; there is no id to pass. */
+async function setLanguage(req, res, next) {
+  try {
+    const wanted = String((req.body && req.body.language) || '').toLowerCase();
+    // A fixed-choice field is validated on the server, never only by the control.
+    if (!LANGUAGES.includes(wanted)) {
+      return res.status(400).json({ error: 'Unknown language.', available: LANGUAGES });
+    }
+    await pool.query('UPDATE users SET language = ? WHERE id = ?', [wanted, req.user.id]);
+    res.json({ language: wanted, chosen: true, available: LANGUAGES });
+  } catch (err) { next(err); }
+}
+
+module.exports.getLanguage = getLanguage;
+module.exports.setLanguage = setLanguage;
+module.exports.LANGUAGES = LANGUAGES;
+module.exports.DEFAULT_LANGUAGE = DEFAULT_LANGUAGE;

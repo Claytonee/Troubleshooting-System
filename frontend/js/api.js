@@ -167,6 +167,11 @@ const API = (() => {
     // Feature 14: everything internal that might fix this — steps, media, what
     // worked here before, what to read. Not just guides.
     assistResources: (params = {}) => { const qs = new URLSearchParams(params).toString(); return request('GET', '/assist/resources' + (qs ? '?' + qs : '')); },
+    // POST, not GET: a fault description is the body of a report, and a URL is
+    // logged, cached and shared.
+    assistAssess: (data) => request('POST', '/assist/assess', data || {}),
+    getLanguage: () => request('GET', '/auth/language'),
+    setLanguage: (language) => request('PUT', '/auth/language', { language }),
     guideHelped: (id, data) => request('POST', `/guides/${id}/helped`, data || {}),
     getGuidePerformance: () => request('GET', '/guides/performance'),
     getManuals: () => request('GET', '/manuals'),

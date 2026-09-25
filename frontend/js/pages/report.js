@@ -14,9 +14,13 @@ const ReportPage = (() => {
 
   async function load() {
     const user = API.getUser();
+    // The reading language comes from the account, so it is right on a shared
+    // tablet before the first panel renders.
+    const jobs = [loadLanguage()];
     if (user && user.role !== 'teacher') {
-      try { schools = await API.getSchools(); } catch (e) { schools = []; }
+      jobs.push(API.getSchools().then(s => { schools = s; }).catch(() => { schools = []; }));
     }
+    await Promise.all(jobs);
   }
 
   function render() {
@@ -168,14 +172,58 @@ const ReportPage = (() => {
    * a human" — the Report button stays exactly where it was.
    */
   let found = null, triedGuideId = null, openGuide = null;
+  // The written assessment (phase 2). Separate from `found` because it arrives
+  // later, costs a model round-trip, and must never hold up the resources.
+  let assessment = null, assessKey = null, assessing = false;
+  // Kiswahili by default (the owner's decision); the account remembers a choice.
+  let lang = 'sw';
+
+  async function loadLanguage() {
+    try { const r = await API.getLanguage(); lang = r.language || 'sw'; } catch (e) { lang = 'sw'; }
+  }
+
+  /**
+   * Flips this panel between Kiswahili and English and remembers it on the
+   * ACCOUNT — school tablets are shared, so browser storage would follow the
+   * tablet rather than the person.
+   */
+  async function toggleLanguage() {
+    lang = lang === 'sw' ? 'en' : 'sw';
+    renderSuggestions();
+    try { await API.setLanguage(lang); } catch (e) { /* the panel already switched */ }
+  }
 
   async function refreshSuggestions() {
     const category = Dropdown.getValue('f-category');
     const text = ($('f-title')?.value || '') + ' ' + ($('f-desc')?.value || '');
-    if (!category && text.trim().length < 6) { found = null; return renderSuggestions(); }
+    if (!category && text.trim().length < 6) { found = null; assessment = null; return renderSuggestions(); }
     try {
       found = await API.assistResources({ category: category || '', text: text.trim().slice(0, 300) });
     } catch (e) { found = null; }
+    renderSuggestions();
+    maybeAssess(category, text);
+  }
+
+  /**
+   * Asks for the sentence above the resources — once per distinct description.
+   *
+   * Never on every keystroke: that is a model round-trip per character, and the
+   * resources are already on screen. The panel renders with or without this;
+   * an unconfigured or failing model costs the sentence, never the help.
+   */
+  async function maybeAssess(category, text) {
+    const clean = text.trim();
+    if (!found || !found.matched || clean.length < 25) { assessment = null; return; }
+    const key = (category || '') + '|' + clean.slice(0, 300).toLowerCase();
+    if (key === assessKey || assessing) return;
+    assessKey = key;
+    assessing = true;
+    renderSuggestions();
+    try {
+      const r = await API.assistAssess({ category: category || '', text: clean.slice(0, 1200) });
+      assessment = r && r.ok ? r : null;
+    } catch (e) { assessment = null; }
+    assessing = false;
     renderSuggestions();
   }
 
@@ -197,6 +245,20 @@ const ReportPage = (() => {
   }
 
   const KIND_ICON = { video: 'ti-player-play', image: 'ti-photo', audio: 'ti-volume', pdf: 'ti-file-type-pdf', document: 'ti-file-text' };
+
+  /**
+   * The one line saying why this resource helps THIS fault, in the reader's
+   * language. Only ever present for a resource the model was actually handed —
+   * the refs are validated on the server, so nothing here can point at a
+   * resource that does not exist.
+   */
+  function whyFor(type, id) {
+    const w = assessment && assessment.why && assessment.why[`${type}:${id}`];
+    if (!w) return '';
+    const line = w[lang] || w.sw || w.en;
+    if (!line) return '';
+    return `<div style="font-size:11px;color:var(--accent);line-height:1.5;margin-top:3px">${esc(line)}</div>`;
+  }
 
   /**
    * The panel, in the order search engines settled on for "how do I fix X":
@@ -227,6 +289,7 @@ const ReportPage = (() => {
             <div style="font-size:11px;color:var(--text3)">${esc(g.category)} · ${g.steps.length} step${g.steps.length === 1 ? '' : 's'}${
               // null, never 0% — a guide nobody has met is not a guide that fails.
               g.success_rate != null ? ` · <span style="color:var(--green)">fixed it for ${g.success_rate}% of ${g.times_met}</span>` : ''}</div>
+            ${whyFor('guide', g.id)}
           </div>
           <i class="ti ti-chevron-${openGuide === g.id ? 'up' : 'down'}" style="font-size:14px;color:var(--text3);flex-shrink:0"></i>
         </div>
@@ -256,6 +319,7 @@ const ReportPage = (() => {
         <div style="flex:1;min-width:0">
           <div style="font-size:12px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(m.title)}</div>
           <div style="font-size:10px;color:var(--text3)">${esc(m.kind)}${m.file_size ? ' · ' + sizeStr(m.file_size) : ''}</div>
+          ${whyFor(m.type === 'photo' ? 'photo' : 'resource', m.id)}
         </div>
         <i class="ti ti-external-link" style="font-size:13px;color:var(--text3);flex-shrink:0"></i>
       </div>`).join('');
@@ -278,17 +342,43 @@ const ReportPage = (() => {
         <span style="font-size:10px;color:var(--text3);flex-shrink:0">${sizeStr(m.file_size)}</span>
       </div>`).join('');
 
+    // The answer in words, above everything. A person will not spend four
+    // minutes on a procedure until they know what they are dealing with.
+    const said = assessment && assessment.assessment ? (assessment.assessment[lang] || assessment.assessment.sw || assessment.assessment.en) : '';
+    const other = lang === 'sw' ? 'English' : 'Kiswahili';
+    const head = lang === 'sw'
+      ? { title: 'Jaribu hivi kwanza', sub: '— mengi ya haya hutatuliwa ndani ya dakika chache', watch: 'TAZAMA', fixed: 'ILIREKEBISHWA AWALI', read: 'SOMA ZAIDI', thinking: 'Inaangalia…' }
+      : { title: 'Try this first', sub: '— most of these are fixed in a few minutes', watch: 'WATCH', fixed: 'FIXED BEFORE', read: 'READ MORE', thinking: 'Looking at this…' };
+
+    const assessBlock = said ? `
+      <div style="background:rgba(79,124,255,.07);border:1px solid rgba(79,124,255,.2);border-radius:10px;padding:11px 13px;margin-bottom:11px">
+        <div style="display:flex;align-items:flex-start;gap:9px">
+          <i class="ti ti-sparkles" style="font-size:15px;color:var(--accent);margin-top:2px;flex-shrink:0"></i>
+          <div style="flex:1;min-width:0;font-size:13px;color:var(--text);line-height:1.6">${esc(said)}</div>
+        </div>
+        <button type="button" onclick="ReportPage.toggleLanguage()"
+          style="margin-top:9px;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;font-size:11px;font-weight:500;
+                 background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);
+                 border-radius:999px;cursor:pointer;font-family:var(--font)">
+          <i class="ti ti-language" style="font-size:13px"></i>${esc(other)}
+        </button>
+      </div>` : (assessing ? `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px;font-size:12px;color:var(--text3)">
+        <i class="ti ti-loader-2" style="font-size:14px;color:var(--accent)"></i>${esc(head.thinking)}
+      </div>` : '');
+
     slot.innerHTML = `
       <div style="background:rgba(54,217,204,.06);border:1px solid rgba(54,217,204,.22);border-radius:12px;padding:13px 15px;margin-bottom:16px">
+        ${assessBlock}
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
           <i class="ti ti-bulb" style="font-size:16px;color:var(--teal)"></i>
-          <strong style="font-size:13px;color:var(--text)">Try this first</strong>
-          <span style="font-size:11px;color:var(--text3)">— most of these are fixed in a few minutes</span>
+          <strong style="font-size:13px;color:var(--text)">${esc(head.title)}</strong>
+          <span style="font-size:11px;color:var(--text3)">${esc(head.sub)}</span>
         </div>
         ${stepCards}
-        ${watch.length ? band('ti-player-play', 'var(--purple)', 'Watch') + mediaCards : ''}
-        ${fixes.length ? band('ti-history', 'var(--green)', 'Fixed before') + fixCards : ''}
-        ${read.length ? band('ti-book', 'var(--text3)', 'Read more') + readCards : ''}
+        ${watch.length ? band('ti-player-play', 'var(--purple)', head.watch) + mediaCards : ''}
+        ${fixes.length ? band('ti-history', 'var(--green)', head.fixed) + fixCards : ''}
+        ${read.length ? band('ti-book', 'var(--text3)', head.read) + readCards : ''}
       </div>`;
   }
 
@@ -482,5 +572,5 @@ const ReportPage = (() => {
   }
 
   return { load, render, onCategoryChange, submit, handleFiles, handleDrop, removeFile,
-    toggleGuide, guideFixedIt, stillBroken, refreshSuggestions, openResource };
+    toggleGuide, guideFixedIt, stillBroken, refreshSuggestions, openResource, toggleLanguage };
 })();

@@ -96,6 +96,10 @@ router.post('/mfa/assist-reset', authenticate, authorize('admin', 'subadmin', 's
 router.get('/tour', authenticate, tourController.get);
 router.put('/tour/:id', authenticate, tourController.update);
 
+// Reading language (feature 14). On the account, not the device: tablets are shared.
+router.get('/language', authenticate, authController.getLanguage);
+router.put('/language', authenticate, authController.setLanguage);
+
 // Sign this account out on every device (SEC-005).
 router.post('/sessions/revoke-all', authenticate, authController.revokeAllSessions);
 router.put('/profile', authenticate, authController.updateProfile);

@@ -38,6 +38,17 @@ async function api(method, p, { token } = {}) {
 }
 const ask = (token, params) => api('GET', '/assist/resources?' + new URLSearchParams(params), { token });
 
+async function send(method, p, token, body) {
+  const r = await fetch(BASE + '/api' + p, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+    body: JSON.stringify(body || {})
+  });
+  return { status: r.status, body: await r.json().catch(() => null) };
+}
+const postJson = (p, token, body) => send('POST', p, token, body);
+const putJson = (p, token, body) => send('PUT', p, token, body);
+
 /** Everything this suite wrote, removed in the finally. */
 const made = { guides: [], manuals: [], errors: [], attachments: [], schools: [] };
 
@@ -212,6 +223,90 @@ async function run() {
   ok('...while the note that says what was actually done still is',
     (afterBoiler.body.fixes || []).some(x => /reseated the power lead/i.test(x.what_was_done || '')),
     (afterBoiler.body.fixes || []).map(x => x.what_was_done));
+
+  /* -- phase 2: the sentence above the resources ------------------------- */
+
+  section('The assessment is grounded in the retrieved set, or it is not shown');
+
+  // These run against the real service with no model configured on a dev
+  // machine, so they assert the CONTRACT rather than the prose: what the
+  // grounding does with invented refs, and that a missing model costs the
+  // sentence and never the resources.
+  const assessment = require('../src/services/assessment');
+  const fakeFound = {
+    matched: true,
+    steps: [{ id: 41, title: 'A guide', category: 'Hardware', steps: ['one', 'two'] }],
+    watch: [{ type: 'resource', id: 7, kind: 'video', title: 'A video', category: 'Hardware' }],
+    fixes: [{ id: 99, title: 'A past fault', days_ago: 4, what_was_done: 'Reseated the lead.' }],
+    read: []
+  };
+  const described = assessment.describe(fakeFound);
+  ok('every candidate is handed to the model with a ref it must answer with',
+    described.refs.has('guide:41') && described.refs.has('resource:7') && described.refs.has('fix:99'),
+    [...described.refs]);
+  ok('...and nothing else is in the allowed set', described.refs.size === 3, [...described.refs]);
+  ok('the past fix is described by what was done, which is the whole point of it',
+    described.lines.some(l => /Reseated the lead/.test(l)), described.lines);
+
+  ok('a reply wrapped in prose still parses',
+    (assessment.extractJson('Here you go:\n{"assessment_sw":"a","picks":[]}\nHope that helps') || {}).assessment_sw === 'a');
+  ok('a reply with a nested object parses to the outer one',
+    (assessment.extractJson('{"a":{"b":1},"c":2}') || {}).c === 2);
+  ok('a reply that is not JSON at all yields null, so the caller falls back',
+    assessment.extractJson('I could not do that') === null);
+  ok('a brace inside a string does not end the object early',
+    (assessment.extractJson('{"assessment_sw":"tumia } hii","picks":[]}') || {}).assessment_sw === 'tumia } hii');
+
+  section('A model that is unconfigured costs the sentence, never the help');
+
+  const assessed = await api('POST', '/assist/assess', { token }) ;
+  ok('the endpoint answers rather than erroring', assessed.status === 200 || assessed.status === 400, assessed.status);
+
+  const shortAsk = await postJson('/assist/assess', token, { category: 'Hardware', text: 'short' });
+  ok('a description too thin to assess is refused politely, not guessed at',
+    shortAsk.status === 200 && shortAsk.body.ok === false && shortAsk.body.reason === 'too_short', shortAsk.body);
+
+  const realAsk = await postJson('/assist/assess', token, {
+    category: 'Hardware',
+    text: `${MARK} charging hub will not power on, all 12 tablets on hub 2 are dead and the light is off`
+  });
+  ok('a real description gets a structured answer either way', realAsk.status === 200, realAsk.status);
+  if (realAsk.body && realAsk.body.ok) {
+    ok('...with both languages, because a second translation call is how they drift',
+      !!(realAsk.body.assessment && realAsk.body.assessment.sw && realAsk.body.assessment.en), realAsk.body.assessment);
+    ok('...and every "why" is keyed by a ref that was actually retrieved',
+      Object.keys(realAsk.body.why || {}).every(k => /^(guide|resource|photo|fix):\d+$/.test(k)),
+      Object.keys(realAsk.body.why || {}));
+    ok('...with nothing invented', realAsk.body.invented_refs === 0, realAsk.body.invented_refs);
+  } else {
+    ok('...or a named reason the page can fall back on',
+      typeof realAsk.body.reason === 'string' && realAsk.body.reason.length > 0, realAsk.body);
+  }
+
+  // The resources must be unaffected by whatever the model did.
+  const stillThere = await ask(token, { category: 'Hardware', text: `${MARK} charging hub will not power on` });
+  ok('the resources are there whatever the model did',
+    stillThere.body.matched === true && (stillThere.body.steps || []).length > 0, stillThere.body.matched);
+
+  section('Reading language lives on the account, not the device');
+
+  const langGet = await api('GET', '/auth/language', { token });
+  ok('an account that has not chosen reads Kiswahili',
+    langGet.status === 200 && langGet.body.language === 'sw' && langGet.body.chosen === false, langGet.body);
+
+  const setEn = await putJson('/auth/language', token, { language: 'en' });
+  ok('a choice is accepted', setEn.status === 200 && setEn.body.language === 'en', setEn.body);
+
+  const langAgain = await api('GET', '/auth/language', { token });
+  ok('...and survives, because it is on the account not in browser storage',
+    langAgain.body.language === 'en' && langAgain.body.chosen === true, langAgain.body);
+
+  const bogusLang = await putJson('/auth/language', token, { language: 'fr; DROP TABLE users' });
+  ok('a language that is not on the list is refused on the server',
+    bogusLang.status === 400, bogusLang.status);
+
+  const anonLang = await api('GET', '/auth/language');
+  ok('and no session, no preference', anonLang.status === 401, anonLang.status);
 
   section('Its own mount, so no /:id can swallow it');
 

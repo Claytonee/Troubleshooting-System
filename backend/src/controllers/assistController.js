@@ -3,8 +3,12 @@
  * docs/features/14-guided-resolution.md
  */
 const resources = require('../services/resources');
+const assessment = require('../services/assessment');
 
 const CATEGORIES = ['Connectivity', 'Hardware', 'Platform', 'Power', 'Accounts', 'Other'];
+
+/** Below this, a description is too thin for a model to say anything useful about. */
+const ASSESS_MIN_CHARS = 25;
 
 /**
  * GET /api/assist/resources?category=&text=
@@ -38,4 +42,40 @@ async function resourcesFor(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { resources: resourcesFor };
+/**
+ * POST /api/assist/assess   { category, text }
+ *
+ * The sentence above the resources: what this most likely is, in Kiswahili and
+ * English, plus one line per resource saying why it helps.
+ *
+ * A separate call from `/resources` on purpose. That one fires as somebody
+ * types and must stay instant; this one costs a model round-trip, so the page
+ * asks for it once, when there is actually something to assess. The resources
+ * render either way — an unconfigured, slow or failing model loses the
+ * sentence, never the help.
+ */
+async function assessFor(req, res, next) {
+  try {
+    const raw = String((req.body && req.body.category) || '').trim();
+    const category = CATEGORIES.includes(raw) ? raw : '';
+    const text = String((req.body && req.body.text) || '').slice(0, 1200);
+
+    if (text.trim().length < ASSESS_MIN_CHARS) {
+      return res.json({ ok: false, reason: 'too_short' });
+    }
+
+    const found = await resources.find({
+      category,
+      text,
+      viewerSchoolId: req.user.school_id || null
+    });
+    if (!found.matched) return res.json({ ok: false, reason: 'nothing_to_assess' });
+
+    const result = await assessment.assess({ category, text, found });
+    // `ok: false` is a normal answer here, not an error: it is how the page
+    // learns to render the resources without a sentence above them.
+    res.json(result);
+  } catch (err) { next(err); }
+}
+
+module.exports = { resources: resourcesFor, assess: assessFor };

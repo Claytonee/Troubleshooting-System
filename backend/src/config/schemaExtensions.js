@@ -633,6 +633,14 @@ async function applyExtensions(db) {
   // Nullable: NULL means the account has never been offered a tour.
   await q('ALTER TABLE users ADD COLUMN tour_state TEXT NULL');
 
+  // --- Reading language (feature 14) ---
+  // On the ACCOUNT, not in browser storage, for the same reason tour_state is:
+  // school tablets are shared, so a per-device preference would follow the
+  // tablet rather than the person. NULL means "not chosen", which reads as
+  // Kiswahili — the owner's default (2026-09-25). Nullable and never
+  // backfilled: nobody is assumed to have made a choice they did not make.
+  await q("ALTER TABLE users ADD COLUMN language VARCHAR(5) NULL");
+
   // --- Security events (SEC-006, DECISIONS.md D2) ---
   // Evidence of refusals: failed and throttled sign-ins, role and school
   // refusals, rejected webhooks. Written in batches by services/securityEvents.js;

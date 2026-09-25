@@ -18,4 +18,9 @@ router.use(authenticate);
 // to file, a school admin deciding whether to escalate, an engineer in a lab.
 router.get('/resources', assistController.resources);
 
+// The sentence above them. POST because the fault description is the body of a
+// report, not a query string — a URL is logged, cached and shared, and a fault
+// description can name a person.
+router.post('/assess', assistController.assess);
+
 module.exports = router;
