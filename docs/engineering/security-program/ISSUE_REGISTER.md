@@ -29,6 +29,7 @@ The Security Overview page (`#security`) shows the `SEC-*` rows of this file.
 | SEC-015 | P2 | **Mitigated** 2026-09-24 (cause is a host setting) | HTTP, all | The host's proxy let a visitor choose the address the system records |
 | INT-001 | P3 | **Fixed** 2026-09-24 | Faults | Fault codes reissued after deletion; a race duplicated them |
 | TEST-001 | P2 | **Fixed** 2026-09-24 | Test harness | `verify-heartbeat.js` swept every real LRS device, and its cleanup deleted rows it did not create |
+| FLOW-001 | P2 | **Fixed** 2026-09-26 | Faults, notifications | A routed fault reached the queue but not the person: escalations and teachers' reports never rang a bell |
 | TEST-002 | P3 | **Fixed** 2026-09-24 | Test harness | The pre-push gate tidied test incidents but left their evidence, so detection reopened one a minute later |
 
 ---
@@ -340,6 +341,33 @@ seven such orphans from 9–10 September, and they were removed on 2026-09-24.
   IP in Header* setting so that a visitor-supplied header is not trusted. Then re-run the check
   in TEST_RESULTS.md. Until it passes, no block by address may be built (D5, D28).
 - **Regression:** `verify-client-ip.js` (9): 1 passed / 8 failed on the old code, 9/9 on the fix.
+
+## FLOW-001 — A routed fault reached the queue, not the person · P2 · Fixed
+
+Found on 2026-09-26 while writing the escalation guide (D34), by checking each step the guide was about
+to promise against the code. Not a security finding. It is here because the chain it breaks,
+teacher → school admin → head office → field engineer, is the system's main purpose.
+
+1. **"Escalate to OE" told nobody.** `POST /errors/:id/escalate` set the level, the status and the
+   assignee, and stopped there: nothing on head office's bell or the engineer's, no email and no SMS. The
+   status path (`PATCH /status` to escalated) did send email and SMS; the button people actually press did not.
+2. **Routing straight to an engineer was silent.** A critical report, a school admin's own report and a
+   WhatsApp/USSD/SMS report routed to the engineer filled `assigned_to` and wrote nothing to the engineer's bell.
+   WhatsApp still replied "An engineer has been notified." Only the manual **Assign** button wrote to it.
+3. **The school admin's bell never drew a teacher's fault.** Since 2026-09-09 the server has written an
+   `error_reported` notice for every teacher's fault, and `verify-school-chain.js` proved the API returned it.
+   The bell panel drew only `guide_escalation`, so the notice never appeared on screen. An API test
+   passing is not the same as a person seeing it.
+
+**Fix:** `intake.notifyEngineer()` and `intake.notifyHeadOffice()`, called by the web form, WhatsApp,
+USSD/SMS and the escalate handler; escalation also sends the email and SMS the status path always sent.
+Head office's notice says when the school has **no field engineer** (`unassigned: true`, drawn red), because
+then nobody else holds the fault. The bell draws `error_reported` for school admins and `error_escalated` for
+head office, and both open the fault itself.
+
+**Evidence:** `verify-escalation-notices.js`, 37 checks, including headless Chrome at 1440 and 390 px:
+the teacher's fault is on the school admin's bell, and clicking it opens that fault with **Escalate to OE**.
+Against the old code the escalation, engineer and browser checks fail.
 
 ## TEST-002 — The gate left evidence that reopened an incident · P3 · Fixed
 

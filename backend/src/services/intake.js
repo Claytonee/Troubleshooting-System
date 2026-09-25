@@ -65,6 +65,50 @@ async function notifySchoolAdmin({ schoolId, errorId, errorCode, priority, categ
   }
 }
 
+/**
+ * Puts a fault on the field engineer's bell (read by `meta.assigned_to`).
+ *
+ * Routing a fault to an engineer used to fill `assigned_to` and stop there:
+ * a critical report, a school admin's own report and an "Escalate to OE" all
+ * reached the engineer's queue without reaching the engineer. Only the manual
+ * Assign button wrote to their bell. Best-effort, like notifySchoolAdmin.
+ */
+async function notifyEngineer({ engineerId, errorId, errorCode, title, message }) {
+  if (!engineerId) return false;
+  try {
+    await pool.query(
+      `INSERT INTO admin_notifications (target_role, type, title, message, meta)
+       VALUES ('subadmin', 'error_assigned', ?, ?, ?)`,
+      [String(title).slice(0, 300), message || null,
+        JSON.stringify({ error_id: errorId, error_code: errorCode, assigned_to: Number(engineerId) })]
+    );
+    return true;
+  } catch (e) {
+    console.error('[intake] engineer notification failed:', e.message);
+    return false;
+  }
+}
+
+/**
+ * Puts an escalation on head office's bell. "Escalate to OE" says the fault
+ * goes to Opportunity Education; this is what makes that true. It matters most
+ * when the school has no field engineer, because then nobody else holds it.
+ */
+async function notifyHeadOffice({ errorId, errorCode, schoolId, title, message, unassigned }) {
+  try {
+    await pool.query(
+      `INSERT INTO admin_notifications (target_role, type, title, message, meta)
+       VALUES ('admin', 'error_escalated', ?, ?, ?)`,
+      [String(title).slice(0, 300), message || null,
+        JSON.stringify({ error_id: errorId, error_code: errorCode, school_id: Number(schoolId), unassigned: !!unassigned })]
+    );
+    return true;
+  } catch (e) {
+    console.error('[intake] head-office notification failed:', e.message);
+    return false;
+  }
+}
+
 /** Next QFT-#### code, derived from the highest number rather than the last row. */
 async function nextErrorCode() {
   // Delegates to the single sequence (INT-001); kept so existing callers still work.
@@ -157,7 +201,7 @@ function makeTitle(text, fallback = 'Reported by phone') {
 }
 
 module.exports = {
-  routeFor, notifySchoolAdmin, nextErrorCode,
+  routeFor, notifySchoolAdmin, notifyEngineer, notifyHeadOffice, nextErrorCode,
   normalizeTz, resolveIdentity, schoolByCode,
   guessCategory, guessPriority, makeTitle,
   SCHOOL_LEVEL_ROLES

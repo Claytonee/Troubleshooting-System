@@ -258,3 +258,10 @@ code, three made-up addresses became three evidence rows and rotating addresses 
 |---|---|
 | `verify-trusted-devices.js` | **35 / 35**: opt-in only; app code only (never a recovery code); cookie HttpOnly, SameSite=Strict, `/api/auth`, 30 days / 14 for admins; SHA-256 at rest; password still required; bound to its account; tampered, expired, forgotten, "sign out everywhere" and re-enrolment all ask for the code again; ten per account; audited; no secret in any evidence |
 | Browser (headless Chrome, 1440 and 390 px) | box unticked by default; tick, code, sign out, sign in: **no code asked**; the Two-Step window lists "this browser"; Forget empties it |
+
+## FLOW-001 — routed faults reach a bell (2026-09-26)
+
+| Check | Result |
+|---|---|
+| `verify-escalation-notices.js` | **37 / 37**: a teacher's fault is on the school admin's bell and nobody else's; "Escalate to OE" puts it on head office's bell (with the reason) and on the field engineer's; a second escalation is refused and writes no second notice; critical and school-admin reports reach the engineer at once; a school with no engineer is flagged to head office as unassigned; Assign reaches the engineer, only head office may Assign, Open becomes In Progress and Escalated stays Escalated; WhatsApp and USSD/SMS call the same helper |
+| Browser (headless Chrome, 1440 and 390 px) | the school admin's bell lists the teacher's fault; clicking it opens that fault with **Escalate to OE** |

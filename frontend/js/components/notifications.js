@@ -19,6 +19,20 @@ const Notifications = (() => {
     if (panel) panel.style.display = 'none';
   }
 
+  function markRead(id) {
+    const token = API.getToken();
+    if (!token || !id) return;
+    fetch(`/api/schools/notifications/${id}/read`, { method: 'PATCH', headers: { 'Authorization': `Bearer ${token}` } }).catch(() => {});
+  }
+
+  /** From a bell item straight into the fault it is about. */
+  function openError(errorId) {
+    Router.navigate('tracker');
+    App.loadAndRender().then(() => {
+      if (errorId && typeof ErrorDetailModal !== 'undefined') ErrorDetailModal.open(errorId);
+    });
+  }
+
   async function refresh() {
     items = [];
     const user = API.getUser();
@@ -83,6 +97,19 @@ const Notifications = (() => {
               });
               return;
             }
+            if (n.type === 'error_escalated') {
+              const meta = typeof n.meta === 'string' ? JSON.parse(n.meta) : (n.meta || {});
+              items.push({
+                type: 'error_escalated',
+                icon: 'ti ti-arrow-up-right',
+                color: meta.unassigned ? 'var(--red)' : 'var(--purple)',
+                title: n.title,
+                sub: `${n.message ? truncate(n.message, 70) : ''} · ${timeAgo(n.created_at)}`,
+                notifId: n.id,
+                action: () => { close(); markRead(n.id); openError(meta.error_id); }
+              });
+              return;
+            }
             items.push({
               type: 'contact_update',
               icon: 'ti ti-address-book',
@@ -137,6 +164,21 @@ const Notifications = (() => {
         const escRes = await fetch('/api/schools/notifications', { headers });
         if (escRes.ok) {
           const notifs = await escRes.json();
+          // A fault from one of their teachers. The server has written these
+          // since 2026-09-09; the bell only ever drew guide escalations, so a
+          // teacher's report reached the tracker and never the bell.
+          notifs.filter(n => !n.is_read && n.type === 'error_reported').forEach(n => {
+            const meta = typeof n.meta === 'string' ? JSON.parse(n.meta) : (n.meta || {});
+            items.push({
+              type: 'error_reported',
+              icon: 'ti ti-bug',
+              color: meta.priority === 'critical' ? 'var(--red)' : 'var(--amber)',
+              title: n.title,
+              sub: `${n.message ? truncate(n.message, 60) : ''} · ${timeAgo(n.created_at)}`,
+              notifId: n.id,
+              action: () => { close(); markRead(n.id); openError(meta.error_id); }
+            });
+          });
           notifs.filter(n => !n.is_read && n.type === 'guide_escalation').forEach(n => {
             const meta = typeof n.meta === 'string' ? JSON.parse(n.meta) : (n.meta || {});
             items.push({

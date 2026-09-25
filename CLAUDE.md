@@ -311,6 +311,11 @@ can walk to the room (reported 2026-09-09). **`POST /errors/:id/escalate` is wha
 fault to the engineer** — it fills `assigned_to` with `schools.assigned_admin_id` when the
 row is still unassigned, or an escalation would raise the level and leave nobody holding it.
 
+**Every route ends on a bell** (FLOW-001). `intake.notifyEngineer()` / `notifyHeadOffice()` are called
+wherever a fault is routed to someone: the web form, WhatsApp, USSD/SMS and the escalate handler. Filling
+`assigned_to` is not telling anybody. A new bell `type` needs a branch in `components/notifications.js`,
+or the server writes it and nobody sees it (`error_reported` was invisible for 17 days).
+
 **A teacher cannot change a fault's status** — not by `PATCH /status` and not through the
 full `PUT` (both refuse with `TEACHER_CANNOT_SET_STATUS`). They own the row, so the access
 check passes; closing their own ticket took it out of the school admin's queue unlooked-at.

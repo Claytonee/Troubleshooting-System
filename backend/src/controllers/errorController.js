@@ -317,6 +317,15 @@ async function create(req, res, next) {
         priority: prio, category, reporterName: req.user.full_name, critical
       });
     }
+    // Routed straight to the engineer (critical, or reported by the school
+    // level): put it on their bell, not only in their queue.
+    if (assignedTo) {
+      await intake.notifyEngineer({
+        engineerId: assignedTo, errorId: result.insertId, errorCode,
+        title: `${errorCode} assigned to you — ${critical ? 'critical, ' : ''}${row.school_name}`,
+        message: `${req.user.full_name || 'Someone'} reported "${title}" (${prio}, ${category})`
+      });
+    }
     // Critical issues also fire an SMS (most reliable channel in the field).
     if (prio === 'critical') {
       const phones = await getPhoneRecipients(result.insertId);
@@ -599,7 +608,29 @@ async function escalateToAdmin(req, res, next) {
       summary: `${row.error_code} escalated to ${targetLevel}: ${reason}`, meta: { reason, target: targetLevel }
     });
 
-    res.json({ message: `Error escalated to ${targetLabel}.` });
+    // Tell the people it was escalated to. This handler used to change the
+    // row and stop: no bell, no email, so "Escalate to OE" reached nobody.
+    const holder = row.assigned_to || assignee || null;
+    if (targetLevel === 'platform') {
+      await intake.notifyHeadOffice({
+        errorId: row.id, errorCode: row.error_code, schoolId: row.school_id,
+        title: `${row.error_code} escalated by ${row.school_name}`,
+        message: `${req.user.full_name || 'School admin'}: ${reason}${note ? ' — ' + note : ''}${holder ? '' : ' · No field engineer is assigned to this school: assign one.'}`,
+        unassigned: !holder
+      });
+      if (holder) {
+        await intake.notifyEngineer({
+          engineerId: holder, errorId: row.id, errorCode: row.error_code,
+          title: `${row.error_code} escalated to you — ${row.school_name}`,
+          message: `${req.user.full_name || 'School admin'}: ${reason}${note ? ' — ' + note : ''}`
+        });
+      }
+      const fresh = await getErrorRow(id);
+      notifyErrorEvent('escalated', fresh, { recipients: await getRecipients(id), actorName: req.user.full_name, previousStatus: row.status });
+      notifyErrorSms('escalated', fresh, { phones: await getPhoneRecipients(id) });
+    }
+
+    res.json({ message: `Error escalated to ${targetLabel}.`, assigned_to: holder, notified: targetLevel === 'platform' ? (holder ? ['head_office', 'engineer'] : ['head_office']) : [] });
   } catch (err) { next(err); }
 }
 

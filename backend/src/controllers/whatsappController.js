@@ -283,6 +283,13 @@ async function fileFromDraft(conv) {
       reporterName, critical: route.critical
     });
   }
+  if (route.assignedTo) {
+    await intake.notifyEngineer({
+      engineerId: route.assignedTo, errorId: errorId, errorCode,
+      title: `${errorCode} assigned to you — ${route.critical ? 'critical, ' : ''}${school.name || 'a school'}`,
+      message: `${reporterName} reported "${title}" (${priority}, ${category})`
+    });
+  }
 
   await pool.query('UPDATE whatsapp_messages SET error_id = ? WHERE conversation_id = ? AND error_id IS NULL',
     [errorId, conv.id]);

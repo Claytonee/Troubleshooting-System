@@ -306,6 +306,13 @@ async function fileFault({ school, who, phone, category, priority, note, scopeEn
       reporterName: who.name || contact, critical: route.critical
     });
   }
+  if (route.assignedTo) {
+    await intake.notifyEngineer({
+      engineerId: route.assignedTo, errorId: result.insertId, errorCode,
+      title: `${errorCode} assigned to you — ${route.critical ? 'critical, ' : ''}${school.name}`,
+      message: `${who.name || contact} reported "${title}" (${priority}, ${category})`
+    });
+  }
 
   await logAudit({
     actor: { id: who.user_id || null, full_name: who.name || contact, role: who.verified ? channel : `${channel}-unverified` },
