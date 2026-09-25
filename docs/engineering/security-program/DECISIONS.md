@@ -455,6 +455,42 @@ lost phones.
 **Revisit when:** the teachers' `@school.oetz.org` addresses are confirmed to be real mailboxes, or
 passkeys become practical on the schools' phones.
 
+## D33 — A dashboard tile must change somebody's next action
+
+**Problem:** the owner's brief was that data is expensive, and that what goes on a dashboard must be
+*data that matters* — per level, and only if it leads to a decision. Audited against that, the page
+failed three ways. The SLA tile counted breaches by filtering a list the backend caps at `LIMIT 6`,
+so on a twenty-five-breach day it reported six — the one figure meaning *we are failing a school
+right now* was the one that could not tell the truth, and had been wrong since it was written. The
+`school` role fell through head office's query filtered to one row and was shown *Schools Healthy:
+1/1*, a tautology, and *Week N Check-Ins: 0/1*, a binary dressed as a fraction. And a grep for
+`tablet|lrs|heartbeat|maintenance|spare|visit|csat` over the dashboard frontend returned **0** —
+the fleet, the heartbeat, the maintenance schedule and the spares stockout were all collected and
+none of them shown, while *Guides Available: 24* and *Total Reported: all time* held prime tiles.
+
+**Decision:** one test for every figure — *if this number changed, what would this person do
+differently today?* No answer, no tile. The four roles get four separate queries and four separate
+renders (`docs/features/13-dashboards-by-level.md`): head office gets the dispatch question, a
+school administrator gets their devices, their queue, their LRS and their checks due, a teacher gets
+whether their own report is moving and what to try while they wait, an engineer gets the queue and
+what to load into the vehicle. Direction and term-scale analysis stay on `#analytics`, which already
+holds thirteen weeks of it.
+
+**Rules that came out of it:** never count over a list (count in SQL over every row; the list beside
+it is a top-N); nothing measurable means `null`, never 0 or 100%; on-time is windowed to 30 days
+because a lifetime figure barely moves; order a queue by what is late, then by severity; `spares_needed`
+is `max(0, down − spares)` and *short of spares* is not *no spares at all*; format an age rather than
+printing raw minutes; one banner per page, and a blackout outranks a clock.
+
+**Verified by:** `backend/scripts/verify-dashboards.js` — 34 assertions, including one that
+reproduces the LIMIT-6 undercount (eight breaches created; the count must match the database and
+exceed the list beside it) and one that ties the school administrator's "waiting on you" to the
+routing rule in `errorController.create()`.
+
+**Not done:** cost-per-school, device cost-to-date and batch failure rates. The lifecycle columns
+exist (feature 4) but are unpopulated, and a procurement figure computed from empty columns is worse
+than none. Revisit when purchase data is entered.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.

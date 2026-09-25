@@ -323,6 +323,33 @@ to follow. The token takes no auth on submission — it *is* the capability — 
 a platform admin was giving them the school's answer to "was this actually fixed".
 List rows never carry it, for anybody.
 
+### A dashboard tile must change somebody's next action (D33, feature 13)
+`docs/features/13-dashboards-by-level.md`, `verify-dashboards.js`. Before adding a figure
+to `#dashboard`, answer: **if this number changed, what would this person do differently
+today?** No answer means it is decoration, and it is decoration in the most expensive space
+in the product. *Total reported (all time)*, *Guides available* and *In progress* were
+removed on exactly that test.
+
+- **The four roles do not share a query.** A school administrator used to get head office's
+  dashboard filtered to one row — "Schools Healthy: 1/1", a tautology. Theirs is devices,
+  who holds each fault, the LRS, and the checks due; head office's is the dispatch question;
+  a teacher's is whether their own report is moving; the engineer's is the queue and what to
+  load into the vehicle.
+- **Never count over a list.** The SLA tile filtered `recent_errors`, which the backend caps
+  at `LIMIT 6` — so it reported six breaches on a twenty-five-breach day, and had done since
+  it was written. Count in SQL over every row; the list beside it is a top-N and nothing more.
+- **Nothing measurable means nothing claimed** — `null`, never 0 and never 100%. On-time is
+  windowed to 30 days: a lifetime figure barely moves, so it can never say whether this
+  month went well.
+- **Order a queue by what is late, then by severity.** Priority alone put a fresh critical
+  above a high that had been past due for two days.
+- **`spares_needed` is `max(0, down − spares)`** — a packing list, never negative. *Short of
+  spares* and *no spares at all* are different states and must be labelled differently.
+- **Format an age, never print raw minutes**: a week-old outage reads `8d`, not `11190m`.
+- **One banner per page**, for the sharpest fact — a blackout outranks a clock.
+- A usable spare is `spareWhere(alias)` from `services/spares.js`, never a hand-copied
+  fragment: one definition, or the count and the picker drift apart.
+
 ### The offline queue carries its photos
 `Offline.enqueue({ files })` stores Blobs in IndexedDB and `requestFor()` replays them as
 the same multipart POST the online form sends — **never set `Content-Type` by hand there**,
@@ -733,7 +760,7 @@ and took both deployments down on 2026-09-07.
 
 | # | Page | Route | Role | Description |
 |---|------|-------|------|-------------|
-| 1 | Dashboard | #dashboard | All | KPIs, alerts, priority table, categories, check-in ring |
+| 1 | Dashboard | #dashboard | All | **A different dashboard per level** — see the rules above |
 | 2 | Report Error | #report | All | Form to submit new error with auto-routing |
 | 3 | Error Tracker | #tracker | All | Filterable table of all errors with status chips |
 | 4 | Follow-Up Center | #followup | All | SLA breaches, escalations, team status, comms log |

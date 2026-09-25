@@ -834,6 +834,16 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .lrs-header-actions .lrs-header-stats { order: 1; width: 100%; }
 }
 
+/* Dashboard list row — a school, a site, anything with an icon, a label and a
+   count. Flat, like .card: no glass, no hover transform, just a border tint. */
+.dash-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 11px 13px; cursor: pointer;
+  transition: border-color .15s;
+}
+.dash-row:hover { border-color: var(--bg4); }
+
 /* Sub-admin dashboard responsive */
 @media (max-width: 920px) {
   .sa-metrics { grid-template-columns: 1fr 1fr !important; }
@@ -850,6 +860,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .sa-metrics > div { padding: 12px !important; }
   .sa-task-card { padding: 10px 12px !important; }
   .sa-task-card > div:last-child { flex-wrap: wrap; }
+  .dash-row { padding: 10px 11px; }
 }
 
 /* The calendar on a phone: a touch target that can actually be hit, and a

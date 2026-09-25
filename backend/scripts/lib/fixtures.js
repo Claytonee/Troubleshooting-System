@@ -205,6 +205,12 @@ async function cleanup() {
     }
   } catch (e) { /* table absent on an older schema: nothing to remove */ }
 
+  // A suite that borrowed a school for a fixture engineer should give it back
+  // itself. If it died before it could, leave the school unassigned rather than
+  // pointing at a user that no longer exists — a dangling engineer id is a
+  // school that quietly drops out of every "my schools" query.
+  await pool.query('UPDATE schools SET assigned_admin_id = NULL WHERE assigned_admin_id IN (?)', [ids]);
+
   for (const id of ids) {
     const [errs] = await pool.query('SELECT id FROM errors WHERE reported_by_user_id = ?', [id]);
     for (const e of errs) {

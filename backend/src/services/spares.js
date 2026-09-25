@@ -10,8 +10,20 @@
  */
 const pool = require('../config/database');
 
-/** A device is a usable spare when it is marked as one, working, and unassigned. */
-const SPARE_WHERE = `is_spare = 1 AND status = 'Working' AND (student_name IS NULL OR student_name = '')`;
+/**
+ * A device is a usable spare when it is marked as one, working, and unassigned
+ * — all three, in one fragment, so the count and the picker cannot disagree.
+ *
+ * `alias` qualifies the columns for a query that joins another table also
+ * carrying a `status` column. Callers take the fragment, never a hand-edited
+ * copy of it: the whole point is that "spare" has exactly one definition here.
+ */
+const spareWhere = (alias = '') => {
+  const p = alias ? `${alias}.` : '';
+  return `${p}is_spare = 1 AND ${p}status = 'Working' AND (${p}student_name IS NULL OR ${p}student_name = '')`;
+};
+
+const SPARE_WHERE = spareWhere();
 
 /**
  * What one school has and needs.
@@ -222,4 +234,4 @@ async function firstTimeFix({ schoolIds, days = 90 } = {}) {
   };
 }
 
-module.exports = { stockFor, stockAcross, listSpares, swap, firstTimeFix, SPARE_WHERE };
+module.exports = { stockFor, stockAcross, listSpares, swap, firstTimeFix, SPARE_WHERE, spareWhere };
