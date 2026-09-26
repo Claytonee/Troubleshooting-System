@@ -207,6 +207,7 @@ const API = (() => {
     // logged, cached and shared.
     assistAssess: (data) => request('POST', '/assist/assess', data || {}),
     listExplainers: () => request('GET', '/assist/explainers'),
+    listVideos: () => request('GET', '/assist/videos'),
     getExplainer: (id) => request('GET', '/assist/explainers/' + id),
     getLanguage: () => request('GET', '/auth/language'),
     setLanguage: (language) => request('PUT', '/auth/language', { language }),

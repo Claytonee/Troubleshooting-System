@@ -1,8 +1,7 @@
 const ManualsPage = (() => {
   let manuals = [];
-  let explainers = [];
+  let films = [];       // the approved explainer films (services/videoCatalog.js)
   let loadError = '';   // a failed request is never shown as an empty library
-  let lang = 'sw';      // the reader's language, kept on the account (feature 14)
   let filterCategory = 'all';
   let uploadMode = 'file'; // 'file' | 'url'
 
@@ -63,17 +62,14 @@ const ManualsPage = (() => {
     return 'none';
   }
 
-  // Files and explainers load side by side, and one failing never empties the
+  // Files and films load side by side, and one failing never empties the
   // other. The page used to swallow a failed request and print "No files
   // uploaded yet", which is a claim about the library, not about the network.
   async function load() {
-    const [files, anims, language] = await Promise.allSettled([
-      API.getManuals(), API.listExplainers(), API.getLanguage()
-    ]);
+    const [files, videos] = await Promise.allSettled([API.getManuals(), API.listVideos()]);
     manuals = files.status === 'fulfilled' && Array.isArray(files.value) ? files.value : [];
     loadError = files.status === 'rejected' ? ((files.reason && files.reason.message) || 'Request failed') : '';
-    explainers = anims.status === 'fulfilled' && Array.isArray(anims.value) ? anims.value : [];
-    lang = language.status === 'fulfilled' && language.value && language.value.language === 'en' ? 'en' : 'sw';
+    films = videos.status === 'fulfilled' && Array.isArray(videos.value) ? videos.value : [];
   }
 
   async function reload() {
@@ -81,37 +77,51 @@ const ManualsPage = (() => {
     App.render();
   }
 
-  /** The animated explainers the system ships with (feature 15): drawn by the app, so they play offline. */
-  function explainerSection() {
-    if (!explainers.length) return '';
-    const cards = explainers.map(x => {
-      const t = (x.title && (x.title[lang] || x.title.sw || x.title.en)) || '';
-      const meta = lang === 'sw'
-        ? `${x.steps_count} hatua · sekunde ${x.duration_s} · inacheza bila intaneti`
-        : `${x.steps_count} steps · ${x.duration_s}s · plays offline`;
-      return `<div class="card explainer-card" role="button" tabindex="0" onclick="ManualsPage.openExplainer(${Number(x.id)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ManualsPage.openExplainer(${Number(x.id)})}">
-        <div style="width:42px;height:42px;border-radius:10px;background:rgba(79,124,255,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <i class="ti ti-player-play-filled" style="font-size:18px;color:var(--accent)"></i>
+  const clock = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+  /**
+   * The explainer films (D36–D38), shown first because they are the approved
+   * visual standard. Shipped with the app at full quality, so each card says how
+   * big it is: on a shared school link, 24 MB is a decision.
+   */
+  function filmSection() {
+    if (!films.length) return '';
+    const cards = films.map((f, i) => `
+      <div class="card film-card" role="button" tabindex="0" onclick="ManualsPage.playFilm(${i})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ManualsPage.playFilm(${i})}">
+        <div class="film-thumb">
+          <img src="${esc(f.poster)}" alt="" loading="lazy">
+          <span class="film-play"><i class="ti ti-player-play-filled"></i></span>
+          <span class="film-time">${clock(f.duration_s)}</span>
         </div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13px;font-weight:600;color:var(--text)">${esc(t)}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:3px">${esc(meta)}</div>
+        <div style="padding:14px 16px 16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+            <span class="badge badge-blue">${esc(f.category)}</span>
+            <span style="font-size:11px;color:var(--text3)">${esc(f.quality)} · ${formatSize(f.bytes)}</span>
+          </div>
+          <div style="font-size:14px;font-weight:600;color:var(--text)">${esc(f.title)}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5">${esc(f.summary)}</div>
         </div>
-        <span class="badge badge-blue" style="flex-shrink:0">${esc(x.category || '')}</span>
-      </div>`;
-    }).join('');
-    return `<div class="card-title" style="margin:4px 0 10px">Animated explainers · ${explainers.length}</div>
-      <div class="explainer-grid">${cards}</div>
+      </div>`).join('');
+    return `<div class="card-title" style="margin:4px 0 10px">Explainer films · ${films.length}</div>
+      <div class="film-grid">${cards}</div>
       <div class="card-title" style="margin:22px 0 10px">Files</div>`;
   }
 
-  async function openExplainer(id) {
-    try {
-      Explainer.open(await API.getExplainer(id), lang);
-    } catch (e) {
-      showToast(lang === 'sw' ? 'Imeshindikana kufungua' : 'Could not open that');
-    }
+  function playFilm(i) {
+    const f = films[i];
+    if (!f) return;
+    const meta = `<div style="margin-bottom:12px;font-size:12px;color:var(--text3);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span>${esc(f.category)}</span><span>·</span><span>${clock(f.duration_s)}</span><span>·</span><span>${esc(f.quality)}</span><span>·</span><span>${formatSize(f.bytes)}</span>
+    </div>`;
+    const body = `<video controls autoplay playsinline preload="auto" poster="${esc(f.poster)}" style="width:100%;max-height:72vh;border-radius:8px;background:#000"><source src="${esc(f.src)}" type="video/mp4">Your browser does not support video playback.</video>`;
+    const footer = `
+      <button class="btn btn-secondary" onclick="Modal.close()">Close</button>
+      <a class="btn btn-primary" href="${esc(f.src)}" download><i class="ti ti-download"></i> Download</a>`;
+    Modal.open(f.title, meta + body, footer, true);
+    const box = document.getElementById('modal-box');
+    if (box) box.classList.add('preview');
   }
+
 
   function render() {
     const user = API.getUser();
@@ -163,13 +173,13 @@ const ManualsPage = (() => {
     </div>
 
     <div class="stats-grid manuals-stats">
-      <div class="stat-card"><div class="stat-label">Total Files</div><div class="stat-val">${loadError ? '—' : stats.total}</div><div class="stat-sub">${explainers.length ? `+ ${explainers.length} animated explainer${explainers.length === 1 ? '' : 's'}` : 'all categories'}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Files</div><div class="stat-val">${loadError ? '—' : stats.total}</div><div class="stat-sub">${films.length ? `+ ${films.length} explainer film${films.length === 1 ? '' : 's'}` : 'all categories'}</div></div>
       <div class="stat-card a"><div class="stat-label">Documents</div><div class="stat-val" style="color:var(--amber)">${stats.docs}</div><div class="stat-sub">PDF, PPT, DOC, XLS</div></div>
       <div class="stat-card t"><div class="stat-label">Media</div><div class="stat-val" style="color:var(--teal)">${stats.media}</div><div class="stat-sub">images, video, audio</div></div>
       <div class="stat-card"><div class="stat-label">Total Size</div><div class="stat-val">${formatSize(stats.size)}</div><div class="stat-sub">cloud storage</div></div>
     </div>
 
-    ${explainerSection()}
+    ${filmSection()}
 
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
       ${categoryChips}
@@ -425,5 +435,5 @@ const ManualsPage = (() => {
     }
   }
 
-  return { load, reload, render, setFilter, openUpload, setUploadMode, submitUpload, download, preview, remove, openInNewTab, openExplainer };
+  return { load, reload, render, setFilter, openUpload, setUploadMode, submitUpload, download, preview, remove, openInNewTab, playFilm };
 })();

@@ -1,7 +1,7 @@
 # API security matrix
 
 Generated from the router source on 2026-09-24 (`routes/*.js` + `server.js`), then annotated by hand.
-**169 endpoints.** "Role gate" is what the router enforces; per-record school scoping lives in the
+**170 endpoints.** "Role gate" is what the router enforces; per-record school scoping lives in the
 controllers and is listed in *Notes* where it was audited or changed. Regenerate the first four columns
 rather than editing them.
 
@@ -19,6 +19,7 @@ Auth: `JWT` = `authenticate()` (signature + account status re-read per request).
 | GET | `/api/assist/explainers` | JWT | any signed-in |  |
 | GET | `/api/assist/explainers/:id` | JWT | any signed-in |  |
 | GET | `/api/assist/resources` | JWT | any signed-in |  |
+| GET | `/api/assist/videos` | JWT | any signed-in |  |
 | GET | `/api/audit` | JWT | admin |  |
 | PUT | `/api/auth/change-password` | JWT | any signed-in | Ends every other session; returns a fresh token for this device (SEC-005). |
 | GET | `/api/auth/language` | JWT | any signed-in |  |

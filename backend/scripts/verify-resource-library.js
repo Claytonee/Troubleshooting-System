@@ -62,7 +62,7 @@ async function signIn(u) {
     const head = await signIn(pa);
     const [[{ n: active }]] = await pool.query('SELECT COUNT(*) n FROM explainers WHERE is_active = 1');
 
-    console.log('\n1. GET /api/assist/explainers lists every active explainer, as cards');
+    console.log('\n1. GET /api/assist/explainers (the report form drawn explainers) lists every active one');
     ok('refused without a session', (await api('GET', '/assist/explainers')).status === 401);
     let list = [];
     for (const [who, token] of [['teacher', teacher], ['school admin', school], ['platform admin', head]]) {
@@ -79,25 +79,45 @@ async function signIn(u) {
       ok(`explainer ${x.id} opens with ${x.steps_count} scene(s)`, r.status === 200 && Array.isArray(r.body.scenes) && r.body.scenes.length === x.steps_count);
     }
 
-    console.log('\n2. Source: failure is not emptiness; offline is true');
+    console.log('\n2. The approved explainer film: listed, served whole, cached once');
+    const films = await api('GET', '/assist/videos', { token: teacher });
+    ok('refused without a session', (await api('GET', '/assist/videos')).status === 401);
+    const film = (films.body || [])[0] || {};
+    ok('GET /api/assist/videos lists the approved film', films.status === 200 && film.key === 'how-a-school-connects', films.body);
+    const onDisk = path.join(ROOT, 'frontend', film.src || '/missing');
+    const size = fs.existsSync(onDisk) ? fs.statSync(onDisk).size : 0;
+    ok('the size on the card is the size on disk', size > 0 && film.bytes === size, { card: film.bytes, disk: size });
+    ok('it is the full-quality master (over 20 MB, not a re-encode)', size > 20e6, size);
+    const top = fs.existsSync(onDisk) ? fs.readFileSync(onDisk).subarray(0, 64) : Buffer.alloc(16);
+    const second = top.readUInt32BE(0);
+    ok('its index (moov) comes before the media, so it starts before it has all arrived',
+      top.toString('latin1', 4, 8) === 'ftyp' && top.toString('latin1', second + 4, second + 8) === 'moov');
+    const full = await fetch(BASE + film.src, { method: 'HEAD' });
+    ok('served as video/mp4', full.status === 200 && /video\/mp4/.test(full.headers.get('content-type') || ''), full.headers.get('content-type'));
+    const cc = full.headers.get('cache-control') || '';
+    ok('with a year-long immutable cache (a school downloads it once)', /max-age=31536000/.test(cc) && /immutable/.test(cc), cc);
+    const part = await fetch(BASE + film.src, { headers: { Range: 'bytes=0-1023' } });
+    ok('byte ranges work (seeking, and resuming on a bad link)', part.status === 206 && Number(part.headers.get('content-length')) === 1024);
+    await part.arrayBuffer();
+    const poster = await fetch(BASE + film.poster, { method: 'HEAD' });
+    ok('its poster is served', poster.status === 200 && /image\/jpeg/.test(poster.headers.get('content-type') || ''));
+
+    console.log('\n3. Source: failure is not emptiness; the worker leaves films alone');
     const page_ = read('frontend/js/pages/manuals.js');
     ok('a failed GET /api/manuals is no longer turned into []', !/catch \(e\) \{ manuals = \[\]; \}/.test(page_));
-    ok('files, explainers and language load side by side (allSettled)', /Promise\.allSettled\(\[\s*API\.getManuals\(\), API\.listExplainers\(\)/.test(page_));
+    ok('files and films load side by side (allSettled)', /Promise\.allSettled\(\[API\.getManuals\(\), API\.listVideos\(\)\]\)/.test(page_));
     ok('a load error has its own message and a retry', /could not be loaded/.test(page_) && /ManualsPage\.reload\(\)/.test(page_));
     const sw = read('frontend/sw.js');
+    ok('the service worker does not intercept /media/ (the Cache API refuses 206 ranges)', /if \(url\.pathname\.startsWith\('\/media\/'\)\) return;/.test(sw));
+    ok('closing the modal pauses any video or audio in it', /querySelectorAll\('video, audio'\)[^\n]*pause\(\)/.test(read('frontend/js/components/modal.js')));
     const rule = (sw.match(/\/\^\\\/api\\\/assist\\\/explainers[^,]*\//) || [''])[0];
     let re = null; try { re = eval(rule); } catch (e) { re = null; }
-    ok('the service worker caches the list', !!re && re.test('/api/assist/explainers'), rule);
-    ok('...and each script', !!re && re.test('/api/assist/explainers/1'));
-    ok('...and nothing beside them', !!re && !re.test('/api/assist/explainersX'));
-    ok('sign-in warms every script, so "plays offline" is true on first use',
-      /get\('\/api\/assist\/explainers'\)/.test(read('frontend/js/offline.js')) && /\/api\/assist\/explainers\/' \+ Number\(x\.id\)/.test(read('frontend/js/offline.js')));
+    ok('the report form explainers stay cached offline', !!re && re.test('/api/assist/explainers/1') && !re.test('/api/assist/explainersX'), rule);
     const ver = (sw.match(/const VERSION = 'v(\d+)'/) || [])[1];
-    const html = read('frontend/index.html');
-    const tags = html.match(/\?v=\d+/g) || [];
+    const tags = read('frontend/index.html').match(/\?v=\d+/g) || [];
     ok(`sw.js VERSION (v${ver}) matches every ?v= in index.html`, tags.length > 0 && tags.every(t => t === '?v=' + ver), [...new Set(tags)]);
 
-    console.log('\n3. In a browser: the page, at the four breakpoints');
+    console.log('\n4. In a browser: the page, at the four breakpoints');
     const [[headUser]] = await pool.query('SELECT id, username, full_name, role, school_id FROM users WHERE id = ?', [pa.id]);
     const [[teacherUser]] = await pool.query('SELECT id, username, full_name, role, school_id FROM users WHERE id = ?', [fx.teacher.userId]);
     const [[{ files }]] = await pool.query('SELECT COUNT(*) files FROM manuals');
@@ -107,32 +127,38 @@ async function signIn(u) {
       await page.load(BASE + '/');
       await page.eval(`localStorage.setItem('qft_token', ${JSON.stringify(token)}); localStorage.setItem('qft_user', ${JSON.stringify(JSON.stringify(user))}); true`);
       await page.load(`${BASE}/?n=${w}#manuals`);
-      return page.waitFor(`document.querySelectorAll('.explainer-card').length === ${list.length} && true`, 10000);
+      return page.waitFor(`(() => { const i = document.querySelector('.film-thumb img'); return document.querySelectorAll('.film-card').length === ${films.body.length} && !!i && i.complete && i.naturalWidth > 0; })()`, 10000);
     };
     for (const [w, h] of [[1440, 900], [920, 800], [768, 1024], [390, 844]]) {
       const shown = await open(head, headUser, w, h);
-      ok(`${w}px: platform admin sees ${list.length} explainer card(s)`, shown === true);
-      const title = await page.eval(`(document.querySelector('.explainer-card') || {}).textContent || ''`);
-      ok(`${w}px: titles are in the reader's language (Kiswahili unless chosen)`, title.includes(list[0].title.sw), title.slice(0, 80));
-      const fit = await page.eval(`(() => { const m = document.querySelector('.main'); return m.scrollWidth <= m.clientWidth + 1 && [...document.querySelectorAll('.explainer-card')].every(c => c.getBoundingClientRect().right <= m.getBoundingClientRect().right + 1); })()`);
+      ok(`${w}px: platform admin sees the film, poster loaded`, shown === true);
+      const text = await page.eval(`(document.querySelector('.film-card') || {}).textContent || ''`);
+      ok(`${w}px: the card names it, its length and its size`, text.includes(film.title) && text.includes('1:12') && /MB/.test(text), text.replace(/\s+/g, ' ').slice(0, 120));
+      ok(`${w}px: the old drawn explainers are not in the library`, await page.eval(`document.querySelectorAll('.explainer-card').length === 0`) === true);
+      const fit = await page.eval(`(() => { const m = document.querySelector('.main'); return m.scrollWidth <= m.clientWidth + 1 && [...document.querySelectorAll('.film-card')].every(c => c.getBoundingClientRect().right <= m.getBoundingClientRect().right + 1); })()`);
       ok(`${w}px: nothing runs off the side`, fit === true);
       if (!Number(files)) {
         ok(`${w}px: with no files, the files list says so`, await page.eval(`document.querySelector('.main').textContent.includes('No files uploaded yet')`) === true);
       }
     }
 
-    await page.eval(`document.querySelector('.explainer-card').click(); true`);
-    ok('clicking a card plays the explainer', await page.waitFor(`document.querySelector('#modal.open') && document.querySelector('#modal').textContent.includes(${JSON.stringify(list[0].title.sw)}) && true`, 8000) === true);
-    await page.eval(`typeof Explainer !== 'undefined' && Explainer.close(); true`);
+    await page.eval(`document.querySelector('.film-card').click(); true`);
+    const loaded = await page.waitFor(`(() => { const v = document.querySelector('#modal.open video'); return !!v && v.readyState >= 1 && Math.abs(v.duration - 71.5) < 1; })()`, 15000);
+    ok('clicking the card opens the film and it loads (71.5 s)', loaded === true);
+    const dims = await page.eval(`(() => { const v = document.querySelector('#modal video'); return v ? v.videoWidth + 'x' + v.videoHeight : ''; })()`);
+    ok('...at full resolution', dims === '1920x1080', dims);
+    await page.eval(`(() => { const v = document.querySelector('#modal video'); v.muted = true; return v.play().then(() => true).catch(() => true); })()`);
+    await page.eval(`Modal.close(); true`);
+    ok('closing the modal stops it', await page.eval(`document.querySelector('#modal video').paused`) === true);
 
     await page.eval(`API.getManuals = () => Promise.reject(new Error('Service unavailable')); ManualsPage.reload(); true`);
     const failedText = await page.waitFor(`document.querySelector('.main').textContent.includes('could not be loaded') && true`, 8000);
     ok('a failed request says so, with a retry', failedText === true && await page.eval(`!!document.querySelector('button[onclick="ManualsPage.reload()"]')`) === true);
     ok('...and never claims the library is empty', await page.eval(`!document.querySelector('.main').textContent.includes('No files uploaded yet')`) === true);
-    ok('...while the explainers still show', await page.eval(`document.querySelectorAll('.explainer-card').length`) === list.length);
+    ok('...while the film still shows', await page.eval(`document.querySelectorAll('.film-card').length`) === films.body.length);
 
     const teacherSees = await open(teacher, teacherUser, 390, 844);
-    ok('a teacher sees the explainers too', teacherSees === true);
+    ok('a teacher sees the film too', teacherSees === true);
     ok('...and no Upload Resource button', await page.eval(`!document.querySelector('.main').textContent.includes('Upload Resource')`) === true);
   } finally {
     if (page) await page.close().catch(() => {});

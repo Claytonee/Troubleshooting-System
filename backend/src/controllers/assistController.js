@@ -4,6 +4,7 @@
  */
 const pool = require('../config/database');
 const resources = require('../services/resources');
+const videoCatalog = require('../services/videoCatalog');
 const assessment = require('../services/assessment');
 
 const CATEGORIES = ['Connectivity', 'Hardware', 'Platform', 'Power', 'Accounts', 'Other'];
@@ -91,6 +92,14 @@ async function explainerList(req, res, next) {
 }
 
 /**
+ * GET /api/assist/videos — the approved explainer films shipped with the app
+ * (services/videoCatalog.js). Any signed-in role.
+ */
+function videoList(req, res) {
+  res.json(videoCatalog.list());
+}
+
+/**
  * GET /api/assist/explainers/:id — one explainer's script.
  *
  * Only the script: the captions in both languages, which part of the drawing to
@@ -128,4 +137,4 @@ async function explainerFor(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { resources: resourcesFor, assess: assessFor, explainers: explainerList, explainer: explainerFor };
+module.exports = { resources: resourcesFor, assess: assessFor, explainers: explainerList, explainer: explainerFor, videos: videoList };

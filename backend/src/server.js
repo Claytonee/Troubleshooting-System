@@ -280,6 +280,8 @@ if (process.env.NODE_ENV !== 'test') {
 app.use(express.static(path.join(__dirname, '..', '..', 'frontend'), {
   setHeaders: (res, filePath) => {
     if (/\.(js|css|html)$/i.test(filePath)) res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    // Explainer films: versioned file names (…-v2.mp4), so a school downloads each once.
+    else if (/[\\/]media[\\/]videos[\\/]/.test(filePath)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   }
 }));
 

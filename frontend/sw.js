@@ -6,7 +6,7 @@
  * ?v=NN asset URLs, so bumping that one number also retires every cache and a
  * deploy can never leave a client running a half-old shell.
  */
-const VERSION = 'v78';
+const VERSION = 'v79';
 const SHELL_CACHE = `oe-shell-${VERSION}`;
 const DATA_CACHE = `oe-data-${VERSION}`;
 
@@ -96,6 +96,10 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;               // writes are queued by the page, not here
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;    // never cache Cloudinary or CDN bytes
+  // Explainer films: 24 MB each and fetched in byte ranges (206), which the Cache
+  // API refuses. The browser streams them, and the server's immutable header
+  // keeps them in the HTTP cache after the first play.
+  if (url.pathname.startsWith('/media/')) return;
 
   // Navigations: serve the cached shell when the network fails, so the app
   // boots offline instead of showing the browser's error page.

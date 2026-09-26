@@ -25,6 +25,9 @@ const Modal = (() => {
 
   function close() {
     if (locked) return;
+    // Hiding the modal does not stop a video or audio preview: it kept playing, heard
+    // and not seen, and kept downloading.
+    $('modal').querySelectorAll('video, audio').forEach(m => { try { m.pause(); } catch (e) { /* already gone */ } });
     $('modal').classList.remove('open');
     document.body.style.overflow = '';
   }

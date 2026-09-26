@@ -23,6 +23,9 @@ router.get('/resources', assistController.resources);
 // description can name a person.
 router.post('/assess', assistController.assess);
 
+// The approved explainer films (D38) — the Resource Library lists them first.
+router.get('/videos', assistController.videos);
+
 // Every explainer, as cards — the Resource Library lists them.
 router.get('/explainers', assistController.explainers);
 
