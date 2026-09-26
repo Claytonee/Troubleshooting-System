@@ -669,6 +669,27 @@ with great creativity; "the camera movement is the killer".
 **Revisit when:** production fault counts are pulled (the order may change), or the owner reviews the first
 batch.
 
+## D38 — Direct one prototype to a standard before making a series
+
+**Asked (2026-09-26):** the owner adopted a Motion Director Master Brief that makes success "a learner understands
+the concept from the animation alone". It asks for directed shots, one focal point at a time, failure as a visible
+mechanism, investigation, isolation, a visible fix and a verified repair. It also stops all other videos until one
+prototype passes review.
+
+**Decided:**
+1. **The series pauses** after episode 01 (built on the v1 language, to be rebuilt). `videos/SERIES.md` says so.
+2. **Episode 00 is rebuilt as a directed film (v2)** on the engine, planned before code in
+   `videos/how-a-school-connects/DIRECTION.md`: diagnosis, learning objective, shot storyboard, motion plan, and
+   afterwards the rationale, primitives, assets, corrections, remaining weaknesses and recommendations.
+3. **The fault is acted out where it really happens:** a WAN plug worked loose, seen at the WAN port's unlit light.
+   It is fixed on the spot and verified by a round trip to a server. Faults a school cannot fix are named as the next
+   suspects, never acted out.
+4. **Close-up-ready devices** (`devices2.mjs`) and named primitives (PacketBlocked, VerifyPacket, DiagnosticCheck,
+   CheckThePath, FaultDomain, CableReconnect, ContextTag) become part of the engine. Captions are made quieter for
+   every episode.
+
+**Revisit when:** the owner has reviewed the v2 render. The recommendations in DIRECTION.md are the agenda.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.

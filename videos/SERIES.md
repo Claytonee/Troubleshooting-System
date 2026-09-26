@@ -1,5 +1,10 @@
 # OE Support — the explainer series
 
+> **Paused (2026-09-26).** Per the Motion Director Master Brief the owner adopted, no further episodes are made until
+> the directed prototype (episode 00, v2, `how-a-school-connects/DIRECTION.md`) passes human review, and its visual,
+> motion, camera and troubleshooting language is settled. Episode 01 was built on the v1 language before the pause;
+> it will be rebuilt on the approved v2 language.
+
 One short video (25–40 s) for every fault type a school can report in the system
 (`SUBCATS` in `frontend/js/utils.js`: 26 of them, plus "Other"). Built with the OE explainer engine
 (`videos/_engine`) on the look the owner approved on 2026-09-26: one continuous technical drawing, a camera
@@ -22,8 +27,8 @@ that episode is rendered. Power episodes never ask a teacher to open, rewire or 
 
 | # | Slug | Fault type | Local count | Status |
 |---|---|---|---|---|
-| 00 | `how-a-school-connects` | Connectivity / No internet access | 3 | **done** (approved prototype) |
-| 01 | `lrs-unreachable` | Connectivity / LRS unreachable | 10 | next |
+| 00 | `how-a-school-connects` | Connectivity / No internet access | 3 | **v2 directed prototype, awaiting review** |
+| 01 | `lrs-unreachable` | Connectivity / LRS unreachable | 10 | built on v1 language; to be rebuilt after review |
 | 02 | `wifi-router-down` | Connectivity / WiFi router down | 7 | planned |
 | 03 | `tablet-not-charging` | Hardware / Tablet not charging | 7 | planned |
 | 04 | `projector-fault` | Hardware / Projector fault | 7 | planned |

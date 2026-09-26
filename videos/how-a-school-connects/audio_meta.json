@@ -3,562 +3,1083 @@
   "bgm_pending": false,
   "sfx": [
     {
-      "frame": 1,
-      "file": "assets/sfx/whoosh-short.mp3",
-      "offset_s": 0.45,
-      "duration_s": 0.57,
-      "volume": 0.22
+      "frame": 2,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 1.99,
+      "duration_s": 0.37,
+      "volume": 0.14
     },
     {
       "frame": 2,
       "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 0.39,
+      "offset_s": 5.183,
       "duration_s": 0.37,
-      "volume": 0.26
-    },
-    {
-      "frame": 2,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 2.252,
-      "duration_s": 0.37,
-      "volume": 0.26
-    },
-    {
-      "frame": 2,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 3.402,
-      "duration_s": 0.37,
-      "volume": 0.26
-    },
-    {
-      "frame": 2,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 4.552,
-      "duration_s": 0.37,
-      "volume": 0.26
-    },
-    {
-      "frame": 2,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 5.701,
-      "duration_s": 0.37,
-      "volume": 0.26
-    },
-    {
-      "frame": 2,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 7.07,
-      "duration_s": 0.37,
-      "volume": 0.26
+      "volume": 0.14
     },
     {
       "frame": 3,
       "file": "assets/sfx/error.mp3",
-      "offset_s": 1,
+      "offset_s": 3.382,
       "duration_s": 1.62,
-      "volume": 0.24
+      "volume": 0.16
     },
     {
       "frame": 4,
       "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 2.904,
+      "offset_s": 4.694,
       "duration_s": 0.37,
-      "volume": 0.3
+      "volume": 0.26
     },
     {
       "frame": 4,
       "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 3.891,
+      "offset_s": 7.099,
       "duration_s": 0.37,
-      "volume": 0.3
+      "volume": 0.26
     },
     {
       "frame": 4,
       "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 4.961,
+      "offset_s": 8.923,
       "duration_s": 0.37,
-      "volume": 0.3
+      "volume": 0.26
     },
     {
       "frame": 4,
       "file": "assets/sfx/error.mp3",
-      "offset_s": 5.985,
+      "offset_s": 11.434,
       "duration_s": 1.62,
-      "volume": 0.24
+      "volume": 0.18
     },
     {
-      "frame": 5,
+      "frame": 6,
+      "file": "assets/sfx/click.mp3",
+      "offset_s": 2.825,
+      "duration_s": 0.37,
+      "volume": 0.34
+    },
+    {
+      "frame": 7,
       "file": "assets/sfx/chime.mp3",
-      "offset_s": 1.67,
+      "offset_s": 6.138,
       "duration_s": 2.5,
-      "volume": 0.26
+      "volume": 0.22
     }
   ],
   "voices": [
     {
       "frame": 1,
       "path": "assets/voice/01.wav",
-      "duration_s": 4.744,
+      "duration_s": 5.198,
       "words": [
         {
           "id": "w1-0",
-          "text": "No",
+          "text": "The",
           "start": 0,
-          "end": 0.88
+          "end": 0.96
         },
         {
           "id": "w1-1",
           "text": "internet",
-          "start": 0.88,
+          "start": 0.96,
           "end": 1.16
         },
         {
           "id": "w1-2",
-          "text": "in",
+          "text": "has",
           "start": 1.16,
-          "end": 1.46
+          "end": 1.54
         },
         {
           "id": "w1-3",
-          "text": "the",
-          "start": 1.46,
-          "end": 1.56
+          "text": "stopped",
+          "start": 1.54,
+          "end": 1.78
         },
         {
           "id": "w1-4",
-          "text": "lab.",
-          "start": 1.56,
-          "end": 1.8
+          "text": "at",
+          "start": 1.78,
+          "end": 2.02
         },
         {
           "id": "w1-5",
-          "text": "The",
-          "start": 2.46,
-          "end": 2.52
+          "text": "school.",
+          "start": 2.02,
+          "end": 2.22
         },
         {
           "id": "w1-6",
-          "text": "fault",
-          "start": 2.52,
-          "end": 2.78
-        },
-        {
-          "id": "w1-7",
-          "text": "is",
-          "start": 2.78,
+          "text": "The",
+          "start": 3.06,
           "end": 3.12
         },
         {
-          "id": "w1-8",
-          "text": "in",
+          "id": "w1-7",
+          "text": "computer",
           "start": 3.12,
-          "end": 3.26
+          "end": 3.42
+        },
+        {
+          "id": "w1-8",
+          "text": "can't",
+          "start": 3.42,
+          "end": 3.94
         },
         {
           "id": "w1-9",
-          "text": "one",
-          "start": 3.26,
-          "end": 3.38
+          "text": "tell",
+          "start": 3.94,
+          "end": 4.1
         },
         {
           "id": "w1-10",
-          "text": "of",
-          "start": 3.38,
-          "end": 3.48
+          "text": "you",
+          "start": 4.1,
+          "end": 4.26
         },
         {
           "id": "w1-11",
-          "text": "four",
-          "start": 3.48,
-          "end": 3.74
-        },
-        {
-          "id": "w1-12",
-          "text": "links.",
-          "start": 3.74,
-          "end": 4
+          "text": "where.",
+          "start": 4.26,
+          "end": 4.46
         }
       ]
     },
     {
       "frame": 2,
       "path": "assets/voice/02.wav",
-      "duration_s": 8.752,
+      "duration_s": 13.362,
       "words": [
         {
           "id": "w2-0",
-          "text": "Your",
+          "text": "So",
           "start": 0,
-          "end": 0.46
+          "end": 0.44
         },
         {
           "id": "w2-1",
-          "text": "computer",
-          "start": 0.46,
+          "text": "follow",
+          "start": 0.44,
           "end": 0.68
         },
         {
           "id": "w2-2",
-          "text": "sends",
+          "text": "the",
           "start": 0.68,
-          "end": 1.14
+          "end": 0.96
         },
         {
           "id": "w2-3",
-          "text": "packets,",
-          "start": 1.14,
-          "end": 1.46
+          "text": "signal.",
+          "start": 0.96,
+          "end": 1.26
         },
         {
           "id": "w2-4",
-          "text": "down",
-          "start": 2.1,
-          "end": 2.36
+          "text": "The",
+          "start": 2.08,
+          "end": 2.1
         },
         {
           "id": "w2-5",
-          "text": "the",
-          "start": 2.36,
-          "end": 2.52
+          "text": "switch",
+          "start": 2.1,
+          "end": 2.32
         },
         {
           "id": "w2-6",
-          "text": "cable,",
-          "start": 2.52,
+          "text": "joins",
+          "start": 2.32,
           "end": 2.74
         },
         {
           "id": "w2-7",
-          "text": "to",
-          "start": 3.3,
-          "end": 3.46
+          "text": "the",
+          "start": 2.74,
+          "end": 3.04
         },
         {
           "id": "w2-8",
-          "text": "the",
-          "start": 3.46,
-          "end": 3.58
+          "text": "school's",
+          "start": 3.04,
+          "end": 3.4
         },
         {
           "id": "w2-9",
-          "text": "switch,",
-          "start": 3.58,
-          "end": 3.84
+          "text": "computers",
+          "start": 3.4,
+          "end": 3.66
         },
         {
           "id": "w2-10",
-          "text": "through",
-          "start": 4.4,
-          "end": 4.66
+          "text": "and",
+          "start": 3.66,
+          "end": 4.4
         },
         {
           "id": "w2-11",
-          "text": "the",
-          "start": 4.66,
-          "end": 4.82
+          "text": "passes",
+          "start": 4.4,
+          "end": 4.74
         },
         {
           "id": "w2-12",
-          "text": "router,",
-          "start": 4.82,
-          "end": 5.02
+          "text": "their",
+          "start": 4.74,
+          "end": 5.06
         },
         {
           "id": "w2-13",
-          "text": "to",
-          "start": 5.58,
-          "end": 5.76
+          "text": "traffic",
+          "start": 5.06,
+          "end": 5.42
         },
         {
           "id": "w2-14",
-          "text": "your",
-          "start": 5.76,
-          "end": 5.94
+          "text": "to",
+          "start": 5.42,
+          "end": 5.66
         },
         {
           "id": "w2-15",
-          "text": "provider,",
-          "start": 5.94,
-          "end": 6.24
+          "text": "the",
+          "start": 5.66,
+          "end": 5.74
         },
         {
           "id": "w2-16",
-          "text": "and",
-          "start": 7.02,
-          "end": 7.12
+          "text": "router.",
+          "start": 5.74,
+          "end": 5.94
         },
         {
           "id": "w2-17",
-          "text": "out",
-          "start": 7.12,
-          "end": 7.34
+          "text": "The",
+          "start": 6.62,
+          "end": 6.64
         },
         {
           "id": "w2-18",
-          "text": "to",
-          "start": 7.34,
-          "end": 7.56
+          "text": "school's",
+          "start": 6.64,
+          "end": 7.06
         },
         {
           "id": "w2-19",
-          "text": "the",
-          "start": 7.56,
-          "end": 7.66
+          "text": "gateway.",
+          "start": 7.06,
+          "end": 7.24
         },
         {
           "id": "w2-20",
-          "text": "internet.",
-          "start": 7.66,
-          "end": 7.94
+          "text": "Its",
+          "start": 8.24,
+          "end": 8.32
+        },
+        {
+          "id": "w2-21",
+          "text": "LAN",
+          "start": 8.32,
+          "end": 8.8
+        },
+        {
+          "id": "w2-22",
+          "text": "ports",
+          "start": 8.8,
+          "end": 9.02
+        },
+        {
+          "id": "w2-23",
+          "text": "face",
+          "start": 9.02,
+          "end": 9.38
+        },
+        {
+          "id": "w2-24",
+          "text": "the",
+          "start": 9.38,
+          "end": 9.6
+        },
+        {
+          "id": "w2-25",
+          "text": "school.",
+          "start": 9.6,
+          "end": 9.78
+        },
+        {
+          "id": "w2-26",
+          "text": "Its",
+          "start": 10.46,
+          "end": 10.54
+        },
+        {
+          "id": "w2-27",
+          "text": "WAN",
+          "start": 10.54,
+          "end": 11.14
+        },
+        {
+          "id": "w2-28",
+          "text": "port",
+          "start": 11.14,
+          "end": 11.46
+        },
+        {
+          "id": "w2-29",
+          "text": "faces",
+          "start": 11.46,
+          "end": 11.96
+        },
+        {
+          "id": "w2-30",
+          "text": "the",
+          "start": 11.96,
+          "end": 12.26
+        },
+        {
+          "id": "w2-31",
+          "text": "provider.",
+          "start": 12.26,
+          "end": 12.5
         }
       ]
     },
     {
       "frame": 3,
       "path": "assets/voice/03.wav",
-      "duration_s": 3.741,
+      "duration_s": 6.792,
       "words": [
         {
           "id": "w3-0",
-          "text": "When",
+          "text": "Every",
           "start": 0,
-          "end": 0.34
+          "end": 0.46
         },
         {
           "id": "w3-1",
-          "text": "one",
-          "start": 0.34,
-          "end": 0.5
+          "text": "request",
+          "start": 0.46,
+          "end": 0.8
         },
         {
           "id": "w3-2",
-          "text": "link",
-          "start": 0.5,
-          "end": 0.76
+          "text": "leaves",
+          "start": 0.8,
+          "end": 1.14
         },
         {
           "id": "w3-3",
-          "text": "breaks,",
-          "start": 0.76,
-          "end": 1.06
+          "text": "through",
+          "start": 1.14,
+          "end": 1.5
         },
         {
           "id": "w3-4",
-          "text": "the",
-          "start": 1.68,
-          "end": 1.76
+          "text": "it.",
+          "start": 1.5,
+          "end": 1.7
         },
         {
           "id": "w3-5",
-          "text": "packets",
-          "start": 1.76,
-          "end": 1.98
-        },
-        {
-          "id": "w3-6",
-          "text": "stop",
-          "start": 1.98,
+          "text": "This",
+          "start": 2.18,
           "end": 2.42
         },
         {
-          "id": "w3-7",
-          "text": "right",
+          "id": "w3-6",
+          "text": "one",
           "start": 2.42,
-          "end": 2.74
+          "end": 2.66
+        },
+        {
+          "id": "w3-7",
+          "text": "doesn't",
+          "start": 2.66,
+          "end": 3.02
         },
         {
           "id": "w3-8",
-          "text": "there.",
-          "start": 2.74,
-          "end": 3.04
+          "text": "get",
+          "start": 3.02,
+          "end": 3.14
+        },
+        {
+          "id": "w3-9",
+          "text": "out.",
+          "start": 3.14,
+          "end": 3.36
+        },
+        {
+          "id": "w3-10",
+          "text": "Nothing",
+          "start": 4.12,
+          "end": 4.8
+        },
+        {
+          "id": "w3-11",
+          "text": "gets",
+          "start": 4.8,
+          "end": 5.14
+        },
+        {
+          "id": "w3-12",
+          "text": "past",
+          "start": 5.14,
+          "end": 5.48
+        },
+        {
+          "id": "w3-13",
+          "text": "the",
+          "start": 5.48,
+          "end": 5.7
+        },
+        {
+          "id": "w3-14",
+          "text": "router.",
+          "start": 5.7,
+          "end": 5.86
         }
       ]
     },
     {
       "frame": 4,
       "path": "assets/voice/04.wav",
-      "duration_s": 9.552,
+      "duration_s": 15.287,
       "words": [
         {
           "id": "w4-0",
           "text": "Check",
           "start": 0,
-          "end": 0.42
+          "end": 0.5
         },
         {
           "id": "w4-1",
-          "text": "them",
-          "start": 0.42,
-          "end": 0.6
+          "text": "the",
+          "start": 0.5,
+          "end": 0.66
         },
         {
           "id": "w4-2",
-          "text": "in",
-          "start": 0.6,
-          "end": 0.68
+          "text": "path",
+          "start": 0.66,
+          "end": 0.9
         },
         {
           "id": "w4-3",
-          "text": "order",
-          "start": 0.68,
-          "end": 0.92
+          "text": "in",
+          "start": 0.9,
+          "end": 1.06
         },
         {
           "id": "w4-4",
-          "text": "from",
-          "start": 0.92,
-          "end": 1.36
+          "text": "order",
+          "start": 1.06,
+          "end": 1.28
         },
         {
           "id": "w4-5",
-          "text": "the",
-          "start": 1.36,
-          "end": 1.48
+          "text": "from",
+          "start": 1.28,
+          "end": 1.96
         },
         {
           "id": "w4-6",
-          "text": "computer",
-          "start": 1.48,
-          "end": 1.82
-        },
-        {
-          "id": "w4-7",
-          "text": "out,",
-          "start": 1.82,
+          "text": "the",
+          "start": 1.96,
           "end": 2.1
         },
         {
+          "id": "w4-7",
+          "text": "computer",
+          "start": 2.1,
+          "end": 2.48
+        },
+        {
           "id": "w4-8",
-          "text": "cable,",
+          "text": "outwards,",
           "start": 2.48,
-          "end": 3.12
+          "end": 3
         },
         {
           "id": "w4-9",
-          "text": "switch,",
-          "start": 3.58,
-          "end": 4.04
+          "text": "the",
+          "start": 3.82,
+          "end": 3.9
         },
         {
           "id": "w4-10",
-          "text": "router,",
-          "start": 4.62,
-          "end": 5.08
+          "text": "computer's",
+          "start": 3.9,
+          "end": 4.42
         },
         {
           "id": "w4-11",
-          "text": "provider.",
-          "start": 5.86,
-          "end": 6.22
+          "text": "link",
+          "start": 4.42,
+          "end": 4.58
         },
         {
           "id": "w4-12",
-          "text": "The",
-          "start": 7.24,
-          "end": 7.28
+          "text": "light,",
+          "start": 4.58,
+          "end": 4.8
         },
         {
           "id": "w4-13",
-          "text": "first",
-          "start": 7.28,
-          "end": 7.54
+          "text": "on,",
+          "start": 5.3,
+          "end": 5.4
         },
         {
           "id": "w4-14",
-          "text": "dark",
-          "start": 7.54,
-          "end": 7.82
+          "text": "the",
+          "start": 6.1,
+          "end": 6.34
         },
         {
           "id": "w4-15",
-          "text": "light",
-          "start": 7.82,
-          "end": 8.06
+          "text": "switch",
+          "start": 6.34,
+          "end": 6.5
         },
         {
           "id": "w4-16",
-          "text": "is",
-          "start": 8.06,
-          "end": 8.32
+          "text": "port,",
+          "start": 6.5,
+          "end": 6.8
         },
         {
           "id": "w4-17",
-          "text": "your",
-          "start": 8.32,
-          "end": 8.44
+          "text": "on,",
+          "start": 6.94,
+          "end": 7.3
         },
         {
           "id": "w4-18",
-          "text": "fault.",
-          "start": 8.44,
-          "end": 8.7
+          "text": "the",
+          "start": 7.9,
+          "end": 8.12
+        },
+        {
+          "id": "w4-19",
+          "text": "router's",
+          "start": 8.12,
+          "end": 8.58
+        },
+        {
+          "id": "w4-20",
+          "text": "LAN",
+          "start": 8.58,
+          "end": 8.92
+        },
+        {
+          "id": "w4-21",
+          "text": "port,",
+          "start": 8.92,
+          "end": 9.18
+        },
+        {
+          "id": "w4-22",
+          "text": "on,",
+          "start": 9.58,
+          "end": 9.86
+        },
+        {
+          "id": "w4-23",
+          "text": "it's",
+          "start": 10.48,
+          "end": 10.76
+        },
+        {
+          "id": "w4-24",
+          "text": "WAN",
+          "start": 10.76,
+          "end": 11.26
+        },
+        {
+          "id": "w4-25",
+          "text": "port,",
+          "start": 11.26,
+          "end": 11.56
+        },
+        {
+          "id": "w4-26",
+          "text": "off,",
+          "start": 11.98,
+          "end": 12.22
+        },
+        {
+          "id": "w4-27",
+          "text": "the",
+          "start": 13.2,
+          "end": 13.32
+        },
+        {
+          "id": "w4-28",
+          "text": "first",
+          "start": 13.32,
+          "end": 13.58
+        },
+        {
+          "id": "w4-29",
+          "text": "failed",
+          "start": 13.58,
+          "end": 13.88
+        },
+        {
+          "id": "w4-30",
+          "text": "link.",
+          "start": 13.88,
+          "end": 14.26
         }
       ]
     },
     {
       "frame": 5,
       "path": "assets/voice/05.wav",
-      "duration_s": 5.127,
+      "duration_s": 7.552,
       "words": [
         {
           "id": "w5-0",
-          "text": "Fix",
+          "text": "So",
           "start": 0,
-          "end": 0.48
+          "end": 0.42
         },
         {
           "id": "w5-1",
-          "text": "that",
-          "start": 0.48,
-          "end": 0.7
+          "text": "the",
+          "start": 0.42,
+          "end": 0.52
         },
         {
           "id": "w5-2",
-          "text": "one",
-          "start": 0.7,
-          "end": 0.88
+          "text": "fault",
+          "start": 0.52,
+          "end": 0.78
         },
         {
           "id": "w5-3",
-          "text": "link,",
-          "start": 0.88,
-          "end": 1.12
+          "text": "is",
+          "start": 0.78,
+          "end": 1.14
         },
         {
           "id": "w5-4",
-          "text": "and",
-          "start": 1.56,
-          "end": 1.72
+          "text": "between",
+          "start": 1.14,
+          "end": 1.42
         },
         {
           "id": "w5-5",
           "text": "the",
-          "start": 1.72,
-          "end": 1.82
+          "start": 1.42,
+          "end": 1.56
         },
         {
           "id": "w5-6",
-          "text": "school",
-          "start": 1.82,
-          "end": 2.02
+          "text": "router",
+          "start": 1.56,
+          "end": 1.74
         },
         {
           "id": "w5-7",
-          "text": "is",
-          "start": 2.02,
-          "end": 2.28
+          "text": "and",
+          "start": 1.74,
+          "end": 2.34
         },
         {
           "id": "w5-8",
-          "text": "back",
-          "start": 2.28,
-          "end": 2.5
+          "text": "the",
+          "start": 2.34,
+          "end": 2.44
         },
         {
           "id": "w5-9",
+          "text": "provider's",
+          "start": 2.44,
+          "end": 3.02
+        },
+        {
+          "id": "w5-10",
+          "text": "modem.",
+          "start": 3.02,
+          "end": 3.22
+        },
+        {
+          "id": "w5-11",
+          "text": "Start",
+          "start": 4.12,
+          "end": 4.38
+        },
+        {
+          "id": "w5-12",
+          "text": "with",
+          "start": 4.38,
+          "end": 4.62
+        },
+        {
+          "id": "w5-13",
+          "text": "what",
+          "start": 4.62,
+          "end": 4.82
+        },
+        {
+          "id": "w5-14",
+          "text": "you",
+          "start": 4.82,
+          "end": 4.98
+        },
+        {
+          "id": "w5-15",
+          "text": "can",
+          "start": 4.98,
+          "end": 5.12
+        },
+        {
+          "id": "w5-16",
+          "text": "check",
+          "start": 5.12,
+          "end": 5.3
+        },
+        {
+          "id": "w5-17",
+          "text": "yourself.",
+          "start": 5.3,
+          "end": 5.68
+        },
+        {
+          "id": "w5-18",
+          "text": "The",
+          "start": 6.32,
+          "end": 6.42
+        },
+        {
+          "id": "w5-19",
+          "text": "cable.",
+          "start": 6.42,
+          "end": 6.64
+        }
+      ]
+    },
+    {
+      "frame": 6,
+      "path": "assets/voice/06.wav",
+      "duration_s": 8.312,
+      "words": [
+        {
+          "id": "w6-0",
+          "text": "It",
+          "start": 0,
+          "end": 0.38
+        },
+        {
+          "id": "w6-1",
+          "text": "has",
+          "start": 0.38,
+          "end": 0.5
+        },
+        {
+          "id": "w6-2",
+          "text": "worked",
+          "start": 0.5,
+          "end": 0.7
+        },
+        {
+          "id": "w6-3",
+          "text": "loose,",
+          "start": 0.7,
+          "end": 1.04
+        },
+        {
+          "id": "w6-4",
+          "text": "push",
+          "start": 1.9,
+          "end": 2.08
+        },
+        {
+          "id": "w6-5",
+          "text": "it",
+          "start": 2.08,
+          "end": 2.26
+        },
+        {
+          "id": "w6-6",
+          "text": "in",
+          "start": 2.26,
+          "end": 2.36
+        },
+        {
+          "id": "w6-7",
+          "text": "until",
+          "start": 2.36,
+          "end": 2.6
+        },
+        {
+          "id": "w6-8",
+          "text": "it",
+          "start": 2.6,
+          "end": 2.74
+        },
+        {
+          "id": "w6-9",
+          "text": "clicks.",
+          "start": 2.74,
+          "end": 2.96
+        },
+        {
+          "id": "w6-10",
+          "text": "The",
+          "start": 4.08,
+          "end": 4.08
+        },
+        {
+          "id": "w6-11",
+          "text": "WAN",
+          "start": 4.08,
+          "end": 4.76
+        },
+        {
+          "id": "w6-12",
+          "text": "light",
+          "start": 4.76,
+          "end": 4.98
+        },
+        {
+          "id": "w6-13",
+          "text": "comes",
+          "start": 4.98,
+          "end": 5.26
+        },
+        {
+          "id": "w6-14",
+          "text": "on,",
+          "start": 5.26,
+          "end": 5.54
+        },
+        {
+          "id": "w6-15",
+          "text": "and",
+          "start": 5.98,
+          "end": 6.18
+        },
+        {
+          "id": "w6-16",
+          "text": "the",
+          "start": 6.18,
+          "end": 6.28
+        },
+        {
+          "id": "w6-17",
+          "text": "router",
+          "start": 6.28,
+          "end": 6.42
+        },
+        {
+          "id": "w6-18",
+          "text": "is",
+          "start": 6.42,
+          "end": 6.78
+        },
+        {
+          "id": "w6-19",
+          "text": "back",
+          "start": 6.78,
+          "end": 7
+        },
+        {
+          "id": "w6-20",
           "text": "online.",
-          "start": 2.5,
-          "end": 2.84
+          "start": 7,
+          "end": 7.32
+        }
+      ]
+    },
+    {
+      "frame": 7,
+      "path": "assets/voice/07.wav",
+      "duration_s": 8.178,
+      "words": [
+        {
+          "id": "w7-0",
+          "text": "Don't",
+          "start": 0,
+          "end": 0.52
+        },
+        {
+          "id": "w7-1",
+          "text": "assume",
+          "start": 0.52,
+          "end": 0.76
+        },
+        {
+          "id": "w7-2",
+          "text": "it's",
+          "start": 0.76,
+          "end": 1
+        },
+        {
+          "id": "w7-3",
+          "text": "fixed,",
+          "start": 1,
+          "end": 1.38
+        },
+        {
+          "id": "w7-4",
+          "text": "test",
+          "start": 2.08,
+          "end": 2.18
+        },
+        {
+          "id": "w7-5",
+          "text": "it,",
+          "start": 2.18,
+          "end": 2.46
+        },
+        {
+          "id": "w7-6",
+          "text": "a",
+          "start": 3,
+          "end": 3.16
+        },
+        {
+          "id": "w7-7",
+          "text": "request",
+          "start": 3.16,
+          "end": 3.42
+        },
+        {
+          "id": "w7-8",
+          "text": "goes",
+          "start": 3.42,
+          "end": 3.74
+        },
+        {
+          "id": "w7-9",
+          "text": "out,",
+          "start": 3.74,
+          "end": 4.08
+        },
+        {
+          "id": "w7-10",
+          "text": "and",
+          "start": 4.7,
+          "end": 4.88
+        },
+        {
+          "id": "w7-11",
+          "text": "an",
+          "start": 4.88,
+          "end": 4.96
+        },
+        {
+          "id": "w7-12",
+          "text": "answer",
+          "start": 4.96,
+          "end": 5.3
+        },
+        {
+          "id": "w7-13",
+          "text": "comes",
+          "start": 5.3,
+          "end": 5.6
+        },
+        {
+          "id": "w7-14",
+          "text": "back.",
+          "start": 5.6,
+          "end": 5.96
+        }
+      ]
+    },
+    {
+      "frame": 8,
+      "path": "assets/voice/08.wav",
+      "duration_s": 6.708,
+      "words": [
+        {
+          "id": "w8-0",
+          "text": "Check",
+          "start": 0,
+          "end": 0.5
+        },
+        {
+          "id": "w8-1",
+          "text": "the",
+          "start": 0.5,
+          "end": 0.66
+        },
+        {
+          "id": "w8-2",
+          "text": "path",
+          "start": 0.66,
+          "end": 0.86
+        },
+        {
+          "id": "w8-3",
+          "text": "in",
+          "start": 0.86,
+          "end": 1.1
+        },
+        {
+          "id": "w8-4",
+          "text": "order.",
+          "start": 1.1,
+          "end": 1.32
+        },
+        {
+          "id": "w8-5",
+          "text": "The",
+          "start": 2.08,
+          "end": 2.18
+        },
+        {
+          "id": "w8-6",
+          "text": "first",
+          "start": 2.18,
+          "end": 2.44
+        },
+        {
+          "id": "w8-7",
+          "text": "failed",
+          "start": 2.44,
+          "end": 2.72
+        },
+        {
+          "id": "w8-8",
+          "text": "link",
+          "start": 2.72,
+          "end": 3.06
+        },
+        {
+          "id": "w8-9",
+          "text": "shows",
+          "start": 3.06,
+          "end": 3.52
+        },
+        {
+          "id": "w8-10",
+          "text": "you",
+          "start": 3.52,
+          "end": 3.72
+        },
+        {
+          "id": "w8-11",
+          "text": "where",
+          "start": 3.72,
+          "end": 3.84
+        },
+        {
+          "id": "w8-12",
+          "text": "to",
+          "start": 3.84,
+          "end": 3.92
+        },
+        {
+          "id": "w8-13",
+          "text": "look.",
+          "start": 3.92,
+          "end": 4.12
         }
       ]
     }

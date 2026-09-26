@@ -30,7 +30,9 @@ import { frameFile, anchoredZoom, lessonCard, callout } from './lib/frame.mjs';
 import * as geo from './lib/geometry.mjs';
 import * as flows from './lib/stage.mjs';
 import { C, CAM } from './lib/palette.mjs';
-import { LIB } from './lib/devices.mjs';
+import { LIB as LIB1 } from './lib/devices.mjs';
+import { LIB2 } from './lib/devices2.mjs';
+const LIB = { ...LIB1, ...LIB2 };
 
 const ENGINE = dirname(fileURLToPath(import.meta.url));
 const VIDEOS = resolve(ENGINE, '..');
@@ -203,6 +205,7 @@ if (want('sfx')) {
   step('sfx');
   const ctx = context();
   const manifest = JSON.parse(readFileSync(join(SFX_LIB, 'manifest.json'), 'utf8'));
+  if (spec.stage) { ctx.st = spec.stage(ctx); if (spec.flows) spec.flows(ctx); }   // cues may be timed to flow events
   const plan = spec.sfx ? spec.sfx(ctx) : [];
   const meta = JSON.parse(readFileSync(R('audio_meta.json'), 'utf8'));
   meta.sfx = plan.map(([frame, name, offset_s, volume = 0.26]) => {

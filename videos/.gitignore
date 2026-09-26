@@ -1,2 +1,4 @@
 # The shared TTS cache is regenerable and large.
 _engine/.cache/
+# Engine scratch previews.
+_engine/.scratch/

@@ -101,6 +101,24 @@ export function journey(stage, legs) {
   }
   return pts;
 }
+/** Hold the last position until global time g. */
+export function hold(pts, g) { const q = pts[pts.length - 1]; if (g > q.g) pts.push({ g: r3(g), x: q.x, y: q.y }); return pts; }
+/** Continue a schedule with more pieces from its last time (constant speed). */
+export function onward(stage, pts, keys, speed, from) { const more = trip(stage, keys, from ?? pts[pts.length - 1].g, speed); pts.push(...more.slice(1)); return pts; }
+/**
+ * PacketBlocked: at its last point the packet tries to go on along (dx,dy): a short push out and
+ * back, a pause, once more, then it gives up (end 'fade'). The failure seen, not announced.
+ */
+export function blocked(pts, dx, dy, { tries = 2, reach = 16, gap = 0.42 } = {}) {
+  const q = pts[pts.length - 1]; let g = q.g;
+  for (let k = 0; k < tries; k++) {
+    pts.push({ g: r3(g + 0.22), x: r3(q.x + dx * reach), y: r3(q.y + dy * reach) });
+    pts.push({ g: r3(g + 0.46), x: q.x, y: q.y });
+    g += 0.46 + gap;
+    pts.push({ g: r3(g), x: q.x, y: q.y });
+  }
+  return pts;
+}
 /** Constant speed (px/s) along a list of pieces, starting at global time g0. */
 export function trip(stage, keys, g0, speed) {
   const legs = []; let g = g0;

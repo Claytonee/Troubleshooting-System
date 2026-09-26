@@ -1,3 +1,3 @@
-How the school connects
+Follow the signal
 
-Every packet crosses four links on its way out of school; when one breaks, you check them in order and the fault shows itself.
+When the internet stops, follow the signal from the computer outwards and check each link in order: the first failed link is where to investigate; fix it there, then prove it with a round trip.

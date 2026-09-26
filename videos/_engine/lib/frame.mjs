@@ -20,11 +20,12 @@ if (!LOGO_PATHS || LOGO_PATHS.length !== 21) throw new Error('official logo: exp
 export const LOGO_DARK = LOGO_PATHS.join('').replace(/fill="#263746"/g, 'fill="#ffffff"');
 
 /** The closing card: official logo, gold rule, one line to remember. World space, top of frame. */
-export const lessonCard = (text) => (p) => `<g id="${p}lesson" opacity="0">
+export const lessonCard = (lesson) => (p) => { const [text, sub] = Array.isArray(lesson) ? lesson : [lesson, '']; return `<g id="${p}lesson" opacity="0">
     <g transform="translate(795,34) scale(1.1)">${LOGO_DARK}</g>
     <rect x="912" y="90" width="96" height="3" rx="1.5" fill="${C.gold}"/>
     <text x="960" y="164" text-anchor="middle" style='font-family:"DM Sans";font-weight:600;font-size:62px;letter-spacing:-1.2px' fill="${C.text}">${text}</text>
-  </g>`;
+    ${sub ? `<text x="960" y="214" text-anchor="middle" style='font-family:"DM Sans";font-weight:500;font-size:34px' fill="${C.muted}">${sub}</text>` : ''}
+  </g>`; };
 
 /** A pointer: short red (or any colour) caps text with a dashed leader to a world point. */
 export const callout = (id, text, at, to, color = C.neg, px = 28) => (p) => `<g id="${p}${id}" opacity="0">
@@ -87,6 +88,8 @@ const RUNTIME = `
     }
     function dim(dev, o, at, d) { if (d) tl.to($('dev-' + dev), { opacity: o, duration: d, ease: 'power2.out' }, at); else tl.set($('dev-' + dev), { opacity: o }, at); }
     function led(ref, color, at, d) { var el = $(ref.replace('.', '-led-')); if (d === 0) tl.set(el, { attr: { fill: color } }, at); else tl.to(el, { attr: { fill: color }, duration: d || 0.18, ease: 'power1.out' }, at); }
+    /** Activity: a port light flickers once as a packet passes, then returns to its steady state. */
+    function blip(ref, at, base) { led(ref, C.text, at, 0.04); led(ref, base || C.pos, at + 0.12, 0.14); }
     function blink(ref, color, at, times, gap) { for (var k = 0; k < (times || 2); k++) { led(ref, C.line, at + k * (gap || 0.44), 0.18); led(ref, color, at + k * (gap || 0.44) + 0.22, 0.18); } }
     /** Swap a device's visible screen state. */
     function screen(dev, from, to, at, d) { fade($(dev + '-scr-' + from), 0, at, d || 0.25); fade($(dev + '-scr-' + to), 1, at + 0.08, d || 0.3); }
@@ -117,7 +120,8 @@ const RUNTIME = `
       var layer = $('packets'), NS = 'http://www.w3.org/2000/svg';
       PK.forEach(function (pk) {
         var el;
-        if (pk.kind === 'queued' || pk.kind === 'content') { el = document.createElementNS(NS, 'rect'); el.setAttribute('x', -8); el.setAttribute('y', -6); el.setAttribute('width', 16); el.setAttribute('height', 12); el.setAttribute('rx', 3); el.setAttribute('fill', pk.kind === 'queued' ? C.warn : C.pos); }
+        if (pk.kind === 'test') { el = document.createElementNS(NS, 'rect'); el.setAttribute('x', -17); el.setAttribute('y', -13); el.setAttribute('width', 34); el.setAttribute('height', 26); el.setAttribute('rx', 6); el.setAttribute('fill', C.primary); el.setAttribute('fill-opacity', 0.35); el.setAttribute('stroke', C.text); el.setAttribute('stroke-width', 3.5); }
+        else if (pk.kind === 'queued' || pk.kind === 'content' || pk.kind === 'reply') { el = document.createElementNS(NS, 'rect'); el.setAttribute('x', -8); el.setAttribute('y', -6); el.setAttribute('width', 16); el.setAttribute('height', 12); el.setAttribute('rx', 3); el.setAttribute('fill', pk.kind === 'queued' ? C.warn : C.pos); if (pk.kind === 'reply') { el.setAttribute('x', -11); el.setAttribute('y', -8); el.setAttribute('width', 22); el.setAttribute('height', 16); el.setAttribute('rx', 4); } }
         else if (pk.kind === 'spark') { el = document.createElementNS(NS, 'circle'); el.setAttribute('r', 6); el.setAttribute('fill', C.warn); }
         else { el = document.createElementNS(NS, 'rect'); el.setAttribute('x', -8); el.setAttribute('y', -6); el.setAttribute('width', 16); el.setAttribute('height', 12); el.setAttribute('rx', 3); el.setAttribute('fill', C.primary); }
         el.setAttribute('id', P + 'pk-' + pk.id); el.setAttribute('filter', 'url(#' + P + 'glow)'); el.setAttribute('opacity', 0);
@@ -132,6 +136,7 @@ const RUNTIME = `
         if (kf.length) tl.to(el, { keyframes: kf }, start);
         if (pk.end === 'die') { tl.to(el, { attr: { fill: C.neg }, duration: 0.08 }, last); tl.to(el, { scale: 1.8, opacity: 0, duration: 0.45, ease: 'power2.out', transformOrigin: '50% 50%' }, last + 0.06); }
         else if (pk.end === 'arrive') tl.to(el, { opacity: 0, duration: 0.25, ease: 'power1.in' }, last - 0.2);
+        else if (pk.end === 'fade') tl.to(el, { opacity: 0, duration: 0.6, ease: 'power1.inOut' }, last);
         else if (pk.end === 'stay') {}
       });
     })();

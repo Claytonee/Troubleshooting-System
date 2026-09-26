@@ -69,10 +69,10 @@
      NO shadow (the tinted card does the lift; cast depth is forbidden) */
   .caption-pill {
     max-width: 78%;
-    padding: 20px 44px 24px;
-    background: color-mix(in srgb, var(--cap-accent, #1e2bfa) 4%, var(--cap-canvas, #fdfae7));
-    border: 1.5px solid color-mix(in srgb, var(--cap-accent, #1e2bfa) 20%, transparent);
-    border-radius: 14px;
+    padding: 12px 30px 15px;
+    background: rgba(11, 13, 18, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
   }
   .caption-line {
     display: flex;
@@ -80,10 +80,10 @@
     justify-content: center;
     gap: 0.1em 0.34em;
     font-family: var(--font-display, "Space Grotesk"), system-ui, sans-serif;
-    font-weight: 600;
-    font-size: clamp(40px, 4.4vw, 58px);
-    line-height: 1.16;
-    letter-spacing: -0.02em;
+    font-weight: 500;
+    font-size: clamp(30px, 2.2vw, 40px);
+    line-height: 1.2;
+    letter-spacing: -0.005em;
   }
 
   /* upcoming — muted gray, no chip */
@@ -96,13 +96,13 @@
   /* current word — THE solid cobalt chip (the single-accent gesture; pill-rounded
      fill, NO shadow), cream reading on top */
   .caption-word.is-active {
-    color: var(--cap-canvas, #fdfae7);
-    background: var(--cap-accent, #1e2bfa);
+    color: var(--cap-ink, #111111);
+    background: transparent;
     box-shadow: none;
   }
   /* already spoken — solid near-black ink, chip cleared */
   .caption-word.is-spoken {
-    color: var(--cap-ink, #111111);
+    color: color-mix(in srgb, var(--cap-ink, #111111) 82%, var(--cap-canvas, #fdfae7));
     background: transparent;
     box-shadow: none;
   }

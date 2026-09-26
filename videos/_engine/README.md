@@ -23,6 +23,7 @@ node videos/_engine/make.mjs <slug> --only=build,assemble,check,snap   # after a
 | File | What it owns |
 |---|---|
 | `lib/devices.mjs` | the device library: original SVG in one line language; ports, status lights, screen states |
+| `lib/devices2.mjs` | close-up-ready devices (v2, D38): desktop + tower NIC, switch with RJ45 ports and UPLINK, router with status icons, LAN 1–4 and WAN, provider modem, web server |
 | `lib/stage.mjs` | the world drawing: placed devices, links that draw/break/mend, labels, check chips; flows on one global clock |
 | `lib/frame.mjs` | one frame composition: camera wrappers, logo and slate fixed to the screen, the timeline helpers, the lesson card, the anchored zoom |
 | `lib/geometry.mjs`, `lib/palette.mjs` | curves, arc-length sampling; the colours by role |

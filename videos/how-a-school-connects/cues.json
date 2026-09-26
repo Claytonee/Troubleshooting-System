@@ -1,98 +1,169 @@
 {
   "1": {
-    "duration": 4.744,
+    "duration": 5.198,
     "phrases": [
       {
-        "text": "No internet in the lab?",
-        "start": 0.7
+        "text": "The internet has stopped at school.",
+        "start": 0.9
       },
       {
-        "text": "The fault is in one of four links.",
-        "start": 2.473
+        "text": "The computer can't tell you where.",
+        "start": 3.066
       }
     ]
   },
   "2": {
-    "duration": 8.752,
+    "duration": 13.362,
     "phrases": [
       {
-        "text": "Your computer sends packets,",
-        "start": 0.35
+        "text": "So follow the signal.",
+        "start": 0.3
       },
       {
-        "text": "down the cable,",
-        "start": 2.212
+        "text": "The switch joins the school's computers",
+        "start": 2.04
       },
       {
-        "text": "to the switch,",
-        "start": 3.362
+        "text": "and passes their traffic to the router,",
+        "start": 4.333
       },
       {
-        "text": "through the router,",
-        "start": 4.512
+        "text": "the school's gateway.",
+        "start": 6.595
       },
       {
-        "text": "to your provider,",
-        "start": 5.661
+        "text": "Its LAN ports face the school.",
+        "start": 8.203
       },
       {
-        "text": "and out to the internet.",
-        "start": 7.03
+        "text": "Its WAN port faces the provider.",
+        "start": 10.448
       }
     ]
   },
   "3": {
-    "duration": 3.741,
+    "duration": 6.792,
     "phrases": [
       {
-        "text": "When one link breaks,",
+        "text": "Every request leaves through it.",
         "start": 0.25
       },
       {
-        "text": "the packets stop right there.",
-        "start": 1.699
+        "text": "This one doesn't get out.",
+        "start": 2.282
+      },
+      {
+        "text": "Nothing gets past the router.",
+        "start": 4.602
       }
     ]
   },
   "4": {
-    "duration": 9.552,
+    "duration": 15.287,
     "phrases": [
       {
-        "text": "Check them in order, from the computer out.",
-        "start": 0.25
+        "text": "Check the path in order,",
+        "start": 0.3
       },
       {
-        "text": "Cable.",
-        "start": 2.864
+        "text": "from the computer outwards.",
+        "start": 1.863
       },
       {
-        "text": "Switch.",
-        "start": 3.851
+        "text": "The computer's link light: on.",
+        "start": 3.844
       },
       {
-        "text": "Router.",
-        "start": 4.921
+        "text": "The switch port: on.",
+        "start": 6.249
       },
       {
-        "text": "Provider.",
-        "start": 5.945
+        "text": "The router's LAN port: on.",
+        "start": 8.073
       },
       {
-        "text": "The first dark light is your fault.",
-        "start": 7.237
+        "text": "Its WAN port: off.",
+        "start": 10.584
+      },
+      {
+        "text": "The first failed link.",
+        "start": 13.259
       }
     ]
   },
   "5": {
-    "duration": 5.127,
+    "duration": 7.552,
     "phrases": [
       {
-        "text": "Fix that one link,",
-        "start": 0.25
+        "text": "So the fault is between the router",
+        "start": 0.3
       },
       {
-        "text": "and the school is back online.",
-        "start": 1.67
+        "text": "and the provider's modem.",
+        "start": 2.286
+      },
+      {
+        "text": "Start with what you can check yourself:",
+        "start": 4.119
+      },
+      {
+        "text": "the cable.",
+        "start": 6.329
+      }
+    ]
+  },
+  "6": {
+    "duration": 8.312,
+    "phrases": [
+      {
+        "text": "It has worked loose.",
+        "start": 0.3
+      },
+      {
+        "text": "Push it in until it clicks.",
+        "start": 1.955
+      },
+      {
+        "text": "The WAN light comes on,",
+        "start": 4.027
+      },
+      {
+        "text": "and the router is back online.",
+        "start": 6.118
+      }
+    ]
+  },
+  "7": {
+    "duration": 8.178,
+    "phrases": [
+      {
+        "text": "Don't assume it's fixed.",
+        "start": 0.3
+      },
+      {
+        "text": "Test it:",
+        "start": 2.012
+      },
+      {
+        "text": "a request goes out,",
+        "start": 3.108
+      },
+      {
+        "text": "and an answer comes back.",
+        "start": 4.813
+      }
+    ]
+  },
+  "8": {
+    "duration": 6.708,
+    "phrases": [
+      {
+        "text": "Check the path in order.",
+        "start": 0.3
+      },
+      {
+        "text": "The first failed link shows you where to look.",
+        "start": 2.127
       }
     ]
   }
