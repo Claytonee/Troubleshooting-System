@@ -63,6 +63,26 @@ function parseDoc(md) {
   return out;
 }
 
+// The document around the table is generated too. --write used to keep "everything before
+// the first table" and "everything after the first Public surface heading" — which, once a
+// second table existed, kept every older copy: each run added one (six by 2026-09-26), and a
+// hand edit that cut the header meant the endpoint-count check silently stopped running.
+const HEADER = (n) => `# API security matrix
+
+Generated from the router source on 2026-09-24 (\`routes/*.js\` + \`server.js\`), then annotated by hand.
+**${n} endpoints.** "Role gate" is what the router enforces; per-record school scoping lives in the
+controllers and is listed in *Notes* where it was audited or changed. Regenerate the first four columns
+rather than editing them.
+
+Auth: \`JWT\` = \`authenticate()\` (signature + account status re-read per request). \`key:\` = shared secret header.
+`;
+const PUBLIC = (n) => `## Public surface (no JWT)
+
+${n} endpoints take no session. Each one either needs a shared secret / capability
+token or is deliberately public (login, registration, branding, health). All are listed above with how they are protected.
+`;
+const TABLE_HEAD = '| Method | Route | Auth | Role gate | Notes |';
+
 const k = r => `${r.method} ${r.route}`;
 const sig = r => `${r.auth} | ${r.gate}`;
 
@@ -71,15 +91,15 @@ function main() {
   const code = scan();
   const md = fs.existsSync(DOC) ? fs.readFileSync(DOC, 'utf8') : '';
   const doc = parseDoc(md);
-  const docBy = new Map(doc.map(r => [k(r), r]));
+  const docBy = new Map();
+  for (const r of doc) if (!docBy.has(k(r)) || (!docBy.get(k(r)).notes && r.notes)) docBy.set(k(r), r);
   const codeBy = new Map(code.map(r => [k(r), r]));
 
   if (mode === '--write') {
-    const head = md.split(/\r?\n\| Method \| Route/)[0].replace(/\*\*\d+ endpoints\.\*\*/, `**${code.length} endpoints.**`);
-    const tail = md.includes('\n## Public surface') ? md.slice(md.indexOf('\n## Public surface')) : '';
-    const table = ['| Method | Route | Auth | Role gate | Notes |', '|---|---|---|---|---|']
+    const table = [TABLE_HEAD, '|---|---|---|---|---|']
       .concat(code.map(r => `| ${r.method} | \`${r.route}\` | ${r.auth} | ${r.gate} | ${(docBy.get(k(r)) || {}).notes || ''} |`));
-    fs.writeFileSync(DOC, head.replace(/\s*$/, '\n\n') + table.join('\n') + '\n' + tail);
+    const open = code.filter(r => r.auth !== 'JWT').length;
+    fs.writeFileSync(DOC, HEADER(code.length) + '\n' + table.join('\n') + '\n\n' + PUBLIC(open));
     console.log(`API_SECURITY_MATRIX.md written: ${code.length} endpoints.`);
     return;
   }
@@ -92,7 +112,11 @@ function main() {
   }
   for (const d of doc) if (!codeBy.has(k(d))) problems.push(`GONE from the code:     ${k(d)}`);
   const claimed = (md.match(/\*\*(\d+) endpoints\.\*\*/) || [])[1];
-  if (claimed && Number(claimed) !== code.length) problems.push(`Header says ${claimed} endpoints; the code has ${code.length}.`);
+  if (!claimed) problems.push('The header (and its endpoint count) is missing.');
+  else if (Number(claimed) !== code.length) problems.push(`Header says ${claimed} endpoints; the code has ${code.length}.`);
+  const tables = md.split(TABLE_HEAD).length - 1;
+  if (tables !== 1) problems.push(`The document holds ${tables} endpoint tables; it must hold exactly one.`);
+  if (doc.length !== code.length) problems.push(`The table has ${doc.length} rows; the code has ${code.length} endpoints.`);
 
   if (problems.length) {
     console.log(`API matrix is out of date (${problems.length}):\n  ` + problems.join('\n  '));
