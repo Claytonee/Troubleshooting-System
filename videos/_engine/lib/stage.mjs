@@ -30,7 +30,7 @@ export class Stage {
   }
 
   /** A drawn link (cubic): a dim base and a lit overlay that can draw on, break and recolour. */
-  link(key, pts, { width = 4 } = {}) {
+  link(key, pts, { width = 6 } = {}) {
     const len = +length(bez(...pts)).toFixed(1);
     this.links.push({ key, pts, len, width });
     this.pieces[key] = { key, fn: bez(...pts), len };
@@ -51,23 +51,29 @@ export class Stage {
 
   /** passes: this label is meant to slide under the screen furniture (captions, the top scrim) during a camera move — marked for the layout audit on its own text blocks, never a wrapper. */
   label(id, x, y, text, sub = '', px = 34, { passes = false } = {}) { this.labels.push({ id, x, y, text, sub, px, passes }); return this; }
-  chip(i, x, y) { this.chips.push({ i, x, y }); return this; }
+  /** A numbered check at a light. `name` (e.g. 'ROUTER · WAN') heads its status tag: the device stays the hero, the verdict is a label. */
+  chip(i, x, y, name = '') { this.chips.push({ i, x, y, name }); return this; }
   /** Raw SVG under the devices or over everything (callouts, cards, the lesson). */
   add(svgFn, layer = 'over') { (layer === 'under' ? this.under : this.over).push(svgFn); return this; }
 
   piece(key) { const pc = this.pieces[key]; if (!pc) throw new Error(`stage: no route piece "${key}"`); return pc; }
 
   svg(p) {
-    const links = this.links.map(({ key, pts, len, width }) => `<path id="${p}${key}-base" d="${dPath(pts)}" fill="none" stroke="${C.line}" stroke-width="${width}" stroke-linecap="round" stroke-dasharray="${len} ${len}" stroke-dashoffset="0"/>
+    const links = this.links.map(({ key, pts, len, width }) => `<path id="${p}${key}-base" d="${dPath(pts)}" fill="none" stroke="${C.cable}" stroke-width="${width}" stroke-linecap="round" stroke-dasharray="${len} ${len}" stroke-dashoffset="0"/>
       <path id="${p}${key}-lit" d="${dPath(pts)}" fill="none" stroke="${C.primary}" stroke-width="${width}" stroke-linecap="round" stroke-dasharray="${len} ${len}" stroke-dashoffset="${len}" data-len="${len}"/>`).join('');
     const breaks = Object.entries(this.breaks || {}).map(([k, b]) => `<g transform="translate(${b.x},${b.y})"><g id="${p}${k}-gap" opacity="0"><path d="M-11,-11 L11,11 M11,-11 L-11,11" stroke="${C.neg}" stroke-width="5" stroke-linecap="round"/></g></g>`).join('');
     const devices = this.items.map(({ id, dev, x, y, scale }) => `<g transform="translate(${x},${y}) scale(${scale})">${dev.svg(p, id)}</g>`).join('\n');
     const labels = this.labels.map(({ id, x, y, text, sub, px, passes }) => { const lay = passes ? ' data-layout-allow-overlap data-layout-allow-occlusion' : ''; return `<g id="${p}lab-${id}" opacity="0"><text${lay} x="${x}" y="${y}" text-anchor="middle" style='font-family:"DM Sans";font-weight:600;font-size:${px}px' fill="${C.text}">${text}</text>${sub ? `<text${lay} x="${x}" y="${y + 34}" text-anchor="middle" style='font-family:"DM Sans";font-weight:400;font-size:24px' fill="${C.muted}">${sub}</text>` : ''}</g>`; }).join('');
-    const chips = this.chips.map(({ i, x, y }) => `<g transform="translate(${r3(x)},${r3(y)})"><g id="${p}chip${i}" opacity="0">
-      <circle id="${p}chip${i}-c" r="30" fill="${C.bg}" stroke="${C.primary}" stroke-width="2.5"/>
-      <text id="${p}chip${i}-n" y="9.5" text-anchor="middle" style="font-family:'DM Mono';font-weight:500;font-size:28px" fill="${C.text}">${i}</text>
-      <path id="${p}chip${i}-ok" d="M-12,1 L-4,9 L13,-9" fill="none" stroke="${C.bg}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>
-      <path id="${p}chip${i}-x" d="M-9,-9 L9,9 M9,-9 L-9,9" fill="none" stroke="${C.bg}" stroke-width="4" stroke-linecap="round" opacity="0"/>
+    // A check: a small numbered ring, and beside it a two-line tag — what was checked, then the verdict
+    // (✓ VERIFIED / ✕ FAILED, drawn as paths so no font can drop the glyph). It used to be a 60 px disc
+    // filled green or red, which out-shouted the port it was about (polish gate §3).
+    const T = (x, y, t, px, fill, w, ls, extra = '') => `<text${extra} x="${x}" y="${y}" style='font-family:"DM Sans";font-weight:${w};font-size:${px}px;letter-spacing:${ls}px' fill="${fill}">${t}</text>`;
+    const chips = this.chips.map(({ i, x, y, name }) => `<g transform="translate(${r3(x)},${r3(y)})"><g id="${p}chip${i}" opacity="0">
+      <circle id="${p}chip${i}-c" r="17" fill="${C.bg}" stroke="${C.primary}" stroke-width="2.4"/>
+      <text id="${p}chip${i}-n" y="6.5" text-anchor="middle" style="font-family:'DM Mono';font-weight:500;font-size:18px" fill="${C.text}">${i}</text>
+      ${name ? T(27, -3, name, 12.5, C.muted, 600, 1.5) : ''}
+      <g id="${p}chip${i}-ok" opacity="0"><path d="M27,12 l4,4 l7,-8" fill="none" stroke="${C.pos}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>${T(44, 17, 'VERIFIED', 14, C.pos, 700, 1.6)}</g>
+      <g id="${p}chip${i}-x" opacity="0"><path d="M28,8 l8,8 M36,8 l-8,8" fill="none" stroke="${C.neg}" stroke-width="2.6" stroke-linecap="round"/>${T(44, 17, 'FAILED', 14, C.neg, 700, 1.6)}</g>
     </g></g>`).join('');
     const run = (arr) => arr.map((f) => (typeof f === 'function' ? f(p) : f)).join('\n');
     return `<svg class="${p}svg" viewBox="0 0 1920 1080" width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">

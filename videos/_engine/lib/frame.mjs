@@ -94,18 +94,16 @@ const RUNTIME = `
     /** Swap a device's visible screen state. */
     function screen(dev, from, to, at, d) { fade($(dev + '-scr-' + from), 0, at, d || 0.25); fade($(dev + '-scr-' + to), 1, at + 0.08, d || 0.3); }
     function chipsIn(n, at, stagger, rise) { for (var i = 1; i <= n; i++) tl.fromTo($('chip' + i), { opacity: 0, y: rise || 0 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' }, at + (i - 1) * stagger); }
+    /** A check resolves: its ring takes the verdict's colour and the tag reads VERIFIED or FAILED. The number stays. */
     function chipFlip(i, ok, at) {
       var col = ok ? C.pos : C.neg;
-      tl.to($('chip' + i + '-c'), { attr: { fill: col, stroke: col }, duration: 0.2, ease: 'power2.out' }, at);
-      tl.to($('chip' + i + '-n'), { opacity: 0, duration: 0.12 }, at);
+      tl.to($('chip' + i + '-c'), { attr: { stroke: col }, duration: 0.2, ease: 'power2.out' }, at);
       tl.to($('chip' + i + (ok ? '-x' : '-ok')), { opacity: 0, duration: 0.1 }, at);
-      tl.to($('chip' + i + (ok ? '-ok' : '-x')), { opacity: 1, duration: 0.15 }, at + 0.06);
-      tl.fromTo($('chip' + i), { scale: 1.16 }, { scale: 1, duration: 0.35, ease: 'power3.out', transformOrigin: '50% 50%' }, at);
+      tl.fromTo($('chip' + i + (ok ? '-ok' : '-x')), { opacity: 0, x: -6 }, { opacity: 1, x: 0, duration: 0.28, ease: 'power2.out' }, at + 0.04);
     }
     function chipSet(i, state, at) {           // 'ok' | 'x' | 'n' without motion
-      var col = state === 'ok' ? C.pos : state === 'x' ? C.neg : C.bg;
-      tl.set($('chip' + i + '-c'), { attr: { fill: col, stroke: state === 'n' ? C.primary : col } }, at);
-      tl.set($('chip' + i + '-n'), { opacity: state === 'n' ? 1 : 0 }, at);
+      var col = state === 'ok' ? C.pos : state === 'x' ? C.neg : C.primary;
+      tl.set($('chip' + i + '-c'), { attr: { stroke: col } }, at);
       tl.set($('chip' + i + '-ok'), { opacity: state === 'ok' ? 1 : 0 }, at);
       tl.set($('chip' + i + '-x'), { opacity: state === 'x' ? 1 : 0 }, at);
       tl.set($('chip' + i), { opacity: 1 }, at);
@@ -116,28 +114,61 @@ const RUNTIME = `
       tl.fromTo($('lesson'), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' }, at);
     }
     // Flows: pre-sampled global schedules, sliced to this frame.
+    // A packet is a story character, so it points where it is going (an arrow-tag that turns with the
+    // cable) and, when the story follows it (pk.trail), leaves a short fading trail (polish gate §4).
     (function () {
       var layer = $('packets'), NS = 'http://www.w3.org/2000/svg';
-      PK.forEach(function (pk) {
-        var el;
-        if (pk.kind === 'test') { el = document.createElementNS(NS, 'rect'); el.setAttribute('x', -17); el.setAttribute('y', -13); el.setAttribute('width', 34); el.setAttribute('height', 26); el.setAttribute('rx', 6); el.setAttribute('fill', C.primary); el.setAttribute('fill-opacity', 0.35); el.setAttribute('stroke', C.text); el.setAttribute('stroke-width', 3.5); }
-        else if (pk.kind === 'queued' || pk.kind === 'content' || pk.kind === 'reply') { el = document.createElementNS(NS, 'rect'); el.setAttribute('x', -8); el.setAttribute('y', -6); el.setAttribute('width', 16); el.setAttribute('height', 12); el.setAttribute('rx', 3); el.setAttribute('fill', pk.kind === 'queued' ? C.warn : C.pos); if (pk.kind === 'reply') { el.setAttribute('x', -11); el.setAttribute('y', -8); el.setAttribute('width', 22); el.setAttribute('height', 16); el.setAttribute('rx', 4); } }
-        else if (pk.kind === 'spark') { el = document.createElementNS(NS, 'circle'); el.setAttribute('r', 6); el.setAttribute('fill', C.warn); }
-        else { el = document.createElementNS(NS, 'rect'); el.setAttribute('x', -8); el.setAttribute('y', -6); el.setAttribute('width', 16); el.setAttribute('height', 12); el.setAttribute('rx', 3); el.setAttribute('fill', C.primary); }
-        el.setAttribute('id', P + 'pk-' + pk.id); el.setAttribute('filter', 'url(#' + P + 'glow)'); el.setAttribute('opacity', 0);
-        layer.appendChild(el);
-        var pts = pk.pts, i0 = 0;
-        while (i0 < pts.length - 1 && pts[i0 + 1][0] <= 0) i0++;
-        var start = Math.max(0, pts[i0][0]), first = pts[i0];
-        if (pts[i0][0] < 0 && i0 < pts.length - 1) { var a = pts[i0], b = pts[i0 + 1], u = (0 - a[0]) / (b[0] - a[0]); first = [0, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]; }
-        tl.set(el, { x: first[1], y: first[2], opacity: 1 }, start);
-        var kf = [], last = first[0];
-        for (var k = i0 + 1; k < pts.length; k++) { kf.push({ x: pts[k][1], y: pts[k][2], duration: pts[k][0] - last, ease: 'none' }); last = pts[k][0]; }
+      var ARROW = 'M-13,-8 H3 L13,0 L3,8 H-13 Z';
+      function shape(pk) {
+        var el, k = pk.kind;
+        if (k === 'spark') { el = document.createElementNS(NS, 'circle'); el.setAttribute('r', 6); el.setAttribute('fill', C.warn); return el; }
+        el = document.createElementNS(NS, 'path'); el.setAttribute('d', ARROW);
+        var fill = k === 'reply' || k === 'content' ? C.pos : k === 'queued' ? C.warn : C.primary;
+        el.setAttribute('fill', fill); el.setAttribute('stroke', C.text); el.setAttribute('stroke-width', 1.6); el.setAttribute('stroke-linejoin', 'round');
+        el.setAttribute('data-s', k === 'test' || k === 'reply' ? 1.45 : pk.trail ? 1.25 : 0.85);
+        return el;
+      }
+      // Heading from motion; unwrapped so it never spins, and held when the packet stops or backs up.
+      function headings(pts) {
+        var out = [], prev = null;
+        for (var k = 0; k < pts.length; k++) {
+          var a = pts[Math.max(0, k - 1)], b = pts[Math.min(pts.length - 1, k === 0 ? 1 : k)];
+          var dx = b[1] - a[1], dy = b[2] - a[2], h = prev;
+          if (dx * dx + dy * dy > 0.25) {
+            var raw = Math.atan2(dy, dx) * 180 / Math.PI;
+            if (prev === null) h = raw;
+            else { var d = ((raw - prev) % 360 + 540) % 360 - 180; h = Math.abs(d) > 120 ? prev : prev + d; }
+          }
+          out.push(h); prev = h;
+        }
+        // a packet that waits before it moves already faces the way it will go
+        var firstKnown = null;
+        for (var j = 0; j < out.length; j++) if (out[j] !== null) { firstKnown = out[j]; break; }
+        for (var m = 0; m < out.length && out[m] === null; m++) out[m] = firstKnown === null ? 0 : firstKnown;
+        return out;
+      }
+      function run(pk, el, lag, peak) {
+        var pts = pk.pts, rot = headings(pts), i0 = 0, s = +el.getAttribute('data-s') || 1;
+        while (i0 < pts.length - 1 && pts[i0 + 1][0] + lag <= 0) i0++;
+        var t0 = pts[i0][0] + lag, start = Math.max(0, t0), first = [pts[i0][1], pts[i0][2]], r0 = rot[i0];
+        if (t0 < 0 && i0 < pts.length - 1) { var a = pts[i0], b = pts[i0 + 1], u = (0 - t0) / (b[0] - a[0]); first = [a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]; }
+        tl.set(el, { x: first[0], y: first[1], rotation: r0, scale: s, opacity: peak, transformOrigin: '50% 50%' }, start);
+        var kf = [], last = start;
+        for (var k = i0 + 1; k < pts.length; k++) { var at = pts[k][0] + lag; if (at <= last) continue; kf.push({ x: pts[k][1], y: pts[k][2], rotation: rot[k], duration: at - last, ease: 'none' }); last = at; }
         if (kf.length) tl.to(el, { keyframes: kf }, start);
-        if (pk.end === 'die') { tl.to(el, { attr: { fill: C.neg }, duration: 0.08 }, last); tl.to(el, { scale: 1.8, opacity: 0, duration: 0.45, ease: 'power2.out', transformOrigin: '50% 50%' }, last + 0.06); }
+        if (pk.end === 'die') { tl.to(el, { attr: { fill: C.neg }, duration: 0.08 }, last); tl.to(el, { scale: s * 1.8, opacity: 0, duration: 0.45, ease: 'power2.out' }, last + 0.06); }
         else if (pk.end === 'arrive') tl.to(el, { opacity: 0, duration: 0.25, ease: 'power1.in' }, last - 0.2);
         else if (pk.end === 'fade') tl.to(el, { opacity: 0, duration: 0.6, ease: 'power1.inOut' }, last);
-        else if (pk.end === 'stay') {}
+      }
+      PK.forEach(function (pk) {
+        if (pk.trail) [0.1, 0.05].forEach(function (lag, n) {
+          var g = shape(pk); g.setAttribute('id', P + 'pk-' + pk.id + '-t' + n); g.setAttribute('opacity', 0); g.setAttribute('stroke', 'none');
+          g.setAttribute('data-s', (+g.getAttribute('data-s')) * (n ? 0.85 : 0.7)); layer.appendChild(g); run(pk, g, lag, n ? 0.34 : 0.16);
+        });
+        var el = shape(pk);
+        el.setAttribute('id', P + 'pk-' + pk.id); el.setAttribute('filter', 'url(#' + P + 'glow)'); el.setAttribute('opacity', 0);
+        layer.appendChild(el);
+        run(pk, el, 0, 1);
       });
     })();
 `;
@@ -156,7 +187,7 @@ const RUNTIME = `
 export function frameFile(o) {
   const p = `f${o.f}-`;
   const PK = o.flows
-    .map((pk) => ({ id: pk.id, end: pk.end, kind: pk.kind || 'packet', pts: pk.pts.map((q) => [r3(q.g - o.off), q.x, q.y]) }))
+    .map((pk) => ({ id: pk.id, end: pk.end, kind: pk.kind || 'packet', trail: !!pk.trail, pts: pk.pts.map((q) => [r3(q.g - o.off), q.x, q.y]) }))
     .filter((pk) => (pk.pts[pk.pts.length - 1][0] > 0 || pk.end === 'stay') && pk.pts[0][0] < o.dur);
   const furniture = o.first
     ? `tl.fromTo([$('bug'), $('slate')], { opacity: 0 }, { opacity: 0.9, duration: 0.6, ease: 'power1.out' }, 0.3); tl.fromTo($('scrim'), { opacity: 0 }, { opacity: 1, duration: 0.6, ease: 'power1.out' }, 0.3);`
@@ -188,6 +219,7 @@ ${o.stage.svg(p)}
       <div id="${p}scrim"></div>
       <div id="${p}slate"><div class="k">${o.slate.kicker}</div><div class="t">${o.slate.title}</div></div>
       ${o.lesson ? `<svg class="${p}svg" viewBox="0 0 1920 1080" width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">${lessonCard(o.lesson)(p)}</svg>` : ''}
+      ${o.overlay ? `<svg class="${p}svg" viewBox="0 0 1920 1080" width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">${o.overlay(p)}</svg>` : ''}
       <div id="${p}bug"><svg viewBox="0 0 300 31" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Opportunity Education">${LOGO_DARK}</svg></div>
     </div>
   </div>

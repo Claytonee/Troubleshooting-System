@@ -54,6 +54,9 @@
     align-items: center;
     justify-content: center;
   }
+  /* Polish gate (2026-09-26): captions read at 1080p and on a phone, and stay subordinate to the
+     drawing. The band is lifted so one line clears the bottom edge by ~70 px (title-safe). */
+  .caption-stage { top: 880px !important; height: 170px !important; }
   .caption-group {
     /* every group is absolutely stacked over the SAME band — exactly one shown at a
        time via opacity. Must be absolute: in-flow groups would lay out side-by-side. */
@@ -68,10 +71,10 @@
   /* THE tinted card — 4% cobalt fill, 1.5px 20%-cobalt border, soft 14px corners,
      NO shadow (the tinted card does the lift; cast depth is forbidden) */
   .caption-pill {
-    max-width: 78%;
-    padding: 12px 30px 15px;
-    background: rgba(11, 13, 18, 0.78);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    max-width: 70%;
+    padding: 12px 32px 15px;
+    background: rgba(11, 13, 18, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
   }
   .caption-line {
@@ -80,29 +83,30 @@
     justify-content: center;
     gap: 0.1em 0.34em;
     font-family: var(--font-display, "Space Grotesk"), system-ui, sans-serif;
-    font-weight: 500;
-    font-size: clamp(30px, 2.2vw, 40px);
+    font-weight: 600;
+    font-size: 48px;
     line-height: 1.2;
     letter-spacing: -0.005em;
   }
 
   /* upcoming — muted gray, no chip */
+  /* One colour for every word: no karaoke dimming of the words still to come. */
   .caption-word {
     display: inline-block;
-    padding: 0 0.18em;
+    padding: 0 0.1em;
     border-radius: 0.32em;
-    color: color-mix(in srgb, var(--cap-ink, #111111) 52%, var(--cap-canvas, #fdfae7));
+    color: #eef0f5;
   }
   /* current word — THE solid cobalt chip (the single-accent gesture; pill-rounded
      fill, NO shadow), cream reading on top */
   .caption-word.is-active {
-    color: var(--cap-ink, #111111);
+    color: #ffffff;
     background: transparent;
     box-shadow: none;
   }
   /* already spoken — solid near-black ink, chip cleared */
   .caption-word.is-spoken {
-    color: color-mix(in srgb, var(--cap-ink, #111111) 82%, var(--cap-canvas, #fdfae7));
+    color: #eef0f5;
     background: transparent;
     box-shadow: none;
   }
@@ -203,7 +207,6 @@
         var at = Math.max(start, Number(w.start));
         tl.set(el, { className: "caption-word" }, start); // upcoming (also resets on reverse-seek)
         tl.set(el, { className: "caption-word is-active" }, at); // current
-        tl.fromTo(el, { scale: 0.985 }, { scale: 1, duration: 0.18, ease: "power1.out" }, at);
         if (i + 1 < words.length) {
           var nextAt = Math.max(start, Number(words[i + 1].start));
           tl.set(el, { className: "caption-word is-spoken" }, nextAt); // demote when next activates

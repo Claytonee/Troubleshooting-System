@@ -128,7 +128,7 @@ Shots 14–15: macro on the plug; the push; pull back to the router lights; pull
 
 - scene: Back at the computer, the quieted path wakes; a test packet leaves and the camera pulls back as it crosses every link to a server on the internet; the answer comes back the whole way; the page loads: CONNECTION RESTORED.
 - voiceover: "Don't assume it's fixed. Test it: a request goes out, and an answer comes back."
-- duration: 8.178s
+- duration: 9.078s
 - transition_in: cut
 - status: animated
 - src: compositions/frames/07-verify.html
@@ -143,7 +143,7 @@ Shot 16: medium on the computer → pull back to the whole bench while the test 
 
 - scene: The whole bench, healthy: calm two-way flow on every link. The principle lands on the end card.
 - voiceover: "Check the path in order. The first failed link shows you where to look."
-- duration: 6.708s
+- duration: 6.908s
 - transition_in: cut
 - status: animated
 - src: compositions/frames/08-restore.html

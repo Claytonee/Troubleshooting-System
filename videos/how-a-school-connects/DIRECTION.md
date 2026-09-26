@@ -194,3 +194,33 @@ status lights) · WAN cable with a real plug · provider modem · provider line 
    (LRS, WAN, Quest).
 8. **Keep the structure:** symptom → follow the signal → check in order → isolate → fix → verify → restore. It is
    what makes a series.
+
+## Polish gate (v2.1, 2026-09-26) — `renders/video.mp4`, 72.5 s, 1920×1080, 60 fps, −16.0 LUFS / −1.5 dBFS
+
+Structure, story and stack unchanged. Professional finishing only, then three reviews of the rendered MP4.
+
+| # | Area | Change |
+|---|---|---|
+| 1 | Readability | Cables drawn in a readable `cable` colour (#4a5268, was the near-background #2a2f3d) and 6 px wide (was 4). Device outlines 2.2 (was 1.6); inner strokes 1.8. Micro-labels ~20 % larger. Every light has a ring, so an UNLIT light is visible. Small accent text uses `primaryText` (#8aa6ff): brand blue is under 4.5:1 at that size. |
+| 2 | Captions | 48 px, weight 600 (was 30–40 px/500); one bright colour for every word (no karaoke dimming); darker pill (0.88); band lifted so one line clears the bottom by ~70 px. The engine now refreshes the skin on every assemble (it only copied it at init, so a skin change never reached an existing episode). |
+| 3 | Status | The 60 px green/red discs became a 17 px numbered ring with a two-line tag: what was checked (`ROUTER · WAN`) and the verdict (`✓ VERIFIED` / `✕ FAILED`, drawn as paths — DM Sans has neither glyph). The device stays the hero. |
+| 4 | Packet | An arrow-tag that turns with the cable (heading from motion, unwrapped, held when it stops or backs up), outlined, larger; a two-step fading trail on the packets the story follows (the lead, the first packet after the fix, the test and its answer). |
+| 5 | Accuracy | Fault domain labelled `physical link · router WAN ↔ modem`; the modem's upstream shown healthy (`UPSTREAM · modem ↔ internet: lights OK`), so a physical-link failure is not confused with an upstream outage. "Provider outage" removed from the causes: it would not give NO LINK on the router's WAN port. |
+| 6 | Causes | One suspect: `MOST LIKELY · WAN cable loose`; alternatives in one secondary line that also give NO LINK (`modem off, damaged cable`). |
+| 7 | Repair | The WAN light comes on while the camera is still on the plug (cause and effect in one shot) with a small link-up ring; NO LINK clears just before, never beside a green light; the cable lights; the first packet crosses to the modem; the chip turns VERIFIED after the camera settles. Click on the seat, a quiet ping on link-up. |
+| 8 | Verification | A screen-space chain: `REQUEST Computer → Switch → Router → Provider → Internet`, each hop lit as the test reaches it, then `RESPONSE` in reverse, then `CONNECTIVITY VERIFIED` only once the answer is home (test slowed 1600 → 1400 px/s; frame 7 end pad 2.0 → 2.9 s). |
+| 9 | Final frame | The topology dims slightly under the lesson; the calm flow is one round trip every 1.6 s (was a stream every 0.7 s). |
+| 10 | Motion | The macro on the plug framed lower (the status row stayed under the slate); NO LINK moved outside the router body with a leader (it crossed the body's edge); a link-up ring that GSAP rendered from frame start (`immediateRender`) fixed. |
+| 11 | Sound | Warnings quieter (0.16/0.18 → 0.11); connector click; link-up ping; the chime moved to after the answer arrives. |
+
+**Reviews of the MP4.** Normal: −16.0 LUFS integrated, −1.5 dBFS peak, LRA 2.8 LU; only two silences over 1.2 s, both
+intended (the answer travelling back, 62.7–64.9 s; the end card hold). Muted: frames extracted from the MP4 tell the
+story without sound (symptom, path, NO LINK, checks, fault domain, loose → seated, WAN light, request, response,
+verified). Small screen (640×360): captions, check tags, close-ups and the verification chain read; the three
+texts that did not (REQUEST/RESPONSE heading, the upstream note, the fault-domain caption) were enlarged in the final
+correction pass.
+
+**Remaining limitations.** Device micro-labels are unreadable in the WIDE shots on a phone (they are shown in the
+close-ups instead); the layout check reports one warning — the 7 px `WAN` label in the end-card wide shot at 4.17:1,
+where antialiasing blends it with the green light beside it. The voice is still synthetic (Kokoro). Not yet watched on
+a real phone or projector.

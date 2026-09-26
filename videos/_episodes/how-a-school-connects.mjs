@@ -111,6 +111,7 @@ export default {
     show($('tag-mdm'), ${x.c(1, 0.05)}, 0.5, { y: 8 });
     tl.fromTo($('mdmlan'), { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out', transformOrigin: '50% 50%' }, ${x.c(1, 0.6)});
     cam(1.35, 2170, 480, ${x.c(2, -0.1)}, 1.1, 'power2.inOut');
+    show($('upstream'), ${x.c(1, 1.0)}, 0.5, { y: 6 });
     tl.fromTo($('causes'), { opacity: 0, x: 16 }, { opacity: 1, x: 0, duration: 0.6, ease: 'power3.out' }, ${x.c(2, 0.1)});
     tl.fromTo($('cause1'), { opacity: 0 }, { opacity: 1, duration: 0.35, ease: 'power1.out' }, ${x.c(3)});` },
 
@@ -121,24 +122,27 @@ export default {
       timeline: (x) => `
     ${x.setup(6)}
     cam(1.35, 2170, 480, 0);
-    fade([$('domain'), $('causes'), $('tag-mdm'), $('mdmlan')], 0, ${x.c(0)}, 0.4);
-    cam(5.2, 1695, 585, ${x.c(0)}, 1.3, 'power3.inOut');
+    fade([$('domain'), $('causes'), $('tag-mdm'), $('mdmlan'), $('upstream')], 0, ${x.c(0)}, 0.4);
+    cam(5.2, 1695, 598, ${x.c(0)}, 1.3, 'power3.inOut');   // low enough that the status row stays out from under the slate
     show($('loose'), ${x.c(0, 1.0)}, 0.4);
     var S = ${x.c(1, 0.55)};
     tl.to($('plug-body'), { y: 0, rotation: 0, duration: 0.32, ease: 'power3.in', svgOrigin: '1695 590' }, S);
     tl.to($('plug-body'), { y: -1.5, duration: 0.06, ease: 'power1.out' }, S + 0.32); tl.to($('plug-body'), { y: 0, duration: 0.1 }, S + 0.38);
     fade($('loose'), 0, S + 0.1, 0.25);
-    cam(2.35, 1610, 525, ${x.c(2, -0.3)}, 1.0, 'power2.inOut');
-    led('rt.wan', C.pos, ${x.c(2, 0.05)}); led('mdm.lan', C.pos, ${x.c(2, 0.1)});
-    chipFlip(4, true, ${x.c(2, 0.85)});   // after the camera has settled on the router
-    tl.set($('c3-lit'), { attr: { stroke: C.primary } }, 0); drawLink('c3', ${x.c(2, 0.1)}, 0.5);
+    // the WAN light comes on while the camera is still on the plug: cause and effect in one shot
+    led('rt.wan', C.pos, ${x.c(2, 0.0)}, 0.12);
+    tl.fromTo($('linkup'), { opacity: 0.9, scale: 0.5 }, { opacity: 0, scale: 2.2, duration: 0.7, ease: 'power2.out', transformOrigin: '50% 50%', immediateRender: false }, ${x.c(2, 0.0)});
+    tl.set($('c3-lit'), { attr: { stroke: C.primary } }, 0); drawLink('c3', ${x.c(2, 0.12)}, 0.55);
+    led('mdm.lan', C.pos, ${x.c(2, 0.55)});
+    cam(1.55, 1830, 525, ${x.c(2, 0.7)}, 1.1, 'power2.inOut');   // back far enough to see the first packet reach the modem
+    chipFlip(4, true, ${x.c(2, 1.5)});
     led('rt.inet', C.warn, ${x.c(3, -0.2)}, 0.12); led('rt.inet', C.line, ${x.c(3, 0.15)}, 0.12); led('rt.inet', C.warn, ${x.c(3, 0.45)}, 0.12); led('rt.inet', C.pos, ${x.c(3, 0.85)}, 0.2);
-    cam(1.05, 2050, 510, ${x.c(3, 0.6)}, 1.5, 'power2.inOut');
-    fade($('nolink'), 0, ${x.c(2, 0.05)}, 0.3);
+    cam(1.05, 2050, 510, ${x.c(3, 0.8)}, 1.4, 'power2.inOut');
+    fade($('nolink'), 0, ${x.c(2, -0.2)}, 0.18);   // cleared just before the link comes up, never beside a green light
     fade([$('dev-srv'), $('net'), $('line-base')], 1, ${x.c(3, 0.9)}, 0.6);
     tl.set($('line-lit'), { attr: { stroke: C.primary } }, 0); drawLink('line', ${x.c(3, 1.0)}, 0.7);` },
 
-    { id: '07-verify', title: 'Verify', pad: [0.3, 2.0],
+    { id: '07-verify', title: 'Verify', pad: [0.3, 2.9],
       phrases: [["Don't assume it's fixed.", 0.45], ['Test it:', 0.4], ['a request goes out,', 0.5], ['and an answer comes back.', 0]],
       scene: 'Back at the computer, the quieted path wakes; a test packet leaves and the camera pulls back as it crosses every link to a server on the internet; the answer comes back the whole way; the page loads: CONNECTION RESTORED.', type: 'social_proof', persuasion: 'Demonstration (round trip)', beat: 'Anticipation → relief', blueprint: 'camera-journey (Adapt)',
       shots: 'Shot 16: medium on the computer → pull back to the whole bench while the test crosses it and the answer returns.',
@@ -151,18 +155,26 @@ export default {
     ${x.blips(7)}
     cam(${WIDE.join(', ')}, ${x.c(1, 0.15)}, 1.35, 'power3.inOut');
     var R = ${x.g(x.ev.restored)};
+    // REQUEST: each hop lights as the test reaches it; RESPONSE: the same, coming back
+    show($('vreq'), ${x.g(x.ev.req[0] - 0.35)}, 0.4, { y: 6 });
+    ${x.ev.req.map((t, i) => `tl.to($('vreq-h${i}'), { attr: { fill: C.text }, duration: 0.2 }, ${x.g(t)});${i ? ` tl.to($('vreq-a${i}'), { attr: { fill: C.primary }, duration: 0.2 }, ${x.g(t - 0.12)});` : ''}`).join(' ')}
+    fade($('vreq'), 0, ${x.g(x.ev.rep[0] - 0.25)}, 0.25);
+    show($('vrep'), ${x.g(x.ev.rep[0] - 0.05)}, 0.35, { y: 6 });
+    ${x.ev.rep.map((t, i) => `tl.to($('vrep-h${i}'), { attr: { fill: C.text }, duration: 0.2 }, ${x.g(t)});${i ? ` tl.to($('vrep-a${i}'), { attr: { fill: C.pos }, duration: 0.2 }, ${x.g(t - 0.12)});` : ''}`).join(' ')}
     screen('desk', 'noinet', 'ok', R + 0.05, 0.3);
     linkColor('c1', C.primary, R + 0.3, 0.6); linkColor('c2', C.primary, R + 0.3, 0.6);
-    tl.fromTo($('restored'), { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.55, ease: 'power3.out' }, R + 0.2);` },
+    fade($('vrep'), 0, R + 0.25, 0.3);
+    tl.fromTo($('verified'), { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.55, ease: 'power3.out' }, R + 0.4);` },
 
-    { id: '08-restore', title: 'Restore', pad: [0.3, 2.4],
+    { id: '08-restore', title: 'Restore', pad: [0.3, 2.6],
       phrases: [['Check the path in order.', 0.55], ['The first failed link shows you where to look.', 0]],
       scene: 'The whole bench, healthy: calm two-way flow on every link. The principle lands on the end card.', type: 'cta', persuasion: 'Distillation', beat: 'Confidence', blueprint: 'compose',
       shots: 'Shot 17: the whole topology, steady; the end card.',
       timeline: (x) => `
     ${x.setup(8)}
     cam(${WIDE.join(', ')}, 0);
-    fade($('restored'), 0, ${x.c(0, -0.1)}, 0.5);
+    fade($('verified'), 0, ${x.c(0, -0.1)}, 0.5);
+    fade([$('dev-desk'), $('dev-sw'), $('dev-rt'), $('dev-mdm'), $('dev-srv'), $('net')], 0.85, ${x.c(0, 0.1)}, 0.9);
     endCard(${x.c(0, 0.1)});` },
   ],
 
@@ -215,24 +227,26 @@ export default {
     // the failure: a seeking ring on the WAN light, then NO LINK
     const wl = pt('rt.led.wan');
     st.add((p) => `<g transform="translate(${wl.x},${wl.y})"><g id="${p}seek" opacity="0"><circle r="11" fill="none" stroke="${C.warn}" stroke-width="1.6" stroke-dasharray="3 3"/></g></g>
-      <g id="${p}nolink" opacity="0">${T(wan.x + 36, wl.y + 4, 'NO LINK', 9, C.neg, 700, 1.4, 'start')}</g>`);
+      <g id="${p}nolink" opacity="0"><path d="M${wan.x + 28},${wl.y} H${wan.x + 64}" stroke="${C.neg}" stroke-width="1.2" stroke-dasharray="2.5 3" opacity="0.8"/>${T(wan.x + 69, wl.y + 4.5, 'NO LINK', 11, C.neg, 700, 1.4, 'start')}</g>
+      <g transform="translate(${wl.x},${wl.y})"><g id="${p}linkup" opacity="0"><circle r="7" fill="none" stroke="${C.pos}" stroke-width="1.6"/></g></g>`);
     // the investigation
-    st.chip(1, 500, 530).chip(2, pt('sw.led.p3').x, 478).chip(3, pt('rt.led.l1').x, 424).chip(4, wl.x, 424);
+    st.chip(1, 485, 520, 'COMPUTER').chip(2, pt('sw.led.p3').x, 478, 'SWITCH · PORT 3').chip(3, pt('rt.led.l1').x, 424, 'ROUTER · LAN 1').chip(4, wl.x, 424, 'ROUTER · WAN');
     const l1l = pt('rt.led.l1');
     st.add((p) => `<path id="${p}lead3" opacity="0" d="M${l1l.x},455 V${l1l.y - 7}" stroke="${C.muted}" stroke-width="1.4" stroke-dasharray="3 4"/>
       <path id="${p}lead4" opacity="0" d="M${wl.x},455 V${wl.y - 7}" stroke="${C.muted}" stroke-width="1.4" stroke-dasharray="3 4"/>`);
-    st.add((p) => `<g id="${p}ffl" opacity="0">${T(wl.x + 44, 432, 'FIRST FAILED LINK', 17, C.neg, 700, 2.2, 'start')}</g>`);
+    st.add((p) => `<g id="${p}ffl" opacity="0">${T(wl.x + 26, 460, 'FIRST FAILED LINK', 15, C.neg, 700, 2.2, 'start')}</g>`);
     // the fault domain and the likely causes
     const ml = pt('mdm.led.lan');
     st.add((p) => `<g id="${p}domain" opacity="0"><rect x="1668" y="452" width="596" height="272" rx="22" fill="${C.neg}" fill-opacity="0.035" stroke="${C.neg}" stroke-opacity="0.75" stroke-width="1.8" stroke-dasharray="10 8"/>
-        ${T(1690, 752, 'FAULT DOMAIN', 18, C.neg, 700, 2.6, 'start')}${T(1857, 752, 'router WAN ↔ provider modem', 18, C.text, 500, 0, 'start')}</g>
+        ${T(1690, 756, 'FAULT DOMAIN', 22, C.neg, 700, 2.6, 'start')}${T(1898, 756, 'physical link · router WAN ↔ modem', 22, C.text, 500, 0, 'start')}</g>
       <g transform="translate(${ml.x},${ml.y})"><g id="${p}mdmlan" opacity="0"><circle r="10" fill="none" stroke="${C.neg}" stroke-width="1.6" stroke-dasharray="3 3"/></g></g>
-      <g id="${p}causes" opacity="0"><rect x="2290" y="372" width="290" height="160" rx="14" fill="${C.surface}" stroke="${C.muted}" stroke-opacity="0.5" stroke-width="1.4"/>
-        ${T(2312, 402, 'LIKELY CAUSE', 14, C.muted, 600, 2.4, 'start')}
-        <rect id="${p}cause1" opacity="0" x="2302" y="415" width="266" height="34" rx="8" fill="${C.primary}" fill-opacity="0.16" stroke="${C.primary}" stroke-opacity="0.6"/>
-        ${[['1', 'WAN cable loose', 438], ['2', 'Modem switched off', 474], ['3', 'Provider outage', 510]].map(([n, t, y]) => `${T(2320, y, n, 17, C.primary, 700, 0, 'start')}${T(2344, y, t, 18, C.text, 500, 0, 'start')}`).join('')}</g>`);
-    st.add((p) => `<g id="${p}loose" opacity="0">${T(wan.x + 24, wan.y + 26, 'LOOSE', 8, C.neg, 700, 1.4, 'start')}<path d="M${wan.x + 22},${wan.y + 22} L${wan.x + 14},${wan.y + 15}" stroke="${C.neg}" stroke-width="1.2"/></g>
-      <g id="${p}restored" opacity="0">${T(1510, 300, 'CONNECTION RESTORED', 46, C.pos, 700, 4)}</g>`);
+      <g id="${p}causes" opacity="0"><rect x="2290" y="382" width="300" height="136" rx="14" fill="${C.surface}" stroke="${C.muted}" stroke-opacity="0.5" stroke-width="1.6"/>
+        ${T(2312, 412, 'MOST LIKELY', 14, C.muted, 600, 2.4, 'start')}
+        <rect id="${p}cause1" opacity="0" x="2302" y="424" width="276" height="40" rx="8" fill="${C.primary}" fill-opacity="0.16" stroke="${C.primary}" stroke-opacity="0.6"/>
+        ${T(2318, 451, 'WAN cable loose', 22, C.text, 600, 0, 'start')}
+        ${T(2312, 497, 'also: modem off, damaged cable', 16, C.muted, 500, 0, 'start')}</g>
+      <g id="${p}upstream" opacity="0">${T(2400, 652, 'UPSTREAM', 17, C.pos, 700, 2.4, 'start')}${T(2400, 678, 'modem ↔ internet: lights OK', 18, C.muted, 500, 0, 'start')}</g>`);
+    st.add((p) => `<g id="${p}loose" opacity="0">${T(wan.x + 24, wan.y + 26, 'LOOSE', 8, C.neg, 700, 1.4, 'start')}<path d="M${wan.x + 22},${wan.y + 22} L${wan.x + 14},${wan.y + 15}" stroke="${C.neg}" stroke-width="1.2"/></g>`);
 
     st.scr = P(260 + S * -50, 600 + S * -124);
     x.PLUG_LOOSE = 'tl.set($(\'plug-body\'), { y: 15, rotation: 7, svgOrigin: \'1695 590\' }, 0);';
@@ -252,12 +266,23 @@ export default {
       if (f === 4 || f === 5) s.push("tl.set($('c3-base'), { opacity: 0.3 }, 0); tl.set($('dev-mdm'), { opacity: 0.32 }, 0);");
       if (f >= 5 && f <= 7) s.push("on($('lead3'), 0); on($('lead4'), 0); chipSet(1, 'ok', 0); chipSet(2, 'ok', 0); chipSet(3, 'ok', 0); chipSet(4, " + (f === 7 ? "'ok'" : "'x'") + ", 0); tl.set([$('c1-lit'), $('c2-lit')], { attr: { stroke: C.pos }, strokeDashoffset: 0 }, 0);");
       if (f === 5) s.push("on($('ffl'), 0);");
-      if (f === 6) s.push("on($('domain'), 0); on($('causes'), 0); on($('cause1'), 0); on($('tag-mdm'), 0); on($('mdmlan'), 0);");
+      if (f === 6) s.push("on($('domain'), 0); on($('causes'), 0); on($('cause1'), 0); on($('tag-mdm'), 0); on($('mdmlan'), 0); on($('upstream'), 0);");
       if (f === 6 || f === 7) s.push(`tl.set(${DIM_HEALTHY}, { opacity: 0.28 }, 0);`);
-      if (f === 8) s.push("tl.set($('desk-scr-noinet'), { opacity: 0 }, 0); tl.set($('desk-scr-ok'), { opacity: 1 }, 0); on($('restored'), 0); tl.set([$('c1-lit'), $('c2-lit')], { attr: { stroke: C.primary }, strokeDashoffset: 0 }, 0);");
+      if (f === 8) s.push("tl.set($('desk-scr-noinet'), { opacity: 0 }, 0); tl.set($('desk-scr-ok'), { opacity: 1 }, 0); on($('verified'), 0); tl.set([$('c1-lit'), $('c2-lit')], { attr: { stroke: C.primary }, strokeDashoffset: 0 }, 0);");
       return s.join('\n    ');
     };
     return st;
+  },
+
+  /** Screen space (above the drawing, clear of the slate and the captions): REQUEST, RESPONSE, CONNECTIVITY VERIFIED. */
+  overlay(x) {
+    const { C } = x;
+    const HOPS = ['Computer', 'Switch', 'Router', 'Provider', 'Internet'];
+    const T = (y, px, w, ls, fill, body) => `<text x="960" y="${y}" text-anchor="middle" style='font-family:"DM Sans";font-weight:${w};font-size:${px}px;letter-spacing:${ls}px' fill="${fill}">${body}</text>`;
+    const chain = (p, id, hops, arrow) => hops.map((h, i) => `${i ? `<tspan id="${p}${id}-a${i}" dx="14" fill="${C.faint}">→</tspan>` : ''}<tspan id="${p}${id}-h${i}" dx="${i ? 14 : 0}" fill="${C.faint}">${h}</tspan>`).join('');
+    return (p) => `<g id="${p}vreq" opacity="0">${T(226, 24, 700, 4, C.primary, 'REQUEST')}${T(286, 40, 600, 0, C.faint, chain(p, 'vreq', HOPS))}</g>
+      <g id="${p}vrep" opacity="0">${T(226, 24, 700, 4, C.pos, 'RESPONSE')}${T(286, 40, 600, 0, C.faint, chain(p, 'vrep', [...HOPS].reverse()))}</g>
+      <g id="${p}verified" opacity="0">${T(272, 48, 700, 4, C.pos, 'CONNECTIVITY VERIFIED')}${T(324, 27, 500, 0.4, C.muted, 'request sent · answer received')}</g>`;
   },
 
   flows(x) {
@@ -274,24 +299,34 @@ export default {
     lead.push(...flows.journey(st, [['rt2', c3(0, 0.35), c3(0, 1.5)], ['rt3', c3(0, 1.5), c3(1, -0.1)]]).slice(1));
     ev.attempt = lead[lead.length - 1].g;
     flows.blocked(lead, 0, 1, { tries: 2, reach: 15, gap: 0.42 });
-    out.push({ id: 'lead', pts: lead, end: 'fade' });
+    out.push({ id: 'lead', pts: lead, end: 'fade', trail: true });
+
+    // THE FIX: the first packet over the reseated cable, WAN port → modem.
+    const F0 = x.firstAt ? x.firstAt() : G(6, cue(6, 2, 0.45));   // a variant may re-time it (the 3D prototype)
+    const first = flows.trip(st, ['plug', 'c3', 'm1'], F0, 520);
+    marks.push(['mdm.lan', first[first.length - 1].g]);
+    out.push({ id: 'first', pts: first, end: 'arrive', trail: true });
 
     // VERIFY THE FIX: a test packet goes all the way, and the answer comes all the way back.
-    const T0 = G(7, cue(7, 2, 0.1)), SPEED = 1600;   // leaves on "a request goes out", once the whole bench is in view
+    const T0 = G(7, cue(7, 2, 0.1)), SPEED = 1400;   // leaves on "a request goes out"; slower than v2's 1600 so each hop can be followed
     const test = flows.trip(st, x.REQ, T0, SPEED);
-    let g = T0; for (const k of x.REQ) { if (x.PORT_AT[k]) marks.push([x.PORT_AT[k], g]); g += st.piece(k).len / SPEED; }
+    // when the test reaches each hop (Computer, Switch, Router, Provider, Internet) and the answer each on its way back
+    const REQ_HOP = { sw1: 1, rt1: 2, m1: 3, srv: 4 }, REP_HOP = { 'm3~': 1, 'rt3~': 2, 'sw3~': 3 };
+    ev.req = [T0];
+    let g = T0; for (const k of x.REQ) { if (x.PORT_AT[k]) marks.push([x.PORT_AT[k], g]); if (REQ_HOP[k]) ev.req[REQ_HOP[k]] = g; g += st.piece(k).len / SPEED; }
     ev.serverAt = g;
-    out.push({ id: 'test', kind: 'test', pts: test, end: 'arrive' });
+    out.push({ id: 'test', kind: 'test', pts: test, end: 'arrive', trail: true });
     marks.push(['srv.b', g + 0.1], ['srv.c', g + 0.2]);
     const R0 = g + 0.35;
     const reply = flows.trip(st, x.REP, R0, SPEED);
-    g = R0; for (const k of x.REP) { if (x.PORT_AT_REP[k]) marks.push([x.PORT_AT_REP[k], g]); g += st.piece(k).len / SPEED; }
-    ev.restored = g;
-    out.push({ id: 'reply', kind: 'reply', pts: reply, end: 'arrive' });
+    ev.rep = [R0];
+    g = R0; for (const k of x.REP) { if (x.PORT_AT_REP[k]) marks.push([x.PORT_AT_REP[k], g]); if (REP_HOP[k]) ev.rep[REP_HOP[k]] = g; g += st.piece(k).len / SPEED; }
+    ev.restored = g; ev.rep[4] = g;
+    out.push({ id: 'reply', kind: 'reply', pts: reply, end: 'arrive', trail: true });
 
     // RESTORE: calm two-way flow.
-    out.push(...flows.stream(st, { id: 'rq', keys: x.REQ, from: ev.restored + 0.4, until: x.total, every: 0.7, speed: 700 }));
-    out.push(...flows.stream(st, { id: 'rp', keys: x.REP, from: ev.restored + 0.75, until: x.total, every: 0.7, speed: 700, kind: 'reply' }));
+    out.push(...flows.stream(st, { id: 'rq', keys: x.REQ, from: ev.restored + 0.5, until: x.total, every: 1.6, speed: 700 }));
+    out.push(...flows.stream(st, { id: 'rp', keys: x.REP, from: ev.restored + 1.3, until: x.total, every: 1.6, speed: 700, kind: 'reply' }));
 
     x.ev = ev;
     // activity blips, per frame
@@ -309,11 +344,12 @@ export default {
   sfx(x) {
     const s = [];
     s.push([2, 'click-soft', x.cue(2, 1, -0.05), 0.14], [2, 'click-soft', x.cue(2, 2, 0.85), 0.14]);
-    s.push([3, 'error', x.ev.attempt - x.OFF[3] + 1.2, 0.16]);
+    s.push([3, 'error', x.ev.attempt - x.OFF[3] + 1.2, 0.11]);
     [2, 3, 4].forEach((i) => s.push([4, 'click-soft', x.cue(4, i, 0.85), 0.26]));
-    s.push([4, 'error', x.cue(4, 5, 0.85), 0.18]);
-    s.push([6, 'click', x.cue(6, 1, 0.87), 0.34]);
-    s.push([7, 'chime', x.ev.restored - x.OFF[7], 0.22]);
+    s.push([4, 'error', x.cue(4, 5, 0.85), 0.11]);
+    s.push([6, 'click', x.cue(6, 1, 0.87), 0.36]);                    // the connector seats
+    s.push([6, 'ping', x.cue(6, 2, 0.0), 0.1]);                        // the WAN link comes up
+    s.push([7, 'chime', x.ev.restored - x.OFF[7] + 0.35, 0.2]);        // only once the answer is home
     return s;
   },
 };

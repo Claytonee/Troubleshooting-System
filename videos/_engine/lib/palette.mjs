@@ -8,8 +8,10 @@ export const C = {
   surface: '#161921',   // device bodies (OE --bg2)
   well: '#0b0d12',      // screens, ports, recesses
   raised: '#232838',    // UI blocks, windows
-  line: '#2a2f3d',      // unlit links, dark LEDs
+  line: '#2a2f3d',      // dark LEDs, rules
+  cable: '#4a5268',     // an unlit cable: must read against the ground at phone size (polish, 2026-09-26)
   primary: '#4f7cff',   // packets, live links, the accent
+  primaryText: '#8aa6ff', // the accent as SMALL text: brand blue at micro-label size is under 4.5:1 on a device body
   text: '#e8eaf0',
   muted: '#9ba1b5',     // device strokes, sublabels
   faint: '#636a82',

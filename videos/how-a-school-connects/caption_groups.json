@@ -1,5 +1,5 @@
 {
-  "total_duration_s": 71.389,
+  "total_duration_s": 72.489,
   "width": 1920,
   "height": 1080,
   "groups": [
@@ -1346,12 +1346,12 @@
           "id": "caption-word-60-1",
           "text": "assume",
           "start": 57.023,
-          "end": 57.263
+          "end": 57.243
         },
         {
           "id": "caption-word-60-2",
           "text": "it's",
-          "start": 57.263,
+          "start": 57.243,
           "end": 57.503
         }
       ]
@@ -1374,14 +1374,14 @@
     {
       "id": "caption-group-62",
       "frame": 7,
-      "start": 58.583,
+      "start": 58.603,
       "end": 59.083,
       "text": "test it,",
       "words": [
         {
           "id": "caption-word-62-0",
           "text": "test",
-          "start": 58.583,
+          "start": 58.603,
           "end": 58.683
         },
         {
@@ -1438,7 +1438,7 @@
       "id": "caption-group-65",
       "frame": 7,
       "start": 61.203,
-      "end": 61.463,
+      "end": 61.483,
       "text": "and an",
       "words": [
         {
@@ -1451,172 +1451,172 @@
           "id": "caption-word-65-1",
           "text": "an",
           "start": 61.383,
-          "end": 61.463
+          "end": 61.483
         }
       ]
     },
     {
       "id": "caption-group-66",
       "frame": 7,
-      "start": 61.463,
-      "end": 62.583,
+      "start": 61.483,
+      "end": 62.563,
       "text": "answer comes back.",
       "words": [
         {
           "id": "caption-word-66-0",
           "text": "answer",
-          "start": 61.463,
+          "start": 61.483,
           "end": 61.803
         },
         {
           "id": "caption-word-66-1",
           "text": "comes",
           "start": 61.803,
-          "end": 62.103
+          "end": 62.123
         },
         {
           "id": "caption-word-66-2",
           "text": "back.",
-          "start": 62.103,
-          "end": 62.463
+          "start": 62.123,
+          "end": 62.443
         }
       ]
     },
     {
       "id": "caption-group-67",
       "frame": 8,
-      "start": 64.681,
-      "end": 65.341,
+      "start": 65.581,
+      "end": 66.241,
       "text": "Check the",
       "words": [
         {
           "id": "caption-word-67-0",
           "text": "Check",
-          "start": 64.681,
-          "end": 65.181
+          "start": 65.581,
+          "end": 66.081
         },
         {
           "id": "caption-word-67-1",
           "text": "the",
-          "start": 65.181,
-          "end": 65.341
+          "start": 66.081,
+          "end": 66.241
         }
       ]
     },
     {
       "id": "caption-group-68",
       "frame": 8,
-      "start": 65.341,
-      "end": 66.121,
+      "start": 66.241,
+      "end": 67.001,
       "text": "path in order.",
       "words": [
         {
           "id": "caption-word-68-0",
           "text": "path",
-          "start": 65.341,
-          "end": 65.541
+          "start": 66.241,
+          "end": 66.481
         },
         {
           "id": "caption-word-68-1",
           "text": "in",
-          "start": 65.541,
-          "end": 65.781
+          "start": 66.481,
+          "end": 66.681
         },
         {
           "id": "caption-word-68-2",
           "text": "order.",
-          "start": 65.781,
-          "end": 66.001
+          "start": 66.681,
+          "end": 66.881
         }
       ]
     },
     {
       "id": "caption-group-69",
       "frame": 8,
-      "start": 66.761,
-      "end": 67.121,
+      "start": 67.741,
+      "end": 68.021,
       "text": "The first",
       "words": [
         {
           "id": "caption-word-69-0",
           "text": "The",
-          "start": 66.761,
-          "end": 66.861
+          "start": 67.741,
+          "end": 67.761
         },
         {
           "id": "caption-word-69-1",
           "text": "first",
-          "start": 66.861,
-          "end": 67.121
+          "start": 67.761,
+          "end": 68.021
         }
       ]
     },
     {
       "id": "caption-group-70",
       "frame": 8,
-      "start": 67.121,
-      "end": 68.201,
+      "start": 68.021,
+      "end": 69.101,
       "text": "failed link shows",
       "words": [
         {
           "id": "caption-word-70-0",
           "text": "failed",
-          "start": 67.121,
-          "end": 67.401
+          "start": 68.021,
+          "end": 68.301
         },
         {
           "id": "caption-word-70-1",
           "text": "link",
-          "start": 67.401,
-          "end": 67.741
+          "start": 68.301,
+          "end": 68.661
         },
         {
           "id": "caption-word-70-2",
           "text": "shows",
-          "start": 67.741,
-          "end": 68.201
+          "start": 68.661,
+          "end": 69.101
         }
       ]
     },
     {
       "id": "caption-group-71",
       "frame": 8,
-      "start": 68.201,
-      "end": 68.521,
+      "start": 69.101,
+      "end": 69.421,
       "text": "you where",
       "words": [
         {
           "id": "caption-word-71-0",
           "text": "you",
-          "start": 68.201,
-          "end": 68.401
+          "start": 69.101,
+          "end": 69.301
         },
         {
           "id": "caption-word-71-1",
           "text": "where",
-          "start": 68.401,
-          "end": 68.521
+          "start": 69.301,
+          "end": 69.421
         }
       ]
     },
     {
       "id": "caption-group-72",
       "frame": 8,
-      "start": 68.521,
-      "end": 68.921,
+      "start": 69.421,
+      "end": 69.821,
       "text": "to look.",
       "words": [
         {
           "id": "caption-word-72-0",
           "text": "to",
-          "start": 68.521,
-          "end": 68.601
+          "start": 69.421,
+          "end": 69.501
         },
         {
           "id": "caption-word-72-1",
           "text": "look.",
-          "start": 68.601,
-          "end": 68.801
+          "start": 69.501,
+          "end": 69.701
         }
       ]
     }

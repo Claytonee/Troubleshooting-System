@@ -28,6 +28,7 @@ import { homedir } from 'node:os';
 import { Stage } from './lib/stage.mjs';
 import { frameFile, anchoredZoom, lessonCard, callout } from './lib/frame.mjs';
 import * as geo from './lib/geometry.mjs';
+import * as prim from './lib/primitives.mjs';
 import * as flows from './lib/stage.mjs';
 import { C, CAM } from './lib/palette.mjs';
 import { LIB as LIB1 } from './lib/devices.mjs';
@@ -127,7 +128,7 @@ function context() {
   const cue = (f, i, plus = 0) => geo.r3(cues[f].phrases[i].start + plus);
   const word = (f, w, plus = 0) => { const v = meta.voices.find((x) => x.frame === f); const h = v && v.words.find((x) => x.text.toLowerCase().replace(/[^a-z0-9]/g, '') === w); return h ? geo.r3(h.start + plus) : null; };
   const G = (f, t) => geo.r3(OFF[f] + t);
-  return { cues, meta, DUR, OFF, cue, word, G, total: geo.r3(o), C, CAM, geo, flows, LIB, Stage, anchoredZoom, lessonCard, callout, J: JSON.stringify };
+  return { cues, meta, DUR, OFF, cue, word, G, total: geo.r3(o), C, CAM, geo, flows, LIB, Stage, anchoredZoom, lessonCard, callout, prim, TEMPO: prim.TEMPO, J: JSON.stringify };
 }
 
 // ── docs ───────────────────────────────────────────────────────────────────────
@@ -227,19 +228,40 @@ if (want('build')) {
   spec.frames.forEach((fr, i) => {
     const f = i + 1;
     const body = fr.timeline({ ...ctx, f, dur: ctx.DUR[f], off: ctx.OFF[f], c: (k, plus) => ctx.cue(f, k, plus), w: (x, plus) => ctx.word(f, x, plus), g: (t) => geo.r3(t - ctx.OFF[f]) });
-    writeFileSync(R(`compositions/frames/${fr.id}.html`), frameFile({ id: fr.id, f, dur: ctx.DUR[f], off: ctx.OFF[f], stage: st, flows: all, slate: { kicker: spec.kicker, title: spec.title }, lesson: spec.lesson, body, first: f === 1 }));
+    writeFileSync(R(`compositions/frames/${fr.id}.html`), frameFile({ id: fr.id, f, dur: ctx.DUR[f], off: ctx.OFF[f], stage: st, flows: all, slate: { kicker: spec.kicker, title: spec.title }, lesson: spec.lesson, overlay: spec.overlay ? spec.overlay(ctx) : null, body, first: f === 1 }));
   });
+  // Layers: compositions beside the frames (a Three.js hardware view). The engine copies what they load — the vendored
+  // three.js and lib3d — into the project, so a render never fetches a model or a library at seek time.
+  const layers = spec.layers ? spec.layers(ctx) : [];
+  if (layers.length) {
+    for (const [from, to] of [[join(ENGINE, 'vendor', 'three'), R('assets/vendor/three')], [join(ENGINE, 'lib3d'), R('assets/hw3d')]]) {
+      mkdirSync(to, { recursive: true });
+      for (const f of readdirSync(from)) copyFileSync(join(from, f), join(to, f));
+    }
+    for (const l of layers) writeFileSync(R(`compositions/${l.id}.html`), l.html);
+  }
+  writeFileSync(R('compositions/layers.json'), JSON.stringify(layers.map(({ id, start, dur }) => ({ id, start, dur }))));
   writeDocs(ctx);
-  console.log(`  ${spec.frames.length} frames · ${all.length} flow items · ${ctx.total}s`);
+  console.log(`  ${spec.frames.length} frames · ${all.length} flow items · ${layers.length} layer(s) · ${ctx.total}s`);
 }
 
 // ── assemble ───────────────────────────────────────────────────────────────────
 if (want('assemble')) {
   step('assemble');
+  // The caption look belongs to the engine: refresh it on every assemble, not only at init, or a skin change never
+  // reaches an existing episode (found in the polish pass, 2026-09-26).
+  copyFileSync(join(ENGINE, 'shared', 'caption-skin.html'), R('.hyperframes/caption-skin.html'));
   sh('node', [join(SKILL, 'captions.mjs'), 'build', '--storyboard', './STORYBOARD.md', '--audio-meta', './audio_meta.json', '--hyperframes', '.', '--out', './caption_groups.json']);
   console.log('  ' + sh('node', [join(SKILL, 'assemble-index.mjs'), '--storyboard', './STORYBOARD.md', '--hyperframes', '.']).trim().split('\n').pop());
   let s = readFileSync(R('index.html'), 'utf8');
   if (!/id="el-captions"[^>]*data-track-kind/.test(s)) s = s.replace('id="el-captions"', 'id="el-captions" data-track-kind="captions"');
+  // Extra layers (e.g. a Three.js hardware view, D39): above the frames, under the captions (DOM order is stacking order).
+  if (existsSync(R('compositions/layers.json'))) {
+    const layers = JSON.parse(readFileSync(R('compositions/layers.json'), 'utf8'));
+    const clips = layers.map((l, i) => `      <div\n        id="el-${l.id}"\n        class="scene"\n        data-composition-id="${l.id}"\n        data-composition-src="compositions/${l.id}.html"\n        data-start="${l.start}"\n        data-duration="${l.dur}"\n        data-track-index="${3 + i}"\n      ></div>\n`).join('');
+    s = s.replace(/\n      <!-- layers -->[\s\S]*?<!-- \/layers -->\n/, '\n');
+    s = s.replace('      <!-- captions -->', `      <!-- layers -->\n${clips}      <!-- /layers -->\n\n      <!-- captions -->`);
+  }
   writeFileSync(R('index.html'), s);
 }
 
