@@ -1,8 +1,13 @@
 # Gate 1 — the cinematic animation production system
 
-**Status: proposal awaiting human approval. Nothing here has been built.**
+**Status: FROZEN by owner decision on 2026-09-26. Nothing here has been built.**
 Written 2026-09-26 for the owner, as the research + architecture phase of the brief
 "build an AI-directed cinematic technical-animation production system". It stops at Gate 1 (§17).
+
+The proposal is deliberately frozen while `videos/how-a-school-connects-world` is completed as the first
+internal quality benchmark. Gate 2 (character and art direction) must not begin until that 72-second film
+passes its geometry, materials, physical-contact, network-accuracy, camera, lighting, temporal, audio,
+branding and continuity gates with rendered evidence.
 
 It builds **on top of** the explainer engine that already exists (`videos/_engine`, decisions D36–D40) and
 does not re-litigate it. Where this document disagrees with the brief, it says so and says why.
@@ -161,7 +166,7 @@ performance is a later gate, not a precondition for the pilot.
 | Body animation | hand-keyed, CMU/Mixamo for locomotion only | licence-safe; hand-keyed acting beats bad mocap |
 | Face | shape keys + **Rhubarb** for phonemes, hand-keyed for eyes/brows | |
 | Lighting | Blender for filmed shots; the OE3D rig for system shots | |
-| Real-time shots | **OE3D / three.js in HyperFrames** | proven, ~0.2 s/frame, deterministic |
+| Real-time shots | **OE3D / three.js in HyperFrames** | proven, ~0.33 s/frame on the finished 1080p60 film, deterministic |
 | Path-traced shots | **Blender Cycles on a rented GPU** | §11 |
 | Compositing | **Blender compositor** (EXR passes, Cryptomatte) | keeps it in one automatable process |
 | Editorial master, captions, audio mix, brand furniture, loudness | **HyperFrames** — unchanged | it already owns all of this (D36–D40) |
@@ -613,7 +618,7 @@ Two ways Blender output enters, and a rule for which:
 | What crosses | `.glb` — geometry, skin, animation clips, anchors | an image sequence → one high-bitrate clip per shot |
 | Played by | `mixer.setTime(t)` / the engine's clock setter | a `<video>` clip with `data-start`, muted, on the shot's track |
 | Determinism | pure function of t (**proven today**) | frames are fixed files |
-| Cost | ~0.2 s/frame, free | $3–6 per minute of screen time |
+| Cost | ~0.33 s/frame on the measured finished 1080p60 film, free | $3–6 per minute of screen time |
 | Good for | hardware, system views, stylized characters, anything that must respond to the timeline | rooms, people in light, defocus, volumetrics |
 | Constraint | no rAF, no `Date.now()`, no randomness — the engine's existing rule | the shot is locked; a change means a re-render |
 
@@ -712,9 +717,11 @@ Things that were not in the brief, and change a decision:
 15. **Blender Studio's Rain/Snow/Storm rigs are CC-BY** and are the best available reference for what a
     production rig must contain.
 
-## 17. NEXT APPROVAL GATE — Gate 1
+## 17. NEXT APPROVAL GATE — Gate 1 (FROZEN)
 
-**Nothing is installed, nothing is built, no money is spent until these are answered.**
+**Owner decision, 2026-09-26:** freeze this proposal; finish the existing 72-second film as the internal
+quality benchmark; only then begin Gate 2 character/art direction. Nothing is installed, nothing is built,
+and no money is spent under this proposal while it is frozen.
 
 1. **Direction** — approve, amend or reject §2.1 (stylized-realism people, true hardware, hands-first).
 2. **People** — do these films have characters at all, or does the existing engine's language stay?
