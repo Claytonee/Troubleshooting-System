@@ -1,6 +1,99 @@
 {
   "bgm": null,
   "bgm_pending": false,
+  "sfx": [
+    {
+      "frame": 1,
+      "file": "assets/sfx/whoosh-short.mp3",
+      "offset_s": 0.45,
+      "duration_s": 0.57,
+      "volume": 0.22
+    },
+    {
+      "frame": 2,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 0.39,
+      "duration_s": 0.37,
+      "volume": 0.26
+    },
+    {
+      "frame": 2,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 2.252,
+      "duration_s": 0.37,
+      "volume": 0.26
+    },
+    {
+      "frame": 2,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 3.402,
+      "duration_s": 0.37,
+      "volume": 0.26
+    },
+    {
+      "frame": 2,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 4.552,
+      "duration_s": 0.37,
+      "volume": 0.26
+    },
+    {
+      "frame": 2,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 5.701,
+      "duration_s": 0.37,
+      "volume": 0.26
+    },
+    {
+      "frame": 2,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 7.07,
+      "duration_s": 0.37,
+      "volume": 0.26
+    },
+    {
+      "frame": 3,
+      "file": "assets/sfx/error.mp3",
+      "offset_s": 1,
+      "duration_s": 1.62,
+      "volume": 0.24
+    },
+    {
+      "frame": 4,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 2.904,
+      "duration_s": 0.37,
+      "volume": 0.3
+    },
+    {
+      "frame": 4,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 3.891,
+      "duration_s": 0.37,
+      "volume": 0.3
+    },
+    {
+      "frame": 4,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 4.961,
+      "duration_s": 0.37,
+      "volume": 0.3
+    },
+    {
+      "frame": 4,
+      "file": "assets/sfx/error.mp3",
+      "offset_s": 5.985,
+      "duration_s": 1.62,
+      "volume": 0.24
+    },
+    {
+      "frame": 5,
+      "file": "assets/sfx/chime.mp3",
+      "offset_s": 1.67,
+      "duration_s": 2.5,
+      "volume": 0.26
+    }
+  ],
   "voices": [
     {
       "frame": 1,
@@ -468,99 +561,6 @@
           "end": 2.84
         }
       ]
-    }
-  ],
-  "sfx": [
-    {
-      "frame": 1,
-      "file": "assets/sfx/whoosh-short.mp3",
-      "offset_s": 0.45,
-      "duration_s": 0.57,
-      "volume": 0.22
-    },
-    {
-      "frame": 2,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 0.39,
-      "duration_s": 0.37,
-      "volume": 0.26
-    },
-    {
-      "frame": 2,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 2.252,
-      "duration_s": 0.37,
-      "volume": 0.26
-    },
-    {
-      "frame": 2,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 3.402,
-      "duration_s": 0.37,
-      "volume": 0.26
-    },
-    {
-      "frame": 2,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 4.552,
-      "duration_s": 0.37,
-      "volume": 0.26
-    },
-    {
-      "frame": 2,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 5.701,
-      "duration_s": 0.37,
-      "volume": 0.26
-    },
-    {
-      "frame": 2,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 7.07,
-      "duration_s": 0.37,
-      "volume": 0.26
-    },
-    {
-      "frame": 3,
-      "file": "assets/sfx/error.mp3",
-      "offset_s": 1,
-      "duration_s": 1.62,
-      "volume": 0.24
-    },
-    {
-      "frame": 4,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 2.904,
-      "duration_s": 0.37,
-      "volume": 0.3
-    },
-    {
-      "frame": 4,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 3.891,
-      "duration_s": 0.37,
-      "volume": 0.3
-    },
-    {
-      "frame": 4,
-      "file": "assets/sfx/click-soft.mp3",
-      "offset_s": 4.961,
-      "duration_s": 0.37,
-      "volume": 0.3
-    },
-    {
-      "frame": 4,
-      "file": "assets/sfx/error.mp3",
-      "offset_s": 5.985,
-      "duration_s": 1.62,
-      "volume": 0.24
-    },
-    {
-      "frame": 5,
-      "file": "assets/sfx/chime.mp3",
-      "offset_s": 1.67,
-      "duration_s": 2.5,
-      "volume": 0.26
     }
   ]
 }

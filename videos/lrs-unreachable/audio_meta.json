@@ -1,0 +1,698 @@
+{
+  "bgm": null,
+  "bgm_pending": false,
+  "sfx": [
+    {
+      "frame": 1,
+      "file": "assets/sfx/whoosh-short.mp3",
+      "offset_s": 0.45,
+      "duration_s": 0.57,
+      "volume": 0.22
+    },
+    {
+      "frame": 2,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 0.4,
+      "duration_s": 0.37,
+      "volume": 0.24
+    },
+    {
+      "frame": 2,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 5.234,
+      "duration_s": 0.37,
+      "volume": 0.24
+    },
+    {
+      "frame": 2,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 7.027,
+      "duration_s": 0.37,
+      "volume": 0.24
+    },
+    {
+      "frame": 2,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 9.533,
+      "duration_s": 0.37,
+      "volume": 0.24
+    },
+    {
+      "frame": 3,
+      "file": "assets/sfx/error.mp3",
+      "offset_s": null,
+      "duration_s": 1.62,
+      "volume": 0.22
+    },
+    {
+      "frame": 3,
+      "file": "assets/sfx/pop.mp3",
+      "offset_s": 5.168,
+      "duration_s": 0.72,
+      "volume": 0.18
+    },
+    {
+      "frame": 4,
+      "file": "assets/sfx/glitch-3.mp3",
+      "offset_s": null,
+      "duration_s": 3.1,
+      "volume": 0.16
+    },
+    {
+      "frame": 4,
+      "file": "assets/sfx/whoosh-short.mp3",
+      "offset_s": 2.277,
+      "duration_s": 0.57,
+      "volume": 0.18
+    },
+    {
+      "frame": 4,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 4.727,
+      "duration_s": 0.37,
+      "volume": 0.28
+    },
+    {
+      "frame": 4,
+      "file": "assets/sfx/click-soft.mp3",
+      "offset_s": 6.295,
+      "duration_s": 0.37,
+      "volume": 0.28
+    },
+    {
+      "frame": 4,
+      "file": "assets/sfx/error.mp3",
+      "offset_s": 8.191,
+      "duration_s": 1.62,
+      "volume": 0.22
+    },
+    {
+      "frame": 5,
+      "file": "assets/sfx/notification.mp3",
+      "offset_s": 2.993,
+      "duration_s": 2.46,
+      "volume": 0.2
+    }
+  ],
+  "voices": [
+    {
+      "frame": 1,
+      "path": "assets/voice/01.wav",
+      "duration_s": 4.182,
+      "words": [
+        {
+          "id": "w1-0",
+          "text": "The",
+          "start": 0,
+          "end": 0.76
+        },
+        {
+          "id": "w1-1",
+          "text": "internet",
+          "start": 0.76,
+          "end": 0.98
+        },
+        {
+          "id": "w1-2",
+          "text": "is",
+          "start": 0.98,
+          "end": 1.36
+        },
+        {
+          "id": "w1-3",
+          "text": "down.",
+          "start": 1.36,
+          "end": 1.62
+        },
+        {
+          "id": "w1-4",
+          "text": "Can",
+          "start": 2.4,
+          "end": 2.48
+        },
+        {
+          "id": "w1-5",
+          "text": "the",
+          "start": 2.48,
+          "end": 2.62
+        },
+        {
+          "id": "w1-6",
+          "text": "lesson",
+          "start": 2.62,
+          "end": 2.84
+        },
+        {
+          "id": "w1-7",
+          "text": "still",
+          "start": 2.84,
+          "end": 3.2
+        },
+        {
+          "id": "w1-8",
+          "text": "run?",
+          "start": 3.2,
+          "end": 3.44
+        }
+      ]
+    },
+    {
+      "frame": 2,
+      "path": "assets/voice/02.wav",
+      "duration_s": 13.111,
+      "words": [
+        {
+          "id": "w2-0",
+          "text": "Your",
+          "start": 0,
+          "end": 0.4
+        },
+        {
+          "id": "w2-1",
+          "text": "tablet",
+          "start": 0.4,
+          "end": 0.78
+        },
+        {
+          "id": "w2-2",
+          "text": "reaches",
+          "start": 0.78,
+          "end": 1.34
+        },
+        {
+          "id": "w2-3",
+          "text": "the",
+          "start": 1.34,
+          "end": 1.58
+        },
+        {
+          "id": "w2-4",
+          "text": "router",
+          "start": 1.58,
+          "end": 1.76
+        },
+        {
+          "id": "w2-5",
+          "text": "over",
+          "start": 1.76,
+          "end": 2.2
+        },
+        {
+          "id": "w2-6",
+          "text": "Wi",
+          "start": 2.2,
+          "end": 2.42
+        },
+        {
+          "id": "w2-7",
+          "text": "-Fi.",
+          "start": 2.42,
+          "end": 2.72
+        },
+        {
+          "id": "w2-8",
+          "text": "From",
+          "start": 3.48,
+          "end": 3.48
+        },
+        {
+          "id": "w2-9",
+          "text": "there,",
+          "start": 3.48,
+          "end": 3.74
+        },
+        {
+          "id": "w2-10",
+          "text": "two",
+          "start": 3.86,
+          "end": 4.06
+        },
+        {
+          "id": "w2-11",
+          "text": "roads.",
+          "start": 4.06,
+          "end": 4.28
+        },
+        {
+          "id": "w2-12",
+          "text": "One",
+          "start": 5.16,
+          "end": 5.22
+        },
+        {
+          "id": "w2-13",
+          "text": "stays",
+          "start": 5.22,
+          "end": 5.56
+        },
+        {
+          "id": "w2-14",
+          "text": "inside",
+          "start": 5.56,
+          "end": 5.88
+        },
+        {
+          "id": "w2-15",
+          "text": "the",
+          "start": 5.88,
+          "end": 6.18
+        },
+        {
+          "id": "w2-16",
+          "text": "school.",
+          "start": 6.18,
+          "end": 6.36
+        },
+        {
+          "id": "w2-17",
+          "text": "To",
+          "start": 6.98,
+          "end": 7
+        },
+        {
+          "id": "w2-18",
+          "text": "the",
+          "start": 7,
+          "end": 7.12
+        },
+        {
+          "id": "w2-19",
+          "text": "LRS,",
+          "start": 7.12,
+          "end": 7.56
+        },
+        {
+          "id": "w2-20",
+          "text": "where",
+          "start": 8,
+          "end": 8.04
+        },
+        {
+          "id": "w2-21",
+          "text": "Quest",
+          "start": 8.04,
+          "end": 8.22
+        },
+        {
+          "id": "w2-22",
+          "text": "lives.",
+          "start": 8.22,
+          "end": 8.52
+        },
+        {
+          "id": "w2-23",
+          "text": "The",
+          "start": 9.46,
+          "end": 9.5
+        },
+        {
+          "id": "w2-24",
+          "text": "other",
+          "start": 9.5,
+          "end": 9.74
+        },
+        {
+          "id": "w2-25",
+          "text": "goes",
+          "start": 9.74,
+          "end": 9.94
+        },
+        {
+          "id": "w2-26",
+          "text": "out",
+          "start": 9.94,
+          "end": 10.2
+        },
+        {
+          "id": "w2-27",
+          "text": "to",
+          "start": 10.2,
+          "end": 10.38
+        },
+        {
+          "id": "w2-28",
+          "text": "the",
+          "start": 10.38,
+          "end": 10.46
+        },
+        {
+          "id": "w2-29",
+          "text": "Internet,",
+          "start": 10.46,
+          "end": 10.72
+        },
+        {
+          "id": "w2-30",
+          "text": "only",
+          "start": 11.36,
+          "end": 11.52
+        },
+        {
+          "id": "w2-31",
+          "text": "to",
+          "start": 11.52,
+          "end": 11.82
+        },
+        {
+          "id": "w2-32",
+          "text": "sync",
+          "start": 11.82,
+          "end": 11.98
+        },
+        {
+          "id": "w2-33",
+          "text": "your",
+          "start": 11.98,
+          "end": 12.16
+        },
+        {
+          "id": "w2-34",
+          "text": "work.",
+          "start": 12.16,
+          "end": 12.36
+        }
+      ]
+    },
+    {
+      "frame": 3,
+      "path": "assets/voice/03.wav",
+      "duration_s": 6.587,
+      "words": [
+        {
+          "id": "w3-0",
+          "text": "So",
+          "start": 0,
+          "end": 0.38
+        },
+        {
+          "id": "w3-1",
+          "text": "when",
+          "start": 0.38,
+          "end": 0.54
+        },
+        {
+          "id": "w3-2",
+          "text": "the",
+          "start": 0.54,
+          "end": 0.64
+        },
+        {
+          "id": "w3-3",
+          "text": "internet",
+          "start": 0.64,
+          "end": 0.9
+        },
+        {
+          "id": "w3-4",
+          "text": "goes",
+          "start": 0.9,
+          "end": 1.28
+        },
+        {
+          "id": "w3-5",
+          "text": "down,",
+          "start": 1.28,
+          "end": 1.64
+        },
+        {
+          "id": "w3-6",
+          "text": "the",
+          "start": 2.14,
+          "end": 2.26
+        },
+        {
+          "id": "w3-7",
+          "text": "lesson",
+          "start": 2.26,
+          "end": 2.5
+        },
+        {
+          "id": "w3-8",
+          "text": "carries",
+          "start": 2.5,
+          "end": 2.88
+        },
+        {
+          "id": "w3-9",
+          "text": "on,",
+          "start": 2.88,
+          "end": 3.26
+        },
+        {
+          "id": "w3-10",
+          "text": "work",
+          "start": 3.86,
+          "end": 4.12
+        },
+        {
+          "id": "w3-11",
+          "text": "waits,",
+          "start": 4.12,
+          "end": 4.38
+        },
+        {
+          "id": "w3-12",
+          "text": "and",
+          "start": 4.98,
+          "end": 5.18
+        },
+        {
+          "id": "w3-13",
+          "text": "sinks",
+          "start": 5.18,
+          "end": 5.38
+        },
+        {
+          "id": "w3-14",
+          "text": "later.",
+          "start": 5.38,
+          "end": 5.84
+        }
+      ]
+    },
+    {
+      "frame": 4,
+      "path": "assets/voice/04.wav",
+      "duration_s": 9.311,
+      "words": [
+        {
+          "id": "w4-0",
+          "text": "But",
+          "start": 0,
+          "end": 0.32
+        },
+        {
+          "id": "w4-1",
+          "text": "if",
+          "start": 0.32,
+          "end": 0.42
+        },
+        {
+          "id": "w4-2",
+          "text": "the",
+          "start": 0.42,
+          "end": 0.54
+        },
+        {
+          "id": "w4-3",
+          "text": "LRS",
+          "start": 0.54,
+          "end": 0.88
+        },
+        {
+          "id": "w4-4",
+          "text": "stops",
+          "start": 0.88,
+          "end": 1.38
+        },
+        {
+          "id": "w4-5",
+          "text": "answering,",
+          "start": 1.38,
+          "end": 1.8
+        },
+        {
+          "id": "w4-6",
+          "text": "nothing",
+          "start": 2.4,
+          "end": 2.74
+        },
+        {
+          "id": "w4-7",
+          "text": "loads.",
+          "start": 2.74,
+          "end": 3
+        },
+        {
+          "id": "w4-8",
+          "text": "Check",
+          "start": 4.12,
+          "end": 4.14
+        },
+        {
+          "id": "w4-9",
+          "text": "its",
+          "start": 4.14,
+          "end": 4.28
+        },
+        {
+          "id": "w4-10",
+          "text": "power",
+          "start": 4.28,
+          "end": 4.5
+        },
+        {
+          "id": "w4-11",
+          "text": "light.",
+          "start": 4.5,
+          "end": 4.84
+        },
+        {
+          "id": "w4-12",
+          "text": "It's",
+          "start": 5.56,
+          "end": 5.72
+        },
+        {
+          "id": "w4-13",
+          "text": "cable",
+          "start": 5.72,
+          "end": 5.88
+        },
+        {
+          "id": "w4-14",
+          "text": "at",
+          "start": 5.88,
+          "end": 6.16
+        },
+        {
+          "id": "w4-15",
+          "text": "the",
+          "start": 6.16,
+          "end": 6.26
+        },
+        {
+          "id": "w4-16",
+          "text": "switch.",
+          "start": 6.26,
+          "end": 6.48
+        },
+        {
+          "id": "w4-17",
+          "text": "Then",
+          "start": 7.44,
+          "end": 7.46
+        },
+        {
+          "id": "w4-18",
+          "text": "quest",
+          "start": 7.46,
+          "end": 7.7
+        },
+        {
+          "id": "w4-19",
+          "text": "on",
+          "start": 7.7,
+          "end": 8
+        },
+        {
+          "id": "w4-20",
+          "text": "a",
+          "start": 8,
+          "end": 8.06
+        },
+        {
+          "id": "w4-21",
+          "text": "tablet.",
+          "start": 8.06,
+          "end": 8.28
+        }
+      ]
+    },
+    {
+      "frame": 5,
+      "path": "assets/voice/05.wav",
+      "duration_s": 8.196,
+      "words": [
+        {
+          "id": "w5-0",
+          "text": "Still",
+          "start": 0,
+          "end": 0.44
+        },
+        {
+          "id": "w5-1",
+          "text": "nothing.",
+          "start": 0.44,
+          "end": 0.82
+        },
+        {
+          "id": "w5-2",
+          "text": "Don't",
+          "start": 1.6,
+          "end": 1.74
+        },
+        {
+          "id": "w5-3",
+          "text": "unplug",
+          "start": 1.74,
+          "end": 2.08
+        },
+        {
+          "id": "w5-4",
+          "text": "it.",
+          "start": 2.08,
+          "end": 2.36
+        },
+        {
+          "id": "w5-5",
+          "text": "Report",
+          "start": 3.14,
+          "end": 3.14
+        },
+        {
+          "id": "w5-6",
+          "text": "it",
+          "start": 3.14,
+          "end": 3.42
+        },
+        {
+          "id": "w5-7",
+          "text": "as",
+          "start": 3.42,
+          "end": 3.58
+        },
+        {
+          "id": "w5-8",
+          "text": "critical.",
+          "start": 3.58,
+          "end": 3.86
+        },
+        {
+          "id": "w5-9",
+          "text": "No",
+          "start": 4.7,
+          "end": 4.76
+        },
+        {
+          "id": "w5-10",
+          "text": "LRS,",
+          "start": 4.76,
+          "end": 5.22
+        },
+        {
+          "id": "w5-11",
+          "text": "no",
+          "start": 5.54,
+          "end": 5.64
+        },
+        {
+          "id": "w5-12",
+          "text": "lesson.",
+          "start": 5.64,
+          "end": 5.92
+        }
+      ]
+    }
+  ]
+}

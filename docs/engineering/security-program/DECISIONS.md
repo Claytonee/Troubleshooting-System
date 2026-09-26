@@ -646,6 +646,29 @@ MusicGen install, and the brief did not need it).
 **Revisit when:** the owner has reviewed the draft. If the look is approved, the three project scripts become
 the reusable engine for the troubleshooting guides. If not, the review names what to change first.
 
+## D37 — The explainer series: one engine, one video per fault type
+
+**Asked (2026-09-26), after the prototype was approved:** videos for every scenario and every challenge,
+with great creativity; "the camera movement is the killer".
+
+**Decided:**
+1. **One video per fault type the system knows** (`SUBCATS`, 26 plus "Other"), ordered by how often each is
+   reported. The plan, sources and status are in `videos/SERIES.md`.
+2. **An engine before episodes** (`videos/_engine`): the device library, the stage, the camera, flows on one
+   global clock, voice composed phrase by phrase, the logo and the checks, shared by every episode. 26
+   hand-built files would drift apart. It was proved by porting the approved prototype onto it: the voice came
+   out identical to the millisecond and the frames matched.
+3. **Every episode teaches the same habit**: the moment → how it works → check in order → fixed, or report it
+   (with the priority). The look is shared; the **visual idea and camera signature are the episode's own** (a
+   fork in the road for the LRS, a macro slide along the router's lights, current down a charging lead, a
+   camera riding a projector beam).
+4. **Facts come from the system** (its guides, its explainers, its routing rules). A step it does not state
+   yet is marked **[confirm]** in `SERIES.md` and confirmed by the owner before that episode is rendered. Power
+   episodes never ask anyone to open or repair anything electrical (guide #4).
+
+**Revisit when:** production fault counts are pulled (the order may change), or the owner reviews the first
+batch.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.

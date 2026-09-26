@@ -1,0 +1,3 @@
+The lesson lives in the school
+
+Quest runs from the LRS inside the school, not from the internet: if the LRS answers, the lesson runs; if it does not, report it as critical.
