@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "preferences": {
+    "destination": {
+      "value": "youtube",
+      "confirmed_in": [
+        "how-a-school-connects"
+      ],
+      "updated_at": "2026-09-25T23:25:56.436Z"
+    },
+    "aspect": {
+      "value": "1920x1080",
+      "confirmed_in": [
+        "how-a-school-connects"
+      ],
+      "updated_at": "2026-09-25T23:25:56.648Z"
+    },
+    "language": {
+      "value": "en",
+      "confirmed_in": [
+        "how-a-school-connects"
+      ],
+      "updated_at": "2026-09-25T23:25:56.898Z"
+    },
+    "flow": {
+      "value": "automation",
+      "confirmed_in": [
+        "how-a-school-connects"
+      ],
+      "updated_at": "2026-09-25T23:25:57.121Z"
+    },
+    "storyboard": {
+      "value": "no",
+      "confirmed_in": [
+        "how-a-school-connects"
+      ],
+      "updated_at": "2026-09-25T23:25:57.337Z"
+    },
+    "style_preset.faceless-explainer": {
+      "value": "blue-professional",
+      "confirmed_in": [
+        "how-a-school-connects"
+      ],
+      "updated_at": "2026-09-25T23:38:19.980Z"
+    },
+    "voice": {
+      "value": "af_heart",
+      "confirmed_in": [
+        "how-a-school-connects"
+      ],
+      "updated_at": "2026-09-25T23:38:20.199Z"
+    }
+  },
+  "sightings": {}
+}

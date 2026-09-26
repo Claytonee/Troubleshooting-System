@@ -1,0 +1,224 @@
+<template id="captions-template" data-composition-id="captions" data-width="1920" data-height="1080">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+
+
+<style data-brand-tokens>
+      @font-face { font-family: 'DM Sans'; src: url('assets/fonts/DMSans-Variable.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: block; }
+      :root {
+      --bg: #0f1117;
+      --primary: #4f7cff;
+      --text: #e8eaf0;
+      --text-muted: #9ba1b5;
+      --text-light: #636a82;
+      --accent-light: rgba(79, 124, 255, 0.08);
+      --accent-medium: rgba(79, 124, 255, 0.15);
+      --border: rgba(79, 124, 255, 0.2);
+      --card-bg: rgba(79, 124, 255, 0.04);
+      --positive: #2dd98a;
+      --negative: #ff5263;
+      --cap-ink: #e8eaf0;
+      --cap-canvas: #0f1117;
+      --cap-accent: #4f7cff;
+      --cap-accent-2: #636a82;
+      --font-display: "DM Sans", system-ui, serif;
+      --font-body: "DM Sans", system-ui, sans-serif;
+      --cap-band-top: 900px;
+      --cap-band-height: 180px;
+      }
+    </style>
+
+<style>
+  #captions-root {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .caption-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    pointer-events: none;
+  }
+  /* the keep-out band, from captionBand(H) — frame content stays above it */
+  .caption-stage {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: var(--cap-band-top, 900px);
+    height: var(--cap-band-height, 180px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .caption-group {
+    /* every group is absolutely stacked over the SAME band — exactly one shown at a
+       time via opacity. Must be absolute: in-flow groups would lay out side-by-side. */
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+  }
+
+  /* THE tinted card — 4% cobalt fill, 1.5px 20%-cobalt border, soft 14px corners,
+     NO shadow (the tinted card does the lift; cast depth is forbidden) */
+  .caption-pill {
+    max-width: 78%;
+    padding: 20px 44px 24px;
+    background: color-mix(in srgb, var(--cap-accent, #1e2bfa) 4%, var(--cap-canvas, #fdfae7));
+    border: 1.5px solid color-mix(in srgb, var(--cap-accent, #1e2bfa) 20%, transparent);
+    border-radius: 14px;
+  }
+  .caption-line {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.1em 0.34em;
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: clamp(40px, 4.4vw, 58px);
+    line-height: 1.16;
+    letter-spacing: -0.02em;
+  }
+
+  /* upcoming — muted gray, no chip */
+  .caption-word {
+    display: inline-block;
+    padding: 0 0.18em;
+    border-radius: 0.32em;
+    color: color-mix(in srgb, var(--cap-ink, #111111) 52%, var(--cap-canvas, #fdfae7));
+  }
+  /* current word — THE solid cobalt chip (the single-accent gesture; pill-rounded
+     fill, NO shadow), cream reading on top */
+  .caption-word.is-active {
+    color: var(--cap-canvas, #fdfae7);
+    background: var(--cap-accent, #1e2bfa);
+    box-shadow: none;
+  }
+  /* already spoken — solid near-black ink, chip cleared */
+  .caption-word.is-spoken {
+    color: var(--cap-ink, #111111);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* optional per-word accents (dormant until a word-classer tags them) */
+  /* brand / key term — cobalt, the system's one accent on a key word */
+  .caption-word.cap-brand {
+    color: var(--cap-accent, #1e2bfa);
+  }
+  /* numerals / data — cobalt 700, the figure voice */
+  .caption-word.cap-num {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-weight: 700;
+    color: var(--cap-accent, #1e2bfa);
+  }
+  /* emphasis — a directional-red hairline underline (inline only, never a fill) */
+  .caption-word.cap-cta {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--cap-accent-2, #dc2626);
+    text-underline-offset: 0.1em;
+  }
+
+  @media (max-aspect-ratio: 9/16) {
+    .caption-pill {
+      max-width: 92%;
+    }
+    .caption-line {
+      font-size: clamp(34px, 5.4vw, 48px);
+    }
+  }
+</style>
+
+<div
+  id="captions-root"
+  data-composition-id="captions"
+  data-timeline-locked
+  data-start="0"
+  data-duration="31.916"
+  data-fps="30"
+  data-width="1920"
+  data-height="1080"
+>
+  <div class="caption-layer" aria-hidden="true">
+    <div id="caption-stage" class="caption-stage"></div>
+  </div>
+</div>
+
+<script>
+  // captions.mjs injects the engine's scene-aware groups + real duration here.
+  var GROUPS = [{"id":"caption-group-0","frame":1,"start":0,"end":1.56,"text":"No internet in the","words":[{"id":"caption-word-0-0","text":"No","start":0,"end":0.88},{"id":"caption-word-0-1","text":"internet","start":0.88,"end":1.16},{"id":"caption-word-0-2","text":"in","start":1.16,"end":1.46},{"id":"caption-word-0-3","text":"the","start":1.46,"end":1.56}]},{"id":"caption-group-1","frame":1,"start":1.56,"end":1.92,"text":"lab.","words":[{"id":"caption-word-1-0","text":"lab.","start":1.56,"end":1.8}]},{"id":"caption-group-2","frame":1,"start":2.46,"end":2.78,"text":"The fault","words":[{"id":"caption-word-2-0","text":"The","start":2.46,"end":2.52},{"id":"caption-word-2-1","text":"fault","start":2.52,"end":2.78}]},{"id":"caption-group-3","frame":1,"start":2.78,"end":3.26,"text":"is in","words":[{"id":"caption-word-3-0","text":"is","start":2.78,"end":3.12},{"id":"caption-word-3-1","text":"in","start":3.12,"end":3.26}]},{"id":"caption-group-4","frame":1,"start":3.26,"end":3.48,"text":"one of","words":[{"id":"caption-word-4-0","text":"one","start":3.26,"end":3.38},{"id":"caption-word-4-1","text":"of","start":3.38,"end":3.48}]},{"id":"caption-group-5","frame":1,"start":3.48,"end":4.12,"text":"four links.","words":[{"id":"caption-word-5-0","text":"four","start":3.48,"end":3.74},{"id":"caption-word-5-1","text":"links.","start":3.74,"end":4}]},{"id":"caption-group-6","frame":2,"start":4.744,"end":5.884,"text":"Your computer sends","words":[{"id":"caption-word-6-0","text":"Your","start":4.744,"end":5.204},{"id":"caption-word-6-1","text":"computer","start":5.204,"end":5.424},{"id":"caption-word-6-2","text":"sends","start":5.424,"end":5.884}]},{"id":"caption-group-7","frame":2,"start":5.884,"end":6.324,"text":"packets,","words":[{"id":"caption-word-7-0","text":"packets,","start":5.884,"end":6.204}]},{"id":"caption-group-8","frame":2,"start":6.844,"end":7.604,"text":"down the cable,","words":[{"id":"caption-word-8-0","text":"down","start":6.844,"end":7.104},{"id":"caption-word-8-1","text":"the","start":7.104,"end":7.264},{"id":"caption-word-8-2","text":"cable,","start":7.264,"end":7.484}]},{"id":"caption-group-9","frame":2,"start":8.044,"end":8.704,"text":"to the switch,","words":[{"id":"caption-word-9-0","text":"to","start":8.044,"end":8.204},{"id":"caption-word-9-1","text":"the","start":8.204,"end":8.324},{"id":"caption-word-9-2","text":"switch,","start":8.324,"end":8.584}]},{"id":"caption-group-10","frame":2,"start":9.144,"end":9.884,"text":"through the router,","words":[{"id":"caption-word-10-0","text":"through","start":9.144,"end":9.404},{"id":"caption-word-10-1","text":"the","start":9.404,"end":9.564},{"id":"caption-word-10-2","text":"router,","start":9.564,"end":9.764}]},{"id":"caption-group-11","frame":2,"start":10.324,"end":11.104,"text":"to your provider,","words":[{"id":"caption-word-11-0","text":"to","start":10.324,"end":10.504},{"id":"caption-word-11-1","text":"your","start":10.504,"end":10.684},{"id":"caption-word-11-2","text":"provider,","start":10.684,"end":10.984}]},{"id":"caption-group-12","frame":2,"start":11.764,"end":12.084,"text":"and out","words":[{"id":"caption-word-12-0","text":"and","start":11.764,"end":11.864},{"id":"caption-word-12-1","text":"out","start":11.864,"end":12.084}]},{"id":"caption-group-13","frame":2,"start":12.084,"end":12.804,"text":"to the internet.","words":[{"id":"caption-word-13-0","text":"to","start":12.084,"end":12.304},{"id":"caption-word-13-1","text":"the","start":12.304,"end":12.404},{"id":"caption-word-13-2","text":"internet.","start":12.404,"end":12.684}]},{"id":"caption-group-14","frame":3,"start":13.496,"end":13.996,"text":"When one","words":[{"id":"caption-word-14-0","text":"When","start":13.496,"end":13.836},{"id":"caption-word-14-1","text":"one","start":13.836,"end":13.996}]},{"id":"caption-group-15","frame":3,"start":13.996,"end":14.676,"text":"link breaks,","words":[{"id":"caption-word-15-0","text":"link","start":13.996,"end":14.256},{"id":"caption-word-15-1","text":"breaks,","start":14.256,"end":14.556}]},{"id":"caption-group-16","frame":3,"start":15.176,"end":15.476,"text":"the packets","words":[{"id":"caption-word-16-0","text":"the","start":15.176,"end":15.256},{"id":"caption-word-16-1","text":"packets","start":15.256,"end":15.476}]},{"id":"caption-group-17","frame":3,"start":15.476,"end":16.656,"text":"stop right there.","words":[{"id":"caption-word-17-0","text":"stop","start":15.476,"end":15.916},{"id":"caption-word-17-1","text":"right","start":15.916,"end":16.236},{"id":"caption-word-17-2","text":"there.","start":16.236,"end":16.536}]},{"id":"caption-group-18","frame":4,"start":17.237,"end":17.837,"text":"Check them","words":[{"id":"caption-word-18-0","text":"Check","start":17.237,"end":17.657},{"id":"caption-word-18-1","text":"them","start":17.657,"end":17.837}]},{"id":"caption-group-19","frame":4,"start":17.837,"end":18.157,"text":"in order","words":[{"id":"caption-word-19-0","text":"in","start":17.837,"end":17.917},{"id":"caption-word-19-1","text":"order","start":17.917,"end":18.157}]},{"id":"caption-group-20","frame":4,"start":18.157,"end":18.717,"text":"from the","words":[{"id":"caption-word-20-0","text":"from","start":18.157,"end":18.597},{"id":"caption-word-20-1","text":"the","start":18.597,"end":18.717}]},{"id":"caption-group-21","frame":4,"start":18.717,"end":19.457,"text":"computer out,","words":[{"id":"caption-word-21-0","text":"computer","start":18.717,"end":19.057},{"id":"caption-word-21-1","text":"out,","start":19.057,"end":19.337}]},{"id":"caption-group-22","frame":4,"start":19.717,"end":20.477,"text":"cable,","words":[{"id":"caption-word-22-0","text":"cable,","start":19.717,"end":20.357}]},{"id":"caption-group-23","frame":4,"start":20.817,"end":21.397,"text":"switch,","words":[{"id":"caption-word-23-0","text":"switch,","start":20.817,"end":21.277}]},{"id":"caption-group-24","frame":4,"start":21.857,"end":22.437,"text":"router,","words":[{"id":"caption-word-24-0","text":"router,","start":21.857,"end":22.317}]},{"id":"caption-group-25","frame":4,"start":23.097,"end":23.577,"text":"provider.","words":[{"id":"caption-word-25-0","text":"provider.","start":23.097,"end":23.457}]},{"id":"caption-group-26","frame":4,"start":24.477,"end":24.777,"text":"The first","words":[{"id":"caption-word-26-0","text":"The","start":24.477,"end":24.517},{"id":"caption-word-26-1","text":"first","start":24.517,"end":24.777}]},{"id":"caption-group-27","frame":4,"start":24.777,"end":25.297,"text":"dark light","words":[{"id":"caption-word-27-0","text":"dark","start":24.777,"end":25.057},{"id":"caption-word-27-1","text":"light","start":25.057,"end":25.297}]},{"id":"caption-group-28","frame":4,"start":25.297,"end":26.057,"text":"is your fault.","words":[{"id":"caption-word-28-0","text":"is","start":25.297,"end":25.557},{"id":"caption-word-28-1","text":"your","start":25.557,"end":25.677},{"id":"caption-word-28-2","text":"fault.","start":25.677,"end":25.937}]},{"id":"caption-group-29","frame":5,"start":26.789,"end":27.489,"text":"Fix that","words":[{"id":"caption-word-29-0","text":"Fix","start":26.789,"end":27.269},{"id":"caption-word-29-1","text":"that","start":27.269,"end":27.489}]},{"id":"caption-group-30","frame":5,"start":27.489,"end":28.029,"text":"one link,","words":[{"id":"caption-word-30-0","text":"one","start":27.489,"end":27.669},{"id":"caption-word-30-1","text":"link,","start":27.669,"end":27.909}]},{"id":"caption-group-31","frame":5,"start":28.349,"end":28.609,"text":"and the","words":[{"id":"caption-word-31-0","text":"and","start":28.349,"end":28.509},{"id":"caption-word-31-1","text":"the","start":28.509,"end":28.609}]},{"id":"caption-group-32","frame":5,"start":28.609,"end":29.069,"text":"school is","words":[{"id":"caption-word-32-0","text":"school","start":28.609,"end":28.809},{"id":"caption-word-32-1","text":"is","start":28.809,"end":29.069}]},{"id":"caption-group-33","frame":5,"start":29.069,"end":29.749,"text":"back online.","words":[{"id":"caption-word-33-0","text":"back","start":29.069,"end":29.289},{"id":"caption-word-33-1","text":"online.","start":29.289,"end":29.629}]}];
+  var DURATION = 31.916;
+
+  (function () {
+    var stage = document.getElementById("caption-stage");
+
+    // build DOM: one .caption-group per group, .caption-word per word
+    GROUPS.forEach(function (group, g) {
+      var groupEl = document.createElement("div");
+      groupEl.className = "caption-group";
+      groupEl.id = "caption-group-" + g;
+      var pill = document.createElement("div");
+      pill.className = "caption-pill";
+      var line = document.createElement("div");
+      line.className = "caption-line";
+      (group.words || []).forEach(function (w, i) {
+        var span = document.createElement("span");
+        span.className = "caption-word";
+        span.id = "caption-word-" + g + "-" + i;
+        span.textContent = String(w.text);
+        line.appendChild(span);
+      });
+      pill.appendChild(line);
+      groupEl.appendChild(pill);
+      stage.appendChild(groupEl);
+    });
+
+    window.__timelines = window.__timelines || {};
+    var tl = gsap.timeline({ paused: true });
+
+    GROUPS.forEach(function (group, g) {
+      var groupEl = document.getElementById("caption-group-" + g);
+      var words = group.words || [];
+      var next = GROUPS[g + 1];
+      var isLast = g === GROUPS.length - 1;
+      var start = Math.max(0, Number(group.start));
+      var end = isLast ? DURATION : Math.min(Number(next.start), Number(group.end) + 0.3);
+      if (end <= start) end = start + 0.01;
+
+      // group on/off — exactly one group visible at a time
+      tl.set(groupEl, { opacity: 1 }, start);
+      tl.set(groupEl, { opacity: 0 }, end);
+
+      // 3-state karaoke via className SETS — seek-safe (gsap.set applies on the
+      // engine's frame-by-frame seek; .call callbacks would NOT fire).
+      words.forEach(function (w, i) {
+        var el = document.getElementById("caption-word-" + g + "-" + i);
+        var at = Math.max(start, Number(w.start));
+        tl.set(el, { className: "caption-word" }, start); // upcoming (also resets on reverse-seek)
+        tl.set(el, { className: "caption-word is-active" }, at); // current
+        tl.fromTo(el, { scale: 0.985 }, { scale: 1, duration: 0.18, ease: "power1.out" }, at);
+        if (i + 1 < words.length) {
+          var nextAt = Math.max(start, Number(words[i + 1].start));
+          tl.set(el, { className: "caption-word is-spoken" }, nextAt); // demote when next activates
+        }
+      });
+      if (words.length) {
+        var lastEl = document.getElementById("caption-word-" + g + "-" + (words.length - 1));
+        var lastSpoken = Math.min(end, Number(words[words.length - 1].end) + 0.1);
+        tl.set(lastEl, { className: "caption-word is-spoken" }, lastSpoken);
+      }
+    });
+
+    // full-span anchor so the sub-comp timeline spans the whole video
+    tl.to({}, { duration: DURATION }, 0);
+    window.__timelines["captions"] = tl;
+  })();
+</script>
+
+<style>
+  .caption-line { line-height: 1.1 !important; }
+</style>
+</template>

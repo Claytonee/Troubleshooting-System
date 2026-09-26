@@ -1,0 +1,99 @@
+{
+  "1": {
+    "duration": 4.744,
+    "phrases": [
+      {
+        "text": "No internet in the lab?",
+        "start": 0.7
+      },
+      {
+        "text": "The fault is in one of four links.",
+        "start": 2.473
+      }
+    ]
+  },
+  "2": {
+    "duration": 8.752,
+    "phrases": [
+      {
+        "text": "Your computer sends packets,",
+        "start": 0.35
+      },
+      {
+        "text": "down the cable,",
+        "start": 2.212
+      },
+      {
+        "text": "to the switch,",
+        "start": 3.362
+      },
+      {
+        "text": "through the router,",
+        "start": 4.512
+      },
+      {
+        "text": "to your provider,",
+        "start": 5.661
+      },
+      {
+        "text": "and out to the internet.",
+        "start": 7.03
+      }
+    ]
+  },
+  "3": {
+    "duration": 3.741,
+    "phrases": [
+      {
+        "text": "When one link breaks,",
+        "start": 0.25
+      },
+      {
+        "text": "the packets stop right there.",
+        "start": 1.699
+      }
+    ]
+  },
+  "4": {
+    "duration": 9.552,
+    "phrases": [
+      {
+        "text": "Check them in order, from the computer out.",
+        "start": 0.25
+      },
+      {
+        "text": "Cable.",
+        "start": 2.864
+      },
+      {
+        "text": "Switch.",
+        "start": 3.851
+      },
+      {
+        "text": "Router.",
+        "start": 4.921
+      },
+      {
+        "text": "Provider.",
+        "start": 5.945
+      },
+      {
+        "text": "The first dark light is your fault.",
+        "start": 7.237
+      }
+    ]
+  },
+  "5": {
+    "duration": 5.127,
+    "phrases": [
+      {
+        "text": "Fix that one link,",
+        "start": 0.25
+      },
+      {
+        "text": "and the school is back online.",
+        "start": 1.67
+      }
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+# Rendered output and review captures are regenerated; they do not belong in git.
+renders/
+snapshots/
+.scratch/
+node_modules/
+.hyperframes/frame-packets/

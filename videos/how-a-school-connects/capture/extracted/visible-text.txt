@@ -1,0 +1,13 @@
+How a School Connects to the Internet — OE Support System, technical explainer prototype.
+
+Show: 1. A school computer. 2. Ethernet cable. 3. Network switch. 4. Router. 5. Internet service provider. 6. Internet cloud. 7. Animated packets travelling through the network. 8. A simulated connection failure. 9. Visual troubleshooting. 10. Successful reconnection.
+
+Facts to teach (first-line network support at a school):
+- A computer sends data in small packets. The Ethernet cable carries them to the network switch.
+- The switch connects every computer in the building and passes each packet toward its destination.
+- The router joins the school's own network to the outside world; it is the school's gateway.
+- The internet service provider (ISP) carries traffic from the school's router to the internet.
+- When the internet stops, check the links in order, from the computer outwards: the cable and its link light, the switch, the router, then the ISP line. The first link that is dark is the fault.
+- Restoring the broken link lets packets flow again.
+
+Visual reference: PowerCert-style educational network animation — clear technical drawings that move. Do not copy PowerCert's artwork, branding or illustrations; create an original visual language.

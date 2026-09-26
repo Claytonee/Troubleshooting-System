@@ -611,6 +611,41 @@ role cannot drift from itself; two copies would.
 
 **Revisit when:** registration, escalation or assignment changes. The suite fails first, which is the point.
 
+## D36 — Explainer videos: evaluate HyperFrames on one 30-second prototype, outside the app
+
+**Asked (2026-09-26):** a PowerCert-style technical explainer, "How a School Connects to the Internet", made
+with HyperFrames + GSAP + SVG. The request said to stop after one prototype for human review, and the owner
+said "make the world class decision".
+
+**Decided:**
+1. **HyperFrames is the engine under evaluation, one video only.** It is HeyGen's open-source framework
+   (Apache-2.0, heygen-com/hyperframes, ~53k stars, npm `hyperframes` published by HeyGen). Provenance was checked
+   before anything was installed. Remotion is not built in parallel: two engines at once would halve the
+   evaluation of each.
+2. **It lives in `videos/`, never in the app.** The server serves only `frontend/`. In-app explainers stay
+   drawn live (5be4f8f: ~45 KB against ~8 MB, and they play offline on a dead uplink). The MP4 is for places a
+   video belongs: staff WhatsApp groups, training sessions, a channel.
+3. **Local, free, offline-capable tools:** FFmpeg 8.1.3 (BtbN win64 build, SHA-256 checked, in `~/tools`), the
+   Kokoro-82M voice `af_heart` (the top grade in Kokoro's own ratings) and faster-whisper for word timings,
+   both in a separate Python 3.12 environment (the system 3.14 has no wheels). No HeyGen account: its hosted
+   voices were not needed to judge the visual system.
+4. **Teaching pace over machine pace.** A single TTS take read "cable, switch, router, provider" in 1.3 s, so
+   each line is voiced phrase by phrase with designed pauses (`compose-voice.mjs`). That also gives the exact
+   time each device is named, and every reveal and sound lands on it.
+5. **One stage, generated.** The five frames are emitted from one drawing (`build-frames.mjs`), so every cut
+   is invisible. Packets run on a global clock, so a packet in flight at a cut continues in the next frame.
+6. **Rendered frames are the evidence, not the build.** The first review of real snapshots found five defects
+   that passed every automated check: a zoom that swung through empty cable, chips thrown to the top edge (a
+   GSAP transform replacing an SVG translate), dying packets scaled about the drawing's origin, a drawing too
+   small for a phone, and a callout repeating the narration. All were fixed before the draft render.
+
+**Not done:** more videos (the owner approves the visual system first); Swahili narration (Kokoro has no
+Swahili voice, and the product copy is English-only); background music (needs a HeyGen account or a local
+MusicGen install, and the brief did not need it).
+
+**Revisit when:** the owner has reviewed the draft. If the look is approved, the three project scripts become
+the reusable engine for the troubleshooting guides. If not, the review names what to change first.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.
