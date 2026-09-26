@@ -9,6 +9,12 @@ internal quality benchmark. Gate 2 (character and art direction) must not begin 
 passes its geometry, materials, physical-contact, network-accuracy, camera, lighting, temporal, audio,
 branding and continuity gates with rendered evidence.
 
+**The gate questions in §17 have since been decided by delegation — see DECISIONS.md D41.** In short: the
+freeze stands; the series is bound by a delivery budget in megabytes rather than by ambition (measured:
+two thirds of the delivered film is waste, not picture); films render at 30 fps; people arrive in
+three sequenced steps beginning with hands, not with a cast; and no money and no installations are
+authorised. What still needs the owner is the list of hardware OE actually deploys.
+
 It builds **on top of** the explainer engine that already exists (`videos/_engine`, decisions D36–D40) and
 does not re-litigate it. Where this document disagrees with the brief, it says so and says why.
 

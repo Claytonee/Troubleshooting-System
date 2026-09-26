@@ -776,6 +776,113 @@ series is rebuilt until the owner has compared the three films.
 **Revisit when:** the owner has watched `videos/how-a-school-connects-world/renders/video.mp4` beside the 2D
 film and the hybrid, and answered which production system the series is built on.
 
+## D41 — Prove the object layer, bind the series to delivery, and add people last
+
+**Asked (2026-09-26):** after the cinematic-studio proposal was frozen (`675ad85`), the owner said
+*"fanya world class decision"* — decide, rather than hand the questions back. These are the calls.
+
+**Decided:**
+
+1. **The freeze stands, and it was the right call.** Building a second production system while the first one
+   has never been proved to a standard is how studios die. `videos/how-a-school-connects-world` is the
+   gating artefact. Gate 2 does not open until it passes its ten gates on rendered evidence.
+
+2. **The binding constraint on this series is megabytes at the point of use — not render quality.**
+   Measured on the delivered film: **41.9 MB for 72.5 s** — 4.62 Mbps, 1920×1080, **60 fps** —
+   **34.7 MB per minute**. A ten-minute cinematic film is therefore ~350 MB, aimed at an audience whose
+   defining problem is that the school's uplink is down. This is the same reasoning that keeps in-app
+   explainers drawn live at ~45 KB instead of 8 MB (D36.2), and it was not applied to the films. Measured
+   on the same 72.5 s, x264 CRF 21 preset medium:
+
+   | Encode | Size | Per minute | A 10-minute film |
+   |---|---|---|---|
+   | **as delivered** — 1080p60, 4.62 Mbps | 41.9 MB | 34.7 MB | ~347 MB |
+   | 1080p**60**, quality-targeted | **17.3 MB** (−59 %) | 14.3 MB | ~143 MB |
+   | 1080p**30**, quality-targeted | **14.5 MB** (−65 %) | 12.0 MB | ~120 MB |
+   | 720p30, quality-targeted | **7.2 MB** (−83 %) | 6.0 MB | ~60 MB |
+
+   The 1080p30 frame at 36.6 s was inspected: legends crisp, LED falloff clean, no banding in the dark floor
+   gradient, caption legible. **Two thirds of the delivered file is waste, not picture.** (These are
+   re-encodes of an already-compressed source, which is easier than encoding from frames — treat the
+   percentages as the direction and the ceiling, not the promise; the real figure comes from the next render.)
+   **So: a delivery budget is a gate beside the quality gates** — a film is not finished until it meets it,
+   and length follows from the budget instead of from ambition.
+
+3. **Render at 30 fps, not 60.** The direction doc asks for moves that decelerate to rest with no idle
+   drift; 60 fps spends half the bits on a film whose motion is deliberately slow, and every one of those
+   bits is carried over a school's uplink. 60 fps is kept only for a shot that demonstrably needs it.
+
+4. **People are sequenced, not commissioned.** In order, each step independently deliverable and
+   independently cancellable: **(a)** the object layer to an undeniable standard — that is this benchmark;
+   **(b)** *hands only*, in the one beat where a human presence changes comprehension (the press, the plug,
+   the swap); **(c)** a face, only if the hands prove out. No cast, no classroom of characters, no facial
+   performance is commissioned now. The reason is measured, not aesthetic: there is no GPU here, there is
+   one operator, there are 26 films to make, and bad acting is worse than no acting.
+
+5. **No money and no installations.** Everything runs on route R1 (the existing three.js runtime, ~0.33 s a
+   frame). No GPU is rented or bought until a specific shot exists that R1 demonstrably cannot carry.
+
+6. **The uncommitted tree is resolved today, not left.** The 15:20–15:22 edits (scope card, tower decal,
+   captured support screen, `hyperframes` 0.8.77 → 0.8.78) are coherent and pass lint, but they are
+   unrendered, unreviewed and uncommitted — three sessions can see them and none owns them, which is one
+   stray command from losing them. They are **rendered to a review filename** (never over `video.mp4`),
+   judged on frames, then committed or reverted per change.
+
+7. **The OE decal on the tower is rejected.** It breaks the library's own rule — *"No forced branding.
+   Hardware keeps believable colours; OE's colours belong to callouts, highlights, labels and transitions"*
+   (`hardware-3d/README.md`). A school's desktop tower does not carry an Opportunity Education logo, so it
+   is also a small lie in a film whose authority rests on telling none. The logo is already top-right on
+   every frame.
+
+8. **The payoff shot must be the lesson, not the sign-in page.** `screenPainter`'s `else if (okImage)` branch
+   draws the captured screen *instead of* the lesson mock, so the film's resolution beat — the thing the
+   children were waiting for — is now an authentication form, and it argues circularly that restored
+   connectivity means you can log in to the fault-reporting system. The capture itself is exemplary work
+   (deterministic, from this repo's own frontend, no account data, with a regeneration command in
+   `assets/media/SOURCE.md`); it is pointed at the wrong beat.
+
+9. **Two defects in the screen, both in the working tree.** `world.js:426` paints
+   `support.school.ac.tz` — a domain that does not exist; the teachers this film trains type
+   `support.mkatolikikiganjani.com`, and it is on screen in the opening shot because the failure state draws
+   the chrome and the capture only appears later. And `drawImage(okImage, 0, 0, 1280, 720)` paints over the
+   browser chrome it just drew, so the window frame vanishes at the moment of the fix — a continuity break
+   between the two states of the same monitor.
+
+10. **The screen is not glass, and that has consequences beyond this film.** It is
+    `new THREE.MeshBasicMaterial({ map, toneMapped: false })`: unlit, so it can never carry a reflection of
+    the room — the one cue that separates a screen from a lit rectangle — and outside the tone-mapping
+    pipeline, so its whites will not move with the curve. If the engine adopts `AgXToneMapping` to match
+    Blender (the mismatch recorded in the Gate 1 proposal §2.4), this screen gets **worse**, not better,
+    unless it is changed in the same commit.
+
+11. **Two findings from the macro frame at 36.6 s, where the film is strongest and so must be flawless.**
+    The **empty LAN ports read brighter than the subject** — the contact springs inside ports 3 and 4 are
+    near-white and unlit, so at macro distance they are the brightest objects in that half of the frame and
+    pull the eye off the WAN port the shot exists to show. And the router's front face carries **no
+    micro-surface detail at all** at 12 cm: no mould texture, no fingerprints, no roughness break-up, which
+    is the asset standard's own requirement and the difference between a render and a photograph.
+
+12. **One owner per artefact, because three agents are in this tree.** Network accuracy and continuity
+    belong to the engine's author, who holds `school-network.mjs`; geometry, materials, physical contact,
+    camera, lighting, temporal, audio and branding are reviewed independently. Every finding is timestamped
+    against a **named artefact**, never "the render" — `renders/contact-sheet.jpg` (14:39) and
+    `snapshots/frame-00-at-1.559s.png` (15:23) are different films.
+
+13. **When the benchmark passes, D40 wins and the other two prototypes are deleted**, as `SERIES.md` already
+    planned. Three films of the same script are a comparison, not a library.
+
+**Evidence:** Blender 5.2.2 on this machine has no Cycles compute device at all (OptiX/CUDA/HIP/oneAPI all
+empty); a 960×540 64-spp frame of a trivial classroom costs **84.2 s**, EEVEE **91.1 s** — slower. A
+Blender-rigged, skinned, animated GLB played in the existing runtime deterministically (same `t` → identical
+pixels). Full working: `docs/engineering/animation-studio/GATE-1-PRODUCTION-SYSTEM.md`.
+
+**Not done:** the review render itself, the eight-gate pass on it, and the delivery-budget figure in
+megabytes per minute — all of which wait on the tree being rendered. Category-B twins still wait on the
+owner's list of deployed hardware; nothing else is blocked on him.
+
+**Revisit when:** the benchmark film passes its ten gates on rendered evidence. Then, and only then, (b) —
+hands in one beat of one film — is built and judged on the same standard.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.
