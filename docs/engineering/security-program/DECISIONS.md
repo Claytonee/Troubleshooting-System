@@ -788,18 +788,20 @@ film and the hybrid, and answered which production system the series is built on
    gating artefact. Gate 2 does not open until it passes its ten gates on rendered evidence.
 
 2. **The binding constraint on this series is megabytes at the point of use — not render quality.**
-   Measured on the delivered film: **41.9 MB for 72.5 s** — 4.62 Mbps, 1920×1080, **60 fps** —
-   **34.7 MB per minute**. A ten-minute cinematic film is therefore ~350 MB, aimed at an audience whose
+   Measured on the delivered film: **39.9 MB for 72.5 s** — 4.62 Mbps, 1920×1080, **60 fps** —
+   **33.1 MB per minute**. A ten-minute cinematic film is therefore ~330 MB, aimed at an audience whose
    defining problem is that the school's uplink is down. This is the same reasoning that keeps in-app
    explainers drawn live at ~45 KB instead of 8 MB (D36.2), and it was not applied to the films. Measured
    on the same 72.5 s, x264 CRF 21 preset medium:
 
    | Encode | Size | Per minute | A 10-minute film |
    |---|---|---|---|
-   | **as delivered** — 1080p60, 4.62 Mbps | 41.9 MB | 34.7 MB | ~347 MB |
-   | 1080p**60**, quality-targeted | **17.3 MB** (−59 %) | 14.3 MB | ~143 MB |
-   | 1080p**30**, quality-targeted | **14.5 MB** (−65 %) | 12.0 MB | ~120 MB |
-   | 720p30, quality-targeted | **7.2 MB** (−83 %) | 6.0 MB | ~60 MB |
+   | **as delivered** — 1080p60, 4.62 Mbps | 39.9 MB | 33.1 MB | ~331 MB |
+   | 1080p**60**, quality-targeted | **17.3 MB** (−57 %) | 14.3 MB | ~143 MB |
+   | 1080p**30**, quality-targeted | **14.5 MB** (−64 %) | 12.0 MB | ~120 MB |
+   | 720p30, quality-targeted | **7.2 MB** (−82 %) | 6.0 MB | ~60 MB |
+
+   (All figures MiB, as the filesystem reports them, so the rows compare like with like.)
 
    The 1080p30 frame at 36.6 s was inspected: legends crisp, LED falloff clean, no banding in the dark floor
    gradient, caption legible. **Two thirds of the delivered file is waste, not picture.** (These are
