@@ -23,13 +23,22 @@ function ok(name, cond, detail) {
   if (cond) { passed++; console.log(`  PASS  ${name}`); }
   else { failed++; console.log(`  FAIL  ${name}${detail !== undefined ? ' — ' + JSON.stringify(detail) : ''}`); }
 }
-async function api(method, p, { token, body } = {}) {
+async function api(method, p, { token, body, cookie } = {}) {
   const res = await fetch(BASE + '/api' + p, {
-    method, headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+    method,
+    headers: {
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: 'Bearer ' + token } : {}),
+      ...(cookie ? { Cookie: cookie } : {})
+    },
     body: body ? JSON.stringify(body) : undefined
   });
   let json = null; try { json = await res.json(); } catch (e) {}
-  return { status: res.status, body: json };
+  // D34 is a cookie feature, so hand Set-Cookie back the way a browser would keep it.
+  const setCookie = typeof res.headers.getSetCookie === 'function'
+    ? res.headers.getSetCookie()
+    : [res.headers.get('set-cookie')].filter(Boolean);
+  return { status: res.status, body: json, setCookie, cookie: (setCookie[0] || '').split(';')[0] || null };
 }
 /** The code for the NEXT 30 s step: valid now (±1 window) and never already spent. */
 const nextCode = (secret) => totp.hotp(totp.base32Decode(secret), totp.stepAt() + 1);

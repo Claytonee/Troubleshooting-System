@@ -10,8 +10,10 @@
  *            "Sign out everywhere" or a new authenticator.
  *  Manage    the account lists and forgets its own trusted browsers, nobody else's.
  *  Evidence  audited and recorded, and no trust secret in any of it.
- *  Frontend  the tick box is off by default, hidden for recovery codes, and warns
- *            about shared tablets; the idle sign-out is 30 minutes.
+ *  Frontend  the tick box is ON by default (D34a — left off, nobody ticked it and the
+ *            code was still asked for at every sign-in), hidden for recovery codes, and
+ *            says to untick it on a shared tablet; the idle sign-out is 30 minutes
+ *            untrusted and a school day on a browser that proved both factors.
  *
  * Suite-owned accounts only; everything is removed afterwards.
  */
@@ -82,6 +84,10 @@ const cookiePair = (setCookie, name) => { const c = setCookie.find(x => x.starts
     console.log('\nSign-in  the password alone, on this browser only');
     r = await login(tName, pw, cookie);
     ok('the trusted browser signs in with the password alone', r.status === 200 && !!r.body.token && !r.body.mfa_required, r.body.mfa_required);
+    // D34a: and the answer SAYS so, so the page can stop signing this person out
+    // every half hour on a browser that has already proved both factors.
+    ok('...and the answer says it was recognised, so the idle window can be the school day',
+      r.body.trusted_browser === true, r.body && Object.keys(r.body));
     r = await login(tName, 'Wrong-password-7781', cookie);
     ok('...but the password is still required', r.status === 401 && !r.body.token, r.status);
     r = await login(tName, pw);
@@ -174,11 +180,24 @@ const cookiePair = (setCookie, name) => { const c = setCookie.find(x => x.starts
     console.log('\nFrontend the tick box and the idle timeout');
     const auth = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'js', 'auth.js'), 'utf8');
     const api = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'js', 'api.js'), 'utf8');
-    ok('the tick box starts unticked at every sign-in', /mfaUseRecovery = false; mfaRemember = false;/.test(auth) && /\$\{mfaRemember \? 'checked' : ''\}/.test(auth));
+    // D34a: left off, almost nobody ticked it, so in practice the authenticator was
+    // still asked for at every single sign-in — the complaint this feature existed
+    // to answer. The password is still always required; this decides only the CODE.
+    ok('the tick box starts TICKED, so the code is for a new browser and not for every sign-in',
+      /mfaUseRecovery = false; mfaRemember = true;/.test(auth) && /\$\{mfaRemember \? 'checked' : ''\}/.test(auth));
     ok('...is not offered for a recovery code', /\$\{mfaUseRecovery \? '' : `[\s\S]{0,80}class="mfa-trust"/.test(auth));
-    ok('...and warns against shared school tablets', /never on a shared school tablet/.test(auth));
+    ok('...and tells the reader to untick it on a shared school tablet', /[Uu]ntick this on a shared school tablet/.test(auth));
     ok('the forget buttons use delegation, not inline handlers (D24)', /data-forget-browser=/.test(auth) && !/onclick="[^"]*[Ff]orget/.test(auth));
-    ok('the idle sign-out is 30 minutes (NIST AAL2 allows up to 60)', /const SESSION_TIMEOUT = 30 \* 60 \* 1000;/.test(api));
+    // Two windows now. An untrusted browser is asked for both factors again, so it
+    // stays short; a trusted one holds the cookie, and 800-63B-4 permits the password
+    // alone in conjunction with the session secret.
+    ok('an untrusted browser still idles out in 30 minutes (NIST AAL2 allows up to 60)',
+      /const IDLE_UNTRUSTED = 30 \* 60 \* 1000;/.test(api));
+    ok('...and a trusted one lasts a school day, so nobody is signed out every half hour',
+      /const IDLE_TRUSTED = 8 \* 60 \* 60 \* 1000;/.test(api));
+    ok('...chosen when the timer is armed, not fixed at page load', /}, idleLimit\(\)\);/.test(api));
+    ok('the page is TOLD which it is, rather than deciding for itself',
+      /trusted_browser: true/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'controllers', 'authController.js'), 'utf8')));
     // The platform admin's guide on the Security Overview is read aloud to schools:
     // every number in it must be the code's number.
     const sec = fs.readFileSync(path.join(__dirname, '..', '..', 'frontend', 'js', 'pages', 'security.js'), 'utf8');

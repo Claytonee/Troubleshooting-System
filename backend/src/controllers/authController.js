@@ -156,7 +156,11 @@ async function login(req, res, next) {
       if (await trustedDevices.check(req, user)) {
         res.locals.secEvent = res.locals.secEvent || 'auth.login_ok';
         res.locals.secDetail = res.locals.secDetail || { second_factor: 'trusted_browser' };
-        return res.json(await sessionPayload(user));
+        // Told to the page so it can stop signing people out every half hour on a
+        // browser that has already proved both factors. It is a comfort flag and
+        // never a permission: every request is still checked by authenticate(),
+        // and the trust itself is the HttpOnly cookie the page cannot read.
+        return res.json({ ...await sessionPayload(user), trusted_browser: true });
       }
       res.locals.secEvent = res.locals.secEvent || 'auth.mfa_required';   // keep auth.published_password (R9)
       return res.json({ mfa_required: true, mfa_ticket: mfaTicket(user) });

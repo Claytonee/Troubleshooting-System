@@ -4,14 +4,44 @@
  */
 const API = (() => {
   const BASE = '/api';
-  // 30 minutes idle (D34): NIST SP 800-63B-4 allows up to an hour at AAL2. It was 15,
-  // and with the authenticator asked at every sign-in that meant a code every idle quarter-hour.
-  const SESSION_TIMEOUT = 30 * 60 * 1000;
+  /**
+   * How long the page waits before signing somebody out for being idle.
+   *
+   * 30 minutes on a browser that has not been trusted — NIST SP 800-63B-4 allows
+   * up to an hour at AAL2, and an untrusted browser is asked for both factors
+   * again, so it should not be long.
+   *
+   * A school day on a browser that HAS been trusted. That browser already proved
+   * both factors and holds the HttpOnly trust cookie; 800-63B-4 lets an AAL2
+   * subscriber reauthenticate with the password alone in conjunction with the
+   * session secret. Signing an engineer out every half hour all day, in a job
+   * where they are on and off the laptop constantly, taught people to resent the
+   * second step instead of valuing it.
+   *
+   * This is a COMFORT setting, never a permission. Every request is still checked
+   * by authenticate(); the trust itself is a cookie this script cannot read; and
+   * anything that ends every session revokes it server-side. The worst somebody
+   * can do by editing this flag is make their own browser ask them later.
+   */
+  const IDLE_UNTRUSTED = 30 * 60 * 1000;
+  const IDLE_TRUSTED = 8 * 60 * 60 * 1000;
+  const TRUST_FLAG = 'qft_trusted_browser';
+
+  function markTrustedBrowser(on) {
+    try { on ? localStorage.setItem(TRUST_FLAG, '1') : localStorage.removeItem(TRUST_FLAG); } catch (e) { /* private mode */ }
+  }
+  function idleLimit() {
+    try { return localStorage.getItem(TRUST_FLAG) ? IDLE_TRUSTED : IDLE_UNTRUSTED; }
+    catch (e) { return IDLE_UNTRUSTED; }
+  }
+
   let _inactivityTimer = null;
 
   function getToken() { return localStorage.getItem('qft_token'); }
   function setToken(t) { localStorage.setItem('qft_token', t); resetInactivityTimer(); }
   function clearToken() { localStorage.removeItem('qft_token'); clearInactivityTimer(); }
+  // Signing out on purpose forgets the comfort flag too; the server-side trust
+  // cookie is separate and is managed under Two-Step Sign-In.
   function getUser() { const u = localStorage.getItem('qft_user'); return u ? JSON.parse(u) : null; }
   function setUser(u) { localStorage.setItem('qft_user', JSON.stringify(u)); }
   function clearUser() { localStorage.removeItem('qft_user'); }
@@ -29,7 +59,7 @@ const API = (() => {
       clearToken();
       clearUser();
       window.dispatchEvent(new CustomEvent('auth:expired'));
-    }, SESSION_TIMEOUT);
+    }, idleLimit());
   }
 
   function clearInactivityTimer() {
@@ -93,6 +123,7 @@ const API = (() => {
 
   return {
     getToken, setToken, clearToken, getUser, setUser, clearUser, isLoggedIn, lastCachedAt,
+    markTrustedBrowser,
     login: (username, password) => request('POST', '/auth/login', { username, password }),
     recoveryStart: (identifier) => request('POST', '/auth/recovery/start', { identifier }),
     recoveryVerify: (flow, codes) => request('POST', '/auth/recovery/verify', { flow, ...codes }),

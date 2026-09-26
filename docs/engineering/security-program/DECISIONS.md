@@ -543,6 +543,39 @@ conjunction with the session secret", and sets AAL2 inactivity at no more than o
 
 **Not done:** trusting by network or IP address (SEC-015: this host lets the visitor choose the address).
 
+### D34a — Amended 2026-09-26, same day, because point 1 did not work in practice
+
+**What happened:** the owner reported the identical complaint again, with a screenshot. Everything in
+D34 was built, deployed and correct — the probe below passes on the shipped build — but **the tick box
+defaulted to OFF**, so in real use nothing changed. A remedy nobody notices is not a remedy. It shipped
+with **no verification coverage at all**, which is exactly why the gap survived: `verify-mfa.js` never
+signed in twice.
+
+**Amended:**
+
+1. **"Trust this browser" is ticked by default.** The password is still always required; this only
+   decides whether the CODE is asked for again on a browser that has already proved both factors. The
+   copy now reads *"your password alone will be enough here from now on — untick this on a shared
+   school tablet, so the next person is still asked for a code."* Shared tablets are protected by an
+   untick and by the visible Forget list, not by making every engineer type a code all day.
+2. **The idle sign-out depends on the browser.** 30 minutes on an untrusted one, as before. **Eight
+   hours — a school day — on a trusted one**, because it holds the trust cookie and 800-63B-4 permits
+   reauthentication with the password in conjunction with the session secret. `login` now answers
+   `trusted_browser: true` so the page knows which it is. That flag is a **comfort setting, never a
+   permission**: every request is still checked by `authenticate()`, the trust itself is an HttpOnly
+   cookie the page cannot read, and the worst somebody can do by editing it is make their own browser
+   ask them sooner.
+3. **Thirteen assertions now cover it** in `verify-mfa.js`: the cookie's flags and path, that the secret
+   never comes back in the body, that a second sign-in on that browser needs the password only and says
+   so, that a different browser and a forged cookie are still challenged, that a recovery code never
+   plants a trust, and that Forget all puts the challenge back.
+
+**The residual risk, stated plainly:** on a shared tablet where somebody forgets to untick, a colleague
+who already knows that person's password no longer needs their code for up to 30 days. That is the
+trade the owner asked for, it is what Microsoft and Google default to, and it is bounded by the Forget
+list, by the session-version revocation in point 5 above, and by 14 days rather than 30 for a platform
+admin.
+
 **Revisit when:** passkeys become practical on the schools' devices (a passkey *is* the second factor, so
 nothing needs remembering), or when expired `trusted_devices` rows need a retention policy. Today they go
 at the account's next trust, and with the account.

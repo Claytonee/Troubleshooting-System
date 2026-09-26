@@ -668,6 +668,7 @@ const Auth = (() => {
   }
 
   function logout() {
+    API.markTrustedBrowser(false);
     closeProfileMenu();
     API.clearToken();
     API.clearUser();
@@ -715,6 +716,12 @@ const Auth = (() => {
   function completeSignIn(data, password) {
     API.setToken(data.token);
     API.setUser(data.user);
+    // D34: the server either recognised this browser (trusted_browser) or has just
+    // trusted it (trusted_days). Either way both factors have been proved here, so
+    // the page stops signing them out every half hour. A comfort flag only — every
+    // request is still checked by the server, and the trust itself is an HttpOnly
+    // cookie this script cannot read.
+    if (data.trusted_browser || data.trusted_days) API.markTrustedBrowser(true);
     if (data.user.must_change_password) {
       showForcedPasswordChange(password);
       return;
@@ -740,11 +747,16 @@ const Auth = (() => {
   const MFA_ROLES = ['admin', 'subadmin', 'school', 'teacher'];
 
   // ---- Two-step sign-in (SEC-007, DECISIONS.md D4) ---------------------------
-  let mfaTicket = null, mfaPassword = null, mfaUseRecovery = false, mfaRemember = false;
+  // D34: trusting the browser is the DEFAULT, not something to notice and tick.
+  // Left opt-in, almost nobody ticked it, so the authenticator was asked for at
+  // every single sign-in — which is exactly what the second step was never meant
+  // to be. The password is still always required; this only decides whether the
+  // CODE is asked for again on a browser that has already proved both factors.
+  let mfaTicket = null, mfaPassword = null, mfaUseRecovery = false, mfaRemember = true;
 
   /** The second step of signing in: a 6-digit code, or a recovery code. */
   function showMfaStep(ticket, password) {
-    mfaTicket = ticket; mfaPassword = password; mfaUseRecovery = false; mfaRemember = false;
+    mfaTicket = ticket; mfaPassword = password; mfaUseRecovery = false; mfaRemember = true;
     Modal.open('Two-Step Sign-In', mfaStepBody(), `
       <button class="btn btn-secondary" onclick="Auth.cancelMfaStep()">Cancel</button>
       <button class="btn btn-primary" id="mfa-verify-btn" onclick="Auth.submitMfaStep()"><i class="ti ti-shield-check"></i> Verify</button>`);
@@ -768,8 +780,8 @@ const Auth = (() => {
       ${mfaUseRecovery ? '' : `
       <label class="mfa-trust">
         <input type="checkbox" id="mfa-remember" data-mfa-remember ${mfaRemember ? 'checked' : ''}>
-        <span><strong>Trust this browser</strong> — next time, your password is enough here.
-          <em>Only on your own computer or phone, never on a shared school tablet.</em></span>
+        <span><strong>Trust this browser</strong> — your password alone will be enough here from now on.
+          <em>Untick this on a shared school tablet, so the next person is still asked for a code.</em></span>
       </label>`}
       <button type="button" class="mfa-link" onclick="Auth.toggleMfaRecovery()">${mfaUseRecovery ? 'Use a code from my app instead' : 'Lost your phone? Use a recovery code'}</button>
     </div>`;
