@@ -1,0 +1,29 @@
+{
+  "id": "generic-monitor",
+  "category": "A-generic",
+  "type": "monitor",
+  "name": "Generic 22-inch class monitor with a paintable screen",
+  "files": {
+    "source": "../../../source/build_desktop_generic.py",
+    "export": "monitor.glb",
+    "web": "monitor.web.glb"
+  },
+  "build": "blender -b --factory-startup --python source/build_desktop_generic.py, then glTF-Transform dedup → weld → meshopt",
+  "units": "metres; origin at the centre of the base; screen faces +Z in three.js",
+  "size_mm": [520, 430, 160],
+  "triangles": 1874,
+  "bytes": { "export": 88000, "web": 25000 },
+  "textures": "none in the asset. The picture is NOT geometry: the mesh named `screen` carries a 0..1 UV map and a scene paints it at runtime (OE3D.screenPainter) — so one model can show a browser error, a lesson page, or anything else a film needs, with no new asset.",
+  "anchors": {
+    "screen": "the centre of the picture, just in front of the glass — for a callout that points at what is on screen"
+  },
+  "meshes": { "screen": "the picture surface: UV (0,0) bottom-left, (1,1) top-right, as the canvas is drawn" },
+  "behaviour": "none of its own: a monitor shows what the computer sends it.",
+  "provenance": {
+    "origin": "original work, authored for OE by the explainer engine (procedural Blender script)",
+    "creator": "OE Support explainer engine",
+    "license": "OE-owned; no third-party geometry, textures or trademarks. The browser drawn on the screen is generic: no product's chrome, no real page.",
+    "commercial_use": true, "attribution_required": false, "ai_restriction": "none", "modification": true, "redistribution": "OE's own asset",
+    "reviewed": "2026-09-26"
+  }
+}

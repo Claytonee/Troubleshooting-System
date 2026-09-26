@@ -1,0 +1,34 @@
+{
+  "id": "generic-provider-modem",
+  "category": "A-generic",
+  "type": "modem / provider CPE",
+  "name": "Generic provider modem (the box the internet service arrives in)",
+  "files": {
+    "source": "../../../source/build_modem_generic.py",
+    "export": "modem.glb",
+    "web": "modem.web.glb"
+  },
+  "build": "blender -b --factory-startup --python source/build_modem_generic.py, then glTF-Transform dedup → weld → meshopt",
+  "units": "metres; origin at the centre of the base; front faces +Z in three.js",
+  "size_mm": [150, 40, 110],
+  "triangles": 7842,
+  "bytes": { "export": 312000, "web": 71000 },
+  "lod": "one level",
+  "textures": "none",
+  "colour_note": "light grey, deliberately unlike the school's own charcoal equipment: in a film a teacher must be able to see at a glance which box is theirs and which belongs to the provider.",
+  "anchors": {
+    "port_lan": "LAN port — the cable to the router's WAN (outward normal +Z)",
+    "port_line": "LINE port — the provider's own line (generic: a smaller socket; real CPEs differ by technology)",
+    "led_power": "POWER", "led_link": "LINK — the provider line is synchronised",
+    "led_internet": "INTERNET — the provider's service is up", "led_lan": "LAN — a device is connected on the Ethernet side"
+  },
+  "behaviour": "generic; see ../../../README.md § LED states. The split that matters: LINK and INTERNET describe the UPSTREAM side, LAN describes the cable to the router. A film can therefore show 'the physical link to the router is down' while the provider's service is perfectly healthy — which is the commonest real case and the one a teacher must not confuse with an outage.",
+  "provenance": {
+    "origin": "original work, authored for OE by the explainer engine (procedural Blender script)",
+    "creator": "OE Support explainer engine",
+    "license": "OE-owned; no third-party geometry, textures or trademarks. No provider's branding: the printed word is 'PROVIDER'.",
+    "fonts": "DM Mono (SIL Open Font License 1.1)",
+    "commercial_use": true, "attribution_required": false, "ai_restriction": "none", "modification": true, "redistribution": "OE's own asset",
+    "reviewed": "2026-09-26"
+  }
+}

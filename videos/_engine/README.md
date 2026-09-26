@@ -27,6 +27,11 @@ node videos/_engine/make.mjs <slug> --only=build,assemble,check,snap   # after a
 | `lib/stage.mjs` | the world drawing: placed devices, links that draw/break/mend, labels, check chips; flows on one global clock |
 | `lib/frame.mjs` | one frame composition: camera wrappers, logo and slate fixed to the screen, the timeline helpers, the lesson card, the anchored zoom |
 | `lib/geometry.mjs`, `lib/palette.mjs` | curves, arc-length sampling; the colours by role |
+| `lib/hardware-layer.mjs` | a Three.js composition laid over the frames: the canvas, the overlay SVG, the screen furniture, and the clock setter that makes it a pure function of time |
+| `lib/school-network.mjs` | the school's network as a graph — devices, ports, connections, and the order a person checks them. The film, the world sheet and (later) any troubleshooting scene read this one definition |
+| `three/` + `shared/three-oe3d.js` | the 3D runtime, bundled (three.js + stage, world, cables, the signal tracer, the camera rig, collision-aware labels). No CDN at render time |
+| `hardware-3d/` | the hardware itself: Blender sources → GLB → meshopt, with a provenance row and an `asset.json` per asset |
+| `tools/world-sheet.mjs` | proves the 3D world before a film is built on it: nine views of the real runtime in headless Chrome, tiled into one sheet, with `--probe=<view>,x,y` to ask what a pixel is showing |
 | `shared/` | frame.md, caption skin, fonts (OFL), the official logo, the video direction every storyboard inherits |
 | `tools/words.py` | word timings (faster-whisper) for captions |
 | `make.mjs` | the pipeline, step by step |
@@ -48,3 +53,19 @@ Copy `videos/_episodes/how-a-school-connects.mjs`. A spec has `frames` (each: th
 pauses, the storyboard fields, and a `timeline(x)` returning the frame's GSAP body), `stage(x)` (build the
 world), `flows(x)` (packets / current, global time) and `sfx(x)` (cues by phrase). In a timeline, `x.c(i)`
 is the start of this frame's phrase `i`, `x.w('word')` a word's start, `x.G(f,t)` global time.
+
+### …or a 3D-first episode (D40)
+
+Copy `videos/_episodes/how-a-school-connects-world.mjs`. There, the picture is **one Three.js layer running
+the whole film** and the frames beneath carry nothing (`blankFrames: true` — text hidden under an opaque
+layer is still text to the contrast check). The spec computes every key time from the narration and injects
+it as `S`; the scene file is a pure function of `t` that drives the world. Shape:
+
+```js
+layers: (x) => [{ id: 'world', start: 0, dur: x.total, html: hardwareLayer({ …, models: MODELS,
+  scene: `var S = ${JSON.stringify(keys(x))}, NET = ${JSON.stringify(net)};\n${SCENE}` }) }]
+```
+
+Run `node videos/_engine/tools/world-sheet.mjs` before writing any film code: it renders the world's key
+views, and a fault in a model, an anchor, the cable routing, the lighting or the camera grammar shows up
+there in a minute instead of after a fifteen-minute render.

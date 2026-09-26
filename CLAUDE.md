@@ -32,6 +32,12 @@ All schema changes MUST be **additive and backward-compatible** so a new deploy 
 - **Hosting:** cPanel / DirectAdmin — served at **`support.mkatolikikiganjani.com`**, Node.js app + MySQL on `localhost` in the same account. The document root is still the directory `~/troubleshooting.pathfindereducation.or.tz/`, named after the retired hostname; paths keep that name, URLs do not.
 - **DB access:** `backend/src/config/database.js` is a `mysql2/promise` pool. Schema + seed in `backend/src/config/bootstrap.js`, run automatically on startup. Connection via `DB_*` vars (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME) — **or** `DATABASE_URL`, which takes priority and makes every `DB_*` var be ignored (see Deployments).
 - **Remote:** `origin` = GitHub (`Claytonee/Troubleshooting-System`), `gitlab` = GitLab (`claytonecurth/Troubleshooting-System`). Push `origin` only (see Git Workflow).
+- **Explainer films:** `videos/` — one engine (`videos/_engine`, start at its README), one spec per episode in
+  `_episodes/`, one HyperFrames project per film. Since D40 a film is built **3D-first**: real hardware from
+  `_engine/hardware-3d` in one continuous world, 2D only for labels and captions. Before writing film code,
+  run `node videos/_engine/tools/world-sheet.mjs` — it proves the 3D world in a minute instead of after a
+  twenty-minute render. Renders and snapshots are not committed; an approved film is copied into
+  `frontend/media/videos/` and listed by `GET /api/assist/videos`. Decisions: D36–D40.
 
 ## Deployments (two targets, two remotes)
 - **cPanel — `support.mkatolikikiganjani.com` — the LIVE site (server `213.139.204.238`).** MySQL runs on `localhost` beside the app. Code arrives via the `POST /api/deploy` webhook, which does `git fetch origin` + a fast-forward-only `git reset --hard` + `npm install` in `backend/` + a Passenger restart — so **cPanel tracks the `origin` (GitHub) remote**. The webhook requires `WEBHOOK_SECRET`; with no secret set it refuses to deploy rather than accepting anonymous POSTs.

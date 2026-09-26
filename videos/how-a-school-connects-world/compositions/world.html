@@ -1,0 +1,286 @@
+<template>
+  <style>
+    @font-face { font-family: "DM Sans"; src: url("assets/fonts/DMSans-Variable.ttf") format("truetype"); font-weight: 100 1000; }
+    #world-root { position: absolute; inset: 0; opacity: 0; background: #0f1117; }
+    #world-canvas { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: block; }
+    #world-notes { position: absolute; left: 0; top: 0; overflow: visible; }
+    #world-scrim { position: absolute; left: 0; right: 0; top: 0; height: 160px; background: linear-gradient(to bottom, rgba(15,17,23,0.95) 0, rgba(15,17,23,0.78) 70px, rgba(15,17,23,0) 160px); }
+    #world-bug { position: absolute; top: 46px; right: 58px; width: 232px; height: 24px; opacity: 0.9; }
+    #world-bug svg { display: block; width: 100%; height: 100%; }
+    #world-slate { position: absolute; top: 40px; left: 58px; opacity: 0.9; font-family: "DM Sans", sans-serif; }
+    #world-slate .k { font-weight: 600; font-size: 17px; letter-spacing: 2.8px; color: #4f7cff; text-transform: uppercase; }
+    #world-slate .t { font-weight: 600; font-size: 27px; color: #e8eaf0; margin-top: 4px; }
+  </style>
+  <div id="root" data-composition-id="world" data-width="1920" data-height="1080" data-duration="72.489">
+    <div id="world-root" class="clip" data-start="0" data-duration="72.489" data-track-index="0">
+      <canvas id="world-canvas" width="1920" height="1080"></canvas>
+      <svg id="world-notes" viewBox="0 0 1920 1080" width="1920" height="1080" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="world-scrim"></div>
+      <!-- the frame's own slate, repeated so the hand-over is seamless: identical text in the identical place, by design -->
+      <div id="world-slate"><div class="k" data-layout-allow-overlap data-layout-allow-occlusion>Connectivity</div><div class="t" data-layout-allow-overlap data-layout-allow-occlusion>Follow the signal</div></div>
+      <div id="world-bug"><svg viewBox="0 0 300 31" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Opportunity Education"><path d="M24.33,10c-.54-1.27.49-3,1.84-4.71A14.81,14.81,0,0,1,29.76,12C27.32,11.83,24.94,11.43,24.33,10ZM13.21,5.57c1.47-.63,1.93-2.75,2.1-5h-.68A14.79,14.79,0,0,0,7.28,2.91C9.27,4.65,11.5,6.3,13.21,5.57ZM24.59,3.84A14.81,14.81,0,0,0,17.27.7c.23,2.15.8,4.14,2.42,4.79S23,5.16,24.59,3.84ZM24.41,16.5c-.78,2,1.69,4.33,3.74,6.39a14.79,14.79,0,0,0,2-8.12c0-.2,0-.39,0-.58C27.59,14.4,25.07,14.86,24.41,16.5Zm-15.65.19c-.55-2-8-1.77-8.32-1.68,0,.36,0,.72,0,1.08A14.79,14.79,0,0,0,3.59,24.6C5.35,22.59,9.31,18.7,8.76,16.69Zm-.08-6.48c.71-1.76-1.16-4.08-3-6.1a14.87,14.87,0,0,0-4.91,8.2C3.8,12.17,7.83,12.34,8.68,10.21Zm11.2,10.94c-2.19.94-1.68,7.26-1.59,8.85a14.83,14.83,0,0,0,8.32-4.93C24.4,23,21.78,20.33,19.88,21.14Zm-6.48.08c-2.8-1-7.6,4.91-7.94,5.36a14.81,14.81,0,0,0,9.76,3.72C15.25,29.12,16.2,22.21,13.4,21.22Z" fill="#ffae00"/><path d="M37.84,14.59a8.8,8.8,0,1,1,8.77,8.66A8.57,8.57,0,0,1,37.84,14.59Zm14.08,0a5.28,5.28,0,1,0-10.56,0,5.28,5.28,0,1,0,10.56,0Z" fill="#ffffff"/><path d="M70.64,16.73a6.23,6.23,0,0,1-6.15,6.54,5.16,5.16,0,0,1-3.91-1.74v6.56H57.37V10.52h3.2V12a5.08,5.08,0,0,1,4-1.85A6.22,6.22,0,0,1,70.64,16.73Zm-3.24,0a3.44,3.44,0,1,0-6.88,0,3.44,3.44,0,1,0,6.88,0Z" fill="#ffffff"/><path d="M85.69,16.73a6.23,6.23,0,0,1-6.15,6.54,5.16,5.16,0,0,1-3.91-1.74v6.56H72.41V10.52h3.2V12a5.08,5.08,0,0,1,4-1.85A6.22,6.22,0,0,1,85.69,16.73Zm-3.24,0a3.44,3.44,0,1,0-6.88,0,3.44,3.44,0,1,0,6.88,0Z" fill="#ffffff"/><path d="M86.75,16.73a6.67,6.67,0,0,1,13.34,0,6.67,6.67,0,0,1-13.34,0Zm10.12,0a3.45,3.45,0,1,0-3.45,3.56A3.47,3.47,0,0,0,96.87,16.73Z" fill="#ffffff"/><path d="M101.81,10.52h3.08v1.67a3.73,3.73,0,0,1,3.43-2,4.58,4.58,0,0,1,1.51.27l-.28,3.08a4.93,4.93,0,0,0-1.48-.25c-1.69,0-3,1.05-3,3.77V23h-3.22Z" fill="#ffffff"/><path d="M120.94,22.24a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.21h-2v-2.7h2.06V6.11h3.2v4.41h4.11v2.7h-4.11v4.94c0,1.44.55,2.19,1.76,2.19A4.21,4.21,0,0,0,120,19.7Z" fill="#ffffff"/><path d="M122.24,17.72v-7.2h3.22v7.2a2.49,2.49,0,1,0,5,0v-7.2h3.22v7.2c0,3.54-2.19,5.55-5.71,5.55S122.24,21.23,122.24,17.72Z" fill="#ffffff"/><path d="M135.95,10.52h3.15v1.74A4.36,4.36,0,0,1,143,10.18c2.51,0,4.87,1.67,4.87,5.19V23h-3.22V16.23c0-2-1.07-3.08-2.63-3.08a2.87,2.87,0,0,0-2.86,3.15V23h-3.22Z" fill="#ffffff"/><path d="M149.79,7.14a2,2,0,1,1,2,2A1.94,1.94,0,0,1,149.79,7.14ZM150.16,23V10.52h3.22V23Z" fill="#ffffff"/><path d="M165.12,22.24a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.21h-2v-2.7h2.06V6.11h3.2v4.41h4.11v2.7h-4.11v4.94c0,1.44.55,2.19,1.76,2.19a4.21,4.21,0,0,0,2.08-.64Z" fill="#ffffff"/><path d="M179,10.52l-5,13.07c-1.19,3.06-2.74,4.68-5.28,4.68a4.55,4.55,0,0,1-2.4-.62l.55-2.7a3.75,3.75,0,0,0,1.6.41c1,0,1.78-.59,2.42-2l.25-.57L165.7,10.52h3.72l3.22,8.11,2.83-8.11Z" fill="#ffffff"/><path d="M185.72,6.14h11.45V9.29h-8v3.63h7.45v3.15h-7.45v3.79h8V23H185.72Z" fill="#ffffff"/><path d="M211.66,5.66V23H208.5V21.49a4.8,4.8,0,0,1-3.86,1.83,6.21,6.21,0,0,1-6.17-6.54,6.25,6.25,0,0,1,6.17-6.53A4.81,4.81,0,0,1,208.43,12V5.66Zm-3.06,11.13a3.46,3.46,0,1,0-6.92,0,3.46,3.46,0,1,0,6.92,0Z" fill="#ffffff"/><path d="M214,17.77v-7.2h3.22v7.2a2.49,2.49,0,1,0,5,0v-7.2h3.22v7.2c0,3.54-2.19,5.55-5.71,5.55S214,21.29,214,17.77Z" fill="#ffffff"/><path d="M226.92,16.79a6.35,6.35,0,0,1,6.69-6.53,6.21,6.21,0,0,1,5.81,3.47l-2.58,1.42a3.71,3.71,0,0,0-3.18-1.9,3.46,3.46,0,0,0-3.54,3.54,3.44,3.44,0,0,0,3.47,3.56,3.68,3.68,0,0,0,3.18-1.87l2.6,1.53a6.5,6.5,0,0,1-5.85,3.29A6.3,6.3,0,0,1,226.92,16.79Z" fill="#ffffff"/><path d="M253.27,10.57V23h-3.06V21.59a5.28,5.28,0,0,1-4,1.74c-3.61,0-6.17-2.88-6.17-6.58a6.15,6.15,0,0,1,6.17-6.49,5.21,5.21,0,0,1,4,1.8V10.57Zm-3,6.22a3.49,3.49,0,1,0-7,0,3.49,3.49,0,1,0,7,0Z" fill="#ffffff"/><path d="M265.12,22.3a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.27h-2v-2.7h2.06V6.16h3.2v4.41h4.11v2.7h-4.11V18.2c0,1.44.55,2.19,1.76,2.19a4.21,4.21,0,0,0,2.08-.64Z" fill="#ffffff"/><path d="M266.34,7.19a2,2,0,1,1,2,2A1.94,1.94,0,0,1,266.34,7.19ZM266.7,23V10.57h3.22V23Z" fill="#ffffff"/><path d="M271.54,16.79a6.67,6.67,0,0,1,13.34,0,6.67,6.67,0,0,1-13.34,0Zm10.12,0a3.45,3.45,0,1,0-3.45,3.56A3.47,3.47,0,0,0,281.66,16.79Z" fill="#ffffff"/><path d="M286.6,10.57h3.15v1.74a4.36,4.36,0,0,1,3.91-2.08c2.51,0,4.87,1.67,4.87,5.19V23H295.3V16.29c0-2-1.07-3.08-2.63-3.08a2.87,2.87,0,0,0-2.86,3.15V23H286.6Z" fill="#ffffff"/></svg></div>
+    </div>
+  </div>
+  <script src="assets/hw3d/three-oe3d.js" data-oe3d="1"></script>
+  <script>
+  (function () {
+    var ID = "world", DUR = 72.489, C = {"bg":"#0f1117","surface":"#161921","well":"#0b0d12","raised":"#232838","line":"#2a2f3d","cable":"#4a5268","primary":"#4f7cff","primaryText":"#8aa6ff","text":"#e8eaf0","muted":"#9ba1b5","faint":"#636a82","pos":"#2dd98a","neg":"#ff5263","warn":"#f5a623","gold":"#FFAE00"}, MODELS = {"monitor":"assets/hw3d/monitor.web.glb","tower":"assets/hw3d/tower.web.glb","switch":"assets/hw3d/switch.web.glb","router":"assets/hw3d/router.web.glb","modem":"assets/hw3d/modem.web.glb","internet":"assets/hw3d/internet.web.glb","plug":"assets/hw3d/rj45-plug.web.glb"};
+    window.__hf = window.__hf || {}; window.__hf.buildReady = window.__hf.buildReady || {};
+    var ready; window.__hf.buildReady[ID] = new Promise(function (r) { ready = r; });
+    var render = null, last = 0;
+    // The clock: GSAP sets t on every seek of this timeline; the setter draws that exact moment.
+    var clock = {}; Object.defineProperty(clock, 't', { get: function () { return last; }, set: function (v) { last = v; if (render) render(v); } });
+    var tl = gsap.timeline({ paused: true });
+    tl.to(clock, { t: DUR, duration: DUR, ease: 'none' }, 0);
+    window.__timelines = window.__timelines || {}; window.__timelines[ID] = tl;
+
+    function start() {
+      var OE3D = window.OE3D;
+      var stage = new OE3D.HardwareStage(document.getElementById(ID + '-canvas'));
+      var notes = document.getElementById(ID + '-notes');
+      var names = Object.keys(MODELS);
+      Promise.all(names.map(function (n) { return stage.load(n, MODELS[n]); })).then(function () {
+        var root = document.getElementById(ID + '-root');
+        render = (function (OE3D, stage, notes, C, root) {
+var S = {"sym1":3.066,"follow":5.498,"sw":7.238,"rt":9.531,"gateway":11.793,"lan":13.401,"wan":15.646,"request":18.81,"stall":20.842,"nolink":22.712,"check0":25.652,"k1":29.196,"k2":31.601,"k3":33.425,"k4":35.936,"first":38.611,"domain":40.939,"cable":46.968,"loose":48.491,"seat":50.931,"linkUp":52.218,"online":54.859,"pullback":56.803,"test":59.611,"reply":61.316,"verified":63.566,"rule":65.881,"end":72.489}, NET = {"devices":{"monitor":{"asset":"monitor","position":[-0.86,0,0.14],"rotationY":0.1},"computer":{"asset":"tower","position":[-0.6,0,-0.22],"rotationY":-1.5707963267948966},"switch":{"asset":"switch","position":[-0.16,0,0.03],"rotationY":0},"router":{"asset":"router","position":[0.15,0,0],"rotationY":0},"modem":{"asset":"modem","position":[0.45,0,0.03],"rotationY":0},"internet":{"asset":"internet","position":[0.76,0,0],"rotationY":0}},"connections":[{"id":"pc-sw","from":"computer.eth","to":"switch.p1","kind":"patch","sag":0.05},{"id":"sw-rt","from":"switch.p8","to":"router.lan1","kind":"patch","sag":0.05},{"id":"rt-md","from":"router.wan","to":"modem.lan","kind":"patch","sag":0.05},{"id":"md-net","from":"modem.line","to":"internet.in","kind":"line","sag":0.07}],"request":[["pc-sw",1],["sw-rt",1],["rt-md",1],["md-net",1]],"response":[["md-net",-1],["rt-md",-1],["sw-rt",-1],["pc-sw",-1]],"fault":{"link":"rt-md","end":"router.wan","kind":"loose-connector","service_beyond":"up"},"verdicts":["ok","ok","ok","x"]};
+// ── Episode 00, 3D-first: the whole film in ONE technical world (D40) ──────────────────────────────────
+//
+// Nothing here decides WHEN anything happens: every time comes from S, computed in the episode spec from
+// the narration itself. This file decides WHAT the world does at time t, and it is a pure function of t —
+// HyperFrames may ask for any frame, in any order, twice.
+//
+// Injected above this file: S (key times, seconds of film), NET (the school's network).
+
+var T3 = OE3D.THREE, LED = OE3D.LED, track = OE3D.track;
+var V = function (x, y, z) { return new T3.Vector3(x, y, z); };
+var cl01 = function (u) { return Math.max(0, Math.min(1, u)); };
+/** 0 before a, 1 between (with a fade f at each end), 0 after b. */
+var win = function (t, a, b, f) { f = f || 0.32; return Math.min(cl01((t - a) / f), cl01((b - t) / f)); };
+
+root.style.opacity = 1;                       // the world is the film: it is never handed over to a drawing
+
+stage.technicalFloor();
+var world = new OE3D.World(stage, NET);
+var rig = new OE3D.CameraRig(stage, world);
+var screen = world.device('monitor').root.getObjectByName('screen');
+var paint = screen ? OE3D.screenPainter(screen, C) : function () {};
+var FAULT = NET.fault;                        // which link is down, and which end of it a person can reach
+var plug = world.plugs[FAULT.end];
+var latch = plug.model.root.getObjectByName('plug_latch');
+var LATCH0 = latch ? latch.rotation.x : 0;
+
+// ── where labels may not go: the slate, the logo, the caption band ─────────────────────────────────────
+var L = new OE3D.Labels(notes, stage, C, [[24, 20, 700, 136], [1540, 24, 1900, 124], [0, 858, 1920, 1080]]);
+
+/** A device's top, in world space — computed once: nothing in this film moves except a plug and the light. */
+function topOf(id, lift) {
+  var b = world.bounds([id]), c = b.getCenter(V());
+  return V(c.x, b.max.y + (lift === undefined ? 0.012 : lift), c.z);
+}
+var A = {
+  computer: topOf('monitor'), sw: topOf('switch'), rt: topOf('router'), md: topOf('modem'), net: topOf('internet'),
+  lan: world.port('router.lan1').pos.clone(), wan: world.port('router.wan').pos.clone(),
+  pcLed: world.ledPos('computer.link'), swLed: world.ledPos('switch.p8'),
+  lanLed: world.ledPos('router.lan1'), wanLed: world.ledPos('router.wan'),
+};
+var at = function (v) { return function () { return v; }; };
+
+L.add('computer', { anchor: at(A.computer), title: 'COMPUTER', sub: 'where the lesson stopped', priority: 3, prefer: ['ur', 'u', 'ul'] });
+L.add('switch', { anchor: at(A.sw), title: 'SWITCH', sub: "joins the school's computers", priority: 4, prefer: ['u', 'ur', 'ul'] });
+L.add('router', { anchor: at(A.rt), title: 'ROUTER', sub: "the school's gateway", color: C.primaryText, priority: 5, prefer: ['u', 'ur', 'ul'] });
+L.add('modem', { anchor: at(A.md), title: "PROVIDER'S MODEM", sub: 'not the school’s equipment', priority: 3, prefer: ['u', 'ur'] });
+L.add('internet', { anchor: at(A.net), title: 'THE INTERNET', sub: 'somewhere that answers', priority: 2, prefer: ['ur', 'u', 'r'] });
+L.add('lanports', { anchor: at(A.lan), title: 'LAN PORTS', sub: 'face the school', priority: 5, prefer: ['dl', 'l', 'ul'] });
+L.add('wanport', { anchor: at(A.wan), title: 'WAN PORT', sub: 'faces the provider', color: C.primaryText, priority: 6, prefer: ['ur', 'r', 'dr'] });
+// Left and up, over the router's own dark body: to the right of the WAN light is the provider's white
+// modem, and red-on-white at the edge of frame is both ugly and unreadable (snapshot review, D40).
+L.add('nolink', { anchor: at(A.wanLed), title: 'NO PHYSICAL LINK', sub: 'the WAN light never comes on', color: C.neg, priority: 8, prefer: ['ul', 'u', 'l', 'ur'] });
+// On the cable itself, not on a point in mid-air between the two boxes: the leader has to land on the thing
+// the label is about.
+L.add('domain', { anchor: function () { var c = world.cable(FAULT.link); return c.curve ? c.curve.getPoint(0.5) : A.wan; }, title: 'FAULT DOMAIN', sub: "router WAN ↔ provider's modem", color: C.warn, priority: 7, prefer: ['u', 'ur', 'ul'] });
+// The plug sits at the right of the macro frame, so a label offset to the right has nowhere to stand and
+// was dropped every time: it goes left, across the router's face.
+L.add('loose', { anchor: function () { return plug.model.world('tip'); }, title: 'WAN CABLE LOOSE', sub: 'not pushed home', color: C.neg, priority: 9, prefer: ['dl', 'l', 'ul', 'd'] });
+L.add('linkup', { anchor: at(A.wanLed), title: 'WAN LINK UP', sub: 'the cable reaches both ends', color: C.pos, priority: 9, prefer: ['ul', 'l', 'u', 'dl'] });
+L.add('verified', { anchor: at(A.rt), title: 'CONNECTIVITY VERIFIED', sub: 'a request went out and an answer came back', color: C.pos, priority: 9, prefer: ['u', 'ur'] });
+L.add('k1', { anchor: at(A.pcLed), kind: 'status', n: 1, title: 'COMPUTER', priority: 6, prefer: ['ur', 'r', 'dr'] });
+L.add('k2', { anchor: at(A.swLed), kind: 'status', n: 2, title: 'SWITCH PORT', priority: 6, prefer: ['ur', 'u', 'r'] });
+L.add('k3', { anchor: at(A.lanLed), kind: 'status', n: 3, title: 'ROUTER LAN', priority: 6, prefer: ['dl', 'l', 'ul'] });
+L.add('k4', { anchor: at(A.wanLed), kind: 'status', n: 4, title: 'ROUTER WAN', priority: 7, prefer: ['ur', 'r', 'u'] });
+
+// ── the closing rule, drawn in the overlay (the only text that is not anchored to hardware) ────────────
+var NS = 'http://www.w3.org/2000/svg';
+function svg(tag, attrs, parent) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); (parent || notes).appendChild(e); return e; }
+// It sits in the empty band above the hardware: written across the devices, it read as a caption stuck to the
+// router (snapshot review, D40). Below is the caption band; left and right are the slate and the logo.
+var card = svg('g', { opacity: 0 });
+svg('rect', { x: 690, y: 322, width: 540, height: 3, fill: C.gold, rx: 1.5 }, card);
+var rule1 = svg('text', { x: 960, y: 296, 'text-anchor': 'middle', 'font-family': 'DM Sans', 'font-weight': 700, 'font-size': 40, 'letter-spacing': 1.2, fill: C.text }, card);
+rule1.textContent = 'Check the path in order.';
+var rule2 = svg('text', { x: 960, y: 368, 'text-anchor': 'middle', 'font-family': 'DM Sans', 'font-weight': 500, 'font-size': 27, fill: C.muted }, card);
+rule2.textContent = 'The first failed link shows you where to look.';
+
+// ── the camera: semantic poses, and the order they are visited ─────────────────────────────────────────
+var P = {
+  screen: rig.devices(['monitor'], { yaw: -5, pitch: 6, fov: 26, fill: 0.78 }),
+  desk: rig.devices(['monitor', 'computer'], { yaw: -9, pitch: 12, fov: 24, fill: 0.80 }),
+  wide: rig.topology(),
+  router: rig.device('router', { yaw: -22, pitch: 19, fov: 26, fill: 0.60 }),
+  rtmd: rig.devices(['router', 'modem'], { yaw: -13, pitch: 17, fov: 19, fill: 0.74 }),
+  pcPort: rig.port('computer.eth', { yaw: 27, pitch: 14, dist: 0.34, fov: 28 }),
+  swPort: rig.port('switch.p8', { yaw: -16, pitch: 16, dist: 0.30, fov: 28 }),
+  lanPort: rig.port('router.lan1', { yaw: -14, pitch: 15, dist: 0.26, fov: 28 }),
+  wanPort: rig.port('router.wan', { yaw: -24, pitch: 15, dist: 0.22, fov: 28 }),
+  // Aimed below the status row (which was cropping to half a word at the top of frame) and well off the
+  // port’s axis: looked at end-on, a plug standing 6.5 mm proud is foreshortened to nothing, and the one
+  // thing this shot has to show is that it is not in (snapshot review, D40).
+  wanMac: rig.port('router.wan', { yaw: -46, pitch: 11, dist: 0.128, fov: 28, lift: -0.0075 }),
+};
+var SHOTS = [
+  [0, P.screen], [S.sym1, P.screen], [S.sym1 + 1.5, P.desk, 'power2.inOut'],
+  [S.follow, P.desk], [S.follow + 3.3, P.wide, 'power2.inOut'],
+  [S.gateway, P.wide], [S.gateway + 2.3, P.router, 'power2.inOut'],
+  [S.request - 1.5, P.router], [S.request - 0.1, P.wide, 'power2.inOut'],
+  [S.stall - 1.8, P.wide], [S.stall + 0.4, P.rtmd, 'power2.inOut'],
+  [S.check0, P.rtmd], [S.k1, P.pcPort, 'power2.inOut'],
+  [S.k2 - 1.2, P.pcPort], [S.k2, P.swPort, 'power2.inOut'],
+  [S.k3 - 1.0, P.swPort], [S.k3, P.lanPort, 'power2.inOut'],
+  [S.k4 - 1.1, P.lanPort], [S.k4, P.wanPort, 'power2.inOut'],
+  [S.domain - 1.4, P.wanPort], [S.domain + 0.5, P.rtmd, 'power2.inOut'],
+  [S.cable, P.rtmd], [S.cable + 2.1, P.wanMac, 'power3.inOut'],
+  [S.pullback, P.wanMac], [S.pullback + 2.9, P.wide, 'power2.inOut'],
+];
+
+// ── the signal: every schedule is laid out once, then drawn at time t ──────────────────────────────────
+var FAST = { speed: 1.25, dwell: 0.1 };
+var sFollow = OE3D.schedule(world, [['pc-sw', 1], ['sw-rt', 1]], S.follow + 0.35, FAST);
+var sTry = OE3D.schedule(world, [['pc-sw', 1], ['sw-rt', 1]], S.request + 0.15, FAST);
+var sReq = OE3D.schedule(world, NET.request, S.test + 0.2, FAST);
+var sRep = OE3D.schedule(world, NET.response, S.reply + 0.15, FAST);
+var LOOP = [];                                     // the healthy system, still working, to the last frame
+for (var q = 0; q < 6; q++) {
+  var t0 = S.verified - 0.9 + q * 2.6;
+  LOOP.push([OE3D.schedule(world, NET.request, t0, FAST), OE3D.schedule(world, NET.response, t0 + 1.9, FAST)]);
+}
+
+// ── emphasis: what the shot is about is lit; the rest goes quiet ───────────────────────────────────────
+var EM = {
+  monitor: [[0, 1], [S.request, 0.5], [S.pullback, 1]],
+  computer: [[0, 1], [S.request, 0.62], [S.domain, 0.3], [S.pullback, 1]],
+  switch: [[0, 0.55], [S.follow + 1.6, 1], [S.domain, 0.3], [S.pullback, 1]],
+  router: [[0, 0.55], [S.follow + 2.2, 1]],
+  modem: [[0, 0.5], [S.follow + 2.8, 1], [S.check0, 0.45], [S.domain, 1], [S.cable + 1.8, 0.3], [S.pullback, 1]],
+  internet: [[0, 0.45], [S.follow + 3.2, 0.9], [S.check0, 0.35], [S.domain, 0.3], [S.pullback, 0.9]],
+  'pc-sw': [[0, 0.7], [S.follow + 1.6, 1], [S.domain, 0.3], [S.pullback, 1]],
+  'sw-rt': [[0, 0.7], [S.follow + 2.2, 1], [S.domain, 0.35], [S.pullback, 1]],
+  'rt-md': [[0, 0.7], [S.follow + 2.8, 1]],
+  'md-net': [[0, 0.6], [S.follow + 3.2, 0.9], [S.domain, 0.45], [S.pullback, 0.9]],
+};
+
+return function (t) {
+  // ── the WAN plug: 6.5 mm out and drooping, straightened, then pushed home; the latch springs in ──────
+  var out = track([[S.seat - 1.05, 0.0065], [S.seat - 0.55, 0.0058, 'power2.out'], [S.seat, 0, 'power3.in']], t);
+  var droop = track([[S.seat - 1.05, -7], [S.seat - 0.55, 0, 'power2.inOut']], t);
+  world.plug(FAULT.end, { out: out, droop: droop });
+  if (latch) {
+    var press = track([[S.seat - 0.35, 0], [S.seat - 0.07, 1, 'power1.in'], [S.seat, 0, 'power4.out']], t);
+    latch.rotation.x = LATCH0 * (1 - 0.7 * press);
+  }
+  world.update();
+
+  // ── lights. The provider's side is healthy throughout: only the cable to the router is out ──────────
+  var up = cl01((t - S.linkUp) / 0.18);
+  world.led('computer.power', LED.POWER_ON); world.led('computer.link', LED.LINK_UP);
+  world.led('computer.act', LED.ACTIVITY, t);
+  world.led('switch.power', LED.POWER_ON);
+  world.led('switch.p1', LED.ACTIVITY, t); world.led('switch.p8', LED.ACTIVITY, t + 0.31);
+  world.led('router.power', LED.POWER_ON); world.led('router.wifi', LED.LINK_UP); world.led('router.lan', LED.LINK_UP);
+  world.led('router.lan1', LED.ACTIVITY, t + 0.17);
+  world.led('router.lan2', LED.LINK_DOWN); world.led('router.lan3', LED.LINK_DOWN); world.led('router.lan4', LED.LINK_DOWN);
+  world.led('router.wan', t < S.linkUp + 0.85 ? LED.LINK_UP : LED.ACTIVITY, t, up);
+  // Red until the WAN link is actually up, then amber while it gets itself an address, then green. Seating
+  // the plug does not make the router online: that is the distinction this film is about.
+  world.led('router.internet', t < S.linkUp ? LED.FAULT : t < S.online ? LED.WARNING : LED.LINK_UP);
+  world.led('modem.power', LED.POWER_ON);
+  world.led('modem.link', LED.LINK_UP);            // the provider's line is synchronised: this is not an outage
+  world.led('modem.internet', LED.LINK_UP);        // and the service beyond it is up
+  world.led('modem.lan', t < S.linkUp + 0.85 ? LED.LINK_UP : LED.ACTIVITY, t + 0.11, up);
+
+  // ── emphasis ─────────────────────────────────────────────────────────────────────────────────────────
+  var levels = {};
+  for (var id in EM) levels[id] = track(EM[id], t);
+  var tint = cl01((t - S.verified) / 0.8);
+  world.emphasis(levels, { 'pc-sw': tint, 'sw-rt': tint, 'rt-md': tint, 'md-net': tint });
+
+  // ── the camera, and everything that scales with it ───────────────────────────────────────────────────
+  var pose = rig.at(SHOTS, t, OE3D.ease);
+  OE3D.shoot(stage, world, rig, pose);
+
+  // ── the signal ───────────────────────────────────────────────────────────────────────────────────────
+  world.cable('pc-sw').clearPulses(); world.cable('sw-rt').clearPulses();
+  world.cable('rt-md').clearPulses(); world.cable('md-net').clearPulses();
+  if (t < S.check0) {
+    OE3D.drawPulse(world, sFollow, t, 0, OE3D.SIGNAL.REQUEST, win(t, S.follow, S.gateway, 0.4));
+    OE3D.drawPulse(world, sTry, t, 0, OE3D.SIGNAL.REQUEST, 1);
+    // It reaches the WAN and cannot leave: attempts into the cable, each dying a few centimetres in. The
+    // third is timed to "nothing gets past the router" — without it the picture is still for four seconds
+    // while the narration is making exactly this point.
+    OE3D.drawStall(world, FAULT.link, 1, t, sTry.end + 0.08, { tries: 2, reach: 0.11, gap: 0.15 });
+    OE3D.drawStall(world, FAULT.link, 1, t, S.nolink + 0.5, { tries: 1, reach: 0.11 });
+  }
+  if (t > S.test - 0.3) {
+    OE3D.drawPulse(world, sReq, t, 0, OE3D.SIGNAL.REQUEST, 1);
+    OE3D.drawPulse(world, sRep, t, 1, OE3D.SIGNAL.RESPONSE, 1);
+    for (var i = 0; i < LOOP.length; i++) {
+      OE3D.drawPulse(world, LOOP[i][0], t, 0, OE3D.SIGNAL.REQUEST, 0.75);
+      OE3D.drawPulse(world, LOOP[i][1], t, 1, OE3D.SIGNAL.RESPONSE, 0.75);
+    }
+  }
+
+  // ── what the screen says ─────────────────────────────────────────────────────────────────────────────
+  paint(t < S.online + 1.2 ? 'noinet' : 'ok');
+
+  // ── labels: shown when the narration is on them, and only where they fit ─────────────────────────────
+  var vis = {
+    computer: win(t, S.follow + 0.5, S.gateway + 0.6),
+    switch: win(t, S.sw, S.gateway + 0.6),
+    router: win(t, S.rt, S.gateway + 0.9),
+    modem: win(t, S.rt + 1.1, S.gateway + 0.6),
+    internet: win(t, S.rt + 1.6, S.gateway + 0.6),
+    lanports: win(t, S.lan, S.request - 1.2),
+    wanport: win(t, S.wan, S.request - 1.2),
+    nolink: win(t, S.nolink, S.check0 - 0.4),
+    k1: win(t, S.k1 - 0.25, S.domain - 0.6), k2: win(t, S.k2 - 0.25, S.domain - 0.6),
+    k3: win(t, S.k3 - 0.25, S.domain - 0.6), k4: win(t, S.k4 - 0.25, S.domain - 0.6),
+    domain: win(t, S.domain + 0.3, S.cable + 1.4),
+    loose: win(t, S.loose + 0.35, S.seat - 0.25),
+    linkup: win(t, S.linkUp + 0.35, S.pullback - 0.2),
+    verified: win(t, S.verified - 0.8, S.rule - 0.25),   // it makes way for the closing rule: one message at a time
+  };
+  // Which check passes is not decided here: it follows from the graph and the failing link (NET.verdicts).
+  var V4 = NET.verdicts;
+  L.layout(vis, {
+    k1: t > S.k1 + 0.55 ? V4[0] : null, k2: t > S.k2 + 0.5 ? V4[1] : null,
+    k3: t > S.k3 + 0.5 ? V4[2] : null, k4: t > S.k4 + 0.55 ? V4[3] : null,
+  }, [OE3D.screenBox(stage, world, 'router', 8)]);
+  card.setAttribute('opacity', win(t, S.rule, S.end + 1, 0.5).toFixed(3));
+
+  stage.render();
+};
+
+        })(OE3D, stage, notes, C, root);
+        render(last); ready();
+      }, function (e) { console.error('[' + ID + '] 3D assets failed', e); ready(); });
+    }
+    // One shared runtime per page (the static tag above). Whichever order the page runs the two scripts in,
+    // start() runs once the runtime exists: at once if it already loaded, else on its load event.
+    if (window.OE3D) start();
+    else {
+      var s = document.querySelector('script[data-oe3d]');
+      if (!s) { s = document.createElement('script'); s.src = 'assets/hw3d/three-oe3d.js'; s.setAttribute('data-oe3d', '1'); document.head.appendChild(s); }
+      s.addEventListener('load', start);
+      s.addEventListener('error', function () { console.error('[' + ID + '] three-oe3d.js failed to load'); ready(); });
+    }
+  })();
+  </script>
+</template>

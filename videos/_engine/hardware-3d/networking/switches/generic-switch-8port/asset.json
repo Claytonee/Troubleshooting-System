@@ -1,0 +1,41 @@
+{
+  "id": "generic-switch-8port",
+  "category": "A-generic",
+  "type": "switch",
+  "name": "Generic 8-port unmanaged desktop Ethernet switch",
+  "files": {
+    "source": "../../../source/build_switch_generic.py",
+    "export": "switch.glb",
+    "web": "switch.web.glb"
+  },
+  "build": "blender -b --factory-startup --python source/build_switch_generic.py, then glTF-Transform dedup → weld → meshopt (videos/_engine/hardware-3d/build.mjs)",
+  "units": "metres; origin at the centre of the base; front faces +Z in three.js",
+  "size_mm": [192, 34, 112],
+  "triangles": 10528,
+  "bytes": { "export": 464000, "web": 119000 },
+  "lod": "one level: holds from the system view to a 20 cm inspection shot",
+  "textures": "none: Principled BSDF → glTF metallic-roughness; printed numbers are geometry",
+  "anchors": {
+    "port_p1": "port 1, centre of the opening, on the face (outward normal +Z)",
+    "port_p2": "port 2", "port_p3": "port 3", "port_p4": "port 4",
+    "port_p5": "port 5", "port_p6": "port 6", "port_p7": "port 7", "port_p8": "port 8",
+    "led_p1": "link light of port 1, above it", "led_p2": "…", "led_p3": "…", "led_p4": "…",
+    "led_p5": "…", "led_p6": "…", "led_p7": "…", "led_p8": "link light of port 8",
+    "led_power": "POWER light, left of the port row"
+  },
+  "features": {
+    "front": ["POWER light", "ports 1–8 (RJ45, latch notch down), each with its link light above and its number printed beside it"],
+    "rear": ["DC-in barrel jack"],
+    "side": ["ventilation slots"],
+    "bottom": ["four rubber feet"]
+  },
+  "behaviour": "generic; see ../../../README.md § LED states. NO PORT IS AN UPLINK: an unmanaged switch auto-negotiates (auto MDI-X), so a film may connect the router to any of the eight. Labelling one 'uplink' would teach a rule that does not exist on this class of device.",
+  "provenance": {
+    "origin": "original work, authored for OE by the explainer engine (procedural Blender script)",
+    "creator": "OE Support explainer engine",
+    "license": "OE-owned; no third-party geometry, textures or trademarks",
+    "fonts": "DM Mono (SIL Open Font License 1.1) for printed legends — shared/fonts/OFL-DMMono.txt",
+    "commercial_use": true, "attribution_required": false, "ai_restriction": "none", "modification": true, "redistribution": "OE's own asset",
+    "reviewed": "2026-09-26"
+  }
+}

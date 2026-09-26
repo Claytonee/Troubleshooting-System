@@ -37,8 +37,17 @@ const LIB = { ...LIB1, ...LIB2 };
 
 const ENGINE = dirname(fileURLToPath(import.meta.url));
 const VIDEOS = resolve(ENGINE, '..');
-const SKILL = join(homedir(), '.claude', 'skills', 'faceless-explainer', 'scripts');
-const SFX_LIB = join(homedir(), '.claude', 'skills', 'media-use', 'audio', 'assets', 'sfx');
+// The skills the engine borrows (captions, index assembly, the sound library). Which home directory they sit
+// under depends on who is signed in on this machine, so look rather than assume: an agent session running as a
+// different Windows user found no faceless-explainer at all and the build died inside a require.
+const skillDir = (name, ...rest) => {
+  const homes = [process.env.OE_SKILLS_HOME, homedir(), 'C:/Users/clayt', 'C:/Users/USER'].filter(Boolean);
+  const hit = homes.map((h) => join(h, '.claude', 'skills', name, ...rest)).find((p) => existsSync(p));
+  if (!hit) throw new Error(`skill "${name}" not found under ${homes.join(', ')} — set OE_SKILLS_HOME`);
+  return hit;
+};
+const SKILL = skillDir('faceless-explainer', 'scripts');
+const SFX_LIB = skillDir('media-use', 'audio', 'assets', 'sfx');
 const HF = 'hyperframes@0.8.77';
 const FFMPEG_DIR = process.env.OE_FFMPEG_DIR || 'C:/Users/clayt/tools/ffmpeg-n8.1-latest-win64-gpl-8.1/bin';
 const PY = process.env.OE_VIDEO_PYTHON || 'C:/Users/clayt/tools/kokoro-venv/Scripts/python.exe';
@@ -179,7 +188,7 @@ fps: 60
 
 ## Video direction
 
-${readFileSync(join(ENGINE, 'shared', 'video-direction.md'), 'utf8').trim()}
+${readFileSync(join(ENGINE, 'shared', spec.direction || 'video-direction.md'), 'utf8').trim()}
 
 **This episode's stage.** ${spec.stageNote || ''}
 
@@ -228,7 +237,11 @@ if (want('build')) {
   spec.frames.forEach((fr, i) => {
     const f = i + 1;
     const body = fr.timeline({ ...ctx, f, dur: ctx.DUR[f], off: ctx.OFF[f], c: (k, plus) => ctx.cue(f, k, plus), w: (x, plus) => ctx.word(f, x, plus), g: (t) => geo.r3(t - ctx.OFF[f]) });
-    writeFileSync(R(`compositions/frames/${fr.id}.html`), frameFile({ id: fr.id, f, dur: ctx.DUR[f], off: ctx.OFF[f], stage: st, flows: all, slate: { kicker: spec.kicker, title: spec.title }, lesson: spec.lesson, overlay: spec.overlay ? spec.overlay(ctx) : null, body, first: f === 1 }));
+    // blankFrames: a film whose picture is one full-length layer (3D-first, D40). The frames beneath it must
+    // carry NOTHING — not even the slate. Text hidden under an opaque layer is still text to the contrast
+    // check, and it was failing the build for a colour nobody could see.
+    const slate = spec.blankFrames ? { kicker: '', title: '' } : { kicker: spec.kicker, title: spec.title };
+    writeFileSync(R(`compositions/frames/${fr.id}.html`), frameFile({ id: fr.id, f, dur: ctx.DUR[f], off: ctx.OFF[f], stage: st, flows: all, slate, lesson: spec.blankFrames ? null : spec.lesson, overlay: spec.overlay ? spec.overlay(ctx) : null, body, first: f === 1 }));
   });
   // Layers: compositions beside the frames (a Three.js hardware view, D39: lib/hardware-layer.mjs). The engine copies
   // what they load — the bundled runtime (shared/three-oe3d.js: three.js + OE3D) and every hardware GLB they name — into the

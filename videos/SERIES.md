@@ -4,6 +4,11 @@
 > the directed prototype (episode 00, v2, `how-a-school-connects/DIRECTION.md`) passes human review, and its visual,
 > motion, camera and troubleshooting language is settled. Episode 01 was built on the v1 language before the pause;
 > it will be rebuilt on the approved v2 language.
+>
+> **Episode 00 now exists three times, on purpose** — the same script, the same voice, the same length, three
+> production systems: the directed 2D film, the hybrid (D39: one section on real hardware) and the 3D-first
+> rebuild (D40: one continuous 3D world, the camera doing the explaining). The series is built on whichever
+> the owner picks; the other two are then deleted, not kept as options.
 
 One short video (25–40 s) for every fault type a school can report in the system
 (`SUBCATS` in `frontend/js/utils.js`: 26 of them, plus "Other"). Built with the OE explainer engine
@@ -27,7 +32,9 @@ that episode is rendered. Power episodes never ask a teacher to open, rewire or 
 
 | # | Slug | Fault type | Local count | Status |
 |---|---|---|---|---|
-| 00 | `how-a-school-connects` | Connectivity / No internet access | 3 | **v2 directed prototype, awaiting review** |
+| 00 | `how-a-school-connects` | Connectivity / No internet access | 3 | **v2 directed prototype (2D), awaiting review** |
+| 00b | `how-a-school-connects-3d` | the same film, one section on real 3D hardware | — | **hybrid prototype (D39), awaiting review** |
+| 00c | `how-a-school-connects-world` | the same film, rebuilt 3D-first in one world | — | **3D-first prototype (D40), awaiting review** |
 | 01 | `lrs-unreachable` | Connectivity / LRS unreachable | 10 | built on v1 language; to be rebuilt after review |
 | 02 | `wifi-router-down` | Connectivity / WiFi router down | 7 | planned |
 | 03 | `tablet-not-charging` | Hardware / Tablet not charging | 7 | planned |

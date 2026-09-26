@@ -7,6 +7,11 @@ licence text (or a saved copy of the licence page) in their folder. See RESEARCH
 |---|---|---|---|---|---|---|---|---|---|---|
 | generic-router-5port | original (procedural Blender script) | OE Support explainer engine | `source/build_router_generic.py` | OE-owned | yes | no | none | yes | OE's own | 2026-09-26 |
 | generic-rj45-plug | original (procedural Blender script) | OE Support explainer engine | `source/build_rj45_plug.py` | OE-owned | yes | no | none | yes | OE's own | 2026-09-26 |
+| generic-switch-8port | original (procedural Blender script) | OE Support explainer engine | `source/build_switch_generic.py` | OE-owned | yes | no | none | yes | OE's own | 2026-09-26 |
+| generic-provider-modem | original (procedural Blender script) | OE Support explainer engine | `source/build_modem_generic.py` | OE-owned | yes | no | none | yes | OE's own | 2026-09-26 |
+| generic-tower | original (procedural Blender script) | OE Support explainer engine | `source/build_desktop_generic.py` | OE-owned | yes | no | none | yes | OE's own | 2026-09-26 |
+| generic-monitor | original (procedural Blender script) | OE Support explainer engine | `source/build_desktop_generic.py` | OE-owned | yes | no | none | yes | OE's own | 2026-09-26 |
+| internet-endpoint | original (procedural Blender script) | OE Support explainer engine | `source/build_internet_endpoint.py` | OE-owned | yes | no | none | yes | OE's own | 2026-09-26 |
 | DM Mono (printed legends) | Google Fonts / Colophon | Colophon Foundry | `shared/fonts/OFL-DMMono.txt` | SIL OFL 1.1 | yes | no (licence kept) | none | yes | with licence | 2026-09-26 |
 | three.js 0.186.1 (renderer) | npm | three.js authors | `three/package.json` | MIT | yes | licence notice kept in the bundle | none | yes | yes | 2026-09-26 |
 

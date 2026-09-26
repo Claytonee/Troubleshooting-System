@@ -1,0 +1,170 @@
+{
+  "1": {
+    "duration": 5.198,
+    "phrases": [
+      {
+        "text": "The internet has stopped at school.",
+        "start": 0.9
+      },
+      {
+        "text": "The computer can't tell you where.",
+        "start": 3.066
+      }
+    ]
+  },
+  "2": {
+    "duration": 13.362,
+    "phrases": [
+      {
+        "text": "So follow the signal.",
+        "start": 0.3
+      },
+      {
+        "text": "The switch joins the school's computers",
+        "start": 2.04
+      },
+      {
+        "text": "and passes their traffic to the router,",
+        "start": 4.333
+      },
+      {
+        "text": "the school's gateway.",
+        "start": 6.595
+      },
+      {
+        "text": "Its LAN ports face the school.",
+        "start": 8.203
+      },
+      {
+        "text": "Its WAN port faces the provider.",
+        "start": 10.448
+      }
+    ]
+  },
+  "3": {
+    "duration": 6.792,
+    "phrases": [
+      {
+        "text": "Every request leaves through it.",
+        "start": 0.25
+      },
+      {
+        "text": "This one doesn't get out.",
+        "start": 2.282
+      },
+      {
+        "text": "Nothing gets past the router.",
+        "start": 4.602
+      }
+    ]
+  },
+  "4": {
+    "duration": 15.287,
+    "phrases": [
+      {
+        "text": "Check the path in order,",
+        "start": 0.3
+      },
+      {
+        "text": "from the computer outwards.",
+        "start": 1.863
+      },
+      {
+        "text": "The computer's link light: on.",
+        "start": 3.844
+      },
+      {
+        "text": "The switch port: on.",
+        "start": 6.249
+      },
+      {
+        "text": "The router's LAN port: on.",
+        "start": 8.073
+      },
+      {
+        "text": "Its WAN port: off.",
+        "start": 10.584
+      },
+      {
+        "text": "The first failed link.",
+        "start": 13.259
+      }
+    ]
+  },
+  "5": {
+    "duration": 7.552,
+    "phrases": [
+      {
+        "text": "So the fault is between the router",
+        "start": 0.3
+      },
+      {
+        "text": "and the provider's modem.",
+        "start": 2.286
+      },
+      {
+        "text": "Start with what you can check yourself:",
+        "start": 4.119
+      },
+      {
+        "text": "the cable.",
+        "start": 6.329
+      }
+    ]
+  },
+  "6": {
+    "duration": 8.312,
+    "phrases": [
+      {
+        "text": "It has worked loose.",
+        "start": 0.3
+      },
+      {
+        "text": "Push it in until it clicks.",
+        "start": 1.955
+      },
+      {
+        "text": "The WAN light comes on,",
+        "start": 4.027
+      },
+      {
+        "text": "and the router is back online.",
+        "start": 6.118
+      }
+    ]
+  },
+  "7": {
+    "duration": 9.078,
+    "phrases": [
+      {
+        "text": "Don't assume it's fixed.",
+        "start": 0.3
+      },
+      {
+        "text": "Test it:",
+        "start": 2.012
+      },
+      {
+        "text": "a request goes out,",
+        "start": 3.108
+      },
+      {
+        "text": "and an answer comes back.",
+        "start": 4.813
+      }
+    ]
+  },
+  "8": {
+    "duration": 6.908,
+    "phrases": [
+      {
+        "text": "Check the path in order.",
+        "start": 0.3
+      },
+      {
+        "text": "The first failed link shows you where to look.",
+        "start": 2.127
+      }
+    ]
+  }
+}

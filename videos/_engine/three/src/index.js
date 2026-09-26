@@ -70,10 +70,11 @@ export class HardwareModel {
     const l = this.leds[id]; if (!l) throw new Error(`OE3D: no LED "${id}"`);
     const m = l.mesh.material;
     if (!state || level <= 0) { m.emissive.setRGB(0, 0, 0); m.emissiveIntensity = 0; m.color.copy(l.base); l.halo.material.opacity = 0; return; }
-    const k = level * (state.blink ? flicker(t) : 1);
+    const k = level * (state.blink ? flicker(t) : 1), hk = this.stage.haloK ?? 1;
     m.emissive.setHex(state.color); m.emissiveIntensity = 2.6 * k;
     m.color.setHex(state.color).multiplyScalar(0.35);
-    l.halo.material.color.setHex(state.color); l.halo.material.opacity = 0.85 * k;
+    l.halo.scale.setScalar(0.0075 * hk);
+    l.halo.material.color.setHex(state.color); l.halo.material.opacity = 0.85 * k * Math.min(1, hk * 1.6);
   }
   world(name) { const a = this.anchor(name); return a ? a.getWorldPosition(new THREE.Vector3()) : null; }
 }
@@ -102,7 +103,7 @@ export class HardwareStage {
     this.renderer.setPixelRatio(1); this.renderer.setSize(width, height, false);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.NeutralToneMapping; this.renderer.toneMappingExposure = 1.0;
-    this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFShadowMap;   // PCFSoft was removed in three 0.186
     this.renderer.setClearColor(0x000000, 0);
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(30, width / height, 0.005, 20);
@@ -113,16 +114,95 @@ export class HardwareStage {
     // from the dark ground. Product visualisation, not drama: ports must stay readable.
     const pm = new THREE.PMREMGenerator(this.renderer);
     this.scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
-    this.scene.environmentIntensity = 0.6;   // lower: the room's ceiling panel drew a hard white line along the top bevel
+    this.scene.environmentIntensity = 0.72;   // lower: the room's ceiling panel drew a hard white line along the top bevel
     const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(-0.35, 0.6, 0.55);
     key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 6; key.shadow.bias = -0.0004;
     Object.assign(key.shadow.camera, { left: -0.4, right: 0.4, top: 0.4, bottom: -0.4, near: 0.05, far: 3 });
     this.scene.add(key); this.key = key;
-    const rim = new THREE.DirectionalLight(0xb9ccff, 1.4); rim.position.set(0.5, 0.35, -0.6); this.scene.add(rim);
-    const fill = new THREE.DirectionalLight(0xffffff, 0.45); fill.position.set(0.6, 0.15, 0.7); this.scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xb9ccff, 1.4); rim.position.set(0.5, 0.35, -0.6); this.scene.add(rim); this.rim = rim;
+    const fill = new THREE.DirectionalLight(0xffffff, 0.68); fill.position.set(0.6, 0.15, 0.7); this.scene.add(fill); this.fill = fill;
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), new THREE.ShadowMaterial({ opacity: 0.38 }));
     ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; this.scene.add(ground); this.ground = ground;
     this.models = {};
+  }
+
+  /**
+   * The technical floor (D40): one plane that is the ground, the grid and the shadow catcher. The grid is drawn
+   * in the shader from world coordinates, so its lines stay one pixel wide whether the shot is the whole network
+   * or a 12 cm close-up, and it fades out before the plane's edge — at a near-orthographic angle the eye sees
+   * many metres of floor, and a visible edge would say "this is a plane", not "this is a room".
+   *
+   * Replaces the shadow-only ground; call it once, before anything is placed.
+   */
+  technicalFloor({ cell = 0.05, color = 0x151821, line = 0x2b3346, fade = 2.6, size = 60 } = {}) {
+    this.scene.remove(this.ground);
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.94, metalness: 0, transparent: true });
+    this.floorU = { grid: { value: fade }, far: { value: fade * 2.2 } };
+    mat.onBeforeCompile = (s) => {
+      s.uniforms.uCell = { value: cell }; s.uniforms.uLine = { value: new THREE.Color(line) };
+      s.uniforms.uFade = this.floorU.grid; s.uniforms.uFar = this.floorU.far;
+      s.vertexShader = s.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vWorldP;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWorldP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      s.fragmentShader = s.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vWorldP;\nuniform float uCell;\nuniform vec3 uLine;\nuniform float uFade;\nuniform float uFar;')
+        .replace('#include <color_fragment>', `#include <color_fragment>
+          vec2 gq = vWorldP.xz / uCell;
+          vec2 gd = abs(fract(gq - 0.5) - 0.5) / max(fwidth(gq), 1e-5);
+          float grid = 1.0 - min(min(gd.x, gd.y), 1.0);
+          float d = length(vWorldP.xz);
+          float away = 1.0 - smoothstep(uFade * 0.42, uFade, d);
+          diffuseColor.rgb = mix(diffuseColor.rgb, uLine, grid * 0.85 * away);
+          diffuseColor.a *= 1.0 - smoothstep(uFar * 0.55, uFar, d);`);
+    };
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(size, size), mat);
+    floor.rotation.x = -Math.PI / 2; floor.position.y = -0.0002; floor.receiveShadow = true;
+    this.scene.add(floor); this.ground = floor;
+    return floor;
+  }
+
+  /**
+   * How far the floor reaches in this shot. The grid fades first (it is texture, and a grid running to the
+   * horizon reads as a game), then the floor itself dissolves into the background — and where THAT happens
+   * must always be outside the frame, or the shot has a visible edge instead of a room. A near-orthographic
+   * system view looks tens of metres along the floor; a close-up looks half a metre.
+   */
+  floorReach({ grid, far }) { if (!this.floorU) return; if (grid) this.floorU.grid.value = grid; if (far) this.floorU.far.value = far; }
+
+  /**
+   * Halo size, relative to the shot. A 2 mm light needs a halo to read at all in the system view, and the same
+   * halo at a 10 cm close-up is a glowing ball the size of the printed legend beside it (world sheet, D40).
+   */
+  haloScale(k) { this.haloK = k; }
+
+  /**
+   * Point the key light's shadow camera at what the shot is actually looking at. One fixed box cannot serve both
+   * a 2 m system view (no shadows outside it) and a 10 cm close-up (a soft blur instead of a contact shadow):
+   * the film calls this with the pose's target and distance on every frame.
+   */
+  shadowFit(center, radius) {
+    const r = Math.max(0.05, radius), t = new THREE.Vector3(center[0], center[1], center[2]);
+    const k = this.key, d = 1.6 * r + 0.4;
+    // The rig follows the CAMERA, not the world: a key fixed in world space backlit every shot taken from the
+    // other side — the computer's rear port, the one the film asks you to look at, was a black mass (D40).
+    // Wherever the camera goes, the key is three-quarters to its left and above: product lighting, every shot.
+    const view = this.camera.position.clone().sub(t); view.y = 0;
+    if (view.lengthSq() < 1e-9) view.set(0, 0, 1);
+    view.normalize();
+    const turn = (deg, lift) => {
+      const v = view.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(deg));
+      v.y = lift; return v.normalize();
+    };
+    const kd = turn(38, 0.78), rd = turn(196, 0.42), fd = turn(-52, 0.16);
+    k.target.position.copy(t); if (!k.target.parent) this.scene.add(k.target);
+    k.target.updateMatrixWorld();
+    k.position.copy(t).addScaledVector(kd, d);
+    this.rim.position.copy(t).addScaledVector(rd, d); this.rim.target.position.copy(t);
+    this.fill.position.copy(t).addScaledVector(fd, d); this.fill.target.position.copy(t);
+    for (const l of [this.rim, this.fill]) { if (!l.target.parent) this.scene.add(l.target); l.target.updateMatrixWorld(); }
+    const c = k.shadow.camera;
+    c.left = -r; c.right = r; c.top = r; c.bottom = -r; c.near = 0.02; c.far = 4 * d + 2;
+    c.updateProjectionMatrix();
   }
   load(name, url) {
     return new Promise((res, rej) => this.loader.load(url, (g) => { this.models[name] = g.scene; res(g.scene); }, undefined, rej));
@@ -169,3 +249,5 @@ export function ease(name) {
   const g = typeof window !== 'undefined' && window.gsap && window.gsap.parseEase ? window.gsap.parseEase(name) : null;
   return (EASES[name] = g || ((u) => (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2)));
 }
+
+export { World, CameraRig, Labels, SIGNAL, schedule, drawPulse, drawStall, screenBox, screenPainter, shoot } from './world.js';

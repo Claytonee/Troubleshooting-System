@@ -1,0 +1,160 @@
+<template>
+  <style>
+    @font-face { font-family: "DM Sans"; src: url("assets/fonts/DMSans-Variable.ttf") format("truetype"); font-weight: 100 1000; }
+    @font-face { font-family: "DM Mono"; src: url("assets/fonts/DMMono-Medium.ttf") format("truetype"); font-weight: 500; }
+    #root { position: absolute; inset: 0; overflow: hidden; font-family: "DM Sans", sans-serif; }
+    #f4-ground { position: absolute; inset: 0; background: #0f1117; }
+    #f4-view { position: absolute; inset: 0; }
+    #f4-cam-scale { position: absolute; inset: 0; transform-origin: 960px 440px; }
+    #f4-cam-move { position: absolute; inset: 0; }
+    .f4-svg { position: absolute; left: 0; top: 0; overflow: visible; }
+    /* The furniture sits on clean ground: world content fades out under the top edge. */
+    #f4-scrim { position: absolute; left: 0; right: 0; top: 0; height: 160px; opacity: 0; background: linear-gradient(to bottom, rgba(15,17,23,0.95) 0, rgba(15,17,23,0.78) 70px, rgba(15,17,23,0) 160px); }
+    #f4-bug { position: absolute; top: 46px; right: 58px; width: 232px; height: 24px; opacity: 0; }
+    #f4-bug svg { display: block; width: 100%; height: 100%; }
+    #f4-slate { position: absolute; top: 40px; left: 58px; opacity: 0; }
+    #f4-slate .k { font-family: "DM Sans"; font-weight: 600; font-size: 17px; letter-spacing: 2.8px; color: #4f7cff; text-transform: uppercase; }
+    #f4-slate .t { font-family: "DM Sans"; font-weight: 600; font-size: 27px; color: #e8eaf0; margin-top: 4px; }
+  </style>
+  <div id="root" data-composition-id="04-check-in-order" data-width="1920" data-height="1080" data-duration="15.287">
+    <div id="f4-ground" class="clip" data-start="0" data-duration="15.287" data-track-index="0"></div>
+    <div id="f4-view" class="clip" data-start="0" data-duration="15.287" data-track-index="1">
+      <div id="f4-cam-scale" data-layout-allow-overflow><div id="f4-cam-move">
+
+      </div></div>
+      <div id="f4-scrim"></div>
+      <div id="f4-slate"><div class="k"></div><div class="t"></div></div>
+      
+      
+      <div id="f4-bug"><svg viewBox="0 0 300 31" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Opportunity Education"><path d="M24.33,10c-.54-1.27.49-3,1.84-4.71A14.81,14.81,0,0,1,29.76,12C27.32,11.83,24.94,11.43,24.33,10ZM13.21,5.57c1.47-.63,1.93-2.75,2.1-5h-.68A14.79,14.79,0,0,0,7.28,2.91C9.27,4.65,11.5,6.3,13.21,5.57ZM24.59,3.84A14.81,14.81,0,0,0,17.27.7c.23,2.15.8,4.14,2.42,4.79S23,5.16,24.59,3.84ZM24.41,16.5c-.78,2,1.69,4.33,3.74,6.39a14.79,14.79,0,0,0,2-8.12c0-.2,0-.39,0-.58C27.59,14.4,25.07,14.86,24.41,16.5Zm-15.65.19c-.55-2-8-1.77-8.32-1.68,0,.36,0,.72,0,1.08A14.79,14.79,0,0,0,3.59,24.6C5.35,22.59,9.31,18.7,8.76,16.69Zm-.08-6.48c.71-1.76-1.16-4.08-3-6.1a14.87,14.87,0,0,0-4.91,8.2C3.8,12.17,7.83,12.34,8.68,10.21Zm11.2,10.94c-2.19.94-1.68,7.26-1.59,8.85a14.83,14.83,0,0,0,8.32-4.93C24.4,23,21.78,20.33,19.88,21.14Zm-6.48.08c-2.8-1-7.6,4.91-7.94,5.36a14.81,14.81,0,0,0,9.76,3.72C15.25,29.12,16.2,22.21,13.4,21.22Z" fill="#ffae00"/><path d="M37.84,14.59a8.8,8.8,0,1,1,8.77,8.66A8.57,8.57,0,0,1,37.84,14.59Zm14.08,0a5.28,5.28,0,1,0-10.56,0,5.28,5.28,0,1,0,10.56,0Z" fill="#ffffff"/><path d="M70.64,16.73a6.23,6.23,0,0,1-6.15,6.54,5.16,5.16,0,0,1-3.91-1.74v6.56H57.37V10.52h3.2V12a5.08,5.08,0,0,1,4-1.85A6.22,6.22,0,0,1,70.64,16.73Zm-3.24,0a3.44,3.44,0,1,0-6.88,0,3.44,3.44,0,1,0,6.88,0Z" fill="#ffffff"/><path d="M85.69,16.73a6.23,6.23,0,0,1-6.15,6.54,5.16,5.16,0,0,1-3.91-1.74v6.56H72.41V10.52h3.2V12a5.08,5.08,0,0,1,4-1.85A6.22,6.22,0,0,1,85.69,16.73Zm-3.24,0a3.44,3.44,0,1,0-6.88,0,3.44,3.44,0,1,0,6.88,0Z" fill="#ffffff"/><path d="M86.75,16.73a6.67,6.67,0,0,1,13.34,0,6.67,6.67,0,0,1-13.34,0Zm10.12,0a3.45,3.45,0,1,0-3.45,3.56A3.47,3.47,0,0,0,96.87,16.73Z" fill="#ffffff"/><path d="M101.81,10.52h3.08v1.67a3.73,3.73,0,0,1,3.43-2,4.58,4.58,0,0,1,1.51.27l-.28,3.08a4.93,4.93,0,0,0-1.48-.25c-1.69,0-3,1.05-3,3.77V23h-3.22Z" fill="#ffffff"/><path d="M120.94,22.24a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.21h-2v-2.7h2.06V6.11h3.2v4.41h4.11v2.7h-4.11v4.94c0,1.44.55,2.19,1.76,2.19A4.21,4.21,0,0,0,120,19.7Z" fill="#ffffff"/><path d="M122.24,17.72v-7.2h3.22v7.2a2.49,2.49,0,1,0,5,0v-7.2h3.22v7.2c0,3.54-2.19,5.55-5.71,5.55S122.24,21.23,122.24,17.72Z" fill="#ffffff"/><path d="M135.95,10.52h3.15v1.74A4.36,4.36,0,0,1,143,10.18c2.51,0,4.87,1.67,4.87,5.19V23h-3.22V16.23c0-2-1.07-3.08-2.63-3.08a2.87,2.87,0,0,0-2.86,3.15V23h-3.22Z" fill="#ffffff"/><path d="M149.79,7.14a2,2,0,1,1,2,2A1.94,1.94,0,0,1,149.79,7.14ZM150.16,23V10.52h3.22V23Z" fill="#ffffff"/><path d="M165.12,22.24a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.21h-2v-2.7h2.06V6.11h3.2v4.41h4.11v2.7h-4.11v4.94c0,1.44.55,2.19,1.76,2.19a4.21,4.21,0,0,0,2.08-.64Z" fill="#ffffff"/><path d="M179,10.52l-5,13.07c-1.19,3.06-2.74,4.68-5.28,4.68a4.55,4.55,0,0,1-2.4-.62l.55-2.7a3.75,3.75,0,0,0,1.6.41c1,0,1.78-.59,2.42-2l.25-.57L165.7,10.52h3.72l3.22,8.11,2.83-8.11Z" fill="#ffffff"/><path d="M185.72,6.14h11.45V9.29h-8v3.63h7.45v3.15h-7.45v3.79h8V23H185.72Z" fill="#ffffff"/><path d="M211.66,5.66V23H208.5V21.49a4.8,4.8,0,0,1-3.86,1.83,6.21,6.21,0,0,1-6.17-6.54,6.25,6.25,0,0,1,6.17-6.53A4.81,4.81,0,0,1,208.43,12V5.66Zm-3.06,11.13a3.46,3.46,0,1,0-6.92,0,3.46,3.46,0,1,0,6.92,0Z" fill="#ffffff"/><path d="M214,17.77v-7.2h3.22v7.2a2.49,2.49,0,1,0,5,0v-7.2h3.22v7.2c0,3.54-2.19,5.55-5.71,5.55S214,21.29,214,17.77Z" fill="#ffffff"/><path d="M226.92,16.79a6.35,6.35,0,0,1,6.69-6.53,6.21,6.21,0,0,1,5.81,3.47l-2.58,1.42a3.71,3.71,0,0,0-3.18-1.9,3.46,3.46,0,0,0-3.54,3.54,3.44,3.44,0,0,0,3.47,3.56,3.68,3.68,0,0,0,3.18-1.87l2.6,1.53a6.5,6.5,0,0,1-5.85,3.29A6.3,6.3,0,0,1,226.92,16.79Z" fill="#ffffff"/><path d="M253.27,10.57V23h-3.06V21.59a5.28,5.28,0,0,1-4,1.74c-3.61,0-6.17-2.88-6.17-6.58a6.15,6.15,0,0,1,6.17-6.49,5.21,5.21,0,0,1,4,1.8V10.57Zm-3,6.22a3.49,3.49,0,1,0-7,0,3.49,3.49,0,1,0,7,0Z" fill="#ffffff"/><path d="M265.12,22.3a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.27h-2v-2.7h2.06V6.16h3.2v4.41h4.11v2.7h-4.11V18.2c0,1.44.55,2.19,1.76,2.19a4.21,4.21,0,0,0,2.08-.64Z" fill="#ffffff"/><path d="M266.34,7.19a2,2,0,1,1,2,2A1.94,1.94,0,0,1,266.34,7.19ZM266.7,23V10.57h3.22V23Z" fill="#ffffff"/><path d="M271.54,16.79a6.67,6.67,0,0,1,13.34,0,6.67,6.67,0,0,1-13.34,0Zm10.12,0a3.45,3.45,0,1,0-3.45,3.56A3.47,3.47,0,0,0,281.66,16.79Z" fill="#ffffff"/><path d="M286.6,10.57h3.15v1.74a4.36,4.36,0,0,1,3.91-2.08c2.51,0,4.87,1.67,4.87,5.19V23H295.3V16.29c0-2-1.07-3.08-2.63-3.08a2.87,2.87,0,0,0-2.86,3.15V23H286.6Z" fill="#ffffff"/></svg></div>
+    </div>
+  </div>
+  <script>
+  (function () {
+    var P = "f4-", C = {"bg":"#0f1117","surface":"#161921","well":"#0b0d12","raised":"#232838","line":"#2a2f3d","cable":"#4a5268","primary":"#4f7cff","primaryText":"#8aa6ff","text":"#e8eaf0","muted":"#9ba1b5","faint":"#636a82","pos":"#2dd98a","neg":"#ff5263","warn":"#f5a623","gold":"#FFAE00"}, CX = 960, CY = 440;
+    var PK = [];
+
+    var $ = function (s) { return document.getElementById(P + s); };
+    var tl = gsap.timeline({ paused: true });
+    /** Camera: world (px,py) at the frame's centre, zoom s; nested wrappers so the focus travels straight. */
+    function cam(s, px, py, at, dur, ease) {
+      if (!dur) { tl.set($('cam-move'), { x: CX - px, y: CY - py }, at); tl.set($('cam-scale'), { scale: s }, at); return; }
+      tl.to($('cam-move'), { x: CX - px, y: CY - py, duration: dur, ease: ease || 'power2.inOut' }, at);
+      tl.to($('cam-scale'), { scale: s, duration: dur, ease: ease || 'power2.inOut' }, at);
+    }
+    function camKeys(z, at) { tl.to($('cam-move'), { keyframes: z.move }, at); tl.to($('cam-scale'), { keyframes: z.scale }, at); }
+    function show(el, at, d, from) { tl.fromTo(el, Object.assign({ opacity: 0 }, from || {}), { opacity: 1, x: 0, y: 0, duration: d || 0.5, ease: 'power3.out' }, at); }
+    function fade(el, o, at, d) { tl.to(el, { opacity: o, duration: d || 0.4, ease: 'power1.out' }, at); }
+    function on(el, at) { tl.set(el, { opacity: 1 }, at); }
+    function off(el, at) { tl.set(el, { opacity: 0 }, at); }
+    function drawLink(key, at, d) { tl.to($(key + '-lit'), { strokeDashoffset: 0, duration: d, ease: 'none' }, at); }
+    function linkOn(key, at) { tl.set($(key + '-lit'), { strokeDashoffset: 0 }, at); }
+    function linkDark(key, at, d) { var el = $(key + '-lit'); tl.to(el, { strokeDashoffset: el.getAttribute('data-len'), duration: d || 0.5, ease: 'power2.in' }, at); }
+    function linkColor(key, color, at, d) { tl.to($(key + '-lit'), { attr: { stroke: color }, duration: d || 0.15 }, at); }
+    /** Break a split link (key+'a' / key+'b') at its middle; mend reverses it. */
+    function breakLink(key, at, instant) {
+      var parts = [key + 'a', key + 'b'];
+      if (instant) { tl.set($(parts[0] + '-lit'), { attr: { stroke: C.neg }, strokeDashoffset: 26 }, at); tl.set($(parts[0] + '-base'), { strokeDashoffset: 26 }, at);
+        tl.set($(parts[1] + '-lit'), { attr: { stroke: C.neg }, strokeDashoffset: -26 }, at); tl.set($(parts[1] + '-base'), { strokeDashoffset: -26 }, at); tl.set($(key + '-gap'), { opacity: 1 }, at); return; }
+      tl.to([$(parts[0] + '-lit'), $(parts[1] + '-lit')], { attr: { stroke: C.neg }, duration: 0.12 }, at - 0.25);
+      tl.to([$(parts[0] + '-lit'), $(parts[0] + '-base')], { strokeDashoffset: 26, duration: 0.3, ease: 'power3.out' }, at);
+      tl.to([$(parts[1] + '-lit'), $(parts[1] + '-base')], { strokeDashoffset: -26, duration: 0.3, ease: 'power3.out' }, at);
+      tl.fromTo($(key + '-gap'), { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.3, ease: 'power3.out', transformOrigin: '50% 50%' }, at + 0.05);
+    }
+    function mendLink(key, at) {
+      tl.to([$(key + 'a-lit'), $(key + 'a-base'), $(key + 'b-lit'), $(key + 'b-base')], { strokeDashoffset: 0, duration: 0.5, ease: 'power3.inOut' }, at - 0.5);
+      tl.to($(key + '-gap'), { opacity: 0, duration: 0.25 }, at - 0.45);
+      tl.to([$(key + 'a-lit'), $(key + 'b-lit')], { attr: { stroke: C.primary }, duration: 0.3 }, at - 0.05);
+    }
+    function dim(dev, o, at, d) { if (d) tl.to($('dev-' + dev), { opacity: o, duration: d, ease: 'power2.out' }, at); else tl.set($('dev-' + dev), { opacity: o }, at); }
+    function led(ref, color, at, d) { var el = $(ref.replace('.', '-led-')); if (d === 0) tl.set(el, { attr: { fill: color } }, at); else tl.to(el, { attr: { fill: color }, duration: d || 0.18, ease: 'power1.out' }, at); }
+    /** Activity: a port light flickers once as a packet passes, then returns to its steady state. */
+    function blip(ref, at, base) { led(ref, C.text, at, 0.04); led(ref, base || C.pos, at + 0.12, 0.14); }
+    function blink(ref, color, at, times, gap) { for (var k = 0; k < (times || 2); k++) { led(ref, C.line, at + k * (gap || 0.44), 0.18); led(ref, color, at + k * (gap || 0.44) + 0.22, 0.18); } }
+    /** Swap a device's visible screen state. */
+    function screen(dev, from, to, at, d) { fade($(dev + '-scr-' + from), 0, at, d || 0.25); fade($(dev + '-scr-' + to), 1, at + 0.08, d || 0.3); }
+    function chipsIn(n, at, stagger, rise) { for (var i = 1; i <= n; i++) tl.fromTo($('chip' + i), { opacity: 0, y: rise || 0 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' }, at + (i - 1) * stagger); }
+    /** A check resolves: its ring takes the verdict's colour and the tag reads VERIFIED or FAILED. The number stays. */
+    function chipFlip(i, ok, at) {
+      var col = ok ? C.pos : C.neg;
+      tl.to($('chip' + i + '-c'), { attr: { stroke: col }, duration: 0.2, ease: 'power2.out' }, at);
+      tl.to($('chip' + i + (ok ? '-x' : '-ok')), { opacity: 0, duration: 0.1 }, at);
+      tl.fromTo($('chip' + i + (ok ? '-ok' : '-x')), { opacity: 0, x: -6 }, { opacity: 1, x: 0, duration: 0.28, ease: 'power2.out' }, at + 0.04);
+    }
+    function chipSet(i, state, at) {           // 'ok' | 'x' | 'n' without motion
+      var col = state === 'ok' ? C.pos : state === 'x' ? C.neg : C.primary;
+      tl.set($('chip' + i + '-c'), { attr: { stroke: col } }, at);
+      tl.set($('chip' + i + '-ok'), { opacity: state === 'ok' ? 1 : 0 }, at);
+      tl.set($('chip' + i + '-x'), { opacity: state === 'x' ? 1 : 0 }, at);
+      tl.set($('chip' + i), { opacity: 1 }, at);
+    }
+    /** The end: the corner furniture hands over to the lesson card. */
+    function endCard(at) {
+      fade([$('bug'), $('slate')], 0, at - 0.2, 0.4);
+      tl.fromTo($('lesson'), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' }, at);
+    }
+    // Flows: pre-sampled global schedules, sliced to this frame.
+    // A packet is a story character, so it points where it is going (an arrow-tag that turns with the
+    // cable) and, when the story follows it (pk.trail), leaves a short fading trail (polish gate §4).
+    (function () {
+      var layer = $('packets'), NS = 'http://www.w3.org/2000/svg';
+      var ARROW = 'M-13,-8 H3 L13,0 L3,8 H-13 Z';
+      function shape(pk) {
+        var el, k = pk.kind;
+        if (k === 'spark') { el = document.createElementNS(NS, 'circle'); el.setAttribute('r', 6); el.setAttribute('fill', C.warn); return el; }
+        el = document.createElementNS(NS, 'path'); el.setAttribute('d', ARROW);
+        var fill = k === 'reply' || k === 'content' ? C.pos : k === 'queued' ? C.warn : C.primary;
+        el.setAttribute('fill', fill); el.setAttribute('stroke', C.text); el.setAttribute('stroke-width', 1.6); el.setAttribute('stroke-linejoin', 'round');
+        el.setAttribute('data-s', k === 'test' || k === 'reply' ? 1.45 : pk.trail ? 1.25 : 0.85);
+        return el;
+      }
+      // Heading from motion; unwrapped so it never spins, and held when the packet stops or backs up.
+      function headings(pts) {
+        var out = [], prev = null;
+        for (var k = 0; k < pts.length; k++) {
+          var a = pts[Math.max(0, k - 1)], b = pts[Math.min(pts.length - 1, k === 0 ? 1 : k)];
+          var dx = b[1] - a[1], dy = b[2] - a[2], h = prev;
+          if (dx * dx + dy * dy > 0.25) {
+            var raw = Math.atan2(dy, dx) * 180 / Math.PI;
+            if (prev === null) h = raw;
+            else { var d = ((raw - prev) % 360 + 540) % 360 - 180; h = Math.abs(d) > 120 ? prev : prev + d; }
+          }
+          out.push(h); prev = h;
+        }
+        // a packet that waits before it moves already faces the way it will go
+        var firstKnown = null;
+        for (var j = 0; j < out.length; j++) if (out[j] !== null) { firstKnown = out[j]; break; }
+        for (var m = 0; m < out.length && out[m] === null; m++) out[m] = firstKnown === null ? 0 : firstKnown;
+        return out;
+      }
+      function run(pk, el, lag, peak) {
+        var pts = pk.pts, rot = headings(pts), i0 = 0, s = +el.getAttribute('data-s') || 1;
+        while (i0 < pts.length - 1 && pts[i0 + 1][0] + lag <= 0) i0++;
+        var t0 = pts[i0][0] + lag, start = Math.max(0, t0), first = [pts[i0][1], pts[i0][2]], r0 = rot[i0];
+        if (t0 < 0 && i0 < pts.length - 1) { var a = pts[i0], b = pts[i0 + 1], u = (0 - t0) / (b[0] - a[0]); first = [a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]; }
+        tl.set(el, { x: first[0], y: first[1], rotation: r0, scale: s, opacity: peak, transformOrigin: '50% 50%' }, start);
+        var kf = [], last = start;
+        for (var k = i0 + 1; k < pts.length; k++) { var at = pts[k][0] + lag; if (at <= last) continue; kf.push({ x: pts[k][1], y: pts[k][2], rotation: rot[k], duration: at - last, ease: 'none' }); last = at; }
+        if (kf.length) tl.to(el, { keyframes: kf }, start);
+        if (pk.end === 'die') { tl.to(el, { attr: { fill: C.neg }, duration: 0.08 }, last); tl.to(el, { scale: s * 1.8, opacity: 0, duration: 0.45, ease: 'power2.out' }, last + 0.06); }
+        else if (pk.end === 'arrive') tl.to(el, { opacity: 0, duration: 0.25, ease: 'power1.in' }, last - 0.2);
+        else if (pk.end === 'fade') tl.to(el, { opacity: 0, duration: 0.6, ease: 'power1.inOut' }, last);
+      }
+      PK.forEach(function (pk) {
+        if (pk.trail) [0.1, 0.05].forEach(function (lag, n) {
+          var g = shape(pk); g.setAttribute('id', P + 'pk-' + pk.id + '-t' + n); g.setAttribute('opacity', 0); g.setAttribute('stroke', 'none');
+          g.setAttribute('data-s', (+g.getAttribute('data-s')) * (n ? 0.85 : 0.7)); layer.appendChild(g); run(pk, g, lag, n ? 0.34 : 0.16);
+        });
+        var el = shape(pk);
+        el.setAttribute('id', P + 'pk-' + pk.id); el.setAttribute('filter', 'url(#' + P + 'glow)'); el.setAttribute('opacity', 0);
+        layer.appendChild(el);
+        run(pk, el, 0, 1);
+      });
+    })();
+
+    tl.set([$('bug'), $('slate')], { opacity: 0.9 }, 0); tl.set($('scrim'), { opacity: 1 }, 0);
+
+    window.__timelines["04-check-in-order"] = tl;
+  })();
+  </script>
+</template>

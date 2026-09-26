@@ -1,0 +1,38 @@
+{
+  "id": "generic-tower",
+  "category": "A-generic",
+  "type": "desktop computer (tower)",
+  "name": "Generic desktop tower with a rear I/O panel",
+  "files": {
+    "source": "../../../source/build_desktop_generic.py",
+    "export": "tower.glb",
+    "web": "tower.web.glb"
+  },
+  "build": "blender -b --factory-startup --python source/build_desktop_generic.py (builds the monitor and the tower), then glTF-Transform dedup → weld → meshopt",
+  "units": "metres; origin at the centre of the base; FRONT faces +Z in three.js — the network port is on the BACK",
+  "size_mm": [180, 380, 400],
+  "triangles": 2596,
+  "bytes": { "export": 113000, "web": 36000 },
+  "lod": "one level",
+  "textures": "none",
+  "anchors": {
+    "port_eth": "the network port, on the REAR panel (outward normal -Z; a scene that wants it facing a switch turns the tower)",
+    "led_link": "link light, built into the jack (left)",
+    "led_act": "activity light, built into the jack (right)",
+    "led_power": "the power light on the front"
+  },
+  "features": {
+    "front": ["power button and its light", "a drive-bay line"],
+    "rear": ["the network port with its two jack lights, as real motherboard ports have", "two USB", "the PSU plate with its fan grille and the mains inlet"],
+    "bottom": ["four rubber feet"]
+  },
+  "behaviour": "generic. The two lights are the ones on the jack itself: link (a working cable to a live partner) and activity (frames passing). A film checking 'the computer's link light' must go behind the machine — which is the point: that is where it is.",
+  "provenance": {
+    "origin": "original work, authored for OE by the explainer engine (procedural Blender script)",
+    "creator": "OE Support explainer engine",
+    "license": "OE-owned; no third-party geometry, textures or trademarks",
+    "fonts": "DM Mono (SIL Open Font License 1.1)",
+    "commercial_use": true, "attribution_required": false, "ai_restriction": "none", "modification": true, "redistribution": "OE's own asset",
+    "reviewed": "2026-09-26"
+  }
+}

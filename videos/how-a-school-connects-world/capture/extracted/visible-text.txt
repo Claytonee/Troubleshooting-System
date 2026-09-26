@@ -1,0 +1,3 @@
+Follow the signal
+
+When the internet stops, follow the signal from the computer outwards and check each link in order: the first failed link is where to investigate; fix it there, then prove it with a round trip.

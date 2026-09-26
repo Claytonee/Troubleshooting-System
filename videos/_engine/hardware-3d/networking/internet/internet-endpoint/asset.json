@@ -1,0 +1,31 @@
+{
+  "id": "internet-endpoint",
+  "category": "A-generic",
+  "type": "abstraction",
+  "name": "The internet — a matte wire globe on a stand",
+  "files": {
+    "source": "../../../source/build_internet_endpoint.py",
+    "export": "internet.glb",
+    "web": "internet.web.glb"
+  },
+  "build": "blender -b --factory-startup --python source/build_internet_endpoint.py, then glTF-Transform dedup → weld → meshopt",
+  "units": "metres; origin at the centre of the base",
+  "size_mm": [210, 260, 210],
+  "triangles": 22836,
+  "bytes": { "export": 1340000, "web": 96000 },
+  "lod": "one level. It is the heaviest asset in the library (96 meridian/parallel segments) and it is never a hero: if a film needs many of them, build a low-poly variant.",
+  "textures": "none",
+  "anchors": {
+    "port_in": "where the provider's line arrives, at the base (outward normal -X)",
+    "centre": "the centre of the globe — for a callout"
+  },
+  "why_not_hardware": "The internet has no box to show. Drawn as glowing 'cyber' graphics it becomes decoration; drawn as a data centre it teaches something false about where a school's traffic goes. A matte globe in the same materials and the same light as the hardware says what it needs to: somewhere far away that answers.",
+  "behaviour": "no lights. It is either reached or it is not, and the film says which with the signal, not with a state on this object.",
+  "provenance": {
+    "origin": "original work, authored for OE by the explainer engine (procedural Blender script)",
+    "creator": "OE Support explainer engine",
+    "license": "OE-owned; no third-party geometry, textures or trademarks",
+    "commercial_use": true, "attribution_required": false, "ai_restriction": "none", "modification": true, "redistribution": "OE's own asset",
+    "reviewed": "2026-09-26"
+  }
+}

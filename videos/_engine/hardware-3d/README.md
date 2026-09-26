@@ -1,11 +1,26 @@
 # OE hardware library (3D)
 
-The physical half of the hybrid explainer system (D39): real, reusable hardware for the moments when a
-learner has to **find, inspect or handle** something — a port, a light, a connector. Everything conceptual
-(topology, signal flow, escalation, state comparisons) stays in the 2D engine, which explains systems better.
+Real, reusable hardware for the explainer films. Since D40 it is not a half of anything: a film is built
+**inside** this library, and 2D is kept for what is information rather than an object — labels, status,
+titles, captions.
 
-> 3D is not the goal. Understanding is. Use the real object when physical realism helps someone identify,
-> inspect or repair it; use the drawing when simplification explains better.
+> **If it physically exists, model it. If it communicates information, overlay it. If it represents data
+> flow, illuminate the path.**
+
+The library is addressed only through named anchors, so the same asset serves the system view, the teaching
+view and the repair close-up: what changes between them is the camera, never the style.
+
+**What it holds today** (7 assets, ~490 KB of `.web.glb`, all category A, all ours):
+
+| Asset | For |
+|---|---|
+| `networking/routers/generic-router-5port` | the school's gateway: LAN 1–4, WAN, status lights |
+| `networking/switches/generic-switch-8port` | what joins the school's computers |
+| `networking/modems/generic-provider-modem` | the provider's box — light grey, visibly not the school's |
+| `networking/internet/internet-endpoint` | the internet, as an abstraction that still belongs to the world |
+| `computers/desktop/generic-tower` | the computer, and its network port where it really is: the back |
+| `computers/monitor/generic-monitor` | the symptom: a `screen` mesh a scene paints at runtime |
+| `connectors/rj45/generic-rj45-plug` | the plug that is, or is not, pushed home |
 
 ## Layout
 

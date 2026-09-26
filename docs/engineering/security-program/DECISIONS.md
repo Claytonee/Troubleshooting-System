@@ -721,6 +721,61 @@ inspection → reconnect → link restored → verification). Stop there for rev
 2D film and answered: does the hybrid materially improve clarity and quality enough to join the system? If yes,
 category B needs the deployed models (router, switch, AP, UPS, charging hub, LRS).
 
+## D40 — 3D-first: one continuous technical world, and the camera does the explaining
+
+**Asked (2026-09-26, after the D39 prototype):** the 3D hardware sequence was stronger, clearer and more
+professional than the drawn hardware around it. That is an architectural signal, not a polish note. Move the
+explainer system to 3D-first and rebuild the SAME film — same topic, same script — so the two production
+systems can be compared.
+
+**Decided:**
+
+1. **The rule.** *If it physically exists, model it. If it communicates information, overlay it. If it
+   represents data flow, illuminate the path.* Routers, switches, modems, computers, connectors and cables
+   are hardware from `videos/_engine/hardware-3d/`. 2D is kept for labels, status, titles, captions and the
+   closing rule — information, not objects. There is no hand-over between a diagram and a photograph,
+   because there is no diagram.
+2. **One world, many distances.** The system view, the teaching view, the port inspection and the repair are
+   the same objects in the same space under the same light. **The camera changes the level of explanation**,
+   through a semantic rig — `topology()`, `devices([…])`, `device(id)`, `port('router.wan')` — never through
+   coordinates typed into a scene. The system view is near-orthographic (an 8° lens from 7 m) so hardware
+   behaves like a clean diagram while keeping material, depth and form.
+3. **The network is a graph, not a layout.** `lib/school-network.mjs` names devices, ports and connections,
+   and the order a person checks them; cables, plugs, the signal's route, the check list and the fault domain
+   all read from it. One definition, so the picture and the troubleshooting order cannot drift apart.
+4. **Data is a light inside the cable** (a shader on a sheath around the tube), never a dot flying above the
+   hardware. A failed link is shown by the hardware first: the light pushes a few centimetres in, dies, tries
+   again, and the WAN light never comes on — *then* a restrained label says NO PHYSICAL LINK.
+5. **Physical link ≠ service.** The provider's modem keeps LINK and INTERNET lit all through the fault; only
+   its LAN light, the one facing the loose cable, is dark. A film must never teach a teacher to read a loose
+   cable as an outage.
+6. **Everything that must scale with the shot is one call** (`OE3D.shoot`): the shadow camera, how far the
+   floor reaches, halo size, and how wide the travelling light is. A shot that sets the camera and forgets one
+   of them looks wrong in a way that is hard to name.
+7. **The lighting rig follows the camera**, not the world: the key is always three-quarters to the viewer's
+   left and above. A fixed key backlit every shot taken from the other side — the computer's rear port, the
+   one the film asks you to look at, was a black mass.
+8. **Labels are screen-space, collision-aware, and may be dropped.** Two rings of candidate positions, zones
+   they may never enter (slate, logo, captions), and no label at all rather than two that collide.
+9. **The world is proved before the film is built.** `tools/world-sheet.mjs` renders nine views of the real
+   runtime, real models and real scene configuration in headless Chrome and tiles them into one sheet, with a
+   `--probe` that says what a pixel is actually showing. It found, in minutes: a mirrored screen, a
+   default-white material where a boolean had left faces on an empty slot, an invisible signal pulse at system
+   scale, and a floor with a visible edge.
+
+**Also fixed at the source, for every asset:** a face left on an empty material slot now points at slot 0
+(`oe_kit.no_orphan_faces`), and the monitor's screen UVs are computed from vertex positions, after any face
+reversal, so the picture cannot come out mirrored.
+
+**Cost:** the film is the same length (72.5 s) and the same script as the 2D film; ~490 KB of models plus the
+817 KB runtime, once per page.
+
+**Not done:** the other episodes, and category-B twins of the hardware OE actually deploys. Nothing in the
+series is rebuilt until the owner has compared the three films.
+
+**Revisit when:** the owner has watched `videos/how-a-school-connects-world/renders/video.mp4` beside the 2D
+film and the hybrid, and answered which production system the series is built on.
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.
