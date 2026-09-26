@@ -1,8 +1,13 @@
 /**
  * The explainer films that ship with the app (D36–D38).
  *
- * Only films the owner has approved are listed here — episode 00 v2 was approved on
- * 2026-09-26. They are made in videos/ with the explainer engine and copied into
+ * Only films the owner has approved are listed here. On 2026-09-26 the owner watched all
+ * three productions of episode 00 side by side — the drawn 2D film (D38), the hybrid
+ * (D39) and the 3D-first rebuild (D40) — and chose **the hybrid**: the drawn system view
+ * for how the network fits together, and real 3D hardware for the part you have to walk
+ * up to and inspect. That is the film here now (v3, 83 s), replacing the drawn v2.
+ *
+ * They are made in videos/ with the explainer engine and copied into
  * frontend/media/videos/ unchanged: the owner asked for the original 1080p60 master,
  * not a re-encode ("napenda vitu quality"). The master already has its index at the
  * front of the file, so it starts playing before the whole file has arrived.
@@ -21,13 +26,13 @@ const MEDIA = path.join(__dirname, '..', '..', '..', 'frontend', 'media', 'video
 const FILMS = [
   {
     key: 'how-a-school-connects',
-    file: 'how-a-school-connects-v2.mp4',
-    poster: 'how-a-school-connects-v2.jpg',
+    file: 'how-a-school-connects-v3.mp4',
+    poster: 'how-a-school-connects-v3.jpg',
     title: 'How a school connects to the internet',
     summary: 'Follow the signal from the computer to the internet, check each light in order, and find the first failed link.',
     category: 'Connectivity',
     language: 'en',
-    duration_s: 72,
+    duration_s: 83,
     quality: '1080p · 60 fps'
   }
 ];

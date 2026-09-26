@@ -133,7 +133,9 @@ async function signIn(u) {
       const shown = await open(head, headUser, w, h);
       ok(`${w}px: platform admin sees the film, poster loaded`, shown === true);
       const text = await page.eval(`(document.querySelector('.film-card') || {}).textContent || ''`);
-      ok(`${w}px: the card names it, its length and its size`, text.includes(film.title) && text.includes('1:12') && /MB/.test(text), text.replace(/\s+/g, ' ').slice(0, 120));
+      // Formatted from the catalogue, for the same reason as the duration check below.
+      const stamp = `${Math.floor(film.duration_s / 60)}:${String(film.duration_s % 60).padStart(2, '0')}`;
+      ok(`${w}px: the card names it, its length (${stamp}) and its size`, text.includes(film.title) && text.includes(stamp) && /MB/.test(text), text.replace(/\s+/g, ' ').slice(0, 120));
       ok(`${w}px: the old drawn explainers are not in the library`, await page.eval(`document.querySelectorAll('.explainer-card').length === 0`) === true);
       const fit = await page.eval(`(() => { const m = document.querySelector('.main'); return m.scrollWidth <= m.clientWidth + 1 && [...document.querySelectorAll('.film-card')].every(c => c.getBoundingClientRect().right <= m.getBoundingClientRect().right + 1); })()`);
       ok(`${w}px: nothing runs off the side`, fit === true);
@@ -143,8 +145,11 @@ async function signIn(u) {
     }
 
     await page.eval(`document.querySelector('.film-card').click(); true`);
-    const loaded = await page.waitFor(`(() => { const v = document.querySelector('#modal.open video'); return !!v && v.readyState >= 1 && Math.abs(v.duration - 71.5) < 1; })()`, 15000);
-    ok('clicking the card opens the film and it loads (71.5 s)', loaded === true);
+    // The length comes from the catalogue, not from a number typed here: a replaced film is a
+    // different length, and a hardcoded one turns "the owner chose another cut" into a red gate.
+    const want = film.duration_s;
+    const loaded = await page.waitFor(`(() => { const v = document.querySelector('#modal.open video'); return !!v && v.readyState >= 1 && Math.abs(v.duration - ${want}) < 1.5; })()`, 15000);
+    ok(`clicking the card opens the film and it loads (${want} s, as the card says)`, loaded === true);
     const dims = await page.eval(`(() => { const v = document.querySelector('#modal video'); return v ? v.videoWidth + 'x' + v.videoHeight : ''; })()`);
     ok('...at full resolution', dims === '1920x1080', dims);
     await page.eval(`(() => { const v = document.querySelector('#modal video'); v.muted = true; return v.play().then(() => true).catch(() => true); })()`);
