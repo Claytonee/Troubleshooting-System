@@ -33,6 +33,10 @@ further videos are made until the visual system is approved.
   recovery shows green.
 - Synchronized narration and subtle professional sound effects.
 - 1920 × 1080, 60 fps.
+- The official Opportunity Education logo (asked by the owner, 2026-09-26): small in the top-right corner
+  from the first second, fixed to the screen so the camera never moves it; the full logo above the lesson
+  line on the end card, where the corner mark fades out so it is never shown twice. The official paths,
+  with the branding guide's dark treatment (gold sunburst, white lettering). Never redrawn.
 
 ## Notes
 

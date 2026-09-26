@@ -44,6 +44,13 @@ npx hyperframes render --fps 60 --quality high --output renders/video.mp4
 The order matters once: `fetch-sfx` rebuilds `audio_meta.json` from the engine's sidecar, so voice
 composition runs after it (and now keeps the sidecar in step).
 
+## The logo
+
+`assets/brand/oe-logo-official.svg` is the official Opportunity Education logo, copied unmodified from
+`frontend/icons/` (provenance in `assets/brand/SOURCE.md`). `build-frames.mjs` embeds its 21 paths and
+applies the dark treatment from `docs/OE_BRANDING_GUIDE.md` (gold sunburst, white lettering); it refuses
+to build if the file no longer has those 21 paths.
+
 ## Licences
 
 DM Sans and DM Mono: SIL Open Font License (`assets/fonts/OFL-*.txt`). Voice: Kokoro-82M (Apache-2.0),

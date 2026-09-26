@@ -28,7 +28,13 @@ const word = (f, w) => { const v = meta.voices.find((x) => x.frame === f); const
 // ── palette (frame.md) ─────────────────────────────────────────────────────────
 const C = { bg: '#0f1117', surface: '#161921', well: '#0b0d12', raised: '#232838', line: '#2a2f3d',
   primary: '#4f7cff', text: '#e8eaf0', muted: '#9ba1b5', faint: '#636a82', pos: '#2dd98a', neg: '#ff5263', gold: '#FFAE00' };
-const CAM = { cx: 960, cy: 440 };   // canvas point the camera centres on (above the caption band)
+const CAM = { cx: 960, cy: 440 };
+
+// The official Opportunity Education logo (assets/brand/SOURCE.md): its own paths, never redrawn.
+// On this dark ground it takes the branding guide's dark treatment — gold sunburst, white lettering.
+const LOGO_PATHS = readFileSync('assets/brand/oe-logo-official.svg', 'utf8').match(/<path[^>]*>/g);
+if (!LOGO_PATHS || LOGO_PATHS.length !== 21) throw new Error('official logo: expected its 21 paths');
+const LOGO_DARK = LOGO_PATHS.join('').replace(/fill="#263746"/g, 'fill="#ffffff"');   // canvas point the camera centres on (above the caption band)
 
 // ── geometry ───────────────────────────────────────────────────────────────────
 const P = (x, y) => ({ x, y });
@@ -247,9 +253,9 @@ function stageSvg(p) {
 
   <!-- the lesson -->
   <g id="${p}lesson" opacity="0">
-    <text x="960" y="62" text-anchor="middle" style='font-family:"DM Sans";font-weight:600;font-size:18px;letter-spacing:3px' fill="${C.muted}">OE SUPPORT</text>
-    <rect x="912" y="78" width="96" height="3" rx="1.5" fill="${C.gold}"/>
-    <text x="960" y="150" text-anchor="middle" style='font-family:"DM Sans";font-weight:600;font-size:62px;letter-spacing:-1.2px' fill="${C.text}">Check the links in order.</text>
+    <g transform="translate(795,34) scale(1.1)">${LOGO_DARK}</g>
+    <rect x="912" y="90" width="96" height="3" rx="1.5" fill="${C.gold}"/>
+    <text x="960" y="164" text-anchor="middle" style='font-family:"DM Sans";font-weight:600;font-size:62px;letter-spacing:-1.2px' fill="${C.text}">Check the links in order.</text>
   </g>
 
   <g id="${p}packets"></g>
@@ -273,6 +279,8 @@ function frameFile(f, id, body) {
     #${p}view { position: absolute; inset: 0; }
     #${p}cam-scale { position: absolute; inset: 0; transform-origin: ${CAM.cx}px ${CAM.cy}px; }
     #${p}cam-move { position: absolute; inset: 0; }
+    #${p}bug { position: absolute; top: 46px; right: 58px; width: 232px; height: 24px; opacity: 0; }
+    #${p}bug svg { display: block; width: 100%; height: 100%; }
     .${p}svg { position: absolute; left: 0; top: 0; overflow: visible; }
   </style>
   <div id="root" data-composition-id="${id}" data-width="1920" data-height="1080" data-duration="${dur}">
@@ -281,6 +289,7 @@ function frameFile(f, id, body) {
       <div id="${p}cam-scale" data-layout-allow-overflow><div id="${p}cam-move">
 ${stageSvg(p)}
       </div></div>
+      <div id="${p}bug"><svg viewBox="0 0 300 31" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Opportunity Education">${LOGO_DARK}</svg></div>
     </div>
   </div>
   <script>
@@ -386,6 +395,7 @@ const greens = (at) => `    tl.set($('pled0'), { attr: { fill: C.pos } }, ${at})
 const FRAMES = {
   1: ['01-no-internet', `
     tl.set($('scr-noinet-t'), { opacity: 1 }, 0);
+    tl.fromTo($('bug'), { opacity: 0 }, { opacity: 0.9, duration: 0.6, ease: 'power1.out' }, 0.3);
 ${devDim(['sw', 'rt', 'isp', 'net'], 0.35)}
     // Scene 1-3: one continuous zoom-out from the dead screen to the whole chain, decelerating to rest.
     cam(6.8, ${SCREEN.x}, ${SCREEN.y}, 0);
@@ -395,6 +405,7 @@ ${devDim(['sw', 'rt', 'isp', 'net'], 0.35)}
     // "four links": the chain is numbered, left to right.
     chipsIn(${r3(four + cue(1, 1) * 0 + 0.0)}, 0.09, 14);`],
   2: ['02-the-path', `
+    tl.set($('bug'), { opacity: 0.9 }, 0);
     tl.set($('scr-noinet'), { opacity: 1 }, 0);
 ${devDim(['sw', 'rt', 'isp', 'net'], 0.35)}
     chipsIn(0, 0, 0); tl.set([$('chip1'), $('chip2'), $('chip3'), $('chip4')], { opacity: 1 }, 0);
@@ -432,6 +443,7 @@ ${devDim(['sw', 'rt', 'isp', 'net'], 0.35)}
     show($('lab-net'), ${r3(cue(2, 5) + 0.05)}, 0.5, { y: 10 });
     cam(1, 960, 440, ${r3(cue(2, 5) + 0.05)}, 1.4, 'power3.inOut');`],
   3: ['03-link-breaks', `
+    tl.set($('bug'), { opacity: 0.9 }, 0);
 ${labelsOn}
 ${allLit(0)}
     tl.set($('scr-noinet'), { opacity: 0 }, 0); tl.set($('scr-idle'), { opacity: 1 }, 0);
@@ -449,6 +461,7 @@ ${greens(0)}    tl.set($('rt-wan'), { attr: { fill: C.pos } }, 0);
     // Scene 3: the camera goes to the consequence — the gap, and the packets dying at it.
     cam(1.6, 1105, 412, ${r3(cue(3, 1) - 0.1)}, 1.1, 'power2.inOut');`],
   4: ['04-check-in-order', `
+    tl.set($('bug'), { opacity: 0.9 }, 0);
 ${labelsOn}
 ${allLit(0)}
 ${brokenState(0)}
@@ -471,6 +484,7 @@ ${brokenState(0)}
     cam(1.25, 1080, 420, ${r3(cue(4, 5))}, 1.4, 'power2.inOut');
     tl.fromTo($('callout'), { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out' }, ${r3(cue(4, 5) + 0.15)});`],
   5: ['05-back-online', `
+    tl.set($('bug'), { opacity: 0.9 }, 0);
 ${labelsOn}
 ${allLit(0)}
 ${brokenState(0)}
@@ -501,6 +515,7 @@ ${greens(0)}
     // Scene 3: the one line to remember, held.
     tl.to($('rail'), { opacity: 0, duration: 0.4 }, ${r3(cue(5, 1) + 1.1)});
     tl.to([$('chip1'), $('chip2'), $('chip3'), $('chip4')], { opacity: 0, duration: 0.4 }, ${r3(cue(5, 1) + 1.1)});
+    tl.to($('bug'), { opacity: 0, duration: 0.4, ease: 'power1.in' }, ${r3(cue(5, 1) + 1.0)});
     tl.fromTo($('lesson'), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' }, ${r3(cue(5, 1) + 1.3)});`],
 };
 
