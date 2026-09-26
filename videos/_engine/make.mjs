@@ -21,7 +21,7 @@
  */
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, readdirSync, rmSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
+import { join, dirname, resolve, basename } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
@@ -230,15 +230,23 @@ if (want('build')) {
     const body = fr.timeline({ ...ctx, f, dur: ctx.DUR[f], off: ctx.OFF[f], c: (k, plus) => ctx.cue(f, k, plus), w: (x, plus) => ctx.word(f, x, plus), g: (t) => geo.r3(t - ctx.OFF[f]) });
     writeFileSync(R(`compositions/frames/${fr.id}.html`), frameFile({ id: fr.id, f, dur: ctx.DUR[f], off: ctx.OFF[f], stage: st, flows: all, slate: { kicker: spec.kicker, title: spec.title }, lesson: spec.lesson, overlay: spec.overlay ? spec.overlay(ctx) : null, body, first: f === 1 }));
   });
-  // Layers: compositions beside the frames (a Three.js hardware view). The engine copies what they load — the vendored
-  // three.js and lib3d — into the project, so a render never fetches a model or a library at seek time.
+  // Layers: compositions beside the frames (a Three.js hardware view, D39: lib/hardware-layer.mjs). The engine copies
+  // what they load — the bundled runtime (shared/three-oe3d.js: three.js + OE3D) and every hardware GLB they name — into the
+  // project, so a render never fetches a model or a library at seek time.
   const layers = spec.layers ? spec.layers(ctx) : [];
   if (layers.length) {
-    for (const [from, to] of [[join(ENGINE, 'vendor', 'three'), R('assets/vendor/three')], [join(ENGINE, 'lib3d'), R('assets/hw3d')]]) {
-      mkdirSync(to, { recursive: true });
-      for (const f of readdirSync(from)) copyFileSync(join(from, f), join(to, f));
+    mkdirSync(R('assets/hw3d'), { recursive: true });
+    copyFileSync(join(ENGINE, 'shared', 'three-oe3d.js'), R('assets/hw3d/three-oe3d.js'));
+    const glbs = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? glbs(join(dir, e.name)) : /\.web\.glb$/.test(e.name) ? [join(dir, e.name)] : []));
+    for (const f of glbs(join(ENGINE, 'hardware-3d'))) copyFileSync(f, R(`assets/hw3d/${basename(f)}`));
+    for (const l of layers) {
+      // A syntax error in a layer's script does not fail on its own: HyperFrames stops animating the WHOLE film and
+      // renders it frozen at t=0 (found in the D39 review). So a layer whose inline script does not parse stops here.
+      for (const [, code] of l.html.matchAll(/<script>([\s\S]*?)<\/script>/g)) {
+        try { new Function(code); } catch (e) { throw new Error(`layer "${l.id}": its script does not parse — ${e.message}`); }
+      }
+      writeFileSync(R(`compositions/${l.id}.html`), l.html);
     }
-    for (const l of layers) writeFileSync(R(`compositions/${l.id}.html`), l.html);
   }
   writeFileSync(R('compositions/layers.json'), JSON.stringify(layers.map(({ id, start, dur }) => ({ id, start, dur }))));
   writeDocs(ctx);

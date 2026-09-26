@@ -1,0 +1,313 @@
+<template>
+  <style>
+    @font-face { font-family: "DM Sans"; src: url("assets/fonts/DMSans-Variable.ttf") format("truetype"); font-weight: 100 1000; }
+    @font-face { font-family: "DM Mono"; src: url("assets/fonts/DMMono-Medium.ttf") format("truetype"); font-weight: 500; }
+    #root { position: absolute; inset: 0; overflow: hidden; font-family: "DM Sans", sans-serif; }
+    #f3-ground { position: absolute; inset: 0; background: #0f1117; }
+    #f3-view { position: absolute; inset: 0; }
+    #f3-cam-scale { position: absolute; inset: 0; transform-origin: 960px 440px; }
+    #f3-cam-move { position: absolute; inset: 0; }
+    .f3-svg { position: absolute; left: 0; top: 0; overflow: visible; }
+    /* The furniture sits on clean ground: world content fades out under the top edge. */
+    #f3-scrim { position: absolute; left: 0; right: 0; top: 0; height: 160px; opacity: 0; background: linear-gradient(to bottom, rgba(15,17,23,0.95) 0, rgba(15,17,23,0.78) 70px, rgba(15,17,23,0) 160px); }
+    #f3-bug { position: absolute; top: 46px; right: 58px; width: 232px; height: 24px; opacity: 0; }
+    #f3-bug svg { display: block; width: 100%; height: 100%; }
+    #f3-slate { position: absolute; top: 40px; left: 58px; opacity: 0; }
+    #f3-slate .k { font-family: "DM Sans"; font-weight: 600; font-size: 17px; letter-spacing: 2.8px; color: #4f7cff; text-transform: uppercase; }
+    #f3-slate .t { font-family: "DM Sans"; font-weight: 600; font-size: 27px; color: #e8eaf0; margin-top: 4px; }
+  </style>
+  <div id="root" data-composition-id="03-no-way-out" data-width="1920" data-height="1080" data-duration="6.792">
+    <div id="f3-ground" class="clip" data-start="0" data-duration="6.792" data-track-index="0"></div>
+    <div id="f3-view" class="clip" data-start="0" data-duration="6.792" data-track-index="1">
+      <div id="f3-cam-scale" data-layout-allow-overflow><div id="f3-cam-move">
+<svg class="f3-svg" viewBox="0 0 1920 1080" width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="f3-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40,0 H0 V40" fill="none" stroke="#ffffff" stroke-opacity="0.045" stroke-width="1"/></pattern>
+    <filter id="f3-glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect x="-3000" y="-3000" width="8000" height="7000" fill="url(#f3-grid)"/>
+  <line x1="-400" y1="603" x2="3400" y2="603" stroke="#2a2f3d" stroke-width="1.6" opacity="0.7"/>
+      <g id="f3-net"><rect x="2600" y="360" width="360" height="290" rx="40" fill="#4f7cff" fill-opacity="0.03" stroke="#9ba1b5" stroke-opacity="0.5" stroke-width="1.6" stroke-dasharray="9 8"/>
+        <text x="2624" y="396" text-anchor="start" style='font-family:"DM Sans";font-weight:600;font-size:17px;letter-spacing:2.8px' fill="#9ba1b5">THE INTERNET</text></g>
+  <path id="f3-c1-base" d="M406.9,574 C406.9,700 832.4,700 832.4,588.3" fill="none" stroke="#4a5268" stroke-width="6" stroke-linecap="round" stroke-dasharray="498.2 498.2" stroke-dashoffset="0"/>
+      <path id="f3-c1-lit" d="M406.9,574 C406.9,700 832.4,700 832.4,588.3" fill="none" stroke="#4f7cff" stroke-width="6" stroke-linecap="round" stroke-dasharray="498.2 498.2" stroke-dashoffset="498.2" data-len="498.2"/><path id="f3-c2-base" d="M1027.4,588.3 C1027.4,700 1424.8,700 1424.8,588.3" fill="none" stroke="#4a5268" stroke-width="6" stroke-linecap="round" stroke-dasharray="465.8 465.8" stroke-dashoffset="0"/>
+      <path id="f3-c2-lit" d="M1027.4,588.3 C1027.4,700 1424.8,700 1424.8,588.3" fill="none" stroke="#4f7cff" stroke-width="6" stroke-linecap="round" stroke-dasharray="465.8 465.8" stroke-dashoffset="465.8" data-len="465.8"/><path id="f3-c3-base" d="M1695.2,604.3 C1695.2,700 2062.4,700 2062.4,588.3" fill="none" stroke="#4a5268" stroke-width="6" stroke-linecap="round" stroke-dasharray="431.1 431.1" stroke-dashoffset="0"/>
+      <path id="f3-c3-lit" d="M1695.2,604.3 C1695.2,700 2062.4,700 2062.4,588.3" fill="none" stroke="#4f7cff" stroke-width="6" stroke-linecap="round" stroke-dasharray="431.1 431.1" stroke-dashoffset="431.1" data-len="431.1"/><path id="f3-line-base" d="M2205.4,574 C2355.4,574 2558,528 2708,528" fill="none" stroke="#4a5268" stroke-width="6" stroke-linecap="round" stroke-dasharray="505 505" stroke-dashoffset="0"/>
+      <path id="f3-line-lit" d="M2205.4,574 C2355.4,574 2558,528 2708,528" fill="none" stroke="#4f7cff" stroke-width="6" stroke-linecap="round" stroke-dasharray="505 505" stroke-dashoffset="505" data-len="505"/>
+  
+  <g transform="translate(260,600) scale(1.3)"><g id="f3-dev-desk">
+      <rect x="-150" y="-188" width="200" height="128" rx="10" fill="#161921" stroke="#9ba1b5" stroke-width="2.2"/>
+      <rect x="-140" y="-178" width="180" height="108" rx="3" fill="#0b0d12"/>
+      <g id="f3-desk-scr-noinet"><rect x="-140" y="-178" width="180" height="13" fill="#1a1e29"/><circle cx="-133" cy="-171.5" r="2" fill="#636a82"/><circle cx="-127" cy="-171.5" r="2" fill="#636a82"/>
+      <rect x="-118" y="-175" width="150" height="7" rx="3.5" fill="#232838"/>
+        <circle cx="-50" cy="-134" r="12" fill="none" stroke="#9ba1b5" stroke-width="2.2"/><ellipse cx="-50" cy="-134" rx="5" ry="12" fill="none" stroke="#9ba1b5" stroke-width="1.1"/><line x1="-62" y1="-134" x2="-38" y2="-134" stroke="#9ba1b5" stroke-width="1.1"/>
+        <line x1="-63" y1="-147" x2="-37" y2="-121" stroke="#ff5263" stroke-width="2.6" stroke-linecap="round"/>
+        <text x="-50" y="-104" text-anchor="middle" style='font-family:"DM Sans";font-weight:700;font-size:11px' fill="#e8eaf0">No internet</text>
+        <text x="-50" y="-93" text-anchor="middle" style='font-family:"DM Sans";font-weight:400;font-size:6.5px' fill="#9ba1b5">This page can't be reached</text>
+        <rect x="-140" y="-81" width="180" height="11" fill="#141821"/>
+      <g transform="translate(24,-75.5)"><rect x="-5" y="-3.2" width="10" height="6" rx="1" fill="none" stroke="#9ba1b5" stroke-width="1"/><path d="M-2,3 v1.8 M2,3 v1.8" stroke="#9ba1b5" stroke-width="1"/>
+      <circle cx="5" cy="-3.5" r="3.4" fill="#f5a623"/><text x="5" y="-1.6" text-anchor="middle" style='font-family:"DM Sans";font-weight:800;font-size:5px' fill="#0f1117">!</text></g></g>
+      <g id="f3-desk-scr-ok" opacity="0"><rect x="-140" y="-178" width="180" height="13" fill="#1a1e29"/><circle cx="-133" cy="-171.5" r="2" fill="#636a82"/><circle cx="-127" cy="-171.5" r="2" fill="#636a82"/>
+      <rect x="-118" y="-175" width="150" height="7" rx="3.5" fill="#232838"/>
+        <rect x="-132" y="-159" width="164" height="14" rx="2" fill="#4f7cff" opacity="0.85"/>
+        <rect x="-132" y="-139" width="64" height="38" rx="3" fill="#232838"/>
+        <rect x="-60" y="-137" width="84" height="4" rx="2" fill="#232838"/><rect x="-60" y="-128" width="70" height="4" rx="2" fill="#232838"/><rect x="-60" y="-119" width="88" height="4" rx="2" fill="#232838"/><rect x="-60" y="-110" width="52" height="4" rx="2" fill="#232838"/>
+        <rect x="-140" y="-81" width="180" height="11" fill="#141821"/>
+      <g transform="translate(24,-75.5)"><rect x="-5" y="-3.2" width="10" height="6" rx="1" fill="none" stroke="#9ba1b5" stroke-width="1"/><path d="M-2,3 v1.8 M2,3 v1.8" stroke="#9ba1b5" stroke-width="1"/>
+      <circle cx="5" cy="-3.5" r="2.4" fill="#2dd98a"/></g></g>
+      <rect x="-60" y="-60" width="20" height="44" fill="#161921" stroke="#9ba1b5" stroke-width="1.8"/>
+      <rect x="-100" y="-16" width="100" height="10" rx="5" fill="#161921" stroke="#9ba1b5" stroke-width="1.8"/>
+      <rect x="70" y="-156" width="84" height="156" rx="7" fill="#161921" stroke="#9ba1b5" stroke-width="2.2"/>
+      <rect x="80" y="-144" width="64" height="8" rx="2" fill="#0b0d12"/>
+      <circle cx="100" cy="-122" r="6" fill="none" stroke="#9ba1b5" stroke-width="1.8"/><path d="M100,-127 V-122" stroke="#9ba1b5" stroke-width="1.8" stroke-linecap="round"/>
+      <circle id="f3-desk-led-pwr" cx="118" cy="-122" r="2.6" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/>
+      <rect x="82" y="-104" width="60" height="2.4" rx="1.2" fill="#232838"/><rect x="82" y="-97" width="60" height="2.4" rx="1.2" fill="#232838"/><rect x="82" y="-90" width="60" height="2.4" rx="1.2" fill="#232838"/><rect x="82" y="-83" width="60" height="2.4" rx="1.2" fill="#232838"/>
+      <path d="M103,-36 h20 v11.52 h-4.4 v4.48 h-11.200000000000001 v-4.48 h-4.4 Z" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><rect x="107" y="-33.5" width="12" height="2.2" rx="1" fill="#636a82" opacity="0.6"/>
+      <circle id="f3-desk-led-link" cx="104" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><circle id="f3-desk-led-act" cx="122" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/>
+      <text x="113" y="-52" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.4px;letter-spacing:0.4px' fill="#9ba1b5">NETWORK</text>
+    </g></g>
+<g transform="translate(900,600) scale(1.3)"><g id="f3-dev-sw">
+      <rect x="-150" y="-60" width="300" height="60" rx="7" fill="#161921" stroke="#9ba1b5" stroke-width="2.2"/>
+      <rect x="-150" y="-60" width="300" height="4" rx="2" fill="#4f7cff"/>
+      <path d="M-123,-27 h22 v12.959999999999999 h-4.84 v5.040000000000001 h-12.32 v-5.040000000000001 h-4.84 Z" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><rect x="-118.6" y="-24.5" width="13.2" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-sw-led-p1" cx="-118" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="-106" y="-39.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.6px;letter-spacing:0.4px' fill="#9ba1b5">1</text><path d="M-93,-27 h22 v12.959999999999999 h-4.84 v5.040000000000001 h-12.32 v-5.040000000000001 h-4.84 Z" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><rect x="-88.6" y="-24.5" width="13.2" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-sw-led-p2" cx="-88" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="-76" y="-39.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.6px;letter-spacing:0.4px' fill="#9ba1b5">2</text><path d="M-63,-27 h22 v12.959999999999999 h-4.84 v5.040000000000001 h-12.32 v-5.040000000000001 h-4.84 Z" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><rect x="-58.6" y="-24.5" width="13.2" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-sw-led-p3" cx="-58" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="-46" y="-39.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.6px;letter-spacing:0.4px' fill="#9ba1b5">3</text><path d="M-33,-27 h22 v12.959999999999999 h-4.84 v5.040000000000001 h-12.32 v-5.040000000000001 h-4.84 Z" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><rect x="-28.6" y="-24.5" width="13.2" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-sw-led-p4" cx="-28" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="-16" y="-39.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.6px;letter-spacing:0.4px' fill="#9ba1b5">4</text><path d="M-3,-27 h22 v12.959999999999999 h-4.84 v5.040000000000001 h-12.32 v-5.040000000000001 h-4.84 Z" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><rect x="1.4000000000000004" y="-24.5" width="13.2" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-sw-led-p5" cx="2" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="14" y="-39.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.6px;letter-spacing:0.4px' fill="#9ba1b5">5</text><path d="M27,-27 h22 v12.959999999999999 h-4.84 v5.040000000000001 h-12.32 v-5.040000000000001 h-4.84 Z" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><rect x="31.4" y="-24.5" width="13.2" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-sw-led-p6" cx="32" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="44" y="-39.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.6px;letter-spacing:0.4px' fill="#9ba1b5">6</text><path d="M57,-27 h22 v12.959999999999999 h-4.84 v5.040000000000001 h-12.32 v-5.040000000000001 h-4.84 Z" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><rect x="61.4" y="-24.5" width="13.2" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-sw-led-p7" cx="62" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="74" y="-39.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.6px;letter-spacing:0.4px' fill="#9ba1b5">7</text><path d="M87,-27 h22 v12.959999999999999 h-4.84 v5.040000000000001 h-12.32 v-5.040000000000001 h-4.84 Z" fill="#0b0d12" stroke="#4f7cff" stroke-width="1.1"/><rect x="91.4" y="-24.5" width="13.2" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-sw-led-p8" cx="92" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="109" y="-39.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7px;letter-spacing:0.4px' fill="#8aa6ff">UPLINK</text>
+      <circle id="f3-sw-led-pwr" cx="138" cy="-48" r="3" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="138" y="-36" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7px;letter-spacing:0.4px' fill="#9ba1b5">PWR</text>
+    </g></g>
+<g transform="translate(1560,600) scale(1.3)"><g id="f3-dev-rt">
+      <rect x="-150" y="-104" width="300" height="104" rx="12" fill="#161921" stroke="#9ba1b5" stroke-width="2.2"/>
+      <rect x="-150" y="-104" width="300" height="4" rx="2" fill="#4f7cff"/>
+      <line x1="-150" y1="-58" x2="150" y2="-58" stroke="#2a2f3d" stroke-width="1.2"/>
+      <circle cx="-60" cy="-90" r="4.2" fill="none" stroke="#9ba1b5" stroke-width="1.1"/><path d="M-60,-95.5 V-91" stroke="#9ba1b5" stroke-width="1.1" stroke-linecap="round"/><circle id="f3-rt-led-pwr" cx="-60" cy="-76" r="3.4" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text data-layout-allow-overlap data-layout-allow-occlusion x="-60" y="-63" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:6.8px;letter-spacing:0.4px' fill="#9ba1b5">POWER</text><circle cx="-20" cy="-90" r="4.6" fill="none" stroke="#9ba1b5" stroke-width="1"/><ellipse cx="-20" cy="-90" rx="2" ry="4.6" fill="none" stroke="#9ba1b5" stroke-width="0.8"/><line x1="-24.6" y1="-90" x2="-15.4" y2="-90" stroke="#9ba1b5" stroke-width="0.8"/><circle id="f3-rt-led-inet" cx="-20" cy="-76" r="3.4" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text data-layout-allow-overlap data-layout-allow-occlusion x="-20" y="-63" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:6.8px;letter-spacing:0.4px' fill="#9ba1b5">INTERNET</text><path d="M15,-91 q5,-5 10,0 M17.2,-88.6 q2.8,-2.8 5.6,0" fill="none" stroke="#9ba1b5" stroke-width="1.1" stroke-linecap="round"/><circle cx="20" cy="-86.6" r="1" fill="#9ba1b5"/><circle id="f3-rt-led-wifi" cx="20" cy="-76" r="3.4" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text data-layout-allow-overlap data-layout-allow-occlusion x="20" y="-63" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:6.8px;letter-spacing:0.4px' fill="#9ba1b5">WI-FI</text><rect x="55" y="-93" width="4" height="4" fill="none" stroke="#9ba1b5" stroke-width="0.9"/><rect x="61" y="-93" width="4" height="4" fill="none" stroke="#9ba1b5" stroke-width="0.9"/><path d="M57,-89 v2 h6 v-2" fill="none" stroke="#9ba1b5" stroke-width="0.9"/><circle id="f3-rt-led-lan" cx="60" cy="-76" r="3.4" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text data-layout-allow-overlap data-layout-allow-occlusion x="60" y="-63" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:6.8px;letter-spacing:0.4px' fill="#9ba1b5">LAN</text>
+      <path d="M-115,-27 h22 v12.959999999999999 h-4.84 v5.040000000000001 h-12.32 v-5.040000000000001 h-4.84 Z" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><rect x="-110.6" y="-24.5" width="13.2" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-rt-led-l1" cx="-111" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="-98" y="-39.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.6px;letter-spacing:0.4px' fill="#9ba1b5">1</text><path d="M-85,-27 h22 v12.959999999999999 h-4.84 v5.040000000000001 h-12.32 v-5.040000000000001 h-4.84 Z" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><rect x="-80.6" y="-24.5" width="13.2" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-rt-led-l2" cx="-81" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="-68" y="-39.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.6px;letter-spacing:0.4px' fill="#9ba1b5">2</text><path d="M-55,-27 h22 v12.959999999999999 h-4.84 v5.040000000000001 h-12.32 v-5.040000000000001 h-4.84 Z" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><rect x="-50.6" y="-24.5" width="13.2" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-rt-led-l3" cx="-51" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="-38" y="-39.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.6px;letter-spacing:0.4px' fill="#9ba1b5">3</text><path d="M-25,-27 h22 v12.959999999999999 h-4.84 v5.040000000000001 h-12.32 v-5.040000000000001 h-4.84 Z" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><rect x="-20.6" y="-24.5" width="13.2" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-rt-led-l4" cx="-21" cy="-42" r="2.8" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="-8" y="-39.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.6px;letter-spacing:0.4px' fill="#9ba1b5">4</text>
+      <text x="-126" y="-15" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.6px;letter-spacing:0.4px' fill="#9ba1b5">LAN</text>
+      <rect x="84" y="-51" width="40" height="44" rx="4" fill="none" stroke="#4f7cff" stroke-width="1.2" stroke-opacity="0.7"/>
+      <path d="M93,-27 h22 v12.959999999999999 h-4.84 v5.040000000000001 h-12.32 v-5.040000000000001 h-4.84 Z" fill="#0b0d12" stroke="#4f7cff" stroke-width="1.1"/><rect x="97.4" y="-24.5" width="13.2" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-rt-led-wan" cx="95" cy="-42" r="3.2" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="110" y="-39.6" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:8.4px;letter-spacing:0.4px' fill="#8aa6ff">WAN</text>
+    </g></g>
+<g transform="translate(2130,600) scale(1.3)"><g id="f3-dev-mdm">
+    <rect x="-80" y="-80" width="160" height="80" rx="9" fill="#161921" stroke="#9ba1b5" stroke-width="2.2"/>
+    <rect x="-80" y="-80" width="160" height="4" rx="2" fill="#636a82"/>
+    <circle id="f3-mdm-led-pwr" cx="-40" cy="-56" r="3.2" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text data-layout-allow-overlap data-layout-allow-occlusion x="-40" y="-44" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:6.8px;letter-spacing:0.4px' fill="#9ba1b5">POWER</text><circle id="f3-mdm-led-link" cx="0" cy="-56" r="3.2" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text data-layout-allow-overlap data-layout-allow-occlusion x="0" y="-44" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:6.8px;letter-spacing:0.4px' fill="#9ba1b5">LINK</text><circle id="f3-mdm-led-inet" cx="40" cy="-56" r="3.2" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text data-layout-allow-overlap data-layout-allow-occlusion x="40" y="-44" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:6.8px;letter-spacing:0.4px' fill="#9ba1b5">INTERNET</text>
+    <path d="M-62,-26 h20 v11.52 h-4.4 v4.48 h-11.200000000000001 v-4.48 h-4.4 Z" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><rect x="-58" y="-23.5" width="12" height="2.2" rx="1" fill="#636a82" opacity="0.6"/><circle id="f3-mdm-led-lan" cx="-58" cy="-34" r="2.6" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><text x="-46" y="-31.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.2px;letter-spacing:0.4px' fill="#9ba1b5">LAN</text>
+    <circle cx="58" cy="-20" r="6" fill="#0b0d12" stroke="#636a82" stroke-width="1.1"/><circle cx="58" cy="-20" r="2" fill="#636a82"/><text x="58" y="-31.8" text-anchor="middle" style='font-family:"DM Mono";font-weight:500;font-size:7.2px;letter-spacing:0.4px' fill="#9ba1b5">LINE</text>
+  </g></g>
+<g transform="translate(2780,600) scale(1.2)"><g id="f3-dev-srv">
+    <rect x="-60" y="-156" width="120" height="156" rx="8" fill="#161921" stroke="#9ba1b5" stroke-width="2.2"/>
+    <rect x="-48" y="-146" width="96" height="34" rx="4" fill="#0b0d12"/><rect x="-40" y="-138" width="52" height="3" rx="1.5" fill="#232838"/><rect x="-40" y="-130" width="52" height="3" rx="1.5" fill="#232838"/><rect x="-40" y="-122" width="52" height="3" rx="1.5" fill="#232838"/><circle id="f3-srv-led-a" cx="34" cy="-130" r="3" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><rect x="-48" y="-102" width="96" height="34" rx="4" fill="#0b0d12"/><rect x="-40" y="-94" width="52" height="3" rx="1.5" fill="#232838"/><rect x="-40" y="-86" width="52" height="3" rx="1.5" fill="#232838"/><rect x="-40" y="-78" width="52" height="3" rx="1.5" fill="#232838"/><circle id="f3-srv-led-b" cx="34" cy="-86" r="3" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/><rect x="-48" y="-58" width="96" height="34" rx="4" fill="#0b0d12"/><rect x="-40" y="-50" width="52" height="3" rx="1.5" fill="#232838"/><rect x="-40" y="-42" width="52" height="3" rx="1.5" fill="#232838"/><rect x="-40" y="-34" width="52" height="3" rx="1.5" fill="#232838"/><circle id="f3-srv-led-c" cx="34" cy="-42" r="3" fill="#2a2f3d" stroke="#636a82" stroke-width="0.7"/>
+  </g></g>
+  
+  <g transform="translate(485,520)"><g id="f3-chip1" opacity="0">
+      <circle id="f3-chip1-c" r="17" fill="#0f1117" stroke="#4f7cff" stroke-width="2.4"/>
+      <text id="f3-chip1-n" y="6.5" text-anchor="middle" style="font-family:'DM Mono';font-weight:500;font-size:18px" fill="#e8eaf0">1</text>
+      <text x="27" y="-3" style='font-family:"DM Sans";font-weight:600;font-size:12.5px;letter-spacing:1.5px' fill="#9ba1b5">COMPUTER</text>
+      <g id="f3-chip1-ok" opacity="0"><path d="M27,12 l4,4 l7,-8" fill="none" stroke="#2dd98a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><text x="44" y="17" style='font-family:"DM Sans";font-weight:700;font-size:14px;letter-spacing:1.6px' fill="#2dd98a">VERIFIED</text></g>
+      <g id="f3-chip1-x" opacity="0"><path d="M28,8 l8,8 M36,8 l-8,8" fill="none" stroke="#ff5263" stroke-width="2.6" stroke-linecap="round"/><text x="44" y="17" style='font-family:"DM Sans";font-weight:700;font-size:14px;letter-spacing:1.6px' fill="#ff5263">FAILED</text></g>
+    </g></g><g transform="translate(824.6,478)"><g id="f3-chip2" opacity="0">
+      <circle id="f3-chip2-c" r="17" fill="#0f1117" stroke="#4f7cff" stroke-width="2.4"/>
+      <text id="f3-chip2-n" y="6.5" text-anchor="middle" style="font-family:'DM Mono';font-weight:500;font-size:18px" fill="#e8eaf0">2</text>
+      <text x="27" y="-3" style='font-family:"DM Sans";font-weight:600;font-size:12.5px;letter-spacing:1.5px' fill="#9ba1b5">SWITCH · PORT 3</text>
+      <g id="f3-chip2-ok" opacity="0"><path d="M27,12 l4,4 l7,-8" fill="none" stroke="#2dd98a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><text x="44" y="17" style='font-family:"DM Sans";font-weight:700;font-size:14px;letter-spacing:1.6px' fill="#2dd98a">VERIFIED</text></g>
+      <g id="f3-chip2-x" opacity="0"><path d="M28,8 l8,8 M36,8 l-8,8" fill="none" stroke="#ff5263" stroke-width="2.6" stroke-linecap="round"/><text x="44" y="17" style='font-family:"DM Sans";font-weight:700;font-size:14px;letter-spacing:1.6px' fill="#ff5263">FAILED</text></g>
+    </g></g><g transform="translate(1415.7,424)"><g id="f3-chip3" opacity="0">
+      <circle id="f3-chip3-c" r="17" fill="#0f1117" stroke="#4f7cff" stroke-width="2.4"/>
+      <text id="f3-chip3-n" y="6.5" text-anchor="middle" style="font-family:'DM Mono';font-weight:500;font-size:18px" fill="#e8eaf0">3</text>
+      <text x="27" y="-3" style='font-family:"DM Sans";font-weight:600;font-size:12.5px;letter-spacing:1.5px' fill="#9ba1b5">ROUTER · LAN 1</text>
+      <g id="f3-chip3-ok" opacity="0"><path d="M27,12 l4,4 l7,-8" fill="none" stroke="#2dd98a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><text x="44" y="17" style='font-family:"DM Sans";font-weight:700;font-size:14px;letter-spacing:1.6px' fill="#2dd98a">VERIFIED</text></g>
+      <g id="f3-chip3-x" opacity="0"><path d="M28,8 l8,8 M36,8 l-8,8" fill="none" stroke="#ff5263" stroke-width="2.6" stroke-linecap="round"/><text x="44" y="17" style='font-family:"DM Sans";font-weight:700;font-size:14px;letter-spacing:1.6px' fill="#ff5263">FAILED</text></g>
+    </g></g><g transform="translate(1683.5,424)"><g id="f3-chip4" opacity="0">
+      <circle id="f3-chip4-c" r="17" fill="#0f1117" stroke="#4f7cff" stroke-width="2.4"/>
+      <text id="f3-chip4-n" y="6.5" text-anchor="middle" style="font-family:'DM Mono';font-weight:500;font-size:18px" fill="#e8eaf0">4</text>
+      <text x="27" y="-3" style='font-family:"DM Sans";font-weight:600;font-size:12.5px;letter-spacing:1.5px' fill="#9ba1b5">ROUTER · WAN</text>
+      <g id="f3-chip4-ok" opacity="0"><path d="M27,12 l4,4 l7,-8" fill="none" stroke="#2dd98a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><text x="44" y="17" style='font-family:"DM Sans";font-weight:700;font-size:14px;letter-spacing:1.6px' fill="#2dd98a">VERIFIED</text></g>
+      <g id="f3-chip4-x" opacity="0"><path d="M28,8 l8,8 M36,8 l-8,8" fill="none" stroke="#ff5263" stroke-width="2.6" stroke-linecap="round"/><text x="44" y="17" style='font-family:"DM Sans";font-weight:700;font-size:14px;letter-spacing:1.6px' fill="#ff5263">FAILED</text></g>
+    </g></g>
+  <g transform="translate(0,0)"><g id="f3-plug-body" transform="translate(0,0)">
+        <rect x="1684.2" y="566.3" width="22" height="26" rx="2.5" fill="#c9cfdd" fill-opacity="0.22" stroke="#9ba1b5" stroke-width="1.3"/>
+        <rect x="1687.2" y="568.3" width="1.6" height="6" fill="#f5a623" opacity="0.8"/><rect x="1690.2" y="568.3" width="1.6" height="6" fill="#f5a623" opacity="0.8"/><rect x="1693.2" y="568.3" width="1.6" height="6" fill="#f5a623" opacity="0.8"/><rect x="1696.2" y="568.3" width="1.6" height="6" fill="#f5a623" opacity="0.8"/><rect x="1699.2" y="568.3" width="1.6" height="6" fill="#f5a623" opacity="0.8"/><rect x="1702.2" y="568.3" width="1.6" height="6" fill="#f5a623" opacity="0.8"/>
+        <rect x="1689.2" y="592.3" width="12" height="12" rx="2" fill="#161921" stroke="#9ba1b5" stroke-width="1.2"/>
+      </g></g>
+<g id="f3-tag-sw" opacity="0"><text x="900" y="470" text-anchor="middle" style='font-family:"DM Sans";font-weight:700;font-size:22px;letter-spacing:3.2px' fill="#e8eaf0">SWITCH</text><text x="900" y="498" text-anchor="middle" style='font-family:"DM Sans";font-weight:400;font-size:19px;letter-spacing:0px' fill="#9ba1b5">one port for each device</text></g>
+<g id="f3-tag-rt" opacity="0"><text x="1560" y="420" text-anchor="middle" style='font-family:"DM Sans";font-weight:700;font-size:22px;letter-spacing:3.2px' fill="#e8eaf0">ROUTER</text><text x="1560" y="448" text-anchor="middle" style='font-family:"DM Sans";font-weight:400;font-size:19px;letter-spacing:0px' fill="#9ba1b5">links the school to its provider</text></g>
+<g id="f3-tag-mdm" opacity="0"><text x="2130" y="460" text-anchor="middle" style='font-family:"DM Sans";font-weight:700;font-size:22px;letter-spacing:3.2px' fill="#e8eaf0">PROVIDER MODEM</text><text x="2130" y="488" text-anchor="middle" style='font-family:"DM Sans";font-weight:400;font-size:19px;letter-spacing:0px' fill="#9ba1b5">the provider's end of the line</text></g>
+<g id="f3-side-lan" opacity="0"><path d="M1408.8,466 V458 H1557.8 V466" fill="none" stroke="#4f7cff" stroke-width="1.6"/><text x="1483.3" y="448" text-anchor="middle" style='font-family:"DM Sans";font-weight:600;font-size:15px;letter-spacing:0.4px' fill="#e8eaf0">LAN · the school side</text></g>
+      <g id="f3-side-wan" opacity="0"><path d="M1675.2,466 V458 H1715.2 V466" fill="none" stroke="#4f7cff" stroke-width="1.6"/><text x="1695.2" y="448" text-anchor="middle" style='font-family:"DM Sans";font-weight:600;font-size:15px;letter-spacing:0.4px' fill="#e8eaf0">WAN · the provider side</text></g>
+<g transform="translate(1683.5,545.4)"><g id="f3-seek" opacity="0"><circle r="11" fill="none" stroke="#f5a623" stroke-width="1.6" stroke-dasharray="3 3"/></g></g>
+      <g id="f3-nolink" opacity="0"><path d="M1723.2,545.4 H1759.2" stroke="#ff5263" stroke-width="1.2" stroke-dasharray="2.5 3" opacity="0.8"/><text x="1764.2" y="549.9" text-anchor="start" style='font-family:"DM Sans";font-weight:700;font-size:11px;letter-spacing:1.4px' fill="#ff5263">NO LINK</text></g>
+      <g transform="translate(1683.5,545.4)"><g id="f3-linkup" opacity="0"><circle r="7" fill="none" stroke="#2dd98a" stroke-width="1.6"/></g></g>
+<path id="f3-lead3" opacity="0" d="M1415.7,455 V538.4" stroke="#9ba1b5" stroke-width="1.4" stroke-dasharray="3 4"/>
+      <path id="f3-lead4" opacity="0" d="M1683.5,455 V538.4" stroke="#9ba1b5" stroke-width="1.4" stroke-dasharray="3 4"/>
+<g id="f3-ffl" opacity="0"><text x="1709.5" y="460" text-anchor="start" style='font-family:"DM Sans";font-weight:700;font-size:15px;letter-spacing:2.2px' fill="#ff5263">FIRST FAILED LINK</text></g>
+<g id="f3-domain" opacity="0"><rect x="1668" y="452" width="596" height="272" rx="22" fill="#ff5263" fill-opacity="0.035" stroke="#ff5263" stroke-opacity="0.75" stroke-width="1.8" stroke-dasharray="10 8"/>
+        <text x="1690" y="756" text-anchor="start" style='font-family:"DM Sans";font-weight:700;font-size:22px;letter-spacing:2.6px' fill="#ff5263">FAULT DOMAIN</text><text x="1898" y="756" text-anchor="start" style='font-family:"DM Sans";font-weight:500;font-size:22px;letter-spacing:0px' fill="#e8eaf0">physical link · router WAN ↔ modem</text></g>
+      <g transform="translate(2054.6,555.8)"><g id="f3-mdmlan" opacity="0"><circle r="10" fill="none" stroke="#ff5263" stroke-width="1.6" stroke-dasharray="3 3"/></g></g>
+      <g id="f3-causes" opacity="0"><rect x="2290" y="382" width="300" height="136" rx="14" fill="#161921" stroke="#9ba1b5" stroke-opacity="0.5" stroke-width="1.6"/>
+        <text x="2312" y="412" text-anchor="start" style='font-family:"DM Sans";font-weight:600;font-size:14px;letter-spacing:2.4px' fill="#9ba1b5">MOST LIKELY</text>
+        <rect id="f3-cause1" opacity="0" x="2302" y="424" width="276" height="40" rx="8" fill="#4f7cff" fill-opacity="0.16" stroke="#4f7cff" stroke-opacity="0.6"/>
+        <text x="2318" y="451" text-anchor="start" style='font-family:"DM Sans";font-weight:600;font-size:22px;letter-spacing:0px' fill="#e8eaf0">WAN cable loose</text>
+        <text x="2312" y="497" text-anchor="start" style='font-family:"DM Sans";font-weight:500;font-size:16px;letter-spacing:0px' fill="#9ba1b5">also: modem off, damaged cable</text></g>
+      <g id="f3-upstream" opacity="0"><text x="2400" y="652" text-anchor="start" style='font-family:"DM Sans";font-weight:700;font-size:17px;letter-spacing:2.4px' fill="#2dd98a">UPSTREAM</text><text x="2400" y="678" text-anchor="start" style='font-family:"DM Sans";font-weight:500;font-size:18px;letter-spacing:0px' fill="#9ba1b5">modem ↔ internet: lights OK</text></g>
+<g id="f3-loose" opacity="0"><text x="1719.2" y="614.3" text-anchor="start" style='font-family:"DM Sans";font-weight:700;font-size:8px;letter-spacing:1.4px' fill="#ff5263">LOOSE</text><path d="M1717.2,610.3 L1709.2,603.3" stroke="#ff5263" stroke-width="1.2"/></g>
+  <g id="f3-packets"></g>
+</svg>
+      </div></div>
+      <div id="f3-scrim"></div>
+      <div id="f3-slate"><div class="k">Connectivity</div><div class="t">Follow the signal</div></div>
+      <svg class="f3-svg" viewBox="0 0 1920 1080" width="1920" height="1080" xmlns="http://www.w3.org/2000/svg"><g id="f3-lesson" opacity="0">
+    <g transform="translate(795,34) scale(1.1)"><path d="M24.33,10c-.54-1.27.49-3,1.84-4.71A14.81,14.81,0,0,1,29.76,12C27.32,11.83,24.94,11.43,24.33,10ZM13.21,5.57c1.47-.63,1.93-2.75,2.1-5h-.68A14.79,14.79,0,0,0,7.28,2.91C9.27,4.65,11.5,6.3,13.21,5.57ZM24.59,3.84A14.81,14.81,0,0,0,17.27.7c.23,2.15.8,4.14,2.42,4.79S23,5.16,24.59,3.84ZM24.41,16.5c-.78,2,1.69,4.33,3.74,6.39a14.79,14.79,0,0,0,2-8.12c0-.2,0-.39,0-.58C27.59,14.4,25.07,14.86,24.41,16.5Zm-15.65.19c-.55-2-8-1.77-8.32-1.68,0,.36,0,.72,0,1.08A14.79,14.79,0,0,0,3.59,24.6C5.35,22.59,9.31,18.7,8.76,16.69Zm-.08-6.48c.71-1.76-1.16-4.08-3-6.1a14.87,14.87,0,0,0-4.91,8.2C3.8,12.17,7.83,12.34,8.68,10.21Zm11.2,10.94c-2.19.94-1.68,7.26-1.59,8.85a14.83,14.83,0,0,0,8.32-4.93C24.4,23,21.78,20.33,19.88,21.14Zm-6.48.08c-2.8-1-7.6,4.91-7.94,5.36a14.81,14.81,0,0,0,9.76,3.72C15.25,29.12,16.2,22.21,13.4,21.22Z" fill="#ffae00"/><path d="M37.84,14.59a8.8,8.8,0,1,1,8.77,8.66A8.57,8.57,0,0,1,37.84,14.59Zm14.08,0a5.28,5.28,0,1,0-10.56,0,5.28,5.28,0,1,0,10.56,0Z" fill="#ffffff"/><path d="M70.64,16.73a6.23,6.23,0,0,1-6.15,6.54,5.16,5.16,0,0,1-3.91-1.74v6.56H57.37V10.52h3.2V12a5.08,5.08,0,0,1,4-1.85A6.22,6.22,0,0,1,70.64,16.73Zm-3.24,0a3.44,3.44,0,1,0-6.88,0,3.44,3.44,0,1,0,6.88,0Z" fill="#ffffff"/><path d="M85.69,16.73a6.23,6.23,0,0,1-6.15,6.54,5.16,5.16,0,0,1-3.91-1.74v6.56H72.41V10.52h3.2V12a5.08,5.08,0,0,1,4-1.85A6.22,6.22,0,0,1,85.69,16.73Zm-3.24,0a3.44,3.44,0,1,0-6.88,0,3.44,3.44,0,1,0,6.88,0Z" fill="#ffffff"/><path d="M86.75,16.73a6.67,6.67,0,0,1,13.34,0,6.67,6.67,0,0,1-13.34,0Zm10.12,0a3.45,3.45,0,1,0-3.45,3.56A3.47,3.47,0,0,0,96.87,16.73Z" fill="#ffffff"/><path d="M101.81,10.52h3.08v1.67a3.73,3.73,0,0,1,3.43-2,4.58,4.58,0,0,1,1.51.27l-.28,3.08a4.93,4.93,0,0,0-1.48-.25c-1.69,0-3,1.05-3,3.77V23h-3.22Z" fill="#ffffff"/><path d="M120.94,22.24a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.21h-2v-2.7h2.06V6.11h3.2v4.41h4.11v2.7h-4.11v4.94c0,1.44.55,2.19,1.76,2.19A4.21,4.21,0,0,0,120,19.7Z" fill="#ffffff"/><path d="M122.24,17.72v-7.2h3.22v7.2a2.49,2.49,0,1,0,5,0v-7.2h3.22v7.2c0,3.54-2.19,5.55-5.71,5.55S122.24,21.23,122.24,17.72Z" fill="#ffffff"/><path d="M135.95,10.52h3.15v1.74A4.36,4.36,0,0,1,143,10.18c2.51,0,4.87,1.67,4.87,5.19V23h-3.22V16.23c0-2-1.07-3.08-2.63-3.08a2.87,2.87,0,0,0-2.86,3.15V23h-3.22Z" fill="#ffffff"/><path d="M149.79,7.14a2,2,0,1,1,2,2A1.94,1.94,0,0,1,149.79,7.14ZM150.16,23V10.52h3.22V23Z" fill="#ffffff"/><path d="M165.12,22.24a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.21h-2v-2.7h2.06V6.11h3.2v4.41h4.11v2.7h-4.11v4.94c0,1.44.55,2.19,1.76,2.19a4.21,4.21,0,0,0,2.08-.64Z" fill="#ffffff"/><path d="M179,10.52l-5,13.07c-1.19,3.06-2.74,4.68-5.28,4.68a4.55,4.55,0,0,1-2.4-.62l.55-2.7a3.75,3.75,0,0,0,1.6.41c1,0,1.78-.59,2.42-2l.25-.57L165.7,10.52h3.72l3.22,8.11,2.83-8.11Z" fill="#ffffff"/><path d="M185.72,6.14h11.45V9.29h-8v3.63h7.45v3.15h-7.45v3.79h8V23H185.72Z" fill="#ffffff"/><path d="M211.66,5.66V23H208.5V21.49a4.8,4.8,0,0,1-3.86,1.83,6.21,6.21,0,0,1-6.17-6.54,6.25,6.25,0,0,1,6.17-6.53A4.81,4.81,0,0,1,208.43,12V5.66Zm-3.06,11.13a3.46,3.46,0,1,0-6.92,0,3.46,3.46,0,1,0,6.92,0Z" fill="#ffffff"/><path d="M214,17.77v-7.2h3.22v7.2a2.49,2.49,0,1,0,5,0v-7.2h3.22v7.2c0,3.54-2.19,5.55-5.71,5.55S214,21.29,214,17.77Z" fill="#ffffff"/><path d="M226.92,16.79a6.35,6.35,0,0,1,6.69-6.53,6.21,6.21,0,0,1,5.81,3.47l-2.58,1.42a3.71,3.71,0,0,0-3.18-1.9,3.46,3.46,0,0,0-3.54,3.54,3.44,3.44,0,0,0,3.47,3.56,3.68,3.68,0,0,0,3.18-1.87l2.6,1.53a6.5,6.5,0,0,1-5.85,3.29A6.3,6.3,0,0,1,226.92,16.79Z" fill="#ffffff"/><path d="M253.27,10.57V23h-3.06V21.59a5.28,5.28,0,0,1-4,1.74c-3.61,0-6.17-2.88-6.17-6.58a6.15,6.15,0,0,1,6.17-6.49,5.21,5.21,0,0,1,4,1.8V10.57Zm-3,6.22a3.49,3.49,0,1,0-7,0,3.49,3.49,0,1,0,7,0Z" fill="#ffffff"/><path d="M265.12,22.3a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.27h-2v-2.7h2.06V6.16h3.2v4.41h4.11v2.7h-4.11V18.2c0,1.44.55,2.19,1.76,2.19a4.21,4.21,0,0,0,2.08-.64Z" fill="#ffffff"/><path d="M266.34,7.19a2,2,0,1,1,2,2A1.94,1.94,0,0,1,266.34,7.19ZM266.7,23V10.57h3.22V23Z" fill="#ffffff"/><path d="M271.54,16.79a6.67,6.67,0,0,1,13.34,0,6.67,6.67,0,0,1-13.34,0Zm10.12,0a3.45,3.45,0,1,0-3.45,3.56A3.47,3.47,0,0,0,281.66,16.79Z" fill="#ffffff"/><path d="M286.6,10.57h3.15v1.74a4.36,4.36,0,0,1,3.91-2.08c2.51,0,4.87,1.67,4.87,5.19V23H295.3V16.29c0-2-1.07-3.08-2.63-3.08a2.87,2.87,0,0,0-2.86,3.15V23H286.6Z" fill="#ffffff"/></g>
+    <rect x="912" y="90" width="96" height="3" rx="1.5" fill="#FFAE00"/>
+    <text x="960" y="164" text-anchor="middle" style='font-family:"DM Sans";font-weight:600;font-size:62px;letter-spacing:-1.2px' fill="#e8eaf0">Check the path in order.</text>
+    <text x="960" y="214" text-anchor="middle" style='font-family:"DM Sans";font-weight:500;font-size:34px' fill="#9ba1b5">The first failed link shows where to investigate.</text>
+  </g></svg>
+      <svg class="f3-svg" viewBox="0 0 1920 1080" width="1920" height="1080" xmlns="http://www.w3.org/2000/svg"><g id="f3-vreq" opacity="0"><text x="960" y="226" text-anchor="middle" style='font-family:"DM Sans";font-weight:700;font-size:24px;letter-spacing:4px' fill="#4f7cff">REQUEST</text><text x="960" y="286" text-anchor="middle" style='font-family:"DM Sans";font-weight:600;font-size:40px;letter-spacing:0px' fill="#636a82"><tspan id="f3-vreq-h0" dx="0" fill="#636a82">Computer</tspan><tspan id="f3-vreq-a1" dx="14" fill="#636a82">→</tspan><tspan id="f3-vreq-h1" dx="14" fill="#636a82">Switch</tspan><tspan id="f3-vreq-a2" dx="14" fill="#636a82">→</tspan><tspan id="f3-vreq-h2" dx="14" fill="#636a82">Router</tspan><tspan id="f3-vreq-a3" dx="14" fill="#636a82">→</tspan><tspan id="f3-vreq-h3" dx="14" fill="#636a82">Provider</tspan><tspan id="f3-vreq-a4" dx="14" fill="#636a82">→</tspan><tspan id="f3-vreq-h4" dx="14" fill="#636a82">Internet</tspan></text></g>
+      <g id="f3-vrep" opacity="0"><text x="960" y="226" text-anchor="middle" style='font-family:"DM Sans";font-weight:700;font-size:24px;letter-spacing:4px' fill="#2dd98a">RESPONSE</text><text x="960" y="286" text-anchor="middle" style='font-family:"DM Sans";font-weight:600;font-size:40px;letter-spacing:0px' fill="#636a82"><tspan id="f3-vrep-h0" dx="0" fill="#636a82">Internet</tspan><tspan id="f3-vrep-a1" dx="14" fill="#636a82">→</tspan><tspan id="f3-vrep-h1" dx="14" fill="#636a82">Provider</tspan><tspan id="f3-vrep-a2" dx="14" fill="#636a82">→</tspan><tspan id="f3-vrep-h2" dx="14" fill="#636a82">Router</tspan><tspan id="f3-vrep-a3" dx="14" fill="#636a82">→</tspan><tspan id="f3-vrep-h3" dx="14" fill="#636a82">Switch</tspan><tspan id="f3-vrep-a4" dx="14" fill="#636a82">→</tspan><tspan id="f3-vrep-h4" dx="14" fill="#636a82">Computer</tspan></text></g>
+      <g id="f3-verified" opacity="0"><text x="960" y="272" text-anchor="middle" style='font-family:"DM Sans";font-weight:700;font-size:48px;letter-spacing:4px' fill="#2dd98a">CONNECTIVITY VERIFIED</text><text x="960" y="324" text-anchor="middle" style='font-family:"DM Sans";font-weight:500;font-size:27px;letter-spacing:0.4px' fill="#9ba1b5">request sent · answer received</text></g></svg>
+      <div id="f3-bug"><svg viewBox="0 0 300 31" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Opportunity Education"><path d="M24.33,10c-.54-1.27.49-3,1.84-4.71A14.81,14.81,0,0,1,29.76,12C27.32,11.83,24.94,11.43,24.33,10ZM13.21,5.57c1.47-.63,1.93-2.75,2.1-5h-.68A14.79,14.79,0,0,0,7.28,2.91C9.27,4.65,11.5,6.3,13.21,5.57ZM24.59,3.84A14.81,14.81,0,0,0,17.27.7c.23,2.15.8,4.14,2.42,4.79S23,5.16,24.59,3.84ZM24.41,16.5c-.78,2,1.69,4.33,3.74,6.39a14.79,14.79,0,0,0,2-8.12c0-.2,0-.39,0-.58C27.59,14.4,25.07,14.86,24.41,16.5Zm-15.65.19c-.55-2-8-1.77-8.32-1.68,0,.36,0,.72,0,1.08A14.79,14.79,0,0,0,3.59,24.6C5.35,22.59,9.31,18.7,8.76,16.69Zm-.08-6.48c.71-1.76-1.16-4.08-3-6.1a14.87,14.87,0,0,0-4.91,8.2C3.8,12.17,7.83,12.34,8.68,10.21Zm11.2,10.94c-2.19.94-1.68,7.26-1.59,8.85a14.83,14.83,0,0,0,8.32-4.93C24.4,23,21.78,20.33,19.88,21.14Zm-6.48.08c-2.8-1-7.6,4.91-7.94,5.36a14.81,14.81,0,0,0,9.76,3.72C15.25,29.12,16.2,22.21,13.4,21.22Z" fill="#ffae00"/><path d="M37.84,14.59a8.8,8.8,0,1,1,8.77,8.66A8.57,8.57,0,0,1,37.84,14.59Zm14.08,0a5.28,5.28,0,1,0-10.56,0,5.28,5.28,0,1,0,10.56,0Z" fill="#ffffff"/><path d="M70.64,16.73a6.23,6.23,0,0,1-6.15,6.54,5.16,5.16,0,0,1-3.91-1.74v6.56H57.37V10.52h3.2V12a5.08,5.08,0,0,1,4-1.85A6.22,6.22,0,0,1,70.64,16.73Zm-3.24,0a3.44,3.44,0,1,0-6.88,0,3.44,3.44,0,1,0,6.88,0Z" fill="#ffffff"/><path d="M85.69,16.73a6.23,6.23,0,0,1-6.15,6.54,5.16,5.16,0,0,1-3.91-1.74v6.56H72.41V10.52h3.2V12a5.08,5.08,0,0,1,4-1.85A6.22,6.22,0,0,1,85.69,16.73Zm-3.24,0a3.44,3.44,0,1,0-6.88,0,3.44,3.44,0,1,0,6.88,0Z" fill="#ffffff"/><path d="M86.75,16.73a6.67,6.67,0,0,1,13.34,0,6.67,6.67,0,0,1-13.34,0Zm10.12,0a3.45,3.45,0,1,0-3.45,3.56A3.47,3.47,0,0,0,96.87,16.73Z" fill="#ffffff"/><path d="M101.81,10.52h3.08v1.67a3.73,3.73,0,0,1,3.43-2,4.58,4.58,0,0,1,1.51.27l-.28,3.08a4.93,4.93,0,0,0-1.48-.25c-1.69,0-3,1.05-3,3.77V23h-3.22Z" fill="#ffffff"/><path d="M120.94,22.24a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.21h-2v-2.7h2.06V6.11h3.2v4.41h4.11v2.7h-4.11v4.94c0,1.44.55,2.19,1.76,2.19A4.21,4.21,0,0,0,120,19.7Z" fill="#ffffff"/><path d="M122.24,17.72v-7.2h3.22v7.2a2.49,2.49,0,1,0,5,0v-7.2h3.22v7.2c0,3.54-2.19,5.55-5.71,5.55S122.24,21.23,122.24,17.72Z" fill="#ffffff"/><path d="M135.95,10.52h3.15v1.74A4.36,4.36,0,0,1,143,10.18c2.51,0,4.87,1.67,4.87,5.19V23h-3.22V16.23c0-2-1.07-3.08-2.63-3.08a2.87,2.87,0,0,0-2.86,3.15V23h-3.22Z" fill="#ffffff"/><path d="M149.79,7.14a2,2,0,1,1,2,2A1.94,1.94,0,0,1,149.79,7.14ZM150.16,23V10.52h3.22V23Z" fill="#ffffff"/><path d="M165.12,22.24a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.21h-2v-2.7h2.06V6.11h3.2v4.41h4.11v2.7h-4.11v4.94c0,1.44.55,2.19,1.76,2.19a4.21,4.21,0,0,0,2.08-.64Z" fill="#ffffff"/><path d="M179,10.52l-5,13.07c-1.19,3.06-2.74,4.68-5.28,4.68a4.55,4.55,0,0,1-2.4-.62l.55-2.7a3.75,3.75,0,0,0,1.6.41c1,0,1.78-.59,2.42-2l.25-.57L165.7,10.52h3.72l3.22,8.11,2.83-8.11Z" fill="#ffffff"/><path d="M185.72,6.14h11.45V9.29h-8v3.63h7.45v3.15h-7.45v3.79h8V23H185.72Z" fill="#ffffff"/><path d="M211.66,5.66V23H208.5V21.49a4.8,4.8,0,0,1-3.86,1.83,6.21,6.21,0,0,1-6.17-6.54,6.25,6.25,0,0,1,6.17-6.53A4.81,4.81,0,0,1,208.43,12V5.66Zm-3.06,11.13a3.46,3.46,0,1,0-6.92,0,3.46,3.46,0,1,0,6.92,0Z" fill="#ffffff"/><path d="M214,17.77v-7.2h3.22v7.2a2.49,2.49,0,1,0,5,0v-7.2h3.22v7.2c0,3.54-2.19,5.55-5.71,5.55S214,21.29,214,17.77Z" fill="#ffffff"/><path d="M226.92,16.79a6.35,6.35,0,0,1,6.69-6.53,6.21,6.21,0,0,1,5.81,3.47l-2.58,1.42a3.71,3.71,0,0,0-3.18-1.9,3.46,3.46,0,0,0-3.54,3.54,3.44,3.44,0,0,0,3.47,3.56,3.68,3.68,0,0,0,3.18-1.87l2.6,1.53a6.5,6.5,0,0,1-5.85,3.29A6.3,6.3,0,0,1,226.92,16.79Z" fill="#ffffff"/><path d="M253.27,10.57V23h-3.06V21.59a5.28,5.28,0,0,1-4,1.74c-3.61,0-6.17-2.88-6.17-6.58a6.15,6.15,0,0,1,6.17-6.49,5.21,5.21,0,0,1,4,1.8V10.57Zm-3,6.22a3.49,3.49,0,1,0-7,0,3.49,3.49,0,1,0,7,0Z" fill="#ffffff"/><path d="M265.12,22.3a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.27h-2v-2.7h2.06V6.16h3.2v4.41h4.11v2.7h-4.11V18.2c0,1.44.55,2.19,1.76,2.19a4.21,4.21,0,0,0,2.08-.64Z" fill="#ffffff"/><path d="M266.34,7.19a2,2,0,1,1,2,2A1.94,1.94,0,0,1,266.34,7.19ZM266.7,23V10.57h3.22V23Z" fill="#ffffff"/><path d="M271.54,16.79a6.67,6.67,0,0,1,13.34,0,6.67,6.67,0,0,1-13.34,0Zm10.12,0a3.45,3.45,0,1,0-3.45,3.56A3.47,3.47,0,0,0,281.66,16.79Z" fill="#ffffff"/><path d="M286.6,10.57h3.15v1.74a4.36,4.36,0,0,1,3.91-2.08c2.51,0,4.87,1.67,4.87,5.19V23H295.3V16.29c0-2-1.07-3.08-2.63-3.08a2.87,2.87,0,0,0-2.86,3.15V23H286.6Z" fill="#ffffff"/></svg></div>
+    </div>
+  </div>
+  <script>
+  (function () {
+    var P = "f3-", C = {"bg":"#0f1117","surface":"#161921","well":"#0b0d12","raised":"#232838","line":"#2a2f3d","cable":"#4a5268","primary":"#4f7cff","primaryText":"#8aa6ff","text":"#e8eaf0","muted":"#9ba1b5","faint":"#636a82","pos":"#2dd98a","neg":"#ff5263","warn":"#f5a623","gold":"#FFAE00"}, CX = 960, CY = 440;
+    var PK = [{"id":"lead","end":"fade","kind":"packet","trail":true,"pts":[[-12.712,406.9,574],[-12.462,406.9,574],[-12.429,409.05,589.09],[-12.396,415.27,602.88],[-12.363,424.72,614.9],[-12.33,436.09,624.86],[-12.297,448.46,633.05],[-12.264,461.83,640.08],[-12.231,475.79,646.05],[-12.198,490.02,651.08],[-12.165,504.22,655.28],[-12.132,519.11,658.96],[-12.099,533.61,661.94],[-12.066,548.55,664.47],[-12.033,563.86,666.55],[-12,579.44,668.17],[-11.967,594.17,669.29],[-11.934,609.02,670.01],[-11.9,623.9,670.34],[-11.867,638.77,670.29],[-11.834,654.61,669.8],[-11.801,669.24,668.95],[-11.768,684.66,667.6],[-11.735,699.76,665.82],[-11.702,714.45,663.6],[-11.669,729.57,660.75],[-11.636,744.04,657.4],[-11.603,758.59,653.3],[-11.57,772.95,648.36],[-11.537,786.78,642.46],[-11.504,799.69,635.51],[-11.471,812.21,626.58],[-11.438,822.68,615.73],[-11.405,829.89,602.7],[-11.372,832.4,588.3],[-11.341,832.4,584.14],[-11.31,832.4,579.97],[-11.278,832.4,575.76],[-11.247,832.4,571.65],[-11.216,832.4,567.49],[-11.185,832.4,563.27],[-11.153,832.4,559.11],[-11.122,832.4,555],[-11.09,844.1,555],[-11.057,855.48,555],[-11.025,866.85,555],[-10.993,878.55,555],[-10.96,889.92,555],[-10.928,901.3,555],[-10.896,913,555],[-10.863,924.38,555],[-10.831,935.75,555],[-10.798,947.13,555],[-10.766,958.83,555],[-10.734,970.2,555],[-10.701,981.58,555],[-10.669,993.28,555],[-10.637,1004.65,555],[-10.604,1016.03,555],[-10.572,1027.4,555],[-10.539,1027.4,560.61],[-10.505,1027.4,566.1],[-10.472,1027.4,571.65],[-10.439,1027.4,577.26],[-10.405,1027.4,582.75],[-10.372,1027.4,588.3],[-10.339,1027.95,595.4],[-10.306,1029.57,602.19],[-10.272,1032.46,609.15],[-10.239,1035.84,614.83],[-10.206,1040.38,620.67],[-10.173,1045.35,625.79],[-10.139,1050.54,630.24],[-10.106,1056.29,634.47],[-10.073,1061.98,638.12],[-10.04,1068.73,641.92],[-10.007,1074.61,644.86],[-9.973,1081.5,647.95],[-9.94,1088.01,650.57],[-9.907,1094.02,652.77],[-9.874,1101.03,655.11],[-9.84,1107.46,657.06],[-9.807,1114.91,659.11],[-9.774,1121.71,660.81],[-9.741,1128.67,662.39],[-9.707,1135.77,663.85],[-9.674,1142.09,665.03],[-9.641,1149.43,666.27],[-9.608,1155.94,667.25],[-9.575,1163.48,668.26],[-9.541,1170.15,669.05],[-9.508,1176.88,669.75],[-9.475,1184.65,670.43],[-9.442,1191.49,670.93],[-9.408,1198.36,671.35],[-9.375,1205.27,671.66],[-9.342,1212.2,671.89],[-9.309,1219.15,672.03],[-9.275,1227.09,672.07],[-9.242,1234.05,672.02],[-9.209,1240.99,671.87],[-9.176,1247.92,671.62],[-9.143,1254.82,671.29],[-9.109,1261.69,670.87],[-9.076,1268.53,670.35],[-9.043,1276.28,669.65],[-9.01,1283.01,668.94],[-8.976,1289.67,668.14],[-8.943,1297.19,667.11],[-8.91,1303.7,666.12],[-8.877,1311.02,664.87],[-8.844,1317.33,663.67],[-8.81,1324.41,662.2],[-8.777,1331.35,660.61],[-8.744,1338.13,658.89],[-8.711,1345.55,656.82],[-8.677,1351.96,654.86],[-8.644,1358.94,652.5],[-8.611,1364.93,650.29],[-8.578,1371.4,647.65],[-8.545,1378.26,644.54],[-8.511,1384.1,641.58],[-8.478,1390.81,637.76],[-8.445,1396.46,634.09],[-8.412,1402.16,629.84],[-8.378,1407.29,625.37],[-8.345,1412.2,620.23],[-8.312,1416.67,614.36],[-8.279,1419.98,608.67],[-8.245,1422.79,601.68],[-8.212,1424.33,594.87],[-8.179,1424.8,588.3],[-8.146,1424.8,578.92],[-8.112,1424.8,569.53],[-8.079,1424.8,560.15],[-8.046,1424.8,550.77],[-8.012,1424.8,541.38],[-7.979,1424.8,532],[0.6,1424.8,532],[0.634,1432.91,532],[0.668,1441.02,532],[0.701,1448.69,532],[0.735,1456.8,532],[0.769,1464.91,532],[0.803,1472.57,532],[0.837,1480.68,532],[0.871,1488.79,532],[0.904,1496.46,532],[0.938,1504.57,532],[0.972,1512.68,532],[1.006,1520.34,532],[1.04,1528.45,532],[1.074,1536.57,532],[1.107,1544.23,532],[1.141,1552.34,532],[1.175,1560,532],[1.209,1568.11,532],[1.243,1576.22,532],[1.276,1583.89,532],[1.31,1592,532],[1.344,1600.11,532],[1.378,1607.77,532],[1.412,1615.88,532],[1.446,1623.99,532],[1.479,1631.66,532],[1.513,1639.77,532],[1.547,1647.88,532],[1.581,1655.54,532],[1.615,1663.65,532],[1.649,1671.77,532],[1.682,1679.43,532],[1.716,1687.54,532],[1.75,1695.2,532],[1.783,1695.2,536.41],[1.816,1695.2,540.73],[1.85,1695.2,545.04],[1.883,1695.2,549.36],[1.916,1695.2,553.68],[1.949,1695.2,557.99],[1.983,1695.2,562.4],[2.016,1695.2,566.72],[2.049,1695.2,571.03],[2.082,1695.2,575.35],[2.116,1695.2,579.67],[2.149,1695.2,583.98],[2.182,1695.2,588.3],[2.402,1695.2,603.3],[2.642,1695.2,588.3],[3.062,1695.2,588.3],[3.282,1695.2,603.3],[3.522,1695.2,588.3],[3.942,1695.2,588.3]]}];
+
+    var $ = function (s) { return document.getElementById(P + s); };
+    var tl = gsap.timeline({ paused: true });
+    /** Camera: world (px,py) at the frame's centre, zoom s; nested wrappers so the focus travels straight. */
+    function cam(s, px, py, at, dur, ease) {
+      if (!dur) { tl.set($('cam-move'), { x: CX - px, y: CY - py }, at); tl.set($('cam-scale'), { scale: s }, at); return; }
+      tl.to($('cam-move'), { x: CX - px, y: CY - py, duration: dur, ease: ease || 'power2.inOut' }, at);
+      tl.to($('cam-scale'), { scale: s, duration: dur, ease: ease || 'power2.inOut' }, at);
+    }
+    function camKeys(z, at) { tl.to($('cam-move'), { keyframes: z.move }, at); tl.to($('cam-scale'), { keyframes: z.scale }, at); }
+    function show(el, at, d, from) { tl.fromTo(el, Object.assign({ opacity: 0 }, from || {}), { opacity: 1, x: 0, y: 0, duration: d || 0.5, ease: 'power3.out' }, at); }
+    function fade(el, o, at, d) { tl.to(el, { opacity: o, duration: d || 0.4, ease: 'power1.out' }, at); }
+    function on(el, at) { tl.set(el, { opacity: 1 }, at); }
+    function off(el, at) { tl.set(el, { opacity: 0 }, at); }
+    function drawLink(key, at, d) { tl.to($(key + '-lit'), { strokeDashoffset: 0, duration: d, ease: 'none' }, at); }
+    function linkOn(key, at) { tl.set($(key + '-lit'), { strokeDashoffset: 0 }, at); }
+    function linkDark(key, at, d) { var el = $(key + '-lit'); tl.to(el, { strokeDashoffset: el.getAttribute('data-len'), duration: d || 0.5, ease: 'power2.in' }, at); }
+    function linkColor(key, color, at, d) { tl.to($(key + '-lit'), { attr: { stroke: color }, duration: d || 0.15 }, at); }
+    /** Break a split link (key+'a' / key+'b') at its middle; mend reverses it. */
+    function breakLink(key, at, instant) {
+      var parts = [key + 'a', key + 'b'];
+      if (instant) { tl.set($(parts[0] + '-lit'), { attr: { stroke: C.neg }, strokeDashoffset: 26 }, at); tl.set($(parts[0] + '-base'), { strokeDashoffset: 26 }, at);
+        tl.set($(parts[1] + '-lit'), { attr: { stroke: C.neg }, strokeDashoffset: -26 }, at); tl.set($(parts[1] + '-base'), { strokeDashoffset: -26 }, at); tl.set($(key + '-gap'), { opacity: 1 }, at); return; }
+      tl.to([$(parts[0] + '-lit'), $(parts[1] + '-lit')], { attr: { stroke: C.neg }, duration: 0.12 }, at - 0.25);
+      tl.to([$(parts[0] + '-lit'), $(parts[0] + '-base')], { strokeDashoffset: 26, duration: 0.3, ease: 'power3.out' }, at);
+      tl.to([$(parts[1] + '-lit'), $(parts[1] + '-base')], { strokeDashoffset: -26, duration: 0.3, ease: 'power3.out' }, at);
+      tl.fromTo($(key + '-gap'), { opacity: 0, scale: 0.5 }, { opacity: 1, scale: 1, duration: 0.3, ease: 'power3.out', transformOrigin: '50% 50%' }, at + 0.05);
+    }
+    function mendLink(key, at) {
+      tl.to([$(key + 'a-lit'), $(key + 'a-base'), $(key + 'b-lit'), $(key + 'b-base')], { strokeDashoffset: 0, duration: 0.5, ease: 'power3.inOut' }, at - 0.5);
+      tl.to($(key + '-gap'), { opacity: 0, duration: 0.25 }, at - 0.45);
+      tl.to([$(key + 'a-lit'), $(key + 'b-lit')], { attr: { stroke: C.primary }, duration: 0.3 }, at - 0.05);
+    }
+    function dim(dev, o, at, d) { if (d) tl.to($('dev-' + dev), { opacity: o, duration: d, ease: 'power2.out' }, at); else tl.set($('dev-' + dev), { opacity: o }, at); }
+    function led(ref, color, at, d) { var el = $(ref.replace('.', '-led-')); if (d === 0) tl.set(el, { attr: { fill: color } }, at); else tl.to(el, { attr: { fill: color }, duration: d || 0.18, ease: 'power1.out' }, at); }
+    /** Activity: a port light flickers once as a packet passes, then returns to its steady state. */
+    function blip(ref, at, base) { led(ref, C.text, at, 0.04); led(ref, base || C.pos, at + 0.12, 0.14); }
+    function blink(ref, color, at, times, gap) { for (var k = 0; k < (times || 2); k++) { led(ref, C.line, at + k * (gap || 0.44), 0.18); led(ref, color, at + k * (gap || 0.44) + 0.22, 0.18); } }
+    /** Swap a device's visible screen state. */
+    function screen(dev, from, to, at, d) { fade($(dev + '-scr-' + from), 0, at, d || 0.25); fade($(dev + '-scr-' + to), 1, at + 0.08, d || 0.3); }
+    function chipsIn(n, at, stagger, rise) { for (var i = 1; i <= n; i++) tl.fromTo($('chip' + i), { opacity: 0, y: rise || 0 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power3.out' }, at + (i - 1) * stagger); }
+    /** A check resolves: its ring takes the verdict's colour and the tag reads VERIFIED or FAILED. The number stays. */
+    function chipFlip(i, ok, at) {
+      var col = ok ? C.pos : C.neg;
+      tl.to($('chip' + i + '-c'), { attr: { stroke: col }, duration: 0.2, ease: 'power2.out' }, at);
+      tl.to($('chip' + i + (ok ? '-x' : '-ok')), { opacity: 0, duration: 0.1 }, at);
+      tl.fromTo($('chip' + i + (ok ? '-ok' : '-x')), { opacity: 0, x: -6 }, { opacity: 1, x: 0, duration: 0.28, ease: 'power2.out' }, at + 0.04);
+    }
+    function chipSet(i, state, at) {           // 'ok' | 'x' | 'n' without motion
+      var col = state === 'ok' ? C.pos : state === 'x' ? C.neg : C.primary;
+      tl.set($('chip' + i + '-c'), { attr: { stroke: col } }, at);
+      tl.set($('chip' + i + '-ok'), { opacity: state === 'ok' ? 1 : 0 }, at);
+      tl.set($('chip' + i + '-x'), { opacity: state === 'x' ? 1 : 0 }, at);
+      tl.set($('chip' + i), { opacity: 1 }, at);
+    }
+    /** The end: the corner furniture hands over to the lesson card. */
+    function endCard(at) {
+      fade([$('bug'), $('slate')], 0, at - 0.2, 0.4);
+      tl.fromTo($('lesson'), { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out' }, at);
+    }
+    // Flows: pre-sampled global schedules, sliced to this frame.
+    // A packet is a story character, so it points where it is going (an arrow-tag that turns with the
+    // cable) and, when the story follows it (pk.trail), leaves a short fading trail (polish gate §4).
+    (function () {
+      var layer = $('packets'), NS = 'http://www.w3.org/2000/svg';
+      var ARROW = 'M-13,-8 H3 L13,0 L3,8 H-13 Z';
+      function shape(pk) {
+        var el, k = pk.kind;
+        if (k === 'spark') { el = document.createElementNS(NS, 'circle'); el.setAttribute('r', 6); el.setAttribute('fill', C.warn); return el; }
+        el = document.createElementNS(NS, 'path'); el.setAttribute('d', ARROW);
+        var fill = k === 'reply' || k === 'content' ? C.pos : k === 'queued' ? C.warn : C.primary;
+        el.setAttribute('fill', fill); el.setAttribute('stroke', C.text); el.setAttribute('stroke-width', 1.6); el.setAttribute('stroke-linejoin', 'round');
+        el.setAttribute('data-s', k === 'test' || k === 'reply' ? 1.45 : pk.trail ? 1.25 : 0.85);
+        return el;
+      }
+      // Heading from motion; unwrapped so it never spins, and held when the packet stops or backs up.
+      function headings(pts) {
+        var out = [], prev = null;
+        for (var k = 0; k < pts.length; k++) {
+          var a = pts[Math.max(0, k - 1)], b = pts[Math.min(pts.length - 1, k === 0 ? 1 : k)];
+          var dx = b[1] - a[1], dy = b[2] - a[2], h = prev;
+          if (dx * dx + dy * dy > 0.25) {
+            var raw = Math.atan2(dy, dx) * 180 / Math.PI;
+            if (prev === null) h = raw;
+            else { var d = ((raw - prev) % 360 + 540) % 360 - 180; h = Math.abs(d) > 120 ? prev : prev + d; }
+          }
+          out.push(h); prev = h;
+        }
+        // a packet that waits before it moves already faces the way it will go
+        var firstKnown = null;
+        for (var j = 0; j < out.length; j++) if (out[j] !== null) { firstKnown = out[j]; break; }
+        for (var m = 0; m < out.length && out[m] === null; m++) out[m] = firstKnown === null ? 0 : firstKnown;
+        return out;
+      }
+      function run(pk, el, lag, peak) {
+        var pts = pk.pts, rot = headings(pts), i0 = 0, s = +el.getAttribute('data-s') || 1;
+        while (i0 < pts.length - 1 && pts[i0 + 1][0] + lag <= 0) i0++;
+        var t0 = pts[i0][0] + lag, start = Math.max(0, t0), first = [pts[i0][1], pts[i0][2]], r0 = rot[i0];
+        if (t0 < 0 && i0 < pts.length - 1) { var a = pts[i0], b = pts[i0 + 1], u = (0 - t0) / (b[0] - a[0]); first = [a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]; }
+        tl.set(el, { x: first[0], y: first[1], rotation: r0, scale: s, opacity: peak, transformOrigin: '50% 50%' }, start);
+        var kf = [], last = start;
+        for (var k = i0 + 1; k < pts.length; k++) { var at = pts[k][0] + lag; if (at <= last) continue; kf.push({ x: pts[k][1], y: pts[k][2], rotation: rot[k], duration: at - last, ease: 'none' }); last = at; }
+        if (kf.length) tl.to(el, { keyframes: kf }, start);
+        if (pk.end === 'die') { tl.to(el, { attr: { fill: C.neg }, duration: 0.08 }, last); tl.to(el, { scale: s * 1.8, opacity: 0, duration: 0.45, ease: 'power2.out' }, last + 0.06); }
+        else if (pk.end === 'arrive') tl.to(el, { opacity: 0, duration: 0.25, ease: 'power1.in' }, last - 0.2);
+        else if (pk.end === 'fade') tl.to(el, { opacity: 0, duration: 0.6, ease: 'power1.inOut' }, last);
+      }
+      PK.forEach(function (pk) {
+        if (pk.trail) [0.1, 0.05].forEach(function (lag, n) {
+          var g = shape(pk); g.setAttribute('id', P + 'pk-' + pk.id + '-t' + n); g.setAttribute('opacity', 0); g.setAttribute('stroke', 'none');
+          g.setAttribute('data-s', (+g.getAttribute('data-s')) * (n ? 0.85 : 0.7)); layer.appendChild(g); run(pk, g, lag, n ? 0.34 : 0.16);
+        });
+        var el = shape(pk);
+        el.setAttribute('id', P + 'pk-' + pk.id); el.setAttribute('filter', 'url(#' + P + 'glow)'); el.setAttribute('opacity', 0);
+        layer.appendChild(el);
+        run(pk, el, 0, 1);
+      });
+    })();
+
+    tl.set([$('bug'), $('slate')], { opacity: 0.9 }, 0); tl.set($('scrim'), { opacity: 1 }, 0);
+
+    led('desk.pwr', C.pos, 0, 0); led('desk.link', C.pos, 0, 0); led('sw.pwr', C.pos, 0, 0); led('sw.p3', C.pos, 0, 0); led('sw.p8', C.pos, 0, 0);
+    led('rt.pwr', C.pos, 0, 0); led('rt.wifi', C.pos, 0, 0); led('rt.lan', C.pos, 0, 0); led('rt.l1', C.pos, 0, 0);
+    led('mdm.pwr', C.pos, 0, 0); led('mdm.link', C.pos, 0, 0); led('mdm.inet', C.pos, 0, 0); led('srv.a', C.pos, 0, 0); led('srv.b', C.pos, 0, 0); led('srv.c', C.pos, 0, 0);
+    led('rt.inet', C.neg, 0, 0); tl.set($('plug-body'), { y: 15, rotation: 7, svgOrigin: '1695 590' }, 0);
+    on($('side-lan'), 0); on($('side-wan'), 0);
+    cam(2.6, 1650, 505, 0);
+    fade([$('side-lan'), $('side-wan')], 0, 0.45, 0.4);
+    cam(3.5, 1690, 552, 0.4, 1.2, 'power2.inOut');
+    
+    var A = 2.182;
+    tl.fromTo($('seek'), { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: 'power2.out', transformOrigin: '50% 50%' }, A);
+    tl.to($('seek'), { scale: 1.35, opacity: 0, duration: 0.5, ease: 'power1.out', transformOrigin: '50% 50%' }, A + 0.35);
+    tl.fromTo($('seek'), { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.3, ease: 'power2.out', transformOrigin: '50% 50%' }, A + 0.88);
+    tl.to($('seek'), { scale: 1.35, opacity: 0, duration: 0.5, ease: 'power1.out', transformOrigin: '50% 50%' }, A + 1.23);
+    led('rt.inet', C.warn, A + 0.1, 0.12); led('rt.inet', C.neg, A + 0.5, 0.12); led('rt.inet', C.warn, A + 0.98, 0.12); led('rt.inet', C.neg, A + 1.4, 0.2);
+    tl.fromTo($('nolink'), { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power1.out' }, A + 1.7);
+    // Shot 07: the consequence, beyond the WAN port
+    cam(1.25, 1960, 515, 4.352, 1.6, 'power2.inOut');
+    fade([$('c3-base'), $('line-base')], 0.3, 4.802, 0.6);
+    fade([$('dev-mdm'), $('dev-srv'), $('net')], 0.32, 4.802, 0.6);
+    window.__timelines["03-no-way-out"] = tl;
+  })();
+  </script>
+</template>

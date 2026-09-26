@@ -690,6 +690,37 @@ prototype passes review.
 
 **Revisit when:** the owner has reviewed the v2 render. The recommendations in DIRECTION.md are the agenda.
 
+## D39 — Hybrid 2D + real 3D: prove it on one sequence before it becomes part of the system
+
+**Asked (2026-09-26):** upgrade the engine into a hybrid system — clean 2D for how the system works, real 3D
+hardware for what to check — and prove it on ONE section of the polished film (fault domain → 3D router → WAN
+inspection → reconnect → link restored → verification). Stop there for review.
+
+**Decided:**
+1. **HyperFrames stays the engine; GSAP stays the choreographer.** The 3D view is a *layer* composition over the
+   2D frames (`lib/hardware-layer.mjs`, the `layers` hook in `make.mjs`), with its own copy of the slate, logo and
+   scrim so the hand-over is invisible. Its scene is a pure function of the layer's own timeline, read through a
+   clock setter — never `requestAnimationFrame`, never global `hf-seek` time.
+2. **The hand-over is a silhouette match.** The 3D router is built to the 2D router's exact layout, so a long-lens
+   front view lands its face on the drawing's; the layer fades in there, and only then does the camera reveal
+   depth. The return mirrors it. While the layer is opaque the drawing beneath is not drawn at all.
+3. **The prototype's hardware is original (category A), authored as Blender scripts → GLB.** No free model was a
+   close-up-quality generic router; the good ones are brand-specific (a D-Link trademark, a real TP-Link switch),
+   GrabCAD is non-commercial by default, and marketplaces need a signed-in account. Research, licensing gate and
+   the starter set: `videos/_engine/hardware-3d/RESEARCH.md`; provenance: `PROVENANCE.md` (no external models).
+4. **Pipeline:** Blender 5.2.2 (headless, reproducible script) → GLB → glTF-Transform (dedup, weld, meshopt) →
+   three.js 0.186.1 bundled with the OE3D runtime into one classic script (`shared/three-oe3d.js`, no CDN) →
+   HyperFrames. Router 10.7k triangles / 129 KB; plug 16 KB; no textures.
+5. **Behaviour is generic and written down.** LED states (`OE3D.LED`, hardware-3d/README.md) follow common
+   convention; the WAN light stays dark while the link negotiates, then lights, then flickers with traffic. A
+   category-B twin of deployed hardware must state its own manufacturer's meanings.
+
+**Not done (by the brief):** the rest of the library, the rest of the film, any other episode.
+
+**Revisit when:** the owner has reviewed `videos/how-a-school-connects-3d/renders/video.mp4` against the polished
+2D film and answered: does the hybrid materially improve clarity and quality enough to join the system? If yes,
+category B needs the deployed models (router, switch, AP, UPS, charging hub, LRS).
+
 ## D12 — Order of work (phase 2)
 
 1. D2 security events.

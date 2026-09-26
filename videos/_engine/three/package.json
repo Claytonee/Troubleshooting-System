@@ -1,0 +1,7 @@
+{
+  "name": "oe-three-runtime",
+  "private": true,
+  "description": "The OE explainer engine's 3D layer: three.js + the hardware scene system, bundled into one classic script (shared/oe3d.js) that HyperFrames frames load.",
+  "scripts": { "build": "esbuild src/index.js --bundle --format=iife --global-name=OE3D --minify --target=es2020 --outfile=../shared/three-oe3d.js" },
+  "devDependencies": { "three": "0.186.1", "esbuild": "0.28.2" }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "generic-rj45-plug",
+  "category": "A-generic",
+  "type": "connector",
+  "name": "RJ45 (8P8C) patch-cable plug with strain-relief boot",
+  "files": {
+    "source": "../../../source/build_rj45_plug.py",
+    "export": "rj45-plug.glb",
+    "web": "rj45-plug.web.glb"
+  },
+  "build": "blender -b --factory-startup --python source/build_rj45_plug.py, then glTF-Transform dedup → weld → meshopt",
+  "units": "metres; origin at the SEAT POINT (the port face when fully home); tip 13.5 mm ahead along -Z in three.js",
+  "size_mm": [11.6, 7.9, 35.5],
+  "bytes": { "export": 31372, "web": 16480 },
+  "fit": "made to generic-router-5port's jack: body above the port centre by 1.34 mm, latch in the notch below",
+  "anchors": { "seat": "origin", "tip": "front of the plug", "cable": "where the cable leaves the boot: a scene draws the cable from here" },
+  "moving_parts": { "plug_latch": "hinged at the tip end; rotate about X toward 0 to press it" },
+  "details": ["clear polycarbonate body (alpha blended)", "8 gold contacts on top", "conductors visible in T568B order", "latch tab below", "blue boot"],
+  "cable": "not in the asset: OE3D.Cable draws a tube from anchor_cable along the scene's own path",
+  "provenance": {
+    "origin": "original work, authored for OE by the explainer engine (procedural Blender script)",
+    "creator": "OE Support explainer engine",
+    "license": "OE-owned; no third-party geometry",
+    "commercial_use": true, "attribution_required": false, "ai_restriction": "none", "modification": true, "redistribution": "OE's own asset",
+    "reviewed": "2026-09-26"
+  }
+}

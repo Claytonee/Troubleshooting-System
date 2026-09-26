@@ -1,0 +1,43 @@
+{
+  "id": "generic-router-5port",
+  "category": "A-generic",
+  "type": "router",
+  "name": "Generic 5-port router (front-panel ports and status lights)",
+  "files": {
+    "source": "../../../source/build_router_generic.py",
+    "export": "router.glb",
+    "web": "router.web.glb"
+  },
+  "build": "blender -b --factory-startup --python source/build_router_generic.py, then glTF-Transform dedup → weld → meshopt",
+  "units": "metres; origin at the centre of the base; front faces +Z in three.js",
+  "size_mm": [159, 55, 118],
+  "triangles": 10742,
+  "bytes": { "export": 443044, "web": 128704 },
+  "lod": "one level: 10.7k triangles holds up from wide shot to a 12 cm close-up; add LODs only when a scene shows many",
+  "textures": "none: Principled BSDF → glTF metallic-roughness; printed legends are geometry",
+  "materials": ["router_body", "router_panel_gloss", "port_cavity", "contact_gold", "print_light", "print_wan_blue", "rubber_foot", "dc_jack_metal", "led_* (one per light)"],
+  "anchors": {
+    "port_lan1": "LAN port 1, centre of the opening, on the face",
+    "port_lan2": "LAN port 2", "port_lan3": "LAN port 3", "port_lan4": "LAN port 4",
+    "port_wan": "WAN port (to the provider)",
+    "led_power": "POWER status light", "led_internet": "INTERNET status light", "led_wifi": "WI-FI status light", "led_lan": "LAN status light",
+    "led_lan1": "link light of LAN 1", "led_lan2": "link light of LAN 2", "led_lan3": "link light of LAN 3", "led_lan4": "link light of LAN 4",
+    "led_wan": "link light of the WAN port"
+  },
+  "features": {
+    "front": ["status lights with icons: POWER, INTERNET, WI-FI, LAN", "LAN 1–4 (RJ45, latch notch down, per-port link light above)", "WAN (RJ45, blue printed surround)"],
+    "rear": ["DC-in barrel jack", "reset pinhole"],
+    "top": ["ventilation slots"],
+    "bottom": ["four rubber feet"]
+  },
+  "behaviour": "generic; see ../../../README.md § LED states. Not the behaviour of any specific model.",
+  "matches_2d": "videos/_engine/lib/devices2.mjs router2 — same layout at 0.53 mm per drawing unit, for a silhouette-matched hand-over",
+  "provenance": {
+    "origin": "original work, authored for OE by the explainer engine (procedural Blender script)",
+    "creator": "OE Support explainer engine",
+    "license": "OE-owned; no third-party geometry, textures or trademarks",
+    "fonts": "DM Mono (SIL Open Font License 1.1) for printed legends — shared/fonts/OFL-DMMono.txt",
+    "commercial_use": true, "attribution_required": false, "ai_restriction": "none", "modification": true, "redistribution": "OE's own asset",
+    "reviewed": "2026-09-26"
+  }
+}

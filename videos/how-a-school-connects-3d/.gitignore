@@ -1,0 +1,5 @@
+renders/
+snapshots/
+.scratch/
+node_modules/
+.hyperframes/frame-packets/

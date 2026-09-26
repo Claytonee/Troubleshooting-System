@@ -1,0 +1,165 @@
+<template>
+  <style>
+    @font-face { font-family: "DM Sans"; src: url("assets/fonts/DMSans-Variable.ttf") format("truetype"); font-weight: 100 1000; }
+    #hw3d-root { position: absolute; inset: 0; opacity: 0; background: #0f1117; }
+    #hw3d-canvas { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: block; }
+    #hw3d-notes { position: absolute; left: 0; top: 0; overflow: visible; }
+    #hw3d-scrim { position: absolute; left: 0; right: 0; top: 0; height: 160px; background: linear-gradient(to bottom, rgba(15,17,23,0.95) 0, rgba(15,17,23,0.78) 70px, rgba(15,17,23,0) 160px); }
+    #hw3d-bug { position: absolute; top: 46px; right: 58px; width: 232px; height: 24px; opacity: 0.9; }
+    #hw3d-bug svg { display: block; width: 100%; height: 100%; }
+    #hw3d-slate { position: absolute; top: 40px; left: 58px; opacity: 0.9; font-family: "DM Sans", sans-serif; }
+    #hw3d-slate .k { font-weight: 600; font-size: 17px; letter-spacing: 2.8px; color: #4f7cff; text-transform: uppercase; }
+    #hw3d-slate .t { font-weight: 600; font-size: 27px; color: #e8eaf0; margin-top: 4px; }
+  </style>
+  <div id="root" data-composition-id="hw3d" data-width="1920" data-height="1080" data-duration="16.417">
+    <div id="hw3d-root" class="clip" data-start="0" data-duration="16.417" data-track-index="0">
+      <canvas id="hw3d-canvas" width="1920" height="1080"></canvas>
+      <svg id="hw3d-notes" viewBox="0 0 1920 1080" width="1920" height="1080" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="hw3d-scrim"></div>
+      <!-- the frame's own slate, repeated so the hand-over is seamless: identical text in the identical place, by design -->
+      <div id="hw3d-slate"><div class="k" data-layout-allow-overlap data-layout-allow-occlusion>Connectivity</div><div class="t" data-layout-allow-overlap data-layout-allow-occlusion>Follow the signal</div></div>
+      <div id="hw3d-bug"><svg viewBox="0 0 300 31" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Opportunity Education"><path d="M24.33,10c-.54-1.27.49-3,1.84-4.71A14.81,14.81,0,0,1,29.76,12C27.32,11.83,24.94,11.43,24.33,10ZM13.21,5.57c1.47-.63,1.93-2.75,2.1-5h-.68A14.79,14.79,0,0,0,7.28,2.91C9.27,4.65,11.5,6.3,13.21,5.57ZM24.59,3.84A14.81,14.81,0,0,0,17.27.7c.23,2.15.8,4.14,2.42,4.79S23,5.16,24.59,3.84ZM24.41,16.5c-.78,2,1.69,4.33,3.74,6.39a14.79,14.79,0,0,0,2-8.12c0-.2,0-.39,0-.58C27.59,14.4,25.07,14.86,24.41,16.5Zm-15.65.19c-.55-2-8-1.77-8.32-1.68,0,.36,0,.72,0,1.08A14.79,14.79,0,0,0,3.59,24.6C5.35,22.59,9.31,18.7,8.76,16.69Zm-.08-6.48c.71-1.76-1.16-4.08-3-6.1a14.87,14.87,0,0,0-4.91,8.2C3.8,12.17,7.83,12.34,8.68,10.21Zm11.2,10.94c-2.19.94-1.68,7.26-1.59,8.85a14.83,14.83,0,0,0,8.32-4.93C24.4,23,21.78,20.33,19.88,21.14Zm-6.48.08c-2.8-1-7.6,4.91-7.94,5.36a14.81,14.81,0,0,0,9.76,3.72C15.25,29.12,16.2,22.21,13.4,21.22Z" fill="#ffae00"/><path d="M37.84,14.59a8.8,8.8,0,1,1,8.77,8.66A8.57,8.57,0,0,1,37.84,14.59Zm14.08,0a5.28,5.28,0,1,0-10.56,0,5.28,5.28,0,1,0,10.56,0Z" fill="#ffffff"/><path d="M70.64,16.73a6.23,6.23,0,0,1-6.15,6.54,5.16,5.16,0,0,1-3.91-1.74v6.56H57.37V10.52h3.2V12a5.08,5.08,0,0,1,4-1.85A6.22,6.22,0,0,1,70.64,16.73Zm-3.24,0a3.44,3.44,0,1,0-6.88,0,3.44,3.44,0,1,0,6.88,0Z" fill="#ffffff"/><path d="M85.69,16.73a6.23,6.23,0,0,1-6.15,6.54,5.16,5.16,0,0,1-3.91-1.74v6.56H72.41V10.52h3.2V12a5.08,5.08,0,0,1,4-1.85A6.22,6.22,0,0,1,85.69,16.73Zm-3.24,0a3.44,3.44,0,1,0-6.88,0,3.44,3.44,0,1,0,6.88,0Z" fill="#ffffff"/><path d="M86.75,16.73a6.67,6.67,0,0,1,13.34,0,6.67,6.67,0,0,1-13.34,0Zm10.12,0a3.45,3.45,0,1,0-3.45,3.56A3.47,3.47,0,0,0,96.87,16.73Z" fill="#ffffff"/><path d="M101.81,10.52h3.08v1.67a3.73,3.73,0,0,1,3.43-2,4.58,4.58,0,0,1,1.51.27l-.28,3.08a4.93,4.93,0,0,0-1.48-.25c-1.69,0-3,1.05-3,3.77V23h-3.22Z" fill="#ffffff"/><path d="M120.94,22.24a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.21h-2v-2.7h2.06V6.11h3.2v4.41h4.11v2.7h-4.11v4.94c0,1.44.55,2.19,1.76,2.19A4.21,4.21,0,0,0,120,19.7Z" fill="#ffffff"/><path d="M122.24,17.72v-7.2h3.22v7.2a2.49,2.49,0,1,0,5,0v-7.2h3.22v7.2c0,3.54-2.19,5.55-5.71,5.55S122.24,21.23,122.24,17.72Z" fill="#ffffff"/><path d="M135.95,10.52h3.15v1.74A4.36,4.36,0,0,1,143,10.18c2.51,0,4.87,1.67,4.87,5.19V23h-3.22V16.23c0-2-1.07-3.08-2.63-3.08a2.87,2.87,0,0,0-2.86,3.15V23h-3.22Z" fill="#ffffff"/><path d="M149.79,7.14a2,2,0,1,1,2,2A1.94,1.94,0,0,1,149.79,7.14ZM150.16,23V10.52h3.22V23Z" fill="#ffffff"/><path d="M165.12,22.24a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.21h-2v-2.7h2.06V6.11h3.2v4.41h4.11v2.7h-4.11v4.94c0,1.44.55,2.19,1.76,2.19a4.21,4.21,0,0,0,2.08-.64Z" fill="#ffffff"/><path d="M179,10.52l-5,13.07c-1.19,3.06-2.74,4.68-5.28,4.68a4.55,4.55,0,0,1-2.4-.62l.55-2.7a3.75,3.75,0,0,0,1.6.41c1,0,1.78-.59,2.42-2l.25-.57L165.7,10.52h3.72l3.22,8.11,2.83-8.11Z" fill="#ffffff"/><path d="M185.72,6.14h11.45V9.29h-8v3.63h7.45v3.15h-7.45v3.79h8V23H185.72Z" fill="#ffffff"/><path d="M211.66,5.66V23H208.5V21.49a4.8,4.8,0,0,1-3.86,1.83,6.21,6.21,0,0,1-6.17-6.54,6.25,6.25,0,0,1,6.17-6.53A4.81,4.81,0,0,1,208.43,12V5.66Zm-3.06,11.13a3.46,3.46,0,1,0-6.92,0,3.46,3.46,0,1,0,6.92,0Z" fill="#ffffff"/><path d="M214,17.77v-7.2h3.22v7.2a2.49,2.49,0,1,0,5,0v-7.2h3.22v7.2c0,3.54-2.19,5.55-5.71,5.55S214,21.29,214,17.77Z" fill="#ffffff"/><path d="M226.92,16.79a6.35,6.35,0,0,1,6.69-6.53,6.21,6.21,0,0,1,5.81,3.47l-2.58,1.42a3.71,3.71,0,0,0-3.18-1.9,3.46,3.46,0,0,0-3.54,3.54,3.44,3.44,0,0,0,3.47,3.56,3.68,3.68,0,0,0,3.18-1.87l2.6,1.53a6.5,6.5,0,0,1-5.85,3.29A6.3,6.3,0,0,1,226.92,16.79Z" fill="#ffffff"/><path d="M253.27,10.57V23h-3.06V21.59a5.28,5.28,0,0,1-4,1.74c-3.61,0-6.17-2.88-6.17-6.58a6.15,6.15,0,0,1,6.17-6.49,5.21,5.21,0,0,1,4,1.8V10.57Zm-3,6.22a3.49,3.49,0,1,0-7,0,3.49,3.49,0,1,0,7,0Z" fill="#ffffff"/><path d="M265.12,22.3a6.91,6.91,0,0,1-3.68,1c-2.86,0-4.34-1.69-4.34-4.91V13.27h-2v-2.7h2.06V6.16h3.2v4.41h4.11v2.7h-4.11V18.2c0,1.44.55,2.19,1.76,2.19a4.21,4.21,0,0,0,2.08-.64Z" fill="#ffffff"/><path d="M266.34,7.19a2,2,0,1,1,2,2A1.94,1.94,0,0,1,266.34,7.19ZM266.7,23V10.57h3.22V23Z" fill="#ffffff"/><path d="M271.54,16.79a6.67,6.67,0,0,1,13.34,0,6.67,6.67,0,0,1-13.34,0Zm10.12,0a3.45,3.45,0,1,0-3.45,3.56A3.47,3.47,0,0,0,281.66,16.79Z" fill="#ffffff"/><path d="M286.6,10.57h3.15v1.74a4.36,4.36,0,0,1,3.91-2.08c2.51,0,4.87,1.67,4.87,5.19V23H295.3V16.29c0-2-1.07-3.08-2.63-3.08a2.87,2.87,0,0,0-2.86,3.15V23H286.6Z" fill="#ffffff"/></svg></div>
+    </div>
+  </div>
+  <script src="assets/hw3d/three-oe3d.js" data-oe3d="1"></script>
+  <script>
+  (function () {
+    var ID = "hw3d", DUR = 16.417, C = {"bg":"#0f1117","surface":"#161921","well":"#0b0d12","raised":"#232838","line":"#2a2f3d","cable":"#4a5268","primary":"#4f7cff","primaryText":"#8aa6ff","text":"#e8eaf0","muted":"#9ba1b5","faint":"#636a82","pos":"#2dd98a","neg":"#ff5263","warn":"#f5a623","gold":"#FFAE00"}, MODELS = {"router":"assets/hw3d/router.web.glb","plug":"assets/hw3d/rj45-plug.web.glb"};
+    window.__hf = window.__hf || {}; window.__hf.buildReady = window.__hf.buildReady || {};
+    var ready; window.__hf.buildReady[ID] = new Promise(function (r) { ready = r; });
+    var render = null, last = 0;
+    // The clock: GSAP sets t on every seek of this timeline; the setter draws that exact moment.
+    var clock = {}; Object.defineProperty(clock, 't', { get: function () { return last; }, set: function (v) { last = v; if (render) render(v); } });
+    var tl = gsap.timeline({ paused: true });
+    tl.to(clock, { t: DUR, duration: DUR, ease: 'none' }, 0);
+    window.__timelines = window.__timelines || {}; window.__timelines[ID] = tl;
+
+    function start() {
+      var OE3D = window.OE3D;
+      var stage = new OE3D.HardwareStage(document.getElementById(ID + '-canvas'));
+      var notes = document.getElementById(ID + '-notes');
+      var names = Object.keys(MODELS);
+      Promise.all(names.map(function (n) { return stage.load(n, MODELS[n]); })).then(function () {
+        var root = document.getElementById(ID + '-root');
+        render = (function (OE3D, stage, notes, C, root) {
+
+    var NS = 'http://www.w3.org/2000/svg';
+    function el(tag, attrs, parent) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); (parent || notes).appendChild(e); return e; }
+    /** A callout: title (caps) + sub line, a dashed leader to the anchor, a dot on it. side: 'up'|'down'|'left'|'right'. */
+    function callout(id, title, sub, color) {
+      var g = el('g', { id: id, opacity: 0 });
+      var line = el('path', { fill: 'none', stroke: C.muted, 'stroke-width': 2, 'stroke-dasharray': '5 6' }, g);
+      // The anchor is a hollow neutral ring, never a filled colour: a red dot on a light reads as a red light
+      // (found in the frame review: "WAN LIGHT: OFF" appeared to light the WAN LED red).
+      var dot = el('circle', { r: 7, fill: 'none', stroke: C.text, 'stroke-width': 2 }, g);
+      // Sized for a phone: 30/24 px at 1080p is ~10/8 px on a 360 px-tall screen (22/20 px was unreadable there).
+      var t1 = el('text', { 'font-family': 'DM Sans', 'font-weight': 700, 'font-size': 30, 'letter-spacing': 2.8, fill: color || C.text }, g); t1.textContent = title;
+      var t2 = el('text', { 'font-family': 'DM Sans', 'font-weight': 500, 'font-size': 24, fill: C.muted }, g); t2.textContent = sub || '';
+      return { g: g, place: function (p, dx, dy, anchorEnd, opacity) {
+        g.setAttribute('opacity', opacity);
+        if (opacity <= 0.001) return;
+        var lx = p.x + dx, ly = p.y + dy;
+        line.setAttribute('d', 'M' + p.x.toFixed(1) + ',' + p.y.toFixed(1) + ' L' + lx.toFixed(1) + ',' + ly.toFixed(1));
+        dot.setAttribute('cx', p.x.toFixed(1)); dot.setAttribute('cy', p.y.toFixed(1));
+        var ax = anchorEnd === 'end' ? lx - 10 : anchorEnd === 'middle' ? lx : lx + 10, a = anchorEnd || 'start';
+        var ty = dy < 0 ? ly - 44 : ly + 34;
+        t1.setAttribute('x', ax.toFixed(1)); t1.setAttribute('y', ty.toFixed(1)); t1.setAttribute('text-anchor', a);
+        t2.setAttribute('x', ax.toFixed(1)); t2.setAttribute('y', (ty + 32).toFixed(1)); t2.setAttribute('text-anchor', a);
+      } };
+    }
+    /** 0 before a, 1 from a+f to b-f, 0 after b. */
+    function win(t, a, b, f) { f = f || 0.3; var u = Math.min(1, Math.max(0, (t - a) / f)), v = Math.min(1, Math.max(0, (b - t) / f)); return Math.min(u, v); }
+
+        var K = {"push0":0.3,"push1":1.6,"fadeIn":1.65,"orbit0":2.1,"orbit1":3.7,"noteStatus":2.46,"noteLan":3.76,"noteWan":5.92,"dolly0":8.18,"dolly1":9.68,"noteLoose":9.53,"seat":12.26,"linkUp":14.58,"inetTry":15.08,"inetOk":16.167,"back0":15.917,"back1":17.417,"fadeOut":17.567,"return2d":18.017}, T0 = 1.6, MATCH_CFG = {"pxW":896.9999999999999,"cy":440};
+        // ── D39 prototype scene: the router, its WAN plug, the repair ────────────────────────────────
+        // K: frame-local key times; T0: frame-local time of this layer's t = 0.
+        var THREE = OE3D.THREE, LED = OE3D.LED, track = OE3D.track;
+        var V = function (x, y, z) { return new THREE.Vector3(x, y, z); };
+        var R = stage.place('router');
+        var wanA = R.world('port_wan'), lanA = R.world('port_lan1');
+        var wan = stage.place('plug'), lan = stage.place('plug', { position: [lanA.x, lanA.y, lanA.z] });
+        var latch = wan.root.getObjectByName('plug_latch'), LATCH0 = latch ? latch.rotation.x : 0;
+        var cw = new OE3D.Cable(stage), cl = new OE3D.Cable(stage);
+        // a faint ground grid: the drawing's grid, laid flat, so the space stays one space
+        var grid = new THREE.GridHelper(2.4, 60, 0x2a2f3d, 0x2a2f3d); grid.material.transparent = true; grid.material.opacity = 0.35; grid.position.y = -0.0002; stage.scene.add(grid);
+
+        // the face centre and the matched framing (hand-over): long lens, straight on, face where the drawing puts it
+        var FACE = V(0, 0.0276, wanA.z), MATCH = MATCH_CFG;
+        var visH = 0.159 * 1080 / MATCH.pxW, fov0 = 12, d0 = visH / (2 * Math.tan(fov0 * Math.PI / 360));
+        var tyM = FACE.y - (540 - MATCH.cy) * visH / 1080;   // look BELOW the face, so the face sits where the drawing has it (cy 440, above centre)
+        var CAM_MATCH = [0, tyM, FACE.z, 0, 0, d0, fov0];
+        var CAM_34 = [0.004, 0.022, 0.02, 24, 14, 0.43, 30];
+        var CAM_WAN = [wanA.x - 0.004, wanA.y + 0.013, wanA.z + 0.004, 30, 9, 0.134, 30];   // the status row stays clear of the slate
+
+        var notes3 = {
+          status: callout('n-status', 'STATUS LIGHTS', 'power · internet · Wi-Fi · LAN', C.text),
+          lan: callout('n-lan', 'LAN PORTS', 'the school network', C.text),
+          wan: callout('n-wan', 'WAN PORT', 'to the provider', C.primary),
+          led: callout('n-led', 'WAN LIGHT: OFF', 'no link', C.neg),
+          plug: callout('n-plug', 'CONNECTOR', 'not fully seated', C.neg),
+          up: callout('n-up', 'WAN LIGHT: ON', 'link up', C.pos),
+        };
+        var P = function (v) { return stage.project(v); };
+        var mid = function (a, b) { return a.clone().add(b).multiplyScalar(0.5); };
+
+        return function (t) {
+          var T = t + T0;
+          // ── camera: match → three-quarter → WAN close-up → (repair) → back to the match ──
+          var cam = track([[K.orbit0, CAM_MATCH], [K.orbit1, CAM_34, 'power2.inOut'], [K.dolly0, CAM_34], [K.dolly1, CAM_WAN, 'power3.inOut'],
+                           [K.back0, CAM_WAN], [K.back1, CAM_MATCH, 'power3.inOut']], T);
+          stage.rig({ tx: cam[0], ty: cam[1], tz: cam[2], yaw: cam[3], pitch: cam[4], dist: cam[5], fov: cam[6] });
+
+          // ── the WAN plug: unlatched and sagging (out 6.5 mm, drooping 7°), straightened, pushed home ──
+          // (4.5 mm read as "in" at phone size; an unlatched plug does sit further out than that)
+          var out = track([[K.seat - 0.7, 0.0065], [K.seat - 0.42, 0.0058, 'power2.out'], [K.seat, 0, 'power3.in']], T);
+          var droop = track([[K.seat - 0.7, -7], [K.seat - 0.42, 0, 'power2.inOut']], T);
+          wan.root.position.set(wanA.x, wanA.y, wanA.z + out);
+          wan.root.rotation.set(droop * Math.PI / 180, 0, 0);
+          if (latch) {   // the latch is pressed as it enters, then springs into the notch: the click
+            var press = track([[K.seat - 0.3, 0], [K.seat - 0.06, 1, 'power1.in'], [K.seat, 0, 'power4.out']], T);
+            latch.rotation.x = LATCH0 * (1 - 0.7 * press);
+          }
+          // ── cables follow their plugs to the bench, out of the shot ──
+          var a = wan.world('cable'), b = lan.world('cable');
+          cw.set([a, V(a.x, a.y - 0.001, a.z + 0.018), V(a.x + 0.018, 0.0035, a.z + 0.085), V(0.42, 0.0032, 0.26)]);
+          cl.set([b, V(b.x, b.y - 0.001, b.z + 0.018), V(b.x - 0.018, 0.0035, b.z + 0.085), V(-0.42, 0.0032, 0.26)]);
+
+          // ── lights: plausible, never random ──
+          R.led('power', LED.POWER_ON); R.led('wifi', LED.POWER_ON); R.led('lan', LED.POWER_ON);
+          R.led('lan1', LED.ACTIVITY, T);                                 // the school's traffic on LAN 1
+          ['lan2', 'lan3', 'lan4'].forEach(function (p) { R.led(p, LED.LINK_DOWN); });   // nothing plugged in
+          var up = Math.min(1, Math.max(0, (T - K.linkUp) / 0.15));      // the link comes up a moment after seating
+          R.led('wan', T < K.linkUp + 0.7 ? LED.LINK_UP : LED.ACTIVITY, T, up);
+          R.led('internet', T < K.inetTry ? LED.FAULT : T < K.inetOk ? LED.WARNING : LED.POWER_ON);
+
+          // ── callouts, each tied to the thing it names ──
+          var st = mid(R.world('led_power'), R.world('led_lan')), ln = mid(R.world('port_lan1'), R.world('port_lan4')), wp = R.world('port_wan'), wl = R.world('led_wan');
+          notes3.status.place(P(st.clone().add(V(0, 0.004, 0))), -40, -120, 'end', win(T, K.noteStatus, K.dolly0 + 0.1, 0.3));
+          notes3.lan.place(P(ln.clone().add(V(0, -0.006, 0))), -60, 120, 'end', win(T, K.noteLan, K.dolly0 + 0.1, 0.3));
+          notes3.wan.place(P(wp.clone().add(V(0, -0.006, 0))), 70, 110, 'start', win(T, K.noteWan, K.dolly0 + 0.1, 0.3));
+          notes3.led.place(P(wl), 90, -110, 'start', win(T, K.noteLoose - 0.4, K.linkUp - 0.05, 0.3));
+          // the connector note sits beside the plug, clear of the captions
+          notes3.plug.place(P(wan.world('tip').clone().add(V(0, -0.004, 0.004))), 300, -20, 'start', win(T, K.noteLoose, K.seat - 0.3, 0.3));
+          notes3.up.place(P(wl), 90, -110, 'start', win(T, K.linkUp + 0.1, K.back0 + 0.3, 0.3));
+
+          // ── the layer fades in over the drawing at the match, and out at the match on the way back ──
+          root.style.opacity = String(Math.min(Math.min(1, Math.max(0, (T - K.fadeIn) / 0.5)), Math.min(1, Math.max(0, (K.fadeOut + 0.45 - T) / 0.45))));
+          stage.render();
+        };
+
+        })(OE3D, stage, notes, C, root);
+        render(last); ready();
+      }, function (e) { console.error('[' + ID + '] 3D assets failed', e); ready(); });
+    }
+    // One shared runtime per page (the static tag above). Whichever order the page runs the two scripts in,
+    // start() runs once the runtime exists: at once if it already loaded, else on its load event.
+    if (window.OE3D) start();
+    else {
+      var s = document.querySelector('script[data-oe3d]');
+      if (!s) { s = document.createElement('script'); s.src = 'assets/hw3d/three-oe3d.js'; s.setAttribute('data-oe3d', '1'); document.head.appendChild(s); }
+      s.addEventListener('load', start);
+      s.addEventListener('error', function () { console.error('[' + ID + '] three-oe3d.js failed to load'); ready(); });
+    }
+  })();
+  </script>
+</template>
