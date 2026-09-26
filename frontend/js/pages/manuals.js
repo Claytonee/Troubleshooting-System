@@ -1,5 +1,8 @@
 const ManualsPage = (() => {
   let manuals = [];
+  let explainers = [];
+  let loadError = '';   // a failed request is never shown as an empty library
+  let lang = 'sw';      // the reader's language, kept on the account (feature 14)
   let filterCategory = 'all';
   let uploadMode = 'file'; // 'file' | 'url'
 
@@ -60,10 +63,54 @@ const ManualsPage = (() => {
     return 'none';
   }
 
+  // Files and explainers load side by side, and one failing never empties the
+  // other. The page used to swallow a failed request and print "No files
+  // uploaded yet", which is a claim about the library, not about the network.
   async function load() {
+    const [files, anims, language] = await Promise.allSettled([
+      API.getManuals(), API.listExplainers(), API.getLanguage()
+    ]);
+    manuals = files.status === 'fulfilled' && Array.isArray(files.value) ? files.value : [];
+    loadError = files.status === 'rejected' ? ((files.reason && files.reason.message) || 'Request failed') : '';
+    explainers = anims.status === 'fulfilled' && Array.isArray(anims.value) ? anims.value : [];
+    lang = language.status === 'fulfilled' && language.value && language.value.language === 'en' ? 'en' : 'sw';
+  }
+
+  async function reload() {
+    await load();
+    App.render();
+  }
+
+  /** The animated explainers the system ships with (feature 15): drawn by the app, so they play offline. */
+  function explainerSection() {
+    if (!explainers.length) return '';
+    const cards = explainers.map(x => {
+      const t = (x.title && (x.title[lang] || x.title.sw || x.title.en)) || '';
+      const meta = lang === 'sw'
+        ? `${x.steps_count} hatua · sekunde ${x.duration_s} · inacheza bila intaneti`
+        : `${x.steps_count} steps · ${x.duration_s}s · plays offline`;
+      return `<div class="card explainer-card" role="button" tabindex="0" onclick="ManualsPage.openExplainer(${Number(x.id)})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ManualsPage.openExplainer(${Number(x.id)})}">
+        <div style="width:42px;height:42px;border-radius:10px;background:rgba(79,124,255,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="ti ti-player-play-filled" style="font-size:18px;color:var(--accent)"></i>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${esc(t)}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:3px">${esc(meta)}</div>
+        </div>
+        <span class="badge badge-blue" style="flex-shrink:0">${esc(x.category || '')}</span>
+      </div>`;
+    }).join('');
+    return `<div class="card-title" style="margin:4px 0 10px">Animated explainers · ${explainers.length}</div>
+      <div class="explainer-grid">${cards}</div>
+      <div class="card-title" style="margin:22px 0 10px">Files</div>`;
+  }
+
+  async function openExplainer(id) {
     try {
-      manuals = await API.getManuals();
-    } catch (e) { manuals = []; }
+      Explainer.open(await API.getExplainer(id), lang);
+    } catch (e) {
+      showToast(lang === 'sw' ? 'Imeshindikana kufungua' : 'Could not open that');
+    }
   }
 
   function render() {
@@ -94,7 +141,10 @@ const ManualsPage = (() => {
           </div>
         </div>
       </div>`;
-    }).join('') : '<div class="empty"><i class="ti ti-files"></i>No files uploaded yet</div>';
+    }).join('') : loadError
+      ? `<div class="empty"><i class="ti ti-cloud-off" style="color:var(--red)"></i>The files could not be loaded: ${esc(loadError)}
+          <div style="margin-top:12px"><button onclick="ManualsPage.reload()" style="padding:8px 16px;font-size:12px;background:rgba(79,124,255,.12);color:var(--accent);border:1px solid rgba(79,124,255,.25);border-radius:8px;cursor:pointer;font-family:var(--font)"><i class="ti ti-refresh"></i> Try again</button></div></div>`
+      : `<div class="empty"><i class="ti ti-files"></i>${manuals.length ? 'No files in this category' : 'No files uploaded yet'}${isAdmin && !manuals.length ? '<div style="font-size:12px;margin-top:6px">Manuals, videos and links you add with Upload Resource appear here for every role.</div>' : ''}</div>`;
 
     const stats = {
       total: manuals.length,
@@ -113,11 +163,13 @@ const ManualsPage = (() => {
     </div>
 
     <div class="stats-grid manuals-stats">
-      <div class="stat-card"><div class="stat-label">Total Files</div><div class="stat-val">${stats.total}</div><div class="stat-sub">all categories</div></div>
+      <div class="stat-card"><div class="stat-label">Total Files</div><div class="stat-val">${loadError ? '—' : stats.total}</div><div class="stat-sub">${explainers.length ? `+ ${explainers.length} animated explainer${explainers.length === 1 ? '' : 's'}` : 'all categories'}</div></div>
       <div class="stat-card a"><div class="stat-label">Documents</div><div class="stat-val" style="color:var(--amber)">${stats.docs}</div><div class="stat-sub">PDF, PPT, DOC, XLS</div></div>
       <div class="stat-card t"><div class="stat-label">Media</div><div class="stat-val" style="color:var(--teal)">${stats.media}</div><div class="stat-sub">images, video, audio</div></div>
       <div class="stat-card"><div class="stat-label">Total Size</div><div class="stat-val">${formatSize(stats.size)}</div><div class="stat-sub">cloud storage</div></div>
     </div>
+
+    ${explainerSection()}
 
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
       ${categoryChips}
@@ -373,5 +425,5 @@ const ManualsPage = (() => {
     }
   }
 
-  return { load, render, setFilter, openUpload, setUploadMode, submitUpload, download, preview, remove, openInNewTab };
+  return { load, reload, render, setFilter, openUpload, setUploadMode, submitUpload, download, preview, remove, openInNewTab, openExplainer };
 })();

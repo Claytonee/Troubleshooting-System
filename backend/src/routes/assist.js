@@ -23,6 +23,9 @@ router.get('/resources', assistController.resources);
 // description can name a person.
 router.post('/assess', assistController.assess);
 
+// Every explainer, as cards — the Resource Library lists them.
+router.get('/explainers', assistController.explainers);
+
 // One explainer's script. Static path, and this router has no /:id of its own
 // to collide with.
 router.get('/explainers/:id', assistController.explainer);

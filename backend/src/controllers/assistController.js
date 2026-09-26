@@ -80,6 +80,17 @@ async function assessFor(req, res, next) {
 }
 
 /**
+ * GET /api/assist/explainers — every active explainer, as cards (no scripts).
+ * The Resource Library lists these beside the uploaded files; any signed-in
+ * role, like the resources endpoint.
+ */
+async function explainerList(req, res, next) {
+  try {
+    res.json(await resources.listExplainers());
+  } catch (err) { next(err); }
+}
+
+/**
  * GET /api/assist/explainers/:id — one explainer's script.
  *
  * Only the script: the captions in both languages, which part of the drawing to
@@ -117,4 +128,4 @@ async function explainerFor(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { resources: resourcesFor, assess: assessFor, explainer: explainerFor };
+module.exports = { resources: resourcesFor, assess: assessFor, explainers: explainerList, explainer: explainerFor };

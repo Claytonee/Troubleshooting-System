@@ -451,6 +451,11 @@ Authorization: Bearer <jwt_token>
 | POST | /link | Yes | admin | Add webpage/URL resource |
 | DELETE | /:id | Yes | admin | Delete file + CDN cleanup |
 
+The page also lists the **animated explainers** (feature 15) from `GET /api/assist/explainers`
+(any signed-in role; cards only, no script). Each card opens `GET /api/assist/explainers/:id` in the
+explainer player. Both paths are in the service worker's cache, and `Offline.warm()` fetches every
+script at sign-in, so the "plays offline" on the card is true the first time.
+
 #### Registration (`/api/registration`)
 | Method | Path | Auth | Role | Description |
 |--------|------|------|------|-------------|
@@ -1018,6 +1023,14 @@ frontend/
 - **School admin self-edit:** School role can edit own profile (phone, email, contact)
 - **Admin notifications:** Contact changes by school admins trigger admin alerts
 - **Compact sticky header:** School profile detail has fixed hero card
+
+### Resource Library — explainers listed, failures shown (2026-09-26)
+- The library read only `manuals`. With no file ever uploaded it said "No files uploaded yet" while the
+  system held two explainers that only the report form could play. They now have their own section,
+  titled in the reader's language (Kiswahili unless chosen), at every breakpoint.
+- A failed `GET /api/manuals` used to become an empty list. It now says the files could not be loaded,
+  with a retry, and the explainers still show. `verify-resource-library.js` (39 checks).
+- Files still come only from **Upload Resource** (platform admin). Nothing seeds them.
 
 ### Resource Library — Open in New Tab
 - Cloudinary raw resources (PDF, DOCX) now open inline via blob URL

@@ -330,9 +330,16 @@ const Offline = (() => {
     const role = (API.getUser() || {}).role;
     const paths = ['/api/guides', '/api/settings', '/api/errors'];
     if (role !== 'teacher') paths.unshift('/api/schools');
-    await Promise.all(paths.map(p =>
-      fetch(p, { headers: { Authorization: 'Bearer ' + API.getToken() } }).catch(() => {})
-    ));
+    const get = (p) => fetch(p, { headers: { Authorization: 'Bearer ' + API.getToken() } });
+    await Promise.all(paths.map(p => get(p).catch(() => {})));
+    // The animated explainers: the list and every script, a few KB each. The
+    // Resource Library says they play offline, and that is only true once each
+    // script has been fetched — the one about the dead router is opened when
+    // the router is already dead.
+    try {
+      const list = await (await get('/api/assist/explainers')).json();
+      if (Array.isArray(list)) await Promise.all(list.map(x => get('/api/assist/explainers/' + Number(x.id)).catch(() => {})));
+    } catch (e) { /* offline or refused: the next sign-in warms it */ }
   }
 
   /** Resolves once a service worker is controlling this page (or is absent). */

@@ -703,6 +703,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .followup-layout { display: grid; grid-template-columns: 1fr 340px; }
 .teachers-link-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; }
 .manuals-stats { grid-template-columns: repeat(4, 1fr); }
+.explainer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap: 12px; }
+.explainer-card { display: flex; align-items: center; gap: 14px; padding: 16px; cursor: pointer; transition: border-color .15s; }
+.explainer-card:hover, .explainer-card:focus-visible { border-color: rgba(79,124,255,.45); outline: none; }
 .help-layout { display: grid; grid-template-columns: 200px 1fr; gap: 16px; align-items: start; }
 .guide-detail-grid { display: grid; grid-template-columns: 1fr 240px; gap: 14px; align-items: start; }
 .guide-sidebar { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 50px; }

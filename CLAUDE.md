@@ -439,6 +439,13 @@ The visit sheet now has three parts — what to carry (feature 9), the faults, a
 due (feature 11) — and signing a check off records `visit_id`, so what was actually done out
 there survives the drive home.
 
+### The Resource Library lists everything the system holds
+Files (`manuals`, uploaded by the platform admin, nothing seeds them) **and** the animated explainers
+(`GET /api/assist/explainers`). It once showed only files, so it read "No files uploaded yet" while two
+explainers existed (2026-09-26). **A failed request is never shown as an empty list**: files,
+explainers and language load with `Promise.allSettled`, and a failure says so with a retry.
+`verify-resource-library.js`.
+
 ### The knowledge loop runs both ways
 `services/knowledge.js`. Forward: `GET /api/guides/suggest` puts up to three guides above the
 description field on the report form, scored +10 category / +3 title word / +2 step word, and

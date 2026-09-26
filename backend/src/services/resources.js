@@ -161,13 +161,43 @@ async function guideCandidates(words, category) {
  * small enough to already be on the device when the uplink is dead — which is
  * exactly when the explainer about the dead uplink is needed.
  */
-async function explainerCandidates(words, category) {
+async function activeExplainers() {
   const [rows] = await pool.query(
     `SELECT id, explainer_key, art, category, equipment, title_sw, title_en, scenes
        FROM explainers WHERE is_active = 1 ORDER BY sort_order, id`
   );
+  return rows;
+}
+
+/** The card an explainer shows as: no script, just enough to decide whether to open it. */
+function explainerSummary(x, scenes) {
+  return {
+    id: x.id,
+    kind: 'animation',
+    key: x.explainer_key, art: x.art,
+    category: x.category, equipment: x.equipment,
+    title: { sw: x.title_sw, en: x.title_en },
+    steps_count: scenes.length,
+    // Roughly how long it runs, so the card can say so before anybody commits.
+    duration_s: Math.round(scenes.reduce((t, s) => t + (Number(s.ms) || 7000), 0) / 1000)
+  };
+}
+
+const scenesOf = (x) => (typeof x.scenes === 'string' ? safeJson(x.scenes) : (Array.isArray(x.scenes) ? x.scenes : []));
+
+/**
+ * Every active explainer, for the Resource Library. The library used to read
+ * only `manuals`, so it said "No files uploaded yet" while the system held
+ * explainers that the report form could play (reported 2026-09-26).
+ */
+async function listExplainers() {
+  return (await activeExplainers()).map(x => explainerSummary(x, scenesOf(x)));
+}
+
+async function explainerCandidates(words, category) {
+  const rows = await activeExplainers();
   return rows.map(x => {
-    const scenes = typeof x.scenes === 'string' ? safeJson(x.scenes) : (x.scenes || []);
+    const scenes = scenesOf(x);
     // Both languages are searched: a teacher types "haichaji" as readily as
     // "not charging", and the panel must find the same explainer either way.
     const hay = [x.title_sw, x.title_en, x.category, x.equipment,
@@ -175,15 +205,9 @@ async function explainerCandidates(words, category) {
     const { body, head } = overlap(words, hay, `${x.title_sw} ${x.title_en}`);
     if (!body && !head && !(category && x.category === category)) return null;
     return {
-      type: 'explainer', id: x.id,
+      type: 'explainer',
       score: (category && x.category === category ? 9 : 0) + body * 2 + head * 3 + KIND_WEIGHT.animation,
-      kind: 'animation',
-      key: x.explainer_key, art: x.art,
-      category: x.category, equipment: x.equipment,
-      title: { sw: x.title_sw, en: x.title_en },
-      steps_count: scenes.length,
-      // Roughly how long it runs, so the card can say so before anybody commits.
-      duration_s: Math.round(scenes.reduce((t, s) => t + (Number(s.ms) || 7000), 0) / 1000)
+      ...explainerSummary(x, scenes)
     };
   }).filter(Boolean);
 }
@@ -360,4 +384,4 @@ function empty() {
   return { matched: false, steps: [], watch: [], fixes: [], read: [], total: 0, candidate_ids: [] };
 }
 
-module.exports = { find, keywords, kindOf, FLOOR, KIND_WEIGHT };
+module.exports = { find, keywords, kindOf, listExplainers, FLOOR, KIND_WEIGHT };
